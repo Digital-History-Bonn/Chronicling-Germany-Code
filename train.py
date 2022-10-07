@@ -1,24 +1,23 @@
 import torch
 from torch.optim import AdamW, Adam
 from torch.nn import CrossEntropyLoss, BCELoss
-import torch.nn.functional as F
-
+import numpy as np
 from tqdm import tqdm
 
 from Dataloader import Dataloader
 from model import dhSegment
 from utils import plot_sampels, RollingAverage
+from sklearn.metrics import jaccard_score, accuracy_score
 
-
-EPOCHS = 10
+EPOCHS = 0
 BATCH_SIZE = 1
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 1, 2
-LEARNING_RATE = 0.0001                  # 0,0001 seems to work well
-LOSS_WEIGHTS = [1.0, 9.0]               # 1 and 5 seems to work well
+LEARNING_RATE = 0.0001  # 0,0001 seems to work well
+LOSS_WEIGHTS = [1.0, 9.0]  # 1 and 5 seems to work well
+
 
 # TODO: add validationfunktion for baseline
-# TODO: add comments
 
 
 def train(train_data, validation_data=None, train_size=150, validation_size=50,
@@ -35,7 +34,7 @@ def train(train_data, validation_data=None, train_size=150, validation_size=50,
     :return: None
     """
 
-    #create model
+    # create model
     model = dhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
     model = model.float()
 
@@ -52,7 +51,7 @@ def train(train_data, validation_data=None, train_size=150, validation_size=50,
     loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))
 
     # train
-    for e in range(1, EPOCHS+1):
+    for e in range(1, EPOCHS + 1):
         train_loop(train_dataloader, model, loss_fn, optimizer)
         plot_sampels(train_dataloader, n=2, model=model, title=f'after epoch: {e}')
 
@@ -80,7 +79,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     :return: None
     """
     dataloader = torch.utils.data.DataLoader(dataloader, batch_size=BATCH_SIZE, shuffle=True,
-                                                   num_workers=DATALOADER_WORKER)
+                                             num_workers=DATALOADER_WORKER)
 
     size = len(dataloader.dataset)
     rolling_average = RollingAverage(10)
@@ -109,20 +108,26 @@ def validation(dataloader, model, loss_fn):
     :param loss_fn: loss_fn to validate with
     :return: None
     """
-    # TODO: can I add a accuracy function?
 
     dataloader = torch.utils.data.DataLoader(dataloader, batch_size=BATCH_SIZE, shuffle=True,
-                                                  num_workers=DATALOADER_WORKER)
+                                             num_workers=DATALOADER_WORKER)
     size = len(dataloader.dataset)
     loss_sum = 0
+    jaccard_sum = 0
+    accuracy_sum = 0
     for batch, (X, Y, _) in tqdm(enumerate(dataloader), desc='validation_loop', total=size):
         # Compute prediction and loss
         pred = model(X)
         loss = loss_fn(pred, Y[0]).detach().numpy()
         loss_sum += loss
+        pred = np.argmax(pred.detach().numpy(), axis=1)
+        jaccard_sum += jaccard_score(Y[0].flatten(), pred.flatten(), average='macro')
+        accuracy_sum += accuracy_score(Y[0].flatten(), pred.flatten())
 
     print(f"average loss: {loss_sum / size}")
+    print(f"average accuracy: {accuracy_sum / size}")
+    print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
 
 
 if __name__ == '__main__':
-    train('data/Training/', 'data/Validation/', load_model='models/model.pt', save_model='models/model.pt')
+    train('data/Training/', 'data/Validation/', load_model='models/model.pt', save_model=None)
