@@ -9,7 +9,7 @@ from model import dhSegment
 from utils import plot_sampels, RollingAverage
 from sklearn.metrics import jaccard_score, accuracy_score
 
-EPOCHS = 0
+EPOCHS = 5
 BATCH_SIZE = 1
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 1, 2
