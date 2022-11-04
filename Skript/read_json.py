@@ -31,13 +31,18 @@ def img_save(outfile, img):
 
 
 def main(mode='numpy'):
+    # list all json files in INPUT-folder
     files = [f[:-5] for f in os.listdir(INPUT) if f.endswith(".json")]
     for file in tqdm(files):
+        # open all annotation jsons
         with open(f'{INPUT}{file}.json', 'r') as f:
             annotation = json.load(f)
-            img = draw_img(annotation)
 
-            {'numpy': np_save, 'image': img_save}[mode](file, img)
+        # draw image
+        img = draw_img(annotation)
+
+        # save image
+        {'numpy': np_save, 'image': img_save}[mode](file, img)
 
 
 if __name__ == '__main__':
