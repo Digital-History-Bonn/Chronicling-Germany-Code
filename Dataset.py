@@ -1,42 +1,46 @@
-from PIL import Image
-from os import listdir
-from os.path import isfile, join
+from Preprocessing import Preprocessing
+
+from skimage import io
 import numpy as np
 from tqdm import tqdm
 import torch
-import torchvision
+from torch.utils.data import Dataset
+import os
 
-from Preprocessing import Preprocessing
 
 DOWNSCALE = 3
+INPUT = "Data/input/"
+TARGETS = "Data/Targets/"
 
 
-class Dataloader:
-    def __init__(self, folder, limit=None, anno_images=3):
+# TODO: Random_split implementieren
+
+
+class Dataset(Dataset):
+    def __init__(self, limit=None):
         """
         Dataloader object loads all images with annotations from folder and preprocesses them
-        :param folder: path to data
         :param limit: limit for images that be loaded
-        :param anno_images: number of images that annotate one image
         """
-        self.anno_images = anno_images
         self.pipeline = Preprocessing()
-        files = [f for f in listdir(folder) if isfile(join(folder, f)) and f[-4:] == '.JPG']
-        files = list(set([f[:9] for f in files]))
-        if limit is not None:
-            files = files[:limit]
-
         self.x, self.y, self.masks = [], [], []
 
-        # Open the image form working directory
-        for file in tqdm(files, desc='load data'):
-            # load image
-            image = Image.open(folder + file + '.JPG')
+        # load images
+        images = [f for f in os.listdir(INPUT) if f.endswith(".tif")]
 
-            target = []
-            for i in range(self.anno_images):
-                channel = Image.open(folder + file + f'_GT{i}' + '.JPG')
-                target.append(channel)
+        # load targets
+        targets = [f for f in os.listdir(TARGETS) if f.endswith(".npy")]
+
+        if limit is not None:
+            targets = targets[:limit]
+            images = images[:limit]
+
+        # Open the image form working directory
+        print(len(images), len(targets))
+        for image_path, target_path in tqdm(zip(images, targets), desc='load data', total=len(images)):
+            # load image
+            image = io.imread(f"{INPUT}{image_path}", as_gray=True)
+            target = np.load(f"{TARGETS}{target_path}")
 
             image, target, mask = self.pipeline.preprocess(image, target)
 
@@ -45,18 +49,6 @@ class Dataloader:
             self.masks.append(mask)
 
         assert len(self.x) == len(self.y) == len(self.masks), f"x, y and masks size don't match!"
-
-    def _sort_by(self, files, first):
-        # TODO: delete this function im never used
-        dic = {}
-        for file in files:
-            name = file[:first]
-            if name in dic.keys():
-                dic[name].append(file)
-            else:
-                dic[name] = [file]
-
-        return dic
 
     def sample(self, nr):
         """
@@ -92,7 +84,7 @@ class Dataloader:
         """
         :return: number of predicted classes
         """
-        return self.y[0].shape[0]
+        return self.y
 
     @property
     def class_ratio(self):
@@ -106,13 +98,5 @@ class Dataloader:
 
 
 if __name__ == '__main__':
-    from utils import plot
-    dataloader = Dataloader('data/test/train/', 100)
-    print(dataloader.channel)
-    print(dataloader.class_ratio)
-    X, Y, M = dataloader[0]
-    print(X.shape)
-    print(Y.shape)
-
-    plot(X[None,:], Y[None,:])
-    print(np.max(Y.numpy()))
+    dataset = Dataset()
+    print(len(dataset))
