@@ -1,7 +1,4 @@
 from bs4 import BeautifulSoup
-import numpy as np
-from skimage import io
-from skimage import draw
 import os
 from tqdm import tqdm
 import json
@@ -9,21 +6,19 @@ import json
 """
 Script for reading out the Annotations from HLNA2013 
 """
-INPUT = "Annotationen/"
-OUTPUT = "Targets/"
+INPUT = "../Data/annotationen/"
+OUTPUT = "../Data/annotationen/"
 MISSED = []
 
 
 def main():
     files = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
     for file in tqdm(files):
-        annotation = read(f'Annotationen/{file}.xml')
-        img = draw_img(annotation)
-        io.imsave(f'{OUTPUT}{file}.png', img)
+        annotation = read(f'{INPUT}/{file}.xml')
         with open(f'{OUTPUT}{file}.json', 'w') as f:
             json.dump(annotation, f)
 
-    print(set(MISSED))
+    print(f"Your script missed the following annotations: {set(MISSED)}")
 
 
 def read(path):
@@ -84,51 +79,6 @@ def read(path):
     annotation['tables'] = tabels
 
     return annotation
-
-
-def draw_img(annotation):
-    """
-    draws an image with the information from the read-function
-    :param annotation: dict with information
-    :return: ndarray
-    """
-
-    x, y = annotation['size']
-    img = np.zeros((x, y))
-
-    if 'footnote' in annotation.keys():
-        for polygon in annotation['footnote']:
-            img = draw_polygon(img, polygon, label=6)
-
-    if 'paragraphs' in annotation.keys():
-        for polygon in annotation['paragraphs']:
-            img = draw_polygon(img, polygon, label=1)
-
-    if 'headings' in annotation.keys():
-        for polygon in annotation['headings']:
-            img = draw_polygon(img, polygon, label=2)
-
-    if 'header' in annotation.keys():
-        for polygon in annotation['header']:
-            img = draw_polygon(img, polygon, label=3)
-
-    if 'tables' in annotation.keys():
-        for polygon in annotation['tables']:
-            img = draw_polygon(img, polygon, label=4)
-
-    if 'separator' in annotation.keys():
-        for polygon in annotation['separator']:
-            img = draw_polygon(img, polygon, label=5)
-
-    return img
-
-
-def draw_polygon(img, polygon, label=1):
-    polygon = np.array(polygon).T
-    rr, cc = draw.polygon(polygon[1], polygon[0])
-    img[rr, cc] = label
-
-    return img
 
 
 if __name__ == '__main__':
