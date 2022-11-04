@@ -10,8 +10,8 @@ import json
 """
 Script for reading out the Annotations from Transcribus exports 
 """
-label_assignments = {"article": 1, "heading": 2, "header": 3, "table": 4, "separator_vertical": 5, "UnknownRegion": 6,
-                     "caption": 7, "separator_short": 8, "separator_horizontal": 9, "TextLine": 10}
+label_assignments = {"UnknownRegion": 1, "caption": 2, "table": 3, "article": 4, "heading": 5, "header": 6, "separator_vertical": 7,
+                     "separator_short": 8, "separator_horizontal": 9}
 INPUT = "annotations/"
 OUTPUT = "targets/"
 MISSED = []
