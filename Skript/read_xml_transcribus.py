@@ -1,7 +1,7 @@
-import numpy as np
+from draw_img import draw_img
+
 from bs4 import BeautifulSoup
 import re
-from skimage import draw
 from skimage import io
 import os
 from tqdm import tqdm
@@ -10,11 +10,9 @@ import json
 """
 Script for reading out the Annotations from Transcribus exports 
 """
-label_assignments = {"UnknownRegion": 1, "caption": 2, "table": 3, "article": 4, "heading": 5, "header": 6, "separator_vertical": 7,
-                     "separator_short": 8, "separator_horizontal": 9}
-INPUT = "annotations/"
-OUTPUT = "targets/"
-MISSED = []
+
+INPUT = "../Data/annotationen/"
+OUTPUT = "../Data/Targets/"
 
 
 def main():
@@ -25,8 +23,6 @@ def main():
         io.imsave(f'{OUTPUT}{file}.png', img)
         with open(f'{OUTPUT}{file}.json', 'w') as f:
             json.dump(annotation, f)
-
-    print(set(MISSED))
 
 
 def read(path):
@@ -76,32 +72,6 @@ def find_regions(data, tag, search_children, child_tag, tags_dict):
             for line in lines:
                 tags_dict[child_tag].append([pair.split(',') for pair in line.Coords["points"].split()])
     return tags_dict
-
-
-def draw_img(annotation):
-    """
-    draws an image with the information from the read-function
-    :param annotation: dict with information
-    :return: ndarray
-    """
-
-    x, y = annotation['size']
-    img = np.zeros((x, y))
-
-    for key, label in label_assignments.items():
-        if key in annotation['tags'].keys():
-            for polygon in annotation['tags'][key]:
-                img = draw_polygon(img, polygon, label=6)
-
-    return img
-
-
-def draw_polygon(img, polygon, label=1):
-    polygon = np.array(polygon, dtype=int).T
-    rr, cc = draw.polygon(polygon[1], polygon[0])
-    img[rr, cc] = label
-
-    return img
 
 
 if __name__ == '__main__':

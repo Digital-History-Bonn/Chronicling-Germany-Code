@@ -3,6 +3,7 @@ from draw_img import draw_img
 import numpy as np
 from skimage import io
 from tqdm import tqdm
+import sys
 import os
 import json
 
@@ -30,7 +31,10 @@ def img_save(outfile, img):
     io.imsave(f'{OUTPUT}{outfile}.png', img)
 
 
-def main(mode='numpy'):
+def main(mode='image'):
+    modes = {'numpy': np_save, 'image': img_save}
+    assert mode in modes.keys(), f"mode {mode} not in possible modes (\"numpy\", \"image\")"
+
     # list all json files in INPUT-folder
     files = [f[:-5] for f in os.listdir(INPUT) if f.endswith(".json")]
     for file in tqdm(files):
@@ -42,8 +46,10 @@ def main(mode='numpy'):
         img = draw_img(annotation)
 
         # save image
-        {'numpy': np_save, 'image': img_save}[mode](file, img)
+        modes[mode](file, img)
 
 
 if __name__ == '__main__':
-    main()
+    assert len(sys.argv) == 2, "too many arguments."
+    mode = sys.argv[1]
+    main(mode)

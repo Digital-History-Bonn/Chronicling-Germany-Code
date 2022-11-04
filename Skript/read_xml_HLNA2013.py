@@ -8,7 +8,6 @@ Script for reading out the Annotations from HLNA2013
 """
 INPUT = "../Data/annotationen/"
 OUTPUT = "../Data/annotationen/"
-MISSED = []
 
 
 def main():
@@ -17,8 +16,6 @@ def main():
         annotation = read(f'{INPUT}/{file}.xml')
         with open(f'{OUTPUT}{file}.json', 'w') as f:
             json.dump(annotation, f)
-
-    print(f"Your script missed the following annotations: {set(MISSED)}")
 
 
 def read(path):
@@ -34,6 +31,7 @@ def read(path):
     # read xml
     Bs_data = BeautifulSoup(data, "xml")
     annotation['size'] = (int(Bs_data.find('Page').get('imageHeight')), int(Bs_data.find('Page').get('imageWidth')))
+    annotation['tags'] = {}
 
     TextRegions = Bs_data.find_all('TextRegion')
     SeparatorRegions = Bs_data.find_all('SeparatorRegion')
@@ -43,7 +41,7 @@ def read(path):
     paragraphs = []
     headings = []
     header = []
-    footnote = []
+    UnknownRegion = []
     for sep in TextRegions:
         coord = sep.find('Coords')
         if sep.get('type') == 'heading':
@@ -52,15 +50,13 @@ def read(path):
             paragraphs.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
         elif sep.get('type') == 'header':
             header.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
-        elif sep.get('type') == 'footnote':
-            footnote.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
         else:
-            MISSED.append(sep.get('type'))
+            UnknownRegion.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
 
-    annotation['paragraphs'] = paragraphs
-    annotation['headings'] = headings
-    annotation['header'] = header
-    annotation['footnote'] = footnote
+    annotation['tags']['article'] = paragraphs
+    annotation['tags']['heading'] = headings
+    annotation['tags']['header'] = header
+    annotation['tags']['UnknownRegion'] = UnknownRegion
 
     # get coordinates of all seperators
     separator = []
@@ -68,7 +64,7 @@ def read(path):
         coord = sep.find('Coords')
         separator.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
 
-    annotation['separator'] = separator
+    annotation['tags']['separator_vertical'] = separator
 
     # get coordinates of all Tables
     tabels = []
@@ -76,7 +72,7 @@ def read(path):
         coord = table.find('Coords')
         tabels.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
 
-    annotation['tables'] = tabels
+    annotation['tags']['table'] = tabels
 
     return annotation
 
