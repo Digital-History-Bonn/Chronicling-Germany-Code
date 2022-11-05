@@ -4,7 +4,7 @@ from torch.nn.functional import conv2d
 from utils import step
 from skimage.transform import rescale
 
-SCALE = 4
+SCALE = 1
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
@@ -69,6 +69,7 @@ class Preprocessing:
         """
         if self.scale == 1:
             return img
+        # TODO: Fix this! Now it returns not Integer values for classes
         return rescale(img, 1/self.scale, anti_aliasing=False)
 
     def _pad_img(self, arr: np.array):

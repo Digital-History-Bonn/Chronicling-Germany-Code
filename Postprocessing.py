@@ -98,8 +98,8 @@ class Postprocess:
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from Dataloader import Dataloader
-    dataloader = Dataloader('data/Training/', limit=2)
+    from NewsDataset import NewsDataset
+    dataloader = NewsDataset('data/Training/', limit=2)
     postprocess = Postprocess()
 
     X, Y, m = dataloader[0]

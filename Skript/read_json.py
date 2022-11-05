@@ -13,43 +13,45 @@ OUTPUT = "../Data/Targets/"
 MISSED = []
 
 
-def np_save(outfile, img):
+def np_save(file: str, img: np.ndarray):
     """
     saves given image in outfile.npy
     :param outfile: name of the file without ending
     :param img: numpy array to save
     """
-    np.save(f"{OUTPUT}{outfile}.npy", img)
+    np.save(f"{file}.npy", img)
 
 
-def img_save(outfile, img):
+def img_save(file: str, img: np.ndarray):
     """
     saves given as outfile.png
     :param outfile: name of the file without ending
     :param img: numpy array to save
     """
-    io.imsave(f'{OUTPUT}{outfile}.png', img)
+    io.imsave(f'{file}.png', img)
 
 
-def main(mode='image'):
+def main(mode: str = 'image', input: str = INPUT, output: str = OUTPUT):
     modes = {'numpy': np_save, 'image': img_save}
     assert mode in modes.keys(), f"mode {mode} not in possible modes (\"numpy\", \"image\")"
 
     # list all json files in INPUT-folder
-    files = [f[:-5] for f in os.listdir(INPUT) if f.endswith(".json")]
+    files = [f[:-5] for f in os.listdir(input) if f.endswith(".json")]
     for file in tqdm(files):
         # open all annotation jsons
-        with open(f'{INPUT}{file}.json', 'r') as f:
+        with open(f'{input}{file}.json', 'r') as f:
             annotation = json.load(f)
 
         # draw image
         img = draw_img(annotation)
 
         # save image
-        modes[mode](file, img)
+        modes[mode](f"{output}{file}", img)
 
 
 if __name__ == '__main__':
-    assert len(sys.argv) == 2, "too many arguments."
+    assert len(sys.argv) == 4, "function needs 3 arguments."
     mode = sys.argv[1]
-    main(mode)
+    input = sys.argv[2]
+    output = sys.argv[3]
+    main(mode='numpy', input=input, output=output)

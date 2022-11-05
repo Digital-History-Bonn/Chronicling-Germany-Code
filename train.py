@@ -1,34 +1,29 @@
+from NewsDataset import NewsDataset
+from model import dhSegment
+from utils import RollingAverage
+
+from sklearn.metrics import jaccard_score, accuracy_score
 import torch
-from torch.optim import AdamW, Adam
-from torch.nn import CrossEntropyLoss, BCELoss
+from torch.optim import AdamW
+from torch.nn import CrossEntropyLoss
+from torch.utils.data import DataLoader
 import numpy as np
 from tqdm import tqdm
 
-from Dataloader import Dataloader
-from model import dhSegment
-from utils import plot_sampels, RollingAverage
-from sklearn.metrics import jaccard_score, accuracy_score
-
-EPOCHS = 5
+EPOCHS = 1
 BATCH_SIZE = 1
 DATALOADER_WORKER = 4
-IN_CHANNELS, OUT_CHANNELS = 1, 2
+IN_CHANNELS, OUT_CHANNELS = 1, 10
 LEARNING_RATE = 0.0001  # 0,0001 seems to work well
-LOSS_WEIGHTS = [1.0, 9.0]  # 1 and 5 seems to work well
+# LOSS_WEIGHTS = [1.0, 9.0]  # 1 and 5 seems to work well
+
+# set random seed for reproducibility
+torch.manual_seed(42)
 
 
-# TODO: add validationfunktion for baseline
-
-
-def train(train_data, validation_data=None, train_size=150, validation_size=50,
-          sample_plot=3, load_model=None, save_model=None):
+def train(load_model=None, save_model=None):
     """
     trainingsfunction
-    :param train_data: path to trainings-data
-    :param validation_data: path to validation-data
-    :param train_size: limit for loaded trainings images
-    :param validation_size: limit for loaded validation images
-    :param sample_plot: number of images used for sample plot
     :param load_model: (default: None) path to model to load
     :param save_model: (default: None) path to save the model
     :return: None
@@ -38,87 +33,87 @@ def train(train_data, validation_data=None, train_size=150, validation_size=50,
     model = dhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
     model = model.float()
 
+    # load model if argument is None it does nothing
     model.load(load_model)
 
-    # load train data
-    train_dataloader = Dataloader(train_data, limit=train_size)
-    print(f"ration between classes: {train_dataloader.class_ratio}")
+    # load data
+    dataset = NewsDataset()
 
-    plot_sampels(train_dataloader, n=sample_plot, model=model, title='before training')
+    # splitting with fractions should work according to pytorch doc, but it does not
+    train_set, test_set, _ = dataset.random_split([.9, .05, .05])
+    print(f"train size: {len(train_set)}, test size: {len(test_set)}")
+
+    print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
     # set optimizer and loss_fn
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))
+    loss_fn = CrossEntropyLoss()                            # weight=torch.tensor(LOSS_WEIGHTS)
 
     # train
     for e in range(1, EPOCHS + 1):
-        train_loop(train_dataloader, model, loss_fn, optimizer)
-        plot_sampels(train_dataloader, n=2, model=model, title=f'after epoch: {e}')
+        print(f"start epoch {e}:")
+        train_loop(train_set, model, loss_fn, optimizer)
 
     model.save(save_model)
 
-    if validation_data is None:
-        return
-
-    # load validation_data
-    test_dataloader = Dataloader(validation_data, limit=validation_size)
-
     # validation
-    validation(test_dataloader, model, loss_fn)
-
-    plot_sampels(test_dataloader, n=sample_plot, model=model, title=f'Samples from validation after training')
+    validation(test_set, model, loss_fn)
 
 
-def train_loop(dataloader, model, loss_fn, optimizer):
+def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn, optimizer):
     """
     executes one trainings epoch
-    :param dataloader: Dataloader object with data to train on
+    :param data: Dataloader object with data to train on
     :param model: model to train
     :param loss_fn: loss function to optimize
     :param optimizer: optimizer to use
     :return: None
     """
-    dataloader = torch.utils.data.DataLoader(dataloader, batch_size=BATCH_SIZE, shuffle=True,
-                                             num_workers=DATALOADER_WORKER)
+    device = 'cpu' # "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} device")
 
-    size = len(dataloader.dataset)
+    if device == 'cuda':
+        model.cuda()
+
+    size = len(data)
+    data = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=DATALOADER_WORKER)
+
     rolling_average = RollingAverage(10)
-    t = tqdm(enumerate(dataloader), desc='train_loop', total=size)
-    for batch, (X, Y, _) in t:
+    t = tqdm(data, desc='train_loop', total=size)
+    for X, Y, _ in t:
+        X = X.to(device)
+        Y = Y.to(device)
+
         # Compute prediction and loss
         pred = model(X)
-        # print(f"pred: {pred.shape}, Y:{Y[0].shape}")
-
-        loss = loss_fn(pred, Y[0])
-        # print(loss)
+        loss = loss_fn(pred, Y)
 
         # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
+        # update description
         t.set_description(f"loss: {rolling_average(loss.detach())}")
 
 
-def validation(dataloader, model, loss_fn):
+def validation(data: NewsDataset, model, loss_fn):
     """
     validation
-    :param dataloader: Dataloader with data to validate on
+    :param data: Dataloader with data to validate on
     :param model: model to validate
     :param loss_fn: loss_fn to validate with
     :return: None
     """
-
-    dataloader = torch.utils.data.DataLoader(dataloader, batch_size=BATCH_SIZE, shuffle=True,
-                                             num_workers=DATALOADER_WORKER)
-    size = len(dataloader.dataset)
+    size = len(data)
+    data = DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=DATALOADER_WORKER)
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for batch, (X, Y, _) in tqdm(enumerate(dataloader), desc='validation_loop', total=size):
+    for batch, (X, Y, _) in tqdm(enumerate(data), desc='validation_loop', total=size):
         # Compute prediction and loss
         pred = model(X)
-        loss = loss_fn(pred, Y[0]).detach().numpy()
+        loss = loss_fn(pred, Y).detach().numpy()
         loss_sum += loss
         pred = np.argmax(pred.detach().numpy(), axis=1)
         jaccard_sum += jaccard_score(Y[0].flatten(), pred.flatten(), average='macro')
@@ -130,4 +125,4 @@ def validation(dataloader, model, loss_fn):
 
 
 if __name__ == '__main__':
-    train('data/Training/', 'data/Validation/', load_model='models/model.pt', save_model=None)
+    train(load_model=None, save_model='Models/model.pt')

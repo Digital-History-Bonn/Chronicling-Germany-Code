@@ -5,7 +5,7 @@ LABEL_ASSIGNMENTS = {"UnknownRegion": 1, "caption": 2, "table": 3, "article": 4,
                      "separator_short": 8, "separator_horizontal": 9}
 
 
-def draw_img(annotation):
+def draw_img(annotation: dict):
     """
     draws an image with the information from the read-function
     :param annotation: dict with information
@@ -13,7 +13,7 @@ def draw_img(annotation):
     """
 
     x, y = annotation['size']
-    img = np.zeros((x, y))
+    img = np.zeros((x, y), dtype=int)
 
     for key, label in LABEL_ASSIGNMENTS.items():
         if key in annotation['tags'].keys():
@@ -23,7 +23,7 @@ def draw_img(annotation):
     return img
 
 
-def draw_polygon(img, polygon, label=1):
+def draw_polygon(img: np.ndarray, polygon: list[tuple[int]], label: int = 1):
     polygon = np.array(polygon, dtype=int).T
     rr, cc = draw.polygon(polygon[1], polygon[0])
     img[rr, cc] = label

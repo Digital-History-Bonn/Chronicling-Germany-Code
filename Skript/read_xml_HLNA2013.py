@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import os
+import sys
 from tqdm import tqdm
 import json
 
@@ -10,11 +11,11 @@ INPUT = "../Data/annotationen/"
 OUTPUT = "../Data/annotationen/"
 
 
-def main():
-    files = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
+def main(input=INPUT, output=OUTPUT):
+    files = [f[:-4] for f in os.listdir(input) if f.endswith(".xml")]
     for file in tqdm(files):
-        annotation = read(f'{INPUT}/{file}.xml')
-        with open(f'{OUTPUT}{file}.json', 'w') as f:
+        annotation = read(f'{input}/{file}.xml')
+        with open(f'{output}{file}.json', 'w') as f:
             json.dump(annotation, f)
 
 
@@ -78,4 +79,7 @@ def read(path):
 
 
 if __name__ == '__main__':
-    main()
+    assert len(sys.argv) == 3, "function needs 2 arguments."
+    input = sys.argv[1]
+    output = sys.argv[2]
+    main(input=input, output=output)
