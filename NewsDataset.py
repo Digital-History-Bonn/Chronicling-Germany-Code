@@ -19,7 +19,7 @@ class NewsDataset(Dataset):
         """
         Dataset object
         if x and y are paths to folder with images/np.array it loads all images with annotations and preprocesses them
-        if x, y and masks are np.ndarray it just creats a new NewsDataset object
+        if x, y and masks are np.ndarray it just creates a new NewsDataset object
         :param limit: limit for images that be loaded
         """
         if isinstance(x, np.ndarray) and isinstance(y, np.ndarray) and isinstance(masks, np.ndarray):
