@@ -1,14 +1,17 @@
+import torchsummary
+
 from NewsDataset import NewsDataset
 from model import DhSegment
 from utils import RollingAverage
 
-from sklearn.metrics import jaccard_score, accuracy_score
+import sklearn.metrics
 import torch
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 import numpy as np
-from tqdm import tqdm
+import tqdm
+import wandb
 
 EPOCHS = 5
 BATCH_SIZE = 1
@@ -35,6 +38,7 @@ def train(load_model=None, save_model=None):
     model = DhSegment([3, 3, 4, 3], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
     # [3, 4, 6, 4]
     model = model.float()
+    torchsummary.summary(model, input_size=(3, 64, 64), batch_size=-1)
 
     # load model if argument is None it does nothing
     model.load(load_model)
@@ -84,7 +88,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
         model.train()
         # rolling_average = RollingAverage(10)
 
-        with tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
+        with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
             print(torch.cuda.memory_summary(device=DEVICE, abbreviated=False))
             for batch in train_loader:
                 images = batch[0]
@@ -102,6 +106,12 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
+                experiment.log({'images': wandb.Image(images[0].cpu()),
+                                'masks': {
+                                    'true': wandb.Image(true_masks[0].float().cpu()),
+                                    'pred': wandb.Image(pred.argmax(dim=1)[0].float().cpu()),
+                                    'train_loss': loss.item()
+                                }, })
                 # print(f"optimizer: {torch.cuda.memory_reserved()=}")
                 # update description
                 pbar.update(images.shape[0])
@@ -128,7 +138,7 @@ def validation(data: NewsDataset, model, loss_fn):
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for images, masks, _ in tqdm(data, desc='validation_loop', total=size):
+    for images, masks, _ in tqdm.tqdm(data, desc='validation_loop', total=size):
         # Compute prediction and loss
         images = images.to(device)
         masks = masks.to(device)
@@ -143,8 +153,8 @@ def validation(data: NewsDataset, model, loss_fn):
 
         loss_sum += loss
         pred = np.argmax(pred, axis=1)
-        jaccard_sum += jaccard_score(masks.flatten(), pred.flatten(), average='macro')
-        accuracy_sum += accuracy_score(masks.flatten(), pred.flatten())
+        jaccard_sum += sklearn.metrics.jaccard_score(masks.flatten(), pred.flatten(), average='macro')
+        accuracy_sum += sklearn.metrics.accuracy_score(masks.flatten(), pred.flatten())
 
         del images, masks, pred, loss
         torch.cuda.empty_cache()
@@ -156,4 +166,5 @@ def validation(data: NewsDataset, model, loss_fn):
 
 if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    experiment = wandb.init(project='newspaper-segmentation', resume='allow', anonymous='must')
     train(load_model=None, save_model='Models/model.pt')

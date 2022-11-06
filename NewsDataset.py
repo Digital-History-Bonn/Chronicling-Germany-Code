@@ -1,14 +1,15 @@
+
+import os
+
 from typing import List
-
-from Preprocessing import Preprocessing
-
-from skimage import io
+import skimage
+import tqdm
 import numpy as np
-from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
 from torch import randperm
-import os
+
+from Preprocessing import Preprocessing
 
 INPUT = "Data/scale4/input/"
 TARGETS = "Data/scale4/Targets/"
@@ -38,9 +39,9 @@ class NewsDataset(Dataset):
                 images = images[:limit]
 
             # Open the image form working directory
-            for file in tqdm(images, desc='load data', total=len(images)):
+            for file in tqdm.tqdm(images, desc='load data', total=len(images)):
                 # load image
-                image = io.imread(f"{INPUT}{file}.tif", as_gray=True)
+                image = skimage.io.imread(f"{INPUT}{file}.tif", as_gray=True)
                 target = np.load(f"{TARGETS}pc-{file}.npy")
 
                 image, target, mask = pipeline.preprocess(image, target)
@@ -90,7 +91,7 @@ class NewsDataset(Dataset):
         """
         ratio = {c: 0 for c in range(class_nr)}
         size = 0
-        for y in tqdm(self.y, desc='calc class ratio'):
+        for y in tqdm.tqdm(self.y, desc='calc class ratio'):
             size += y.size
             values, counts = np.unique(y, return_counts=True)
             for v, c in zip(values, counts):
@@ -103,9 +104,9 @@ class NewsDataset(Dataset):
         :param ratio: list[float]:
         """
         assert sum(ratio) == 1, "ratio does not sum up to 1."
-        splits = [int(r * len(self)) for r in ratio[1:]]
-        splits.insert(0, len(self) - sum(splits))
-        splits = [(sum(splits[:x]), sum(splits[:x + 1])) for x in range(len(ratio))]
+        split = [int(r * len(self)) for r in ratio[1:]]
+        split.insert(0, len(self) - sum(split))
+        splits = [(sum(split[:x]), sum(split[:x + 1])) for x in range(len(ratio))]
 
         g = torch.Generator().manual_seed(42)
         indices = randperm(len(self), generator=g).tolist()

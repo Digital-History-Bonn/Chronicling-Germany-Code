@@ -1,10 +1,11 @@
 import numpy as np
 import torch
+import PIL
+from numpy import ndarray
 from torch.nn.functional import conv2d
 from utils import step
-from skimage.transform import rescale
 
-SCALE = 1
+SCALE = 0.5
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
@@ -57,23 +58,42 @@ class Preprocessing:
         image, mask = self._pad_img(image)
 
         if target is not None:
-            target = self._scale_img(target)
+            target = self._scale_mask(target)
             target, _ = self._pad_img(target)
 
         return image, target, mask
 
-    def _scale_img(self, img: np.array):
+    def _scale_img(self, image: ndarray):
         """
         scales down all given images by self.scale
-        :param args: images
+        :param image: image
         :return: list of downscaled images
         """
+        image = image*255
+        pil_img = PIL.Image.fromarray(image.astype('int8'))
         if self.scale == 1:
-            return img
-        # TODO: Fix this! Now it returns not Integer values for classes
-        return rescale(img, 1 / self.scale, anti_aliasing=False)
+            return np.asarray(pil_img, dtype=np.float32)/255
+        width, height = int(SCALE * pil_img.size[0]), int(SCALE * pil_img.size[1])
+        pil_img = pil_img.resize((width, height), resample=PIL.Image.NEAREST)
+        return np.asarray(pil_img, dtype=np.float32)/255
 
-    def _pad_img(self, arr: np.array):
+    def _scale_mask(self, mask: ndarray):
+        """
+        scales down all given images by self.scale
+        :param mask: mask
+        :return: list of downscaled images
+        """
+        #TODO: spacing is dependent on label count.
+        spacing = 20
+        mask = mask*spacing
+        pil_img = PIL.Image.fromarray(mask.astype('int8'))
+        if self.scale == 1:
+            return np.asarray(pil_img, dtype=np.float32)/spacing
+        width, height = int(SCALE * pil_img.size[0]), int(SCALE * pil_img.size[1])
+        pil_img = pil_img.resize((width, height), resample=PIL.Image.NEAREST)
+        return np.asarray(pil_img, dtype=np.float32)/spacing
+
+    def _pad_img(self, arr: ndarray):
         """
         pad image to be dividable by 2^self.expansion
         :param arr: np array of image
