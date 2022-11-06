@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from tqdm import tqdm
 
-EPOCHS = 1
+EPOCHS = 5
 BATCH_SIZE = 1
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 1, 10
@@ -30,11 +30,17 @@ def train(load_model=None, save_model=None):
     """
 
     # create model
-    model = dhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
+    model = dhSegment([3, 3, 4, 3], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)    # [3, 4, 6, 4]
     model = model.float()
 
     # load model if argument is None it does nothing
     model.load(load_model)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} device")
+
+    if device == 'cuda':
+        model.cuda()
 
     # load data
     dataset = NewsDataset()
@@ -60,7 +66,7 @@ def train(load_model=None, save_model=None):
     validation(test_set, model, loss_fn)
 
 
-def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn, optimizer):
+def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn: torch.nn.Module, optimizer: torch.optim.Optimizer):
     """
     executes one trainings epoch
     :param data: Dataloader object with data to train on
@@ -69,11 +75,7 @@ def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn, optimizer):
     :param optimizer: optimizer to use
     :return: None
     """
-    device = 'cpu' # "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
-
-    if device == 'cuda':
-        model.cuda()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     size = len(data)
     data = torch.utils.data.DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=DATALOADER_WORKER)
@@ -81,20 +83,28 @@ def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn, optimizer):
     rolling_average = RollingAverage(10)
     t = tqdm(data, desc='train_loop', total=size)
     for X, Y, _ in t:
+        # print(f"{X.shape=}")
+        # print(f"start: {torch.cuda.memory_reserved()=}")
         X = X.to(device)
         Y = Y.to(device)
 
         # Compute prediction and loss
         pred = model(X)
+        # print(f"pred: {torch.cuda.memory_reserved()=}")
         loss = loss_fn(pred, Y)
-
+        # print(f"loss: {torch.cuda.memory_reserved()=}")
         # Backpropagation
         optimizer.zero_grad()
         loss.backward()
+        # print(f"backward: {torch.cuda.memory_reserved()=}")
         optimizer.step()
-
+        # print(f"optimizer: {torch.cuda.memory_reserved()=}")
         # update description
         t.set_description(f"loss: {rolling_average(loss.detach())}")
+        del X, Y, pred, loss
+        torch.cuda.empty_cache()
+        # print(f"end: {torch.cuda.memory_reserved()=}")
+        # print()
 
 
 def validation(data: NewsDataset, model, loss_fn):
@@ -105,19 +115,34 @@ def validation(data: NewsDataset, model, loss_fn):
     :param loss_fn: loss_fn to validate with
     :return: None
     """
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     size = len(data)
     data = DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=DATALOADER_WORKER)
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for batch, (X, Y, _) in tqdm(enumerate(data), desc='validation_loop', total=size):
+    for X, Y, _ in tqdm(data, desc='validation_loop', total=size):
         # Compute prediction and loss
+        X = X.to(device)
+        Y = Y.to(device)
+
         pred = model(X)
-        loss = loss_fn(pred, Y).detach().numpy()
+        loss = loss_fn(pred, Y)
+
+        pred = pred.detach().cpu().numpy()
+        loss = loss.detach().cpu().numpy()
+        X = X.detach().cpu().numpy()
+        Y = Y.detach().cpu().numpy()
+
         loss_sum += loss
-        pred = np.argmax(pred.detach().numpy(), axis=1)
-        jaccard_sum += jaccard_score(Y[0].flatten(), pred.flatten(), average='macro')
-        accuracy_sum += accuracy_score(Y[0].flatten(), pred.flatten())
+        pred = np.argmax(pred, axis=1)
+        jaccard_sum += jaccard_score(Y.flatten(), pred.flatten(), average='macro')
+        accuracy_sum += accuracy_score(Y.flatten(), pred.flatten())
+
+        del X, Y, pred, loss
+        torch.cuda.empty_cache()
 
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
