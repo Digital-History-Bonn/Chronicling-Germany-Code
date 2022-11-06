@@ -1,9 +1,4 @@
 import torchsummary
-
-from NewsDataset import NewsDataset
-from model import DhSegment
-from utils import RollingAverage
-
 import sklearn.metrics
 import torch
 from torch.optim import AdamW
@@ -12,6 +7,8 @@ from torch.utils.data import DataLoader
 import numpy as np
 import tqdm
 import wandb
+from NewsDataset import NewsDataset
+from model import DhSegment
 
 EPOCHS = 5
 BATCH_SIZE = 1

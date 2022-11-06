@@ -54,39 +54,24 @@ class Preprocessing:
         :return: image, target, mask
         """
         # scale
-        image = self._scale_img(image)
+        image = self._scale_img(image, 255)
         image, mask = self._pad_img(image)
 
         if target is not None:
-            target = self._scale_mask(target)
+            # TODO: spacing is dependent on label count.
+            target = self._scale_img(target, 20)
             target, _ = self._pad_img(target)
 
         return image, target, mask
 
-    def _scale_img(self, image: ndarray):
+    def _scale_img(self, image: ndarray, spacing):
         """
         scales down all given images by self.scale
         :param image: image
         :return: list of downscaled images
         """
-        image = image*255
+        image = image*spacing
         pil_img = PIL.Image.fromarray(image.astype('int8'))
-        if self.scale == 1:
-            return np.asarray(pil_img, dtype=np.float32)/255
-        width, height = int(SCALE * pil_img.size[0]), int(SCALE * pil_img.size[1])
-        pil_img = pil_img.resize((width, height), resample=PIL.Image.NEAREST)
-        return np.asarray(pil_img, dtype=np.float32)/255
-
-    def _scale_mask(self, mask: ndarray):
-        """
-        scales down all given images by self.scale
-        :param mask: mask
-        :return: list of downscaled images
-        """
-        #TODO: spacing is dependent on label count.
-        spacing = 20
-        mask = mask*spacing
-        pil_img = PIL.Image.fromarray(mask.astype('int8'))
         if self.scale == 1:
             return np.asarray(pil_img, dtype=np.float32)/spacing
         width, height = int(SCALE * pil_img.size[0]), int(SCALE * pil_img.size[1])
