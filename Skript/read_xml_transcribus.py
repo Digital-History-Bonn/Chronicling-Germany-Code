@@ -1,15 +1,14 @@
-from draw_img import draw_img
-
-from bs4 import BeautifulSoup
+"""
+Script for reading out the Annotations from Transcribus exports
+"""
 import re
-from skimage import io
 import os
-from tqdm import tqdm
 import json
+from draw_img import draw_img
+from bs4 import BeautifulSoup
+from skimage import io
+from tqdm import tqdm
 
-"""
-Script for reading out the Annotations from Transcribus exports 
-"""
 
 INPUT = "../Data/annotationen/"
 OUTPUT = "../Data/targets/"

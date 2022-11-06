@@ -8,3 +8,4 @@ Tested on Python 3.10.4. Other requirements in requirements.txt
 
 ## Code Style
 Pylint can be used with pycharm by installing the pylint plugin.
+My py can be used with pycharm by installing the my py plugin.
