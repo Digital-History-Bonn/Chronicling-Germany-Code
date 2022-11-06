@@ -9,6 +9,7 @@ EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
 
+
 # TODO: Maybe it's easier to save annotations in one "image"
 
 
@@ -25,7 +26,7 @@ class Preprocessing:
         :param thicken_under: (default: 0) value to thicken the baselines under
         """
         self.scale = scale
-        self.expansion = 2**expansion
+        self.expansion = 2 ** expansion
         self.image_pad_values = tuple([(x, x) for x in image_pad_values])
         self.target_pad_values = tuple([(x, x) for x in target_pad_values])
         self.thicken_above = thicken_above
@@ -70,7 +71,7 @@ class Preprocessing:
         if self.scale == 1:
             return img
         # TODO: Fix this! Now it returns not Integer values for classes
-        return rescale(img, 1/self.scale, anti_aliasing=False)
+        return rescale(img, 1 / self.scale, anti_aliasing=False)
 
     def _pad_img(self, arr: np.array):
         """
@@ -81,9 +82,10 @@ class Preprocessing:
         """
         assert arr.ndim == 2, f"{arr.shape=}"
         mask = np.zeros(arr.ndim * 2, dtype=int)
-        mask[-4:] = (0, self.expansion - (arr.shape[-2] % self.expansion), 0, self.expansion - (arr.shape[-1] % self.expansion))
+        mask[-4:] = (
+        0, self.expansion - (arr.shape[-2] % self.expansion), 0, self.expansion - (arr.shape[-1] % self.expansion))
         mask = mask.reshape(-1, 2)
-        arr = np.pad(arr, mask, 'constant', constant_values=0)              # maybe make constant_values a variable
+        arr = np.pad(arr, mask, 'constant', constant_values=0)  # maybe make constant_values a variable
 
         assert arr.shape[0] % 32 == 0 and arr.shape[1] % 32 == 0, f"shape not in the right shape {arr.shape}"
 

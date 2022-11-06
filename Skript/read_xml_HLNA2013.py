@@ -11,10 +11,10 @@ INPUT = "../Data/annotationen/"
 OUTPUT = "../Data/annotationen/"
 
 
-def main(input=INPUT, output=OUTPUT):
-    files = [f[:-4] for f in os.listdir(input) if f.endswith(".xml")]
+def main(data=INPUT, output=OUTPUT):
+    files = [f[:-4] for f in os.listdir(data) if f.endswith(".xml")]
     for file in tqdm(files):
-        annotation = read(f'{input}/{file}.xml')
+        annotation = read(f'{data}/{file}.xml')
         with open(f'{output}{file}.json', 'w') as f:
             json.dump(annotation, f)
 
@@ -30,20 +30,20 @@ def read(path):
         data = f.read()
 
     # read xml
-    Bs_data = BeautifulSoup(data, "xml")
-    annotation['size'] = (int(Bs_data.find('Page').get('imageHeight')), int(Bs_data.find('Page').get('imageWidth')))
+    bs_data = BeautifulSoup(data, "xml")
+    annotation['size'] = (int(bs_data.find('Page').get('imageHeight')), int(bs_data.find('Page').get('imageWidth')))
     annotation['tags'] = {}
 
-    TextRegions = Bs_data.find_all('TextRegion')
-    SeparatorRegions = Bs_data.find_all('SeparatorRegion')
-    TableRegions = Bs_data.find_all('TableRegion')
+    text_regions = bs_data.find_all('TextRegion')
+    separator_regions = bs_data.find_all('SeparatorRegion')
+    table_regions = bs_data.find_all('TableRegion')
 
     # get coordinates of all TextRegions
     paragraphs = []
     headings = []
     header = []
-    UnknownRegion = []
-    for sep in TextRegions:
+    unknown_region = []
+    for sep in text_regions:
         coord = sep.find('Coords')
         if sep.get('type') == 'heading':
             headings.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
@@ -52,16 +52,16 @@ def read(path):
         elif sep.get('type') == 'header':
             header.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
         else:
-            UnknownRegion.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
+            unknown_region.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
 
     annotation['tags']['article'] = paragraphs
     annotation['tags']['heading'] = headings
     annotation['tags']['header'] = header
-    annotation['tags']['UnknownRegion'] = UnknownRegion
+    annotation['tags']['UnknownRegion'] = unknown_region
 
     # get coordinates of all seperators
     separator = []
-    for sep in SeparatorRegions:
+    for sep in separator_regions:
         coord = sep.find('Coords')
         separator.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
 
@@ -69,7 +69,7 @@ def read(path):
 
     # get coordinates of all Tables
     tabels = []
-    for table in TableRegions:
+    for table in table_regions:
         coord = table.find('Coords')
         tabels.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
 
@@ -80,6 +80,6 @@ def read(path):
 
 if __name__ == '__main__':
     assert len(sys.argv) == 3, "function needs 2 arguments."
-    input = sys.argv[1]
+    data = sys.argv[1]
     output = sys.argv[2]
-    main(input=input, output=output)
+    main(data=data, output=output)

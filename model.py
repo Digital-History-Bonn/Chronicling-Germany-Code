@@ -118,11 +118,11 @@ class Bottleneck(nn.Module):
         return out
 
 
-class dhSegment(nn.Module):
+class DhSegment(nn.Module):
     def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None, load_resnet_weights=False):
-        super(dhSegment, self).__init__()
+        super(DhSegment, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
@@ -191,9 +191,8 @@ class dhSegment(nn.Module):
                 norm_layer(planes * Bottleneck.expansion),
             )
 
-        layers = []
-        layers.append(Bottleneck(self.inplanes, planes, stride, downsample, self.groups,
-                                 self.base_width, previous_dilation, norm_layer))
+        layers = [Bottleneck(self.inplanes, planes, stride, downsample, self.groups,
+                             self.base_width, previous_dilation, norm_layer)]
         self.inplanes = planes * Bottleneck.expansion
         for _ in range(1, blocks):
             layers.append(Bottleneck(self.inplanes, planes, groups=self.groups,
@@ -275,12 +274,12 @@ class dhSegment(nn.Module):
 
 
 def _dhSegment(arch, layers, pretrained, progress, **kwargs):
-    model = dhSegment(layers, **kwargs)
+    net = DhSegment(layers, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
-        model.load_state_dict(state_dict)
-    return model
+        net.load_state_dict(state_dict)
+    return net
 
 
 def create_dhSegment(pretrained=False, progress=True, **kwargs):
@@ -299,4 +298,4 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
-    model = dhSegment([3, 4, 6, 4], 1, load_resnet_weights=True)
+    model = DhSegment([3, 4, 6, 4], 1, load_resnet_weights=True)

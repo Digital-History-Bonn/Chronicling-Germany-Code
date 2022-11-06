@@ -12,9 +12,7 @@ OUTPUTS = ("../Data/scale4/input/", "../Data/scale4/annotationen/")
 
 
 def rescale_anno(anno: dict, scale):
-    new = {}
-    new['size'] = (np.array(anno['size'])//scale).tolist()
-    new['tags'] = {}
+    new = {'size': (np.array(anno['size']) // scale).tolist(), 'tags': {}}
     for key, value in anno['tags'].items():
         new_value = []
         for polygon in value:
@@ -45,5 +43,4 @@ def downscale(scale=2):
 
 if __name__ == '__main__':
     assert len(sys.argv) == 2, "function needs 1 argument."
-    scale = int(sys.argv[1])
-    downscale(scale=scale)
+    downscale(scale=int(sys.argv[1]))

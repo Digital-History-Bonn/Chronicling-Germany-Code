@@ -1,8 +1,9 @@
 from skimage import draw
 import numpy as np
+from typing import List, Tuple
 
-LABEL_ASSIGNMENTS = {"UnknownRegion": 1, "caption": 2, "table": 3, "article": 4, "heading": 5, "header": 6, "separator_vertical": 7,
-                     "separator_short": 8, "separator_horizontal": 9}
+LABEL_ASSIGNMENTS = {"UnknownRegion": 1, "caption": 2, "table": 3, "article": 4, "heading": 5, "header": 6,
+                     "separator_vertical": 7, "separator_short": 8, "separator_horizontal": 9}
 
 
 def draw_img(annotation: dict):
@@ -23,7 +24,7 @@ def draw_img(annotation: dict):
     return img
 
 
-def draw_polygon(img: np.ndarray, polygon: list[tuple[int]], label: int = 1):
+def draw_polygon(img: np.ndarray, polygon: List[Tuple[int]], label: int = 1):
     polygon = np.array(polygon, dtype=int).T
     rr, cc = draw.polygon(polygon[1], polygon[0])
     img[rr, cc] = label

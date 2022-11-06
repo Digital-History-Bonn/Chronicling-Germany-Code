@@ -1,5 +1,5 @@
 from NewsDataset import NewsDataset
-from model import dhSegment
+from model import DhSegment
 from utils import RollingAverage
 
 from sklearn.metrics import jaccard_score, accuracy_score
@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 EPOCHS = 5
 BATCH_SIZE = 1
-DATALOADER_WORKER = 4
+DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 1, 10
 LEARNING_RATE = 0.0001  # 0,0001 seems to work well
 # LOSS_WEIGHTS = [1.0, 9.0]  # 1 and 5 seems to work well
@@ -30,7 +30,8 @@ def train(load_model=None, save_model=None):
     """
 
     # create model
-    model = dhSegment([3, 3, 4, 3], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)    # [3, 4, 6, 4]
+    model = DhSegment([3, 3, 4, 3], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
+    # [3, 4, 6, 4]
     model = model.float()
 
     # load model if argument is None it does nothing
@@ -53,7 +54,7 @@ def train(load_model=None, save_model=None):
 
     # set optimizer and loss_fn
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
-    loss_fn = CrossEntropyLoss()                            # weight=torch.tensor(LOSS_WEIGHTS)
+    loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
 
     # train
     for e in range(1, EPOCHS + 1):
@@ -82,16 +83,16 @@ def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn: torch.nn.Modu
 
     rolling_average = RollingAverage(10)
     t = tqdm(data, desc='train_loop', total=size)
-    for X, Y, _ in t:
+    for images, masks, _ in t:
         # print(f"{X.shape=}")
         # print(f"start: {torch.cuda.memory_reserved()=}")
-        X = X.to(device)
-        Y = Y.to(device)
+        images = images.to(device)
+        masks = masks.to(device)
 
         # Compute prediction and loss
-        pred = model(X)
+        pred = model(images)
         # print(f"pred: {torch.cuda.memory_reserved()=}")
-        loss = loss_fn(pred, Y)
+        loss = loss_fn(pred, masks)
         # print(f"loss: {torch.cuda.memory_reserved()=}")
         # Backpropagation
         optimizer.zero_grad()
@@ -101,10 +102,13 @@ def train_loop(data: NewsDataset, model: torch.nn.Module, loss_fn: torch.nn.Modu
         # print(f"optimizer: {torch.cuda.memory_reserved()=}")
         # update description
         t.set_description(f"loss: {rolling_average(loss.detach())}")
-        del X, Y, pred, loss
+        del images, masks, pred, loss
         torch.cuda.empty_cache()
         # print(f"end: {torch.cuda.memory_reserved()=}")
         # print()
+
+        del images, masks, pred, loss
+        torch.cuda.empty_cache()
 
 
 def validation(data: NewsDataset, model, loss_fn):
@@ -123,25 +127,25 @@ def validation(data: NewsDataset, model, loss_fn):
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for X, Y, _ in tqdm(data, desc='validation_loop', total=size):
+    for images, masks, _ in tqdm(data, desc='validation_loop', total=size):
         # Compute prediction and loss
-        X = X.to(device)
-        Y = Y.to(device)
+        images = images.to(device)
+        masks = masks.to(device)
 
-        pred = model(X)
-        loss = loss_fn(pred, Y)
+        pred = model(images)
+        loss = loss_fn(pred, masks)
 
         pred = pred.detach().cpu().numpy()
         loss = loss.detach().cpu().numpy()
-        X = X.detach().cpu().numpy()
-        Y = Y.detach().cpu().numpy()
+        # images = images.detach().cpu().numpy()
+        masks = masks.detach().cpu().numpy()
 
         loss_sum += loss
         pred = np.argmax(pred, axis=1)
-        jaccard_sum += jaccard_score(Y.flatten(), pred.flatten(), average='macro')
-        accuracy_sum += accuracy_score(Y.flatten(), pred.flatten())
+        jaccard_sum += jaccard_score(masks.flatten(), pred.flatten(), average='macro')
+        accuracy_sum += accuracy_score(masks.flatten(), pred.flatten())
 
-        del X, Y, pred, loss
+        del images, masks, pred, loss
         torch.cuda.empty_cache()
 
     print(f"average loss: {loss_sum / size}")

@@ -16,7 +16,7 @@ MISSED = []
 def np_save(file: str, img: np.ndarray):
     """
     saves given image in outfile.npy
-    :param outfile: name of the file without ending
+    :param file: name of the file without ending
     :param img: numpy array to save
     """
     np.save(f"{file}.npy", img)
@@ -25,21 +25,21 @@ def np_save(file: str, img: np.ndarray):
 def img_save(file: str, img: np.ndarray):
     """
     saves given as outfile.png
-    :param outfile: name of the file without ending
+    :param file: name of the file without ending
     :param img: numpy array to save
     """
     io.imsave(f'{file}.png', img)
 
 
-def main(mode: str = 'image', input: str = INPUT, output: str = OUTPUT):
+def main(mode: str = 'image', data: str = INPUT, output: str = OUTPUT):
     modes = {'numpy': np_save, 'image': img_save}
     assert mode in modes.keys(), f"mode {mode} not in possible modes (\"numpy\", \"image\")"
 
     # list all json files in INPUT-folder
-    files = [f[:-5] for f in os.listdir(input) if f.endswith(".json")]
+    files = [f[:-5] for f in os.listdir(data) if f.endswith(".json")]
     for file in tqdm(files):
         # open all annotation jsons
-        with open(f'{input}{file}.json', 'r') as f:
+        with open(f'{data}{file}.json', 'r') as f:
             annotation = json.load(f)
 
         # draw image
@@ -54,4 +54,4 @@ if __name__ == '__main__':
     mode = sys.argv[1]
     input = sys.argv[2]
     output = sys.argv[3]
-    main(mode='numpy', input=input, output=output)
+    main(mode='numpy', data=input, output=output)

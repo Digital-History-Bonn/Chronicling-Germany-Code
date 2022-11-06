@@ -1,3 +1,5 @@
+from typing import List
+
 from Preprocessing import Preprocessing
 
 from skimage import io
@@ -8,10 +10,8 @@ from torch.utils.data import Dataset
 from torch import randperm
 import os
 
-
 INPUT = "Data/scale4/input/"
 TARGETS = "Data/scale4/Targets/"
-
 
 
 class NewsDataset(Dataset):
@@ -71,7 +71,9 @@ class NewsDataset(Dataset):
         :param item: number of the datapoint
         :return: torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        return torch.tensor(np.array([self.x[item]]), dtype=torch.float), torch.tensor(np.array(self.y[item]), dtype=torch.int64), self.masks[item]
+        return torch.tensor(np.array([self.x[item]]), dtype=torch.float), torch.tensor(np.array(self.y[item]),
+                                                                                       dtype=torch.int64), self.masks[
+                   item]
 
     def save(self, path):
         np.savez_compressed(path, x=self.x, y=self.y, masks=self.masks)
@@ -93,17 +95,17 @@ class NewsDataset(Dataset):
             values, counts = np.unique(y, return_counts=True)
             for v, c in zip(values, counts):
                 ratio[v] += c
-        return {c: v/size for c, v in ratio.items()}
+        return {c: v / size for c, v in ratio.items()}
 
-    def random_split(self, ratio: list[float]):
+    def random_split(self, ratio: List[float]):
         """
         splits the dataset in parts of size given in ratio
-        :param ratio list[float]:
+        :param ratio: list[float]:
         """
         assert sum(ratio) == 1, "ratio does not sum up to 1."
         splits = [int(r * len(self)) for r in ratio[1:]]
         splits.insert(0, len(self) - sum(splits))
-        splits = [(sum(splits[:x]), sum(splits[:x+1])) for x in range(len(ratio))]
+        splits = [(sum(splits[:x]), sum(splits[:x + 1])) for x in range(len(ratio))]
 
         g = torch.Generator().manual_seed(42)
         indices = randperm(len(self), generator=g).tolist()
@@ -112,11 +114,10 @@ class NewsDataset(Dataset):
 
 
 if __name__ == '__main__':
-    from torch.utils.data.dataset import random_split
+
     dataset = NewsDataset()
     dataset.save('Data/datasets/text')
     dataset = NewsDataset.load('Data/datasets/text.npz')
     train_set, test_set, valid = dataset.random_split([.9, .05, .05])
     print(f"{type(train_set)=}")
     print(f"train: {len(train_set)}, test: {len(test_set)}, valid: {len(valid)}")
-
