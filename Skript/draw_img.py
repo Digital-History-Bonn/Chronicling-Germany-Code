@@ -1,6 +1,7 @@
-from skimage import draw
-import numpy as np
 from typing import List, Tuple
+
+import numpy as np
+from skimage import draw
 
 LABEL_ASSIGNMENTS = {"UnknownRegion": 1, "caption": 2, "table": 3, "article": 4, "heading": 5, "header": 6,
                      "separator_vertical": 7, "separator_short": 8, "separator_horizontal": 9}

@@ -20,6 +20,10 @@ LEARNING_RATE = 0.0001  # 0,0001 seems to work well
 # set random seed for reproducibility
 torch.manual_seed(42)
 
+# initialize wandb
+EXPERIMENT = wandb.init(project='newspaper-segmentation', entity="newspaper-segmentation", resume='allow',
+                        anonymous='must')
+
 
 def train(load_model=None, save_model=None):
     """
@@ -103,7 +107,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
-                experiment.log({'images': wandb.Image(images[0].cpu()),
+                EXPERIMENT.log({'images': wandb.Image(images[0].cpu()),
                                 'masks': {
                                     'true': wandb.Image(true_masks[0].float().cpu()),
                                     'pred': wandb.Image(pred.argmax(dim=1)[0].float().cpu()),
@@ -163,5 +167,4 @@ def validation(data: NewsDataset, model, loss_fn):
 
 if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    experiment = wandb.init(project='newspaper-segmentation', resume='allow', anonymous='must')
     train(load_model=None, save_model='Models/model.pt')

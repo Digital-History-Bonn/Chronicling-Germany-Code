@@ -59,7 +59,7 @@ class Preprocessing:
 
         if target is not None:
             # TODO: spacing is dependent on label count.
-            target = self._scale_img(target, 20)
+            target = self._scale_img(target, 1)
             target, _ = self._pad_img(target)
 
         return image, target, mask

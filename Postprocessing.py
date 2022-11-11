@@ -1,6 +1,8 @@
 from torch.nn.functional import conv2d
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+from NewsDataset import NewsDataset
 
 
 # TODO: make output of Postproces json-format
@@ -99,8 +101,6 @@ class Postprocess:
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from NewsDataset import NewsDataset
 
     dataloader = NewsDataset('data/Training/', limit=2)
     postprocess = Postprocess()
