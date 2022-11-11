@@ -32,8 +32,7 @@ def train(load_model=None, save_model=None):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # create model
-    model = DhSegment([3, 3, 4, 3], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
-    # [3, 4, 6, 4]
+    model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
     model = model.float()
     torchsummary.summary(model, input_size=(3, 64, 64), batch_size=-1)
 
