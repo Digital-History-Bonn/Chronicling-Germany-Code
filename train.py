@@ -20,10 +20,6 @@ LEARNING_RATE = 0.0001  # 0,0001 seems to work well
 # set random seed for reproducibility
 torch.manual_seed(42)
 
-# initialize wandb
-EXPERIMENT = wandb.init(project='newspaper-segmentation', entity="newspaper-segmentation", resume='allow',
-                        anonymous='must')
-
 
 def train(load_model=None, save_model=None):
     """
@@ -53,28 +49,29 @@ def train(load_model=None, save_model=None):
     dataset = NewsDataset()
 
     # splitting with fractions should work according to pytorch doc, but it does not
-    train_set, test_set, _ = dataset.random_split([.9, .05, .05])
-    print(f"train size: {len(train_set)}, test size: {len(test_set)}")
+    train_set, validation_set, _ = dataset.random_split([.9, .05, .05])
+    print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
 
     print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
     # set optimizer and loss_fn
-    optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
+    optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER)
+    val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
 
-    train_loop(train_loader, len(train_set), model, loss_fn, optimizer)
+    train_loop(train_loader, len(train_set), model, loss_fn, optimizer, validation_set, val_loader)
 
     model.save(save_model)
 
     # validation
-    validation(test_set, model, loss_fn)
+    validation(validation_set, model, loss_fn, val_loader)
 
 
 def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, loss_fn: torch.nn.Module,
-               optimizer: torch.optim.Optimizer):
+               optimizer: torch.optim.Optimizer, validation_set: NewsDataset, val_loader: DataLoader):
     """
     executes one training epoch
     :param train_loader: Dataloader object
@@ -82,21 +79,16 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
     :param model: model to train
     :param loss_fn: loss function to optimize
     :param optimizer: optimizer to use
+    :param validation_set: data for validation
     :return: None
     """
 
     for epoch in range(1, EPOCHS + 1):
         model.train()
-        # rolling_average = RollingAverage(10)
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
-            print(torch.cuda.memory_summary(device=DEVICE, abbreviated=False))
-            for batch in train_loader:
-                images = batch[0]
-                true_masks = batch[1]
+            for images, true_masks, _ in train_loader:
 
-                # print(f"{X.shape=}")
-                # print(f"start: {torch.cuda.memory_reserved()=}")
                 images = images.to(DEVICE)
                 true_masks = true_masks.to(DEVICE)
 
@@ -107,23 +99,23 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
-                EXPERIMENT.log({'images': wandb.Image(images[0].cpu()),
-                                'masks': {
-                                    'true': wandb.Image(true_masks[0].float().cpu()),
-                                    'pred': wandb.Image(pred.argmax(dim=1)[0].float().cpu()),
-                                    'train_loss': loss.item()
-                                }, })
-                # print(f"optimizer: {torch.cuda.memory_reserved()=}")
+                EXPERIMENT.log({'train_images': wandb.Image(np.squeeze(images[0]).cpu()),
+                                'train_masks': {
+                                    'true': wandb.Image(np.squeeze(true_masks[0]).float().cpu()),
+                                    'pred': wandb.Image(pred.argmax(dim=1)[0].float().cpu())
+                                },
+                                'train_loss': loss.item()})
+
                 # update description
                 pbar.update(images.shape[0])
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
                 del images, true_masks, pred, loss
                 torch.cuda.empty_cache()
-                # print(f"end: {torch.cuda.memory_reserved()=}")
-                # print()
+
+        validation(validation_set, model, loss_fn, val_loader)
 
 
-def validation(data: NewsDataset, model, loss_fn):
+def validation(data: NewsDataset, model, loss_fn, val_loader: DataLoader):
     """
     validation
     :param data: Dataloader with data to validate on
@@ -133,33 +125,43 @@ def validation(data: NewsDataset, model, loss_fn):
     """
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.eval()
 
-    size = len(data)
-    data = DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=DATALOADER_WORKER)
+    size = len(val_loader)
+
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for images, masks, _ in tqdm.tqdm(data, desc='validation_loop', total=size):
+    for images, true_masks, _ in tqdm.tqdm(val_loader, desc='validation_loop', total=size):
         # Compute prediction and loss
         images = images.to(device)
-        masks = masks.to(device)
+        true_masks = true_masks.to(device)
 
         pred = model(images)
-        loss = loss_fn(pred, masks)
+        loss = loss_fn(pred, true_masks)
 
         pred = pred.detach().cpu().numpy()
         loss = loss.detach().cpu().numpy()
         # images = images.detach().cpu().numpy()
-        masks = masks.detach().cpu().numpy()
+        true_masks = true_masks.detach().cpu().numpy()
 
         loss_sum += loss
         pred = np.argmax(pred, axis=1)
-        jaccard_sum += sklearn.metrics.jaccard_score(masks.flatten(), pred.flatten(), average='macro')
-        accuracy_sum += sklearn.metrics.accuracy_score(masks.flatten(), pred.flatten())
+        jaccard_sum += sklearn.metrics.jaccard_score(true_masks.flatten(), pred.flatten(), average='macro')
+        accuracy_sum += sklearn.metrics.accuracy_score(true_masks.flatten(), pred.flatten())
 
-        del images, masks, pred, loss
+        del images, true_masks, pred, loss
         torch.cuda.empty_cache()
 
+    images, true_masks, _ = val_loader.dataset[0]
+
+    EXPERIMENT.log({'validation_images': wandb.Image(np.squeeze(images).cpu()),
+                    'validation_masks': {
+                        'true': wandb.Image(np.squeeze(true_masks).float().cpu()),
+                    },
+                    'validation_loss': loss_sum / size,
+                    'validation_accuracy': accuracy_sum / size,
+                    'validation_score': jaccard_sum / size, })
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
@@ -167,4 +169,7 @@ def validation(data: NewsDataset, model, loss_fn):
 
 if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    # initialize wandb
+    EXPERIMENT = wandb.init(project='newspaper-segmentation', entity="newspaper-segmentation", resume='allow',
+                            anonymous='must')
     train(load_model=None, save_model='Models/model.pt')
