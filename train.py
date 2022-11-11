@@ -1,4 +1,3 @@
-import torchsummary
 import sklearn.metrics
 import torch
 from torch.optim import AdamW
@@ -6,7 +5,6 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 import numpy as np
 import tqdm
-import wandb
 from NewsDataset import NewsDataset
 from model import DhSegment
 
