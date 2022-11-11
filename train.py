@@ -1,3 +1,4 @@
+import torchsummary
 import sklearn.metrics
 import torch
 from torch.optim import AdamW
@@ -79,7 +80,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
             for images, true_masks, _ in train_loader:
-                # image = crop(image)
+
                 images = images.to(DEVICE)
                 true_masks = true_masks.to(DEVICE)
 
