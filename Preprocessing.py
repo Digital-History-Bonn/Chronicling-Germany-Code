@@ -1,13 +1,15 @@
 import numpy as np
 import torch
+import PIL
+from numpy import ndarray
 from torch.nn.functional import conv2d
 from utils import step
-from skimage.transform import rescale
 
-SCALE = 1
+SCALE = 0.125
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
+
 
 # TODO: Maybe it's easier to save annotations in one "image"
 
@@ -25,7 +27,7 @@ class Preprocessing:
         :param thicken_under: (default: 0) value to thicken the baselines under
         """
         self.scale = scale
-        self.expansion = 2**expansion
+        self.expansion = 2 ** expansion
         self.image_pad_values = tuple([(x, x) for x in image_pad_values])
         self.target_pad_values = tuple([(x, x) for x in target_pad_values])
         self.thicken_above = thicken_above
@@ -52,27 +54,31 @@ class Preprocessing:
         :return: image, target, mask
         """
         # scale
-        image = self._scale_img(image)
+        image = self._scale_img(image, 255)
         image, mask = self._pad_img(image)
 
         if target is not None:
-            target = self._scale_img(target)
+            # TODO: spacing is dependent on label count.
+            target = self._scale_img(target, 1)
             target, _ = self._pad_img(target)
 
         return image, target, mask
 
-    def _scale_img(self, img: np.array):
+    def _scale_img(self, image: ndarray, spacing):
         """
         scales down all given images by self.scale
-        :param args: images
+        :param image: image
         :return: list of downscaled images
         """
+        image = image*spacing
+        pil_img = PIL.Image.fromarray(image.astype('int8'))
         if self.scale == 1:
-            return img
-        # TODO: Fix this! Now it returns not Integer values for classes
-        return rescale(img, 1/self.scale, anti_aliasing=False)
+            return np.asarray(pil_img, dtype=np.float32)/spacing
+        width, height = int(SCALE * pil_img.size[0]), int(SCALE * pil_img.size[1])
+        pil_img = pil_img.resize((width, height), resample=PIL.Image.NEAREST)
+        return np.asarray(pil_img, dtype=np.float32)/spacing
 
-    def _pad_img(self, arr: np.array):
+    def _pad_img(self, arr: ndarray):
         """
         pad image to be dividable by 2^self.expansion
         :param arr: np array of image
@@ -81,9 +87,10 @@ class Preprocessing:
         """
         assert arr.ndim == 2, f"{arr.shape=}"
         mask = np.zeros(arr.ndim * 2, dtype=int)
-        mask[-4:] = (0, self.expansion - (arr.shape[-2] % self.expansion), 0, self.expansion - (arr.shape[-1] % self.expansion))
+        mask[-4:] = (
+        0, self.expansion - (arr.shape[-2] % self.expansion), 0, self.expansion - (arr.shape[-1] % self.expansion))
         mask = mask.reshape(-1, 2)
-        arr = np.pad(arr, mask, 'constant', constant_values=0)              # maybe make constant_values a variable
+        arr = np.pad(arr, mask, 'constant', constant_values=0)  # maybe make constant_values a variable
 
         assert arr.shape[0] % 32 == 0 and arr.shape[1] % 32 == 0, f"shape not in the right shape {arr.shape}"
 

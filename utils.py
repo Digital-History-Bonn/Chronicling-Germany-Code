@@ -1,9 +1,6 @@
-import queue
-
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
+import torch.nn.functional as f
 
 
 def step(x):
@@ -19,7 +16,7 @@ def plot_sampels(dataloader, n, model=None, title='Samples'):
         x, y, _ = dataloader[i]
         images.append(x)
         if dataloader.channel > 1:
-            y = F.one_hot(y, num_classes=dataloader.channel)
+            y = f.one_hot(y, num_classes=dataloader.channel)
         target.append(y)
         if model is not None:
             pred = model(x[None, :]).detach()[0]
@@ -32,7 +29,8 @@ def plot_sampels(dataloader, n, model=None, title='Samples'):
 
 
 def plot(images, target, preds=None, title='Samples'):
-    assert len(images) == len(target), f"list of images not the same lenght as targets got {len(images)} and {len(target)}"
+    assert len(images) == len(
+        target), f"list of images not the same lenght as targets got {len(images)} and {len(target)}"
     n = len(images)
 
     columns = [images, target]
@@ -47,7 +45,7 @@ def plot(images, target, preds=None, title='Samples'):
     for s in range(n):
         for c, source in enumerate(columns):
             i = s * len(columns) + c
-            fig.add_subplot(n, len(columns), i+1)
+            fig.add_subplot(n, len(columns), i + 1)
             plt.title(img_title[c], fontsize=18)
             plt.imshow(source[s].float().permute(1, 2, 0), cmap=cmap[c], vmin=0, vmax=1, interpolation='none')
             plt.axis('off')
@@ -73,9 +71,9 @@ def plot_process(images, targets, preds, results, title='process'):
 
 
 def replace_substrings(string, replacements):
-        for i, j in replacements.items():
-            string = string.replace(i, j)
-        return string
+    for i, j in replacements.items():
+        string = string.replace(i, j)
+    return string
 
 
 class RollingAverage:
@@ -88,4 +86,4 @@ class RollingAverage:
     def __call__(self, new_value):
         self.t += 1
         self.values[self.t % self.length] = new_value
-        return np.round(np.average(self.values[:min(self.t+1, self.length)]), self.round)
+        return np.round(np.average(self.values[:min(self.t + 1, self.length)]), self.round)

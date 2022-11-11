@@ -1,18 +1,17 @@
-from draw_img import draw_img
-
-from bs4 import BeautifulSoup
+"""
+Script for reading out the Annotations from Transcribus exports
+"""
 import re
-from skimage import io
 import os
-from tqdm import tqdm
 import json
+from draw_img import draw_img
+from bs4 import BeautifulSoup
+from skimage import io
+from tqdm import tqdm
 
-"""
-Script for reading out the Annotations from Transcribus exports 
-"""
 
 INPUT = "../Data/annotationen/"
-OUTPUT = "../Data/Targets/"
+OUTPUT = "../Data/targets/"
 
 
 def main():
@@ -34,13 +33,13 @@ def read(path):
     with open(path, 'r') as f:
         data = f.read()
 
-    Bs_data = BeautifulSoup(data, "xml")
+    bs_data = BeautifulSoup(data, "xml")
     tags_dict = {'TextLine': []}
 
-    tags_dict = find_regions(Bs_data, 'TextRegion', True, 'TextLine', tags_dict)
-    tags_dict = find_regions(Bs_data, 'SeparatorRegion', False, '', tags_dict)
+    tags_dict = find_regions(bs_data, 'TextRegion', True, 'TextLine', tags_dict)
+    tags_dict = find_regions(bs_data, 'SeparatorRegion', False, '', tags_dict)
 
-    page = Bs_data.find('Page')
+    page = bs_data.find('Page')
 
     return {"size": (int(page['imageWidth']), int(page['imageHeight'])), 'tags': tags_dict}
 
@@ -57,14 +56,14 @@ def find_regions(data, tag, search_children, child_tag, tags_dict):
     """
     regions = data.find_all(tag)
     for region in regions:
-        type = re.search('readingOrder \{index:(.+?);} structure \{type:(.+?);}', region['custom'])
-        if type is None:
-            type = "UnknownRegion"
+        region_type = re.search("readingOrder \{index:(.+?);} structure \{type:(.+?);}", region['custom'])
+        if region_type is None:
+            region_type = "UnknownRegion"
         else:
-            type = type.group(2)
-        if type not in tags_dict:
-            tags_dict[type] = []
-        tags_dict[type].append([pair.split(',') for pair in region.Coords["points"].split()])
+            region_type = region_type.group(2)
+        if region_type not in tags_dict:
+            tags_dict[region_type] = []
+        tags_dict[region_type].append([pair.split(',') for pair in region.Coords["points"].split()])
         if search_children:
             lines = region.find_all(child_tag)
             if child_tag not in tags_dict:
