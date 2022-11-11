@@ -2,6 +2,7 @@ matplotlib~=3.5.2
 numpy~=1.23.1
 pillow~=9.2.0
 pytorch==1.12.1
+torchsummary==1.5.1
 scikit-learn~=1.1.1
 tqdm~=4.64.0
 beautifulsoup4~=4.11.1
@@ -9,3 +10,4 @@ scikit-image~=0.19.2
 pytest==7.2.0
 mypy==0.982
 pylint==2.15.5
+torchvision==0.14.0

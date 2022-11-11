@@ -11,8 +11,8 @@ from torch import randperm
 
 from Preprocessing import Preprocessing
 
-INPUT = "Data/scale4/input/"
-TARGETS = "Data/scale4/Targets/"
+INPUT = "Data/input/"
+TARGETS = "Data/Targets/"
 
 
 class NewsDataset(Dataset):

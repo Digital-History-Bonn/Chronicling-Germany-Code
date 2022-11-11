@@ -5,7 +5,7 @@ from numpy import ndarray
 from torch.nn.functional import conv2d
 from utils import step
 
-SCALE = 0.5
+SCALE = 0.125
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0

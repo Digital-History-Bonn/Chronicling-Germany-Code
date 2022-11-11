@@ -1,4 +1,3 @@
-import torchsummary
 import sklearn.metrics
 import torch
 from torch.optim import AdamW
@@ -15,7 +14,7 @@ BATCH_SIZE = 1
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 1, 10
 LEARNING_RATE = 0.0001  # 0,0001 seems to work well
-# LOSS_WEIGHTS = [1.0, 9.0]  # 1 and 5 seems to work well
+LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 # set random seed for reproducibility
 torch.manual_seed(42)
@@ -28,22 +27,13 @@ def train(load_model=None, save_model=None):
     :param save_model: (default: None) path to save the model
     :return: None
     """
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
     # create model
-    model = DhSegment([3, 3, 4, 3], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
-    # [3, 4, 6, 4]
+    model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
+
     model = model.float()
-    torchsummary.summary(model, input_size=(3, 64, 64), batch_size=-1)
 
     # load model if argument is None it does nothing
     model.load(load_model)
-
-    print(f"Using {device} device")
-
-    if device == 'cuda':
-        model.cuda()
 
     # load data
     dataset = NewsDataset()
@@ -56,22 +46,19 @@ def train(load_model=None, save_model=None):
 
     # set optimizer and loss_fn
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
-    loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
+    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER)
     val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
 
-    train_loop(train_loader, len(train_set), model, loss_fn, optimizer, validation_set, val_loader)
+    train_loop(train_loader, len(train_set), model, loss_fn, optimizer, val_loader)
 
     model.save(save_model)
 
-    # validation
-    validation(validation_set, model, loss_fn, val_loader)
-
 
 def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, loss_fn: torch.nn.Module,
-               optimizer: torch.optim.Optimizer, validation_set: NewsDataset, val_loader: DataLoader):
+               optimizer: torch.optim.Optimizer, val_loader: DataLoader):
     """
     executes one training epoch
     :param train_loader: Dataloader object
@@ -83,39 +70,40 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
     :return: None
     """
 
+    if DEVICE == 'cuda':
+        model.cuda()
+        loss_fn.cuda()
+
     for epoch in range(1, EPOCHS + 1):
         model.train()
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
             for images, true_masks, _ in train_loader:
-
+                # image = crop(image)
                 images = images.to(DEVICE)
                 true_masks = true_masks.to(DEVICE)
 
                 # Compute prediction and loss
                 pred = model(images)
                 loss = loss_fn(pred, true_masks)
+
                 # Backpropagation
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
-                EXPERIMENT.log({'train_images': wandb.Image(np.squeeze(images[0]).cpu()),
-                                'train_masks': {
-                                    'true': wandb.Image(np.squeeze(true_masks[0]).float().cpu()),
-                                    'pred': wandb.Image(pred.argmax(dim=1)[0].float().cpu())
-                                },
-                                'train_loss': loss.item()})
 
                 # update description
                 pbar.update(images.shape[0])
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
+
+                # delete data from gpu cache
                 del images, true_masks, pred, loss
                 torch.cuda.empty_cache()
 
-        validation(validation_set, model, loss_fn, val_loader)
+        validation(val_loader, model, loss_fn)
 
 
-def validation(data: NewsDataset, model, loss_fn, val_loader: DataLoader):
+def validation(val_loader: DataLoader, model, loss_fn):
     """
     validation
     :param data: Dataloader with data to validate on
@@ -142,7 +130,7 @@ def validation(data: NewsDataset, model, loss_fn, val_loader: DataLoader):
 
         pred = pred.detach().cpu().numpy()
         loss = loss.detach().cpu().numpy()
-        # images = images.detach().cpu().numpy()
+
         true_masks = true_masks.detach().cpu().numpy()
 
         loss_sum += loss
@@ -155,13 +143,6 @@ def validation(data: NewsDataset, model, loss_fn, val_loader: DataLoader):
 
     images, true_masks, _ = val_loader.dataset[0]
 
-    EXPERIMENT.log({'validation_images': wandb.Image(np.squeeze(images).cpu()),
-                    'validation_masks': {
-                        'true': wandb.Image(np.squeeze(true_masks).float().cpu()),
-                    },
-                    'validation_loss': loss_sum / size,
-                    'validation_accuracy': accuracy_sum / size,
-                    'validation_score': jaccard_sum / size, })
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
@@ -169,7 +150,6 @@ def validation(data: NewsDataset, model, loss_fn, val_loader: DataLoader):
 
 if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    # initialize wandb
-    EXPERIMENT = wandb.init(project='newspaper-segmentation', entity="newspaper-segmentation", resume='allow',
-                            anonymous='must')
+    print(f"Using {DEVICE} device")
+
     train(load_model=None, save_model='Models/model.pt')
