@@ -1,7 +1,7 @@
 import os
 
 from typing import List
-import skimage
+from PIL import Image
 import tqdm
 import numpy as np
 import torch
@@ -15,17 +15,17 @@ TARGETS = "Data/Targets/"
 
 
 class NewsDataset(Dataset):
-    def __init__(self, x=INPUT, y=TARGETS, masks=None, limit=None):
+    def __init__(self, x: str | list = INPUT, y: str | list = TARGETS, masks=None, limit=None):
         """
         Dataset object
         if x and y are paths to folder with images/np.array it loads all images with annotations and preprocesses them
         if x, y and masks are np.ndarray it just creates a new NewsDataset object
         :param limit: limit for images that be loaded
         """
-        if isinstance(x, np.ndarray) and isinstance(y, np.ndarray) and isinstance(masks, np.ndarray):
-            self.x = np.array(x)
-            self.y = np.array(y)
-            self.masks = np.array(masks)
+        if isinstance(x, list) and isinstance(y, list) and isinstance(masks, list):
+            self.x = x
+            self.y = y
+            self.masks = masks
 
         elif isinstance(x, str) and isinstance(y, str):
             pipeline = Preprocessing()
@@ -39,24 +39,30 @@ class NewsDataset(Dataset):
 
             # Open the image form working directory
             for file in tqdm.tqdm(images, desc='load data', total=len(images)):
+
                 # load image
-                image = skimage.io.imread(f"{INPUT}{file}.tif", as_gray=True)
+                img = Image.open(f"{INPUT}{file}.tif")
+                image = Image.new("RGB", img.size)
+                image.paste(img)
+
+                # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")
 
                 image, target, mask = pipeline.preprocess(image, target)
+
+                assert image.ndim == 3, f"image does not have right shape({image.shape})"
+                assert target.ndim == 2, f"target does not have right shape({target.shape})"
+                assert image.shape[1:] == target.shape, "shape of image and target don't match!"
 
                 self.x.append(image)
                 self.y.append(target)
                 self.masks.append(mask)
 
-            self.x = np.array(self.x)
-            self.y = np.array(self.y)
-            self.masks = np.array(self.masks)
-
         else:
             raise Exception("Wrong combination of argument types")
 
-        assert len(self.x) == len(self.y) == len(self.masks), f"x, y and masks size don't match!"
+        assert len(self.x) == len(self.y) == len(self.masks), \
+            f"x({len(self.x)}), y({len(self.x)}) and masks ({len(self.x)}) size don't match!"
 
     def __len__(self):
         """
@@ -71,19 +77,13 @@ class NewsDataset(Dataset):
         :param item: number of the datapoint
         :return: torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        return torch.tensor(np.array([self.x[item]]), dtype=torch.float), torch.tensor(np.array(self.y[item]),
-                                                                                       dtype=torch.int64), self.masks[
-                   item]
+        # dummy crop
+        images = torch.tensor(self.x[item][:, :512, :512], dtype=torch.float)
+        targets = torch.tensor(self.y[item][:512, :512])
 
-    def save(self, path):
-        np.savez_compressed(path, x=self.x, y=self.y, masks=self.masks)
+        return images, targets, self.masks[item]
 
-    @classmethod
-    def load(cls, path):
-        loaded = np.load(path)
-        return Dataset(loaded['x'], loaded['y'], loaded['masks'])
-
-    def class_ratio(self, class_nr: int):
+    def class_ratio(self, class_nr: int) -> dict:
         """
         ratio between the classes over all images
         :return: np array of ratio
@@ -109,15 +109,25 @@ class NewsDataset(Dataset):
 
         g = torch.Generator().manual_seed(42)
         indices = randperm(len(self), generator=g).tolist()
+        print(f"{indices=}")
 
-        return [NewsDataset(self.x[indices[x:y]], self.y[indices[x:y]], self.masks[indices[x:y]]) for x, y in splits]
+        sets = []
+        for start, end in splits:
+            x, y, masks = [], [], []
+            for i in indices[start:end]:
+                x.append(self.x[i])
+                y.append(self.y[i])
+                masks.append(self.masks[i])
+            sets.append(NewsDataset(x, y, masks))
+
+        return sets
 
 
 if __name__ == '__main__':
-
     dataset = NewsDataset()
-    dataset.save('Data/datasets/text')
-    dataset = NewsDataset.load('Data/datasets/text.npz')
     train_set, test_set, valid = dataset.random_split([.9, .05, .05])
     print(f"{type(train_set)=}")
     print(f"train: {len(train_set)}, test: {len(test_set)}, valid: {len(valid)}")
+    print(f"{train_set.class_ratio(10)}")
+    print(train_set.y[0].shape)
+    print(train_set.x[0])

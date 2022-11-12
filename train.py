@@ -9,10 +9,10 @@ from NewsDataset import NewsDataset
 from model import DhSegment
 
 EPOCHS = 5
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 DATALOADER_WORKER = 1
-IN_CHANNELS, OUT_CHANNELS = 1, 10
-LEARNING_RATE = 0.0001  # 0,0001 seems to work well
+IN_CHANNELS, OUT_CHANNELS = 3, 10
+LEARNING_RATE = 0.01  # 0,0001 seems to work well
 LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 # set random seed for reproducibility
@@ -45,7 +45,7 @@ def train(load_model=None, save_model=None):
 
     # set optimizer and loss_fn
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
-    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
+    loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER)
