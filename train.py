@@ -5,7 +5,7 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 import numpy as np
 import tqdm
-from NewsDataset import NewsDataset
+from news_dataset import NewsDataset
 from model import DhSegment
 
 EPOCHS = 5
