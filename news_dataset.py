@@ -23,7 +23,6 @@ class NewsDataset(Dataset):
     """
     def __init__(self, images: Union[str, list] = INPUT,
                  targets: Union[str, list] = TARGETS,
-                 masks: Union[None, list] = None,
                  limit: Union[None, int] = None):
         """
         Dataset object
@@ -33,17 +32,15 @@ class NewsDataset(Dataset):
 
         :param: images (str | list): path to folder of images or list of images
         :param: targets (str | list): path to folder of targets or list of np.arrays
-        :param: masks (list): list of masks
         :param: limit (int): max size of dataloader
         """
-        if isinstance(images, list) and isinstance(targets, list) and isinstance(masks, list):
+        if isinstance(images, list) and isinstance(targets, list):
             self.images = images
             self.targets = targets
-            self.masks = masks
 
         elif isinstance(images, str) and isinstance(targets, str):
             pipeline = Preprocessing()
-            self.images, self.targets, self.masks = [], [], []
+            self.images, self.targets = [], []
 
             # load images
             images = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".tif")]
@@ -62,11 +59,10 @@ class NewsDataset(Dataset):
                 # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")
 
-                images, targets, mask = pipeline.preprocess(image, target)
+                images, targets = pipeline.preprocess(image, target)
 
                 self.images.extend(images)
                 self.targets.extend(targets)
-                self.masks.append(mask)
 
         else:
             raise Exception("Wrong combination of argument types")
@@ -78,15 +74,14 @@ class NewsDataset(Dataset):
         """
         return len(self.targets)
 
-    def __getitem__(self, item: int) -> tuple[torch.tensor, torch.tensor, tuple[int]]:
+    def __getitem__(self, item: int) -> tuple[torch.tensor, torch.tensor]:
         """
         returns one datapoint
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
         return torch.tensor(self.images[item], dtype=torch.float),\
-               torch.tensor(self.targets[item]), \
-               self.masks[0]
+               torch.tensor(self.targets[item])
 
     def class_ratio(self, class_nr: int) -> dict:
         """
@@ -118,12 +113,11 @@ class NewsDataset(Dataset):
 
         sets = []
         for start, end in splits:
-            img, tar, masks = [], [], []
+            img, tar = [], []
             for i in indices[start:end]:
                 img.append(self.images[i])
                 tar.append(self.targets[i])
-                masks.append(self.masks[i])
-            sets.append(NewsDataset(img, tar, masks))
+            sets.append(NewsDataset(img, tar))
 
         return sets
 

@@ -9,7 +9,7 @@ from news_dataset import NewsDataset
 from model import DhSegment
 
 EPOCHS = 5
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = 0.01  # 0,0001 seems to work well
@@ -77,7 +77,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
         model.train()
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
-            for images, true_masks, _ in train_loader:
+            for images, true_masks in train_loader:
 
                 images = images.to(DEVICE)
                 true_masks = true_masks.to(DEVICE)
@@ -119,7 +119,7 @@ def validation(val_loader: DataLoader, model, loss_fn):
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for images, true_masks, _ in tqdm.tqdm(val_loader, desc='validation_loop', total=size):
+    for images, true_masks in tqdm.tqdm(val_loader, desc='validation_loop', total=size):
         # Compute prediction and loss
         images = images.to(device)
         true_masks = true_masks.to(device)
@@ -139,8 +139,6 @@ def validation(val_loader: DataLoader, model, loss_fn):
 
         del images, true_masks, pred, loss
         torch.cuda.empty_cache()
-
-    images, true_masks, _ = val_loader.dataset[0]
 
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")

@@ -56,11 +56,9 @@ class Preprocessing:
         """
         # scale
         image, target = self._scale_img(image, target)
-        image, mask = self._pad_img(image)
-        target, _ = self._pad_img(target)
         images, targets = self._dummy_crop(image, target)
 
-        return images, targets, mask
+        return images, targets
 
     @staticmethod
     def _scale_img(image: Image, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -83,24 +81,6 @@ class Preprocessing:
         image, target = np.array(image), np.array(target)
 
         return np.transpose(image, (2, 0, 1)), target
-
-    def _pad_img(self, arr: ndarray):
-        """
-        pad image to be dividable by 2^self.expansion
-        :param arr: np array of image
-        :param image: (bool) if arr is image or target
-        :return: padded array and number of pixels added (mask)
-        """
-        mask = np.zeros(arr.ndim * 2, dtype=int)
-        mask[-4:] = (0, self.expansion - (arr.shape[-2] % self.expansion),
-                     0, self.expansion - (arr.shape[-1] % self.expansion))
-        mask = mask.reshape(-1, 2)
-        arr = np.pad(arr, mask, 'constant', constant_values=0)
-
-        assert arr.shape[-2] % 32 == 0 and arr.shape[-1] % 32 == 0, \
-            f"shape not in the right shape {arr.shape}"
-
-        return arr, mask
 
     @staticmethod
     def _dummy_crop(image: np.ndarray, target: np.ndarray) \
