@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from NewsDataset import NewsDataset
 from model import DhSegment
 
-EPOCHS = 2
+EPOCHS = 5
 BATCH_SIZE = 1
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 1, 10
