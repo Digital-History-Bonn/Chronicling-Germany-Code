@@ -8,4 +8,17 @@ Tested on Python 3.10.4. Other requirements in requirements.txt
 
 ## Code Style
 Pylint can be used with pycharm by installing the pylint plugin.
+
 My py can be used with pycharm by installing the my py plugin.
+
+## TensorBoard
+logs can be accessed trough command line
+````shell
+tensorboard --logdir logs/runs
+````
+
+or with magic commands in jupiter notebooks
+````
+%load_ext tensorboard
+%tensorboard --logdir logs/runs
+````

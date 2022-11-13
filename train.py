@@ -1,14 +1,21 @@
-import sklearn.metrics
-import torch
-from torch.optim import AdamW
-from torch.nn import CrossEntropyLoss
-from torch.utils.data import DataLoader
+"""
+module for training the segmentation model.
+"""
+import datetime
+
 import numpy as np
-import tqdm
+import sklearn.metrics  # type: ignore
+import tensorflow as tf  # type: ignore
+import torch
+import tqdm  # type: ignore
+from torch.nn import CrossEntropyLoss
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
+
 from NewsDataset import NewsDataset
 from model import DhSegment
 
-EPOCHS = 5
+EPOCHS = 2
 BATCH_SIZE = 1
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 1, 10
@@ -21,7 +28,7 @@ torch.manual_seed(42)
 
 def train(load_model=None, save_model=None):
     """
-    trainingsfunction
+    train function. Initializes dataloaders and optimzer.
     :param load_model: (default: None) path to model to load
     :param save_model: (default: None) path to save the model
     :return: None
@@ -59,13 +66,13 @@ def train(load_model=None, save_model=None):
 def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, loss_fn: torch.nn.Module,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader):
     """
-    executes one training epoch
+    executes all training epochs. After each epoch a validation round is performed.
     :param train_loader: Dataloader object
     :param n_train: size of train data
     :param model: model to train
     :param loss_fn: loss function to optimize
     :param optimizer: optimizer to use
-    :param validation_set: data for validation
+    :param val_loader: dataloader with validation data
     :return: None
     """
 
@@ -73,12 +80,12 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
         model.cuda()
         loss_fn.cuda()
 
+        step = 0
     for epoch in range(1, EPOCHS + 1):
         model.train()
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
             for images, true_masks, _ in train_loader:
-
                 images = images.to(DEVICE)
                 true_masks = true_masks.to(DEVICE)
 
@@ -95,23 +102,29 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 pbar.update(images.shape[0])
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
+                # update tensor board logs
+                step += 1
+                with summary_writer.as_default():
+                    tf.summary.scalar('train loss', loss.item(), step=step)
+
                 # delete data from gpu cache
                 del images, true_masks, pred, loss
                 torch.cuda.empty_cache()
 
-        validation(val_loader, model, loss_fn)
+        validation(val_loader, model, loss_fn, epoch, step)
 
 
-def validation(val_loader: DataLoader, model, loss_fn):
+def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     """
-    validation
-    :param data: Dataloader with data to validate on
+    Executes one validation round, containing the evaluation of the current model on the entire validation set.
     :param model: model to validate
     :param loss_fn: loss_fn to validate with
+    :param val_loader: dataloader with validation data
+    :param epoch: current epoch value for logging
+    :param step: current batch related step value for logging. Count of batches that have been loaded.
     :return: None
     """
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     model.eval()
 
     size = len(val_loader)
@@ -119,36 +132,50 @@ def validation(val_loader: DataLoader, model, loss_fn):
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for images, true_masks, _ in tqdm.tqdm(val_loader, desc='validation_loop', total=size):
+    for images, targets, _ in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
-        images = images.to(device)
-        true_masks = true_masks.to(device)
+        images = images.to(DEVICE)
+        targets = targets.to(DEVICE)
 
         pred = model(images)
-        loss = loss_fn(pred, true_masks)
+        loss = loss_fn(pred, targets)
 
         pred = pred.detach().cpu().numpy()
         loss = loss.detach().cpu().numpy()
 
-        true_masks = true_masks.detach().cpu().numpy()
+        targets = targets.detach().cpu().numpy()
 
         loss_sum += loss
         pred = np.argmax(pred, axis=1)
-        jaccard_sum += sklearn.metrics.jaccard_score(true_masks.flatten(), pred.flatten(), average='macro')
-        accuracy_sum += sklearn.metrics.accuracy_score(true_masks.flatten(), pred.flatten())
+        jaccard_sum += sklearn.metrics.jaccard_score(targets.flatten(), pred.flatten(), average='macro')
+        accuracy_sum += sklearn.metrics.accuracy_score(targets.flatten(), pred.flatten())
 
-        del images, true_masks, pred, loss
+        del images, targets, pred, loss
         torch.cuda.empty_cache()
 
-    images, true_masks, _ = val_loader.dataset[0]
+    image, target, _ = val_loader.dataset[0]
+    image = torch.unsqueeze(image.to(DEVICE), 0)
+    pred = model(image).argmax(dim=1).float()
 
-    print(f"average loss: {loss_sum / size}")
-    print(f"average accuracy: {accuracy_sum / size}")
-    print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
+    # update tensor board logs
+    with summary_writer.as_default():
+        tf.summary.scalar('val loss', loss_sum / size, step=step)
+        tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
+        tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
+        tf.summary.scalar('epoch', epoch, step=step)
+        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1).T, step=step)
+        tf.summary.image('val target', torch.unsqueeze(
+            torch.unsqueeze(target.float().cpu() / torch.max(target.float().cpu()), 0), 3), step=step)
+        tf.summary.image('val prediction', torch.unsqueeze(pred.cpu(), 3), step=step)
 
 
 if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
+
+    # setup tensor board
+    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    train_log_dir = 'logs/runs/' + current_time
+    summary_writer = tf.summary.create_file_writer(train_log_dir)
 
     train(load_model=None, save_model='Models/model.pt')
