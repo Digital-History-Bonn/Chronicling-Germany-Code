@@ -4,7 +4,6 @@
 
 import numpy as np
 from PIL import Image
-from numpy import ndarray
 
 SCALE = 1
 EXPANSION = 5
@@ -42,9 +41,8 @@ class Preprocessing:
         # scale
         t_dummy = np.zeros(image.size)
         image, _ = self._scale_img(image, t_dummy)
-        image, mask = self._pad_img(image)
 
-        return image, mask
+        return image
 
     def preprocess(self, image: Image, target: np.ndarray):
         """

@@ -81,7 +81,7 @@ class NewsDataset(Dataset):
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
         return torch.tensor(self.images[item], dtype=torch.float),\
-               torch.tensor(self.targets[item])
+               torch.tensor(self.targets[item]).long()
 
     def class_ratio(self, class_nr: int) -> dict:
         """
@@ -109,7 +109,6 @@ class NewsDataset(Dataset):
         splits = [(sum(split[:x]), sum(split[:x + 1])) for x in range(len(ratio))]
 
         indices = randperm(len(self), generator=torch.Generator().manual_seed(42)).tolist()
-        print(f"{indices=}")
 
         sets = []
         for start, end in splits:
