@@ -4,7 +4,6 @@
 
 import numpy as np
 from PIL import Image
-from PIL.Image import NEAREST
 from numpy import ndarray
 
 SCALE = 1
