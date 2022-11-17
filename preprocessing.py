@@ -3,7 +3,7 @@
 """
 
 import numpy as np
-from PIL import Image
+from PIL import Image  # type: ignore
 
 SCALE = 1
 EXPANSION = 5
@@ -72,10 +72,10 @@ class Preprocessing:
 
         image = image.resize(shape, resample=Image.BICUBIC)
 
-        target = Image.fromarray(target.astype(np.uint8))
-        target = target.resize(shape, resample=Image.NEAREST)
+        target_img = Image.fromarray(target.astype(np.uint8))
+        target_img = target_img.resize(shape, resample=Image.NEAREST)
 
-        image, target = np.array(image), np.array(target)
+        image, target = np.array(image), np.array(target_img)
 
         return np.transpose(image, (2, 0, 1)), target
 

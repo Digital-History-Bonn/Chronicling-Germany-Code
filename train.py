@@ -1,9 +1,12 @@
-import sklearn.metrics
+import datetime
+
+import sklearn.metrics  # type: ignore
 import torch
 import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
+import tensorflow as tf  # type: ignore
 import numpy as np
 import tqdm
 from news_dataset import NewsDataset
@@ -79,14 +82,14 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
         model.train()
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
-            for images, true_masks in train_loader:
+            for images, targets in train_loader:
 
                 images = images.to(DEVICE)
-                true_masks = true_masks.to(DEVICE)
+                targets = targets.to(DEVICE)
 
                 # Compute prediction and loss
                 pred = model(images)
-                loss = loss_fn(pred, true_masks)
+                loss = loss_fn(pred, targets)
 
                 # Backpropagation
                 optimizer.zero_grad(set_to_none=True)
@@ -103,7 +106,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                     tf.summary.scalar('train loss', loss.item(), step=step)
 
                 # delete data from gpu cache
-                del images, true_masks, pred, loss
+                del images, targets, pred, loss
                 torch.cuda.empty_cache()
 
         validation(val_loader, model, loss_fn, epoch, step)
