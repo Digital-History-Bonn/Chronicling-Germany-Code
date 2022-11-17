@@ -52,9 +52,7 @@ class NewsDataset(Dataset):
             # Open the image form working directory
             for file in tqdm.tqdm(images, desc='load data', total=len(images)):
                 # load image
-                img = Image.open(f"{INPUT}{file}.tif")
-                image = Image.new("RGB", img.size)
-                image.paste(img)
+                image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
 
                 # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")
