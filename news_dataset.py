@@ -21,6 +21,7 @@ class NewsDataset(Dataset):
     """
         A dataset class for the newspaper datasets
     """
+
     def __init__(self, images: Union[str, list] = INPUT,
                  targets: Union[str, list] = TARGETS,
                  limit: Union[None, int] = None):
@@ -50,7 +51,6 @@ class NewsDataset(Dataset):
 
             # Open the image form working directory
             for file in tqdm.tqdm(images, desc='load data', total=len(images)):
-
                 # load image
                 img = Image.open(f"{INPUT}{file}.tif")
                 image = Image.new("RGB", img.size)
@@ -75,13 +75,13 @@ class NewsDataset(Dataset):
         """
         return len(self.targets)
 
-    def __getitem__(self, item: int) -> Tuple[torch.tensor, torch.tensor]:
+    def __getitem__(self, item: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         returns one datapoint
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        return torch.tensor(self.images[item], dtype=torch.float),\
+        return torch.tensor(self.images[item], dtype=torch.float), \
                torch.tensor(self.targets[item]).long()
 
     def class_ratio(self, class_nr: int) -> dict:

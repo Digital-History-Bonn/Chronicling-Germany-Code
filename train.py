@@ -5,7 +5,6 @@ import sklearn.metrics  # type: ignore
 import tensorflow as tf  # type: ignore
 import torch
 import tqdm  # type: ignore
-import tqdm
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
