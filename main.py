@@ -3,7 +3,7 @@ import torch
 from PIL import Image
 
 from model import DhSegment
-from Preprocessing import Preprocessing
+from preprocessing import Preprocessing
 from Postprocessing import Postprocess
 
 MODEL = 'models/model.pt'
