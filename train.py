@@ -1,25 +1,22 @@
-"""
-module for training the segmentation model.
-"""
 import datetime
 
-import numpy as np
 import sklearn.metrics  # type: ignore
-import tensorflow as tf  # type: ignore
 import torch
 import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-
-from NewsDataset import NewsDataset
+import tensorflow as tf  # type: ignore
+import numpy as np
+import tqdm
+from news_dataset import NewsDataset
 from model import DhSegment
 
 EPOCHS = 5
-BATCH_SIZE = 1
+BATCH_SIZE = 4
 DATALOADER_WORKER = 1
-IN_CHANNELS, OUT_CHANNELS = 1, 10
-LEARNING_RATE = 0.0001  # 0,0001 seems to work well
+IN_CHANNELS, OUT_CHANNELS = 3, 10
+LEARNING_RATE = 0.01  # 0,0001 seems to work well
 LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 # set random seed for reproducibility
@@ -52,7 +49,7 @@ def train(load_model=None, save_model=None):
 
     # set optimizer and loss_fn
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
-    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
+    loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER)
@@ -85,13 +82,14 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
         model.train()
 
         with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
-            for images, true_masks, _ in train_loader:
+            for images, targets in train_loader:
+
                 images = images.to(DEVICE)
-                true_masks = true_masks.to(DEVICE)
+                targets = targets.to(DEVICE)
 
                 # Compute prediction and loss
                 pred = model(images)
-                loss = loss_fn(pred, true_masks)
+                loss = loss_fn(pred, targets)
 
                 # Backpropagation
                 optimizer.zero_grad(set_to_none=True)
@@ -108,7 +106,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                     tf.summary.scalar('train loss', loss.item(), step=step)
 
                 # delete data from gpu cache
-                del images, true_masks, pred, loss
+                del images, targets, pred, loss
                 torch.cuda.empty_cache()
 
         validation(val_loader, model, loss_fn, epoch, step)
@@ -125,6 +123,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     :return: None
     """
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     model.eval()
 
     size = len(val_loader)
@@ -132,7 +131,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for images, targets, _ in tqdm.tqdm(val_loader, desc='validation_round', total=size):
+    for images, true_masks in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
         images = images.to(DEVICE)
         targets = targets.to(DEVICE)

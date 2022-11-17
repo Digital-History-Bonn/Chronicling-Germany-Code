@@ -2,7 +2,7 @@ from torch.nn.functional import conv2d
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from NewsDataset import NewsDataset
+from news_dataset import NewsDataset
 
 
 # TODO: make output of Postproces json-format
