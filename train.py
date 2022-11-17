@@ -1,16 +1,17 @@
 import datetime
 
+import numpy as np
 import sklearn.metrics  # type: ignore
+import tensorflow as tf  # type: ignore
 import torch
 import tqdm  # type: ignore
+import tqdm
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-import tensorflow as tf  # type: ignore
-import numpy as np
-import tqdm
-from news_dataset import NewsDataset
+
 from model import DhSegment
+from news_dataset import NewsDataset
 
 EPOCHS = 5
 BATCH_SIZE = 4
@@ -130,7 +131,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     loss_sum = 0
     jaccard_sum = 0
     accuracy_sum = 0
-    for images, true_masks in tqdm.tqdm(val_loader, desc='validation_round', total=size):
+    for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
         images = images.to(DEVICE)
         targets = targets.to(DEVICE)

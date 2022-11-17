@@ -4,10 +4,8 @@ import numpy as np
 import torch
 from PIL import Image  # type: ignore
 from numpy import ndarray
-from torch.nn.functional import conv2d
 from torchvision import transforms  # type: ignore
 
-from utils import step
 
 SCALE = 1
 EXPANSION = 5
@@ -54,25 +52,19 @@ def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray
 
 class Preprocessing:
     def __init__(self, scale=SCALE, expansion=EXPANSION, image_pad_values=(0, 0), target_pad_values=(0, 0, 1),
-                 thicken_above=THICKEN_ABOVE, thicken_under=THICKEN_UNDER, crop_factor=CROP_FACTOR,
-                 crop_size=CROP_SIZE):
+                 crop_factor=CROP_FACTOR, crop_size=CROP_SIZE):
         """
         :param scale: (default: 4)
         :param expansion: (default: 5) number of time the image must be scaled to
         :param image_pad_values: tuple with numbers to pad image with
         :param target_pad_values: (default: (0, 0, 0)) value to pad the different annotation-images with
-        :param thicken_above: (default: 5) value to thicken the baselines above
-        :param thicken_under: (default: 0) value to thicken the baselines under
         """
         self.scale = scale
         self.expansion = 2 ** expansion
         self.image_pad_values = tuple([(x, x) for x in image_pad_values])
         self.target_pad_values = tuple([(x, x) for x in target_pad_values])
-        self.thicken_above = thicken_above
-        self.thicken_under = thicken_under
         self.crop_factor = crop_factor
         self.crop_size = crop_size
-        self.weights_size = 2 * (max(thicken_under, thicken_above))
 
     def __call__(self, image: Image):
         """
@@ -117,18 +109,6 @@ class Preprocessing:
         for _ in range(count):
             images.append(np.array(transform(torch.tensor(data))))
         return np.array(images)
-
-    def _thicken_baseline(self, target, dim=0):
-        target[dim] = self._thicken(target[dim])
-        return target
-
-    def _thicken(self, image):
-        image = torch.tensor(image[None, :])
-        weights = np.zeros(self.weights_size)
-        weights[(self.weights_size // 2) - self.thicken_under:(self.weights_size // 2) + self.thicken_above] = 1
-        weights = torch.tensor(weights[None, None, :, None])
-        image = conv2d(image, weights, stride=1, padding='same')[0].numpy()
-        return step(image)
 
 
 if __name__ == '__main__':
