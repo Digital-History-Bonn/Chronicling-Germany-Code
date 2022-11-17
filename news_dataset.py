@@ -1,7 +1,7 @@
 """
 module for Dataset class
 """
-from typing import Union
+from typing import Union, Tuple, List
 
 import os
 from PIL import Image  # type: ignore
@@ -64,6 +64,7 @@ class NewsDataset(Dataset):
                 self.images.extend(images)
                 self.targets.extend(targets)
 
+
         else:
             raise Exception("Wrong combination of argument types")
 
@@ -74,7 +75,7 @@ class NewsDataset(Dataset):
         """
         return len(self.targets)
 
-    def __getitem__(self, item: int) -> tuple[torch.tensor, torch.tensor]:
+    def __getitem__(self, item: int) -> Tuple[torch.tensor, torch.tensor]:
         """
         returns one datapoint
         :param item: number of the datapoint
@@ -97,7 +98,7 @@ class NewsDataset(Dataset):
                 ratio[value] += count
         return {c: v / size for c, v in ratio.items()}
 
-    def random_split(self, ratio: list[float]):
+    def random_split(self, ratio: List[float]):
         """
         splits the dataset in parts of size given in ratio
         :param ratio: list[float]:

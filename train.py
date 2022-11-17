@@ -123,7 +123,6 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     :return: None
     """
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     model.eval()
 
     size = len(val_loader)
