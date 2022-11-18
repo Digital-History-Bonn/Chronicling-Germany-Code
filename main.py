@@ -4,7 +4,7 @@ from PIL import Image
 
 from model import DhSegment
 from preprocessing import Preprocessing
-from Postprocessing import Postprocess
+from postprocessing import Postprocess
 
 MODEL = 'models/model.pt'
 IN_CHANNELS = 1
