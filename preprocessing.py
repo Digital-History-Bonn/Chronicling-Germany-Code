@@ -5,26 +5,17 @@ import torch
 from PIL import Image  # type: ignore
 from numpy import ndarray
 from torchvision import transforms  # type: ignore
-
+from skimage.util.shape import view_as_windows
 
 SCALE = 0.5
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
-CROP_FACTOR = 2
+CROP_FACTOR = 1.5
 CROP_SIZE = 256
 
 
 # TODO: Maybe it's easier to save annotations in one "image"
-
-
-def get_max_crops(image_size: Tuple[int, int], crop_size: Tuple[int, int]) -> int:
-    """
-    calculates number of cropped images that can be extracted without much overlapping.
-    :param image_size: image size
-    :param crop_size: size of cropped image
-    """
-    return int((image_size[0] / crop_size[0]) * (image_size[1] / crop_size[1]))
 
 
 def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -88,28 +79,20 @@ class Preprocessing:
         # scale
         image, target = _scale_img(image, target)
 
-        count = get_max_crops(image.shape[-2:], (self.crop_size, self.crop_size))
-        data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])), count)
+        data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
 
         return data[:, :-1], data[:, -1]
 
-    def _crop_img(self, data: ndarray, count: int) -> ndarray:
+    def _crop_img(self, data: ndarray) -> ndarray:
         """
-        random crop image and targets.
+        Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
         :param data: ndarray containing image and target
-        :param count: count of to be cropped images
         """
-        count = int(count * self.crop_factor)
-        if count == 0:
-            return data
-
-        data = torch.tensor(data)  # type: ignore
-        transform = transforms.RandomCrop((self.crop_size, self.crop_size))
-
-        images = []
-        for _ in range(count):
-            images.append(np.array(transform(data)))
-        return np.array(images)
+        windows = np.array(view_as_windows(data, (data.shape[0], self.crop_size, self.crop_size),
+                                           step=int(self.crop_size // self.crop_factor)))
+        windows = np.reshape(windows,
+                             (np.prod(windows.shape[:3]), windows.shape[3], windows.shape[4], windows.shape[5]))
+        return windows
 
 
 if __name__ == '__main__':
