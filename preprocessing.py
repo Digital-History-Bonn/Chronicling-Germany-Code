@@ -1,92 +1,99 @@
 """
-    module for preprocessing newspaper images and target
+    module for preprocessing newspaper images and targets
 """
+
+from typing import Tuple
 
 import numpy as np
 from PIL import Image  # type: ignore
+from numpy import ndarray
+from skimage.util.shape import view_as_windows  # type: ignore
 
-SCALE = 1
+SCALE = 0.5
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
+CROP_FACTOR = 1.5
+CROP_SIZE = 256
+
+
+def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    scales down all given image and target by scale
+    :param image (Image): image
+    :param target (np.ndarray): target
+    return: ndarray tuple containing scaled image and target
+    """
+    if SCALE == 1:
+        image = np.array(image)
+        return np.transpose(image, (2, 0, 1)), target
+
+    shape = int(image.size[0] * SCALE), int(image.size[1] * SCALE)
+
+    image = image.resize(shape, resample=Image.BICUBIC)
+
+    target_img = Image.fromarray(target.astype(np.uint8))
+    target_img = target_img.resize(shape, resample=Image.NEAREST)
+
+    image, target = np.array(image), np.array(target_img)  # type: ignore
+
+    return np.transpose(image, (2, 0, 1)), target
 
 
 class Preprocessing:
     """
-        class for preprocessing newspaper images and target
+    class for preprocessing newspaper images and targets
     """
-    def __init__(self, scale: float = SCALE,
-                 expansion: int = EXPANSION,
-                 image_pad_value: int = 0,
-                 target_pad_value: int = 0):
+    def __init__(self, scale=SCALE, expansion: int = EXPANSION,
+                 crop_factor: int = CROP_FACTOR, crop_size: int = CROP_SIZE):
         """
-        class for preprocessing newspaper images and target
-
-        :param scale (float): value of down scaling image (default: 1)
-        :param expansion (int): number of time the image must be scaled to (default: 5)
-        :param image_pad_value (int): value for padding image (default: 0)
-        :param target_pad_value (int): value for padding target (default: 0)
+        :param scale: (default: 4)
+        :param expansion: (default: 5) number of time the image must be scaled to
+        :param crop_factor: (default 1.5) step_size of crop is crop_size / crop_factor
+        :param crop_size: width and height of crop
         """
         self.scale = scale
         self.expansion = 2 ** expansion
-        self.image_pad_value = image_pad_value
-        self.target_pad_value = target_pad_value
+        self.crop_factor = crop_factor
+        self.crop_size = crop_size
 
-    def __call__(self, image: Image):
+    def __call__(self, image: Image) -> Image:
         """
         preprocess for the input image only
-        :param image (Image): image
-        :return: image, mask
+        :param image: image
+        :return: image
         """
         # scale
         t_dummy = np.zeros(image.size)
-        image, _ = self._scale_img(image, t_dummy)
+        image, _ = _scale_img(image, t_dummy)
 
         return image
 
-    def preprocess(self, image: Image, target: np.ndarray):
+    def preprocess(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         preprocess for image with annotations
         :param image: image
         :param target: annotations
-        :return: image, target, mask
+        :return: image, target
         """
         # scale
-        image, target = self._scale_img(image, target)
-        images, targets = self._dummy_crop(image, target)
+        image, target = _scale_img(image, target)
 
-        return images, targets
+        data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
 
-    @staticmethod
-    def _scale_img(image: Image, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        return data[:, :-1], data[:, -1]
+
+    def _crop_img(self, data: ndarray) -> ndarray:
         """
-        scales down all given image and target by scale
-        :param image (Image): image
-        :param target (np.ndarray): target
+        Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
+        :param data: ndarray containing image and target
+        :return: ndarray of crops
         """
-        if SCALE == 1:
-            image = np.array(image)
-            return np.transpose(image, (2, 0, 1)), target
-
-        shape = int(image.size[0] * SCALE), int(image.size[1] * SCALE)
-
-        image = image.resize(shape, resample=Image.BICUBIC)
-
-        target_img = Image.fromarray(target.astype(np.uint8))
-        target_img = target_img.resize(shape, resample=Image.NEAREST)
-
-        image, target = np.array(image), np.array(target_img)
-
-        return np.transpose(image, (2, 0, 1)), target
-
-    @staticmethod
-    def _dummy_crop(image: np.ndarray, target: np.ndarray) \
-            -> tuple[list[np.ndarray], list[np.ndarray]]:
-        """
-            simple cropping function to be replaced later
-        """
-        return [image[:, :512, :512], image[:, -512:, -512:]], \
-               [target[:512, :512], target[-512:, -512:]]
+        windows = np.array(view_as_windows(data, (data.shape[0], self.crop_size, self.crop_size),
+                                           step=int(self.crop_size // self.crop_factor)))
+        windows = np.reshape(windows,
+                             (np.prod(windows.shape[:3]), windows.shape[3], windows.shape[4], windows.shape[5]))
+        return windows
 
 
 if __name__ == '__main__':

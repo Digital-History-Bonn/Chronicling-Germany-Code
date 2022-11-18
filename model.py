@@ -117,6 +117,22 @@ class Bottleneck(nn.Module):
 
         return out
 
+class Normalize(torch.nn.Module):
+    """
+    Handles input normalization
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: torch.Tensor, means: torch.Tensor, stds: torch.Tensor) ->  torch.Tensor:
+        """
+        input normalization with mean and standard deviation
+        """
+        normalized = ((x - means[None, :, None, None].to(x.device)) /
+                      stds[None, :, None, None].to(x.device))
+        return normalized
+
 
 class DhSegment(nn.Module):
     def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
@@ -126,8 +142,8 @@ class DhSegment(nn.Module):
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
+        self.first_channels = 64
 
-        self.inplanes = 64
         self.dilation = 1
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
@@ -138,13 +154,13 @@ class DhSegment(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(in_channels, self.inplanes, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(in_channels, self.first_channels, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.bn1 = norm_layer(self.inplanes)
+        self.bn1 = norm_layer(self.first_channels)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.block1 = self._make_layer(64, layers[0])
+        self.block1 = self._make_layer(self.first_channels, layers[0])
         self.block2 = self._make_layer(128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
         self.block3 = self._make_layer(256, layers[2], stride=2, dilate=replace_stride_with_dilation[1], conv_out=True)
         self.block4 = self._make_layer(512, layers[3], stride=2, dilate=replace_stride_with_dilation[2], conv_out=True)
@@ -157,8 +173,6 @@ class DhSegment(nn.Module):
         self.up_block5 = UpScaleBlock(64, in_channels, 32)
 
         self.conv2 = conv1x1(32, out_channel)
-
-        self.softmax = nn.Softmax(1)  # maybe wrong dim!
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -178,6 +192,11 @@ class DhSegment(nn.Module):
         if load_resnet_weights:
             self._load_ResNet()
 
+        # initialize normalization
+        self.register_buffer('means', torch.tensor([0]*in_channels))
+        self.register_buffer('stds', torch.tensor([1]*in_channels))
+        self.normalize = Normalize()
+
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer
         downsample = None
@@ -185,17 +204,17 @@ class DhSegment(nn.Module):
         if dilate:
             self.dilation *= stride
             stride = 1
-        if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
+        if stride != 1 or self.first_channels != planes * Bottleneck.expansion:
             downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
+                conv1x1(self.first_channels, planes * Bottleneck.expansion, stride),
                 norm_layer(planes * Bottleneck.expansion),
             )
 
-        layers = [Bottleneck(self.inplanes, planes, stride, downsample, self.groups,
+        layers = [Bottleneck(self.first_channels, planes, stride, downsample, self.groups,
                              self.base_width, previous_dilation, norm_layer)]
-        self.inplanes = planes * Bottleneck.expansion
+        self.first_channels = planes * Bottleneck.expansion
         for _ in range(1, blocks):
-            layers.append(Bottleneck(self.inplanes, planes, groups=self.groups,
+            layers.append(Bottleneck(self.first_channels, planes, groups=self.groups,
                                      base_width=self.base_width, dilation=self.dilation,
                                      norm_layer=norm_layer))
 
@@ -206,6 +225,7 @@ class DhSegment(nn.Module):
         identity = x
         # print(f"input: x:{x.shape}, identity:{identity.shape}")
 
+        x = self.normalize(x, self.means, self.stds)
         x = self.conv1(x)
         x = self.bn1(x)
         copy_0 = self.relu(x)
@@ -236,7 +256,7 @@ class DhSegment(nn.Module):
         x = self.conv2(x)
         # print(f"out: {x.shape}")
 
-        return self.softmax(x)
+        return x
 
     def forward(self, x):
         return self._forward_impl(x)

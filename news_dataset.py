@@ -1,11 +1,12 @@
 """
 module for Dataset class
 """
-from typing import Union
+from __future__ import annotations
 
+from typing import Union, Tuple, List
 import os
-from PIL import Image
-import tqdm
+from PIL import Image  # type: ignore
+import tqdm  # type: ignore
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -21,6 +22,7 @@ class NewsDataset(Dataset):
     """
         A dataset class for the newspaper datasets
     """
+
     def __init__(self, images: Union[str, list] = INPUT,
                  targets: Union[str, list] = TARGETS,
                  limit: Union[None, int] = None):
@@ -50,11 +52,8 @@ class NewsDataset(Dataset):
 
             # Open the image form working directory
             for file in tqdm.tqdm(images, desc='load data', total=len(images)):
-
                 # load image
-                img = Image.open(f"{INPUT}{file}.tif")
-                image = Image.new("RGB", img.size)
-                image.paste(img)
+                image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
 
                 # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")
@@ -74,13 +73,13 @@ class NewsDataset(Dataset):
         """
         return len(self.targets)
 
-    def __getitem__(self, item: int) -> tuple[torch.tensor, torch.tensor]:
+    def __getitem__(self, item: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         returns one datapoint
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        return torch.tensor(self.images[item], dtype=torch.float),\
+        return torch.tensor(self.images[item], dtype=torch.float), \
                torch.tensor(self.targets[item]).long()
 
     def class_ratio(self, class_nr: int) -> dict:
@@ -97,7 +96,7 @@ class NewsDataset(Dataset):
                 ratio[value] += count
         return {c: v / size for c, v in ratio.items()}
 
-    def random_split(self, ratio: list[float]):
+    def random_split(self, ratio: Tuple[float, float, float]) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
         :param ratio: list[float]:
@@ -123,9 +122,11 @@ class NewsDataset(Dataset):
 
 if __name__ == '__main__':
     dataset = NewsDataset()
-    train_set, test_set, valid = dataset.random_split([.9, .05, .05])
+    train_set, test_set, valid = dataset.random_split((.9, .05, .05))
     print(f"{type(train_set)=}")
     print(f"train: {len(train_set)}, test: {len(test_set)}, valid: {len(valid)}")
     print(f"{train_set.class_ratio(10)}")
-    print(train_set.targets[0].shape)
+    print()
+    print(train_set.targets[0])
+    print()
     print(train_set.images[0])
