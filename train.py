@@ -108,9 +108,8 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
     for epoch in range(1, EPOCHS + 1):
         model.train()
 
-        with tqdm.tqdm(total=n_train, desc=f'Epoch {epoch}/{EPOCHS}', unit='img') as pbar:
+        with tqdm.tqdm(total=(n_train//BATCH_SIZE), desc=f'Epoch {epoch}/{EPOCHS}', unit='batches') as pbar:
             for images, targets in train_loader:
-
                 images = images.to(DEVICE)
                 targets = targets.to(DEVICE)
 
@@ -124,7 +123,7 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 optimizer.step()
 
                 # update description
-                pbar.update(images.shape[0])
+                pbar.update(1)
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                 # update tensor board logs
@@ -188,7 +187,8 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
         tf.summary.scalar('epoch', epoch, step=step)
-        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1).T, step=step)
+        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1).permute(*torch.arange(4 - 1, -1, -1)),
+                         step=step)
         tf.summary.image('val target', torch.unsqueeze(
             torch.unsqueeze(target.float().cpu() / torch.max(target.float().cpu()), 0), 3), step=step)
         tf.summary.image('val prediction', torch.unsqueeze(pred.cpu(), 3), step=step)
