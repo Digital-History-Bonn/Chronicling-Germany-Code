@@ -99,15 +99,16 @@ class Preprocessing:
         :param data: ndarray containing image and target
         :param count: count of to be cropped images
         """
+        count = int(count * self.crop_factor)
         if count == 0:
-            return np.transpose(np.array([torch.tensor(data)]), (1, 0, 2, 3))
+            return data
 
-        count = count * self.crop_factor
+        data = torch.tensor(data)  # type: ignore
         transform = transforms.RandomCrop((self.crop_size, self.crop_size))
 
         images = []
         for _ in range(count):
-            images.append(np.array(transform(torch.tensor(data))))
+            images.append(np.array(transform(data)))
         return np.array(images)
 
 
