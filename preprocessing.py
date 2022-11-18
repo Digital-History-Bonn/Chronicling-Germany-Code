@@ -5,7 +5,7 @@ import torch
 from PIL import Image  # type: ignore
 from numpy import ndarray
 from torchvision import transforms  # type: ignore
-from skimage.util.shape import view_as_windows
+from skimage.util.shape import view_as_windows  # type: ignore
 
 SCALE = 0.5
 EXPANSION = 5

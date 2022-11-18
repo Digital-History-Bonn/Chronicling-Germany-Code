@@ -187,11 +187,11 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
         tf.summary.scalar('epoch', epoch, step=step)
-        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1).permute(*torch.arange(4 - 1, -1, -1)),
+        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1),
                          step=step)
         tf.summary.image('val target', torch.unsqueeze(
-            torch.unsqueeze(target.float().cpu() / torch.max(target.float().cpu()), 0), 3), step=step)
-        tf.summary.image('val prediction', torch.unsqueeze(pred.cpu(), 3), step=step)
+            torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
+        tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
 
 
 if __name__ == '__main__':
