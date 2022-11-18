@@ -49,15 +49,15 @@ class Preprocessing:
         """
         :param scale: (default: 4)
         :param expansion: (default: 5) number of time the image must be scaled to
-        :param image_pad_values: tuple with numbers to pad image with
-        :param target_pad_values: (default: (0, 0, 0)) value to pad the different annotation-images with
+        :param crop_factor: (default 1.5) step_size of crop is crop_size / crop_factor
+        :param crop_size: width and height of crop
         """
         self.scale = scale
         self.expansion = 2 ** expansion
         self.crop_factor = crop_factor
         self.crop_size = crop_size
 
-    def __call__(self, image: Image):
+    def __call__(self, image: Image) -> Image:
         """
         preprocess for the input image only
         :param image: image
@@ -69,7 +69,7 @@ class Preprocessing:
 
         return image
 
-    def preprocess(self, image: Image, target: np.ndarray):
+    def preprocess(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         preprocess for image with annotations
         :param image: image
@@ -87,6 +87,7 @@ class Preprocessing:
         """
         Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
         :param data: ndarray containing image and target
+        :return: ndarray of crops
         """
         windows = np.array(view_as_windows(data, (data.shape[0], self.crop_size, self.crop_size),
                                            step=int(self.crop_size // self.crop_factor)))
