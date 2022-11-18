@@ -193,6 +193,10 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
             torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
         tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
 
+    print(f"average loss: {loss_sum / size}")
+    print(f"average accuracy: {accuracy_sum / size}")
+    print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
+
 
 if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
