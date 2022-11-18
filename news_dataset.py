@@ -1,8 +1,9 @@
 """
 module for Dataset class
 """
-from typing import Union, Tuple, List
+from __future__ import annotations
 
+from typing import Union, Tuple, List
 import os
 from PIL import Image  # type: ignore
 import tqdm  # type: ignore
@@ -62,7 +63,6 @@ class NewsDataset(Dataset):
                 self.images.extend(images)
                 self.targets.extend(targets)
 
-
         else:
             raise Exception("Wrong combination of argument types")
 
@@ -96,7 +96,7 @@ class NewsDataset(Dataset):
                 ratio[value] += count
         return {c: v / size for c, v in ratio.items()}
 
-    def random_split(self, ratio: List[float]):
+    def random_split(self, ratio: Tuple[float, float, float]) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
         :param ratio: list[float]:
@@ -122,9 +122,11 @@ class NewsDataset(Dataset):
 
 if __name__ == '__main__':
     dataset = NewsDataset()
-    train_set, test_set, valid = dataset.random_split([.9, .05, .05])
+    train_set, test_set, valid = dataset.random_split((.9, .05, .05))
     print(f"{type(train_set)=}")
     print(f"train: {len(train_set)}, test: {len(test_set)}, valid: {len(valid)}")
     print(f"{train_set.class_ratio(10)}")
-    print(train_set.targets[0].shape)
+    print()
+    print(train_set.targets[0])
+    print()
     print(train_set.images[0])

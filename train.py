@@ -7,15 +7,15 @@ import tensorflow as tf  # type: ignore
 import torch
 import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
-from torch.optim import AdamW
+from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from model import DhSegment
 from news_dataset import NewsDataset
 
-EPOCHS = 5
-BATCH_SIZE = 4
-DATALOADER_WORKER = 1
+EPOCHS = 1
+BATCH_SIZE = 32
+DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = 0.01  # 0,0001 seems to work well
 LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
@@ -71,7 +71,7 @@ def train(load_model=None, save_model=None):
     print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
     # set optimizer and loss_fn
-    optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    optimizer = Adam(model.parameters(), lr=LEARNING_RATE) # weight_decay=1e-4
     loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
@@ -100,11 +100,10 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
     :return: None
     """
 
-    if DEVICE == 'cuda':
-        model.cuda()
-        loss_fn.cuda()
+    model.to(DEVICE)
+    loss_fn.to(DEVICE)
 
-        step = 0
+    step = 0
     for epoch in range(1, EPOCHS + 1):
         model.train()
 
@@ -199,7 +198,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
 
 
 if __name__ == '__main__':
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
 
     # setup tensor board

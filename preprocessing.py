@@ -1,10 +1,12 @@
+"""
+    module for preprocessing newspaper images and targets
+"""
+
 from typing import Tuple
 
 import numpy as np
-import torch
 from PIL import Image  # type: ignore
 from numpy import ndarray
-from torchvision import transforms  # type: ignore
 from skimage.util.shape import view_as_windows  # type: ignore
 
 SCALE = 0.5
@@ -13,9 +15,6 @@ THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
 CROP_FACTOR = 1.5
 CROP_SIZE = 256
-
-
-# TODO: Maybe it's easier to save annotations in one "image"
 
 
 def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -42,8 +41,11 @@ def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray
 
 
 class Preprocessing:
-    def __init__(self, scale=SCALE, expansion=EXPANSION, image_pad_values=(0, 0), target_pad_values=(0, 0, 1),
-                 crop_factor=CROP_FACTOR, crop_size=CROP_SIZE):
+    """
+    class for preprocessing newspaper images and targets
+    """
+    def __init__(self, scale=SCALE, expansion: int = EXPANSION,
+                 crop_factor: int = CROP_FACTOR, crop_size: int = CROP_SIZE):
         """
         :param scale: (default: 4)
         :param expansion: (default: 5) number of time the image must be scaled to
@@ -52,8 +54,6 @@ class Preprocessing:
         """
         self.scale = scale
         self.expansion = 2 ** expansion
-        self.image_pad_values = tuple([(x, x) for x in image_pad_values])
-        self.target_pad_values = tuple([(x, x) for x in target_pad_values])
         self.crop_factor = crop_factor
         self.crop_size = crop_size
 

@@ -174,8 +174,6 @@ class DhSegment(nn.Module):
 
         self.conv2 = conv1x1(32, out_channel)
 
-        self.softmax = nn.Softmax(1)  # maybe wrong dim!
-
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
