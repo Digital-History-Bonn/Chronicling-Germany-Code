@@ -1,4 +1,5 @@
 import datetime
+from typing import Tuple
 
 import numpy as np
 import sklearn.metrics  # type: ignore
@@ -21,6 +22,28 @@ LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 a
 
 # set random seed for reproducibility
 torch.manual_seed(42)
+
+
+def get_normalization_parameters(data: DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    calculate mean and standard deviation
+    :param: data: dataloader
+    :return: mean and std values for each channel
+    """
+    batch_means = []
+    batch_stds = []
+
+    for batch in data:
+        images = batch[0]
+        mean = images.mean((0, 2, 3))
+        std = images.std((0, 2, 3))
+
+        batch_means.append(mean)
+        batch_stds.append(std)
+
+    channel_means = torch.stack(batch_means).mean(0)
+    channel_stds = torch.stack(batch_stds).mean(0)
+    return channel_means, channel_stds
 
 
 def train(load_model=None, save_model=None):
@@ -52,8 +75,12 @@ def train(load_model=None, save_model=None):
     loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
-                                               num_workers=DATALOADER_WORKER)
+                                               num_workers=DATALOADER_WORKER, drop_last=True)
     val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
+
+    means, stds = get_normalization_parameters(train_loader)
+    model.means = means
+    model.stds = stds
 
     train_loop(train_loader, len(train_set), model, loss_fn, optimizer, val_loader)
 
@@ -151,7 +178,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         del images, targets, pred, loss
         torch.cuda.empty_cache()
 
-    image, target, _ = val_loader.dataset[0]
+    image, target = val_loader.dataset[0]
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
 

@@ -7,12 +7,12 @@ from numpy import ndarray
 from torchvision import transforms  # type: ignore
 
 
-SCALE = 1
+SCALE = 0.5
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
 CROP_FACTOR = 2
-CROP_SIZE = 512
+CROP_SIZE = 256
 
 
 # TODO: Maybe it's easier to save annotations in one "image"
