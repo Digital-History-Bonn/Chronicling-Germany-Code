@@ -134,7 +134,9 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 del images, targets, pred, loss
                 torch.cuda.empty_cache()
 
-        validation(val_loader, model, loss_fn, epoch, step)
+                if step % 5 == 0:
+                    validation(val_loader, model, loss_fn, epoch, step)
+
 
 
 def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
