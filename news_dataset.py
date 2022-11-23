@@ -3,14 +3,14 @@ module for Dataset class
 """
 from __future__ import annotations
 
-from typing import Union, Tuple, List
+from typing import Union, Tuple
 import os
 from PIL import Image  # type: ignore
 import tqdm  # type: ignore
 import numpy as np
-import torch
-from torch.utils.data import Dataset
-from torch import randperm
+import torch  # type: ignore
+from torch.utils.data import Dataset  # type: ignore
+from torch import randperm  # type: ignore
 
 from preprocessing import Preprocessing
 
@@ -96,28 +96,28 @@ class NewsDataset(Dataset):
                 ratio[value] += count
         return {c: v / size for c, v in ratio.items()}
 
-    def random_split(self, ratio: Tuple[float, float, float]) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
+    def random_split(self, ratio: Tuple[float, float, float]) \
+            -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
         :param ratio: list[float]:
         :return (list): list of NewsDatasets
         """
         assert sum(ratio) == 1, "ratio does not sum up to 1."
-        split = [int(r * len(self)) for r in ratio[1:]]
-        split.insert(0, len(self) - sum(split))
-        splits = [(sum(split[:x]), sum(split[:x + 1])) for x in range(len(ratio))]
+        assert len(ratio) == 3, "ratio does not have length 3"
+
+        splits = int(ratio[0] * len(self)), int(ratio[0] * len(self)) + int(ratio[1] * len(self))
 
         indices = randperm(len(self), generator=torch.Generator().manual_seed(42)).tolist()
 
-        sets = []
-        for start, end in splits:
-            img, tar = [], []
-            for i in indices[start:end]:
-                img.append(self.images[i])
-                tar.append(self.targets[i])
-            sets.append(NewsDataset(img, tar))
+        train_dataset = NewsDataset([self.images[i] for i in indices[:splits[0]]],
+                                    [self.targets[i] for i in indices[:splits[0]]])
+        test_dataset = NewsDataset([self.images[i] for i in indices[splits[0]: splits[1]]],
+                                   [self.targets[i] for i in indices[splits[0]: splits[1]]])
+        valid_dataset = NewsDataset([self.images[i] for i in indices[splits[1]:]],
+                                    [self.targets[i] for i in indices[splits[1]:]])
 
-        return sets
+        return train_dataset, test_dataset, valid_dataset
 
 
 if __name__ == '__main__':
