@@ -23,8 +23,8 @@ class NewsDataset(Dataset):
         A dataset class for the newspaper datasets
     """
 
-    def __init__(self, images: Union[str, list] = INPUT,
-                 targets: Union[str, list] = TARGETS,
+    def __init__(self, images: Union[str, np.ndarray] = INPUT,
+                 targets: Union[str, np.ndarray] = TARGETS,
                  limit: Union[None, int] = None):
         """
         Dataset object
@@ -36,22 +36,22 @@ class NewsDataset(Dataset):
         :param: targets (str | list): path to folder of targets or list of np.arrays
         :param: limit (int): max size of dataloader
         """
-        if isinstance(images, list) and isinstance(targets, list):
+        if isinstance(images, np.ndarray) and isinstance(targets, np.ndarray):
             self.images = images
             self.targets = targets
 
         elif isinstance(images, str) and isinstance(targets, str):
             pipeline = Preprocessing()
-            self.images, self.targets = [], []
+            lst_images, lst_targets = [], []
 
             # load images
-            images = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".tif")]
+            paths = [f[:-4] for f in os.listdir(images) if f.endswith(".tif")]
 
             if limit is not None:
-                images = images[:limit]
+                paths = paths[:limit]
 
             # Open the image form working directory
-            for file in tqdm.tqdm(images, desc='load data', total=len(images)):
+            for file in tqdm.tqdm(paths, desc='load data', total=len(paths)):
                 # load image
                 image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
 
@@ -60,8 +60,13 @@ class NewsDataset(Dataset):
 
                 images, targets = pipeline.preprocess(image, target)
 
-                self.images.extend(images)
-                self.targets.extend(targets)
+                lst_images.append(images)
+                lst_targets.append(targets)
+
+            self.images = np.concatenate(lst_images, axis=0)
+            print(f"{self.images.shape=}")
+            self.targets = np.concatenate(lst_targets, axis=0)
+            print(f"{self.images.shape=}")
 
         else:
             raise Exception("Wrong combination of argument types")
@@ -110,12 +115,12 @@ class NewsDataset(Dataset):
 
         indices = randperm(len(self), generator=torch.Generator().manual_seed(42)).tolist()
 
-        train_dataset = NewsDataset([self.images[i] for i in indices[:splits[0]]],
-                                    [self.targets[i] for i in indices[:splits[0]]])
-        test_dataset = NewsDataset([self.images[i] for i in indices[splits[0]: splits[1]]],
-                                   [self.targets[i] for i in indices[splits[0]: splits[1]]])
-        valid_dataset = NewsDataset([self.images[i] for i in indices[splits[1]:]],
-                                    [self.targets[i] for i in indices[splits[1]:]])
+        train_dataset = NewsDataset(self.images[indices[:splits[0]]],
+                                    self.targets[indices[:splits[0]]])
+        test_dataset = NewsDataset(self.images[indices[splits[0]:splits[1]]],
+                                   self.targets[indices[splits[0]:splits[1]]])
+        valid_dataset = NewsDataset(self.images[indices[splits[1]:]],
+                                    self.targets[indices[splits[1]:]])
 
         return train_dataset, test_dataset, valid_dataset
 
