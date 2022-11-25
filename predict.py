@@ -1,6 +1,7 @@
 """Module for loading Model and predicting images"""
 import argparse
 import os
+from typing import Union, List, Any
 
 import numpy as np
 from PIL import Image  # type: ignore
@@ -12,7 +13,8 @@ from model import DhSegment
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 
 
-def get_output_filenames(output_path: str, input_path: str) -> str:
+def get_output_filenames(output_path: Union[str, List[Any]], input_path: Union[str, List[Any]]) -> Union[
+    str, List[Any]]:
     """returns generated output name or output name from args"""
 
     def _generate_name(function):
