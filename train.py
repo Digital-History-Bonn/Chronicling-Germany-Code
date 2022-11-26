@@ -3,6 +3,7 @@ module for training the hdSegment Model
 """
 
 import datetime
+import argparse
 
 import numpy as np
 import sklearn.metrics  # type: ignore
@@ -22,7 +23,7 @@ VAL_EVERY = 250
 BATCH_SIZE = 32
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
-LEARNING_RATE = 0.01  # 0,0001 seems to work well
+LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
@@ -31,11 +32,12 @@ LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 torch.manual_seed(42)
 
 
-def train(load_model=None, save_model=None):
+def train(load_model=None, save_model=None, epochs: int=EPOCHS):
     """
     train function. Initializes dataloaders and optimzer.
     :param load_model: (default: None) path to model to load
     :param save_model: (default: None) path to save the model
+    :param epochs: (default: EPOCHS) number of epochs
     :return: None
     """
     # create model
@@ -61,23 +63,22 @@ def train(load_model=None, save_model=None):
 
     # set optimizer and loss_fn
     optimizer = Adam(model.parameters(), lr=LEARNING_RATE) # weight_decay=1e-4
-    loss_fn = CrossEntropyLoss()  # weight=torch.tensor(LOSS_WEIGHTS)
+    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
     val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
 
-    train_loop(train_loader, len(train_set), model, loss_fn, optimizer, val_loader)
+    train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader)
 
     model.save(save_model)
 
 
-def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, loss_fn: torch.nn.Module,
+def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.nn.Module, epochs:int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader):
     """
     executes all training epochs. After each epoch a validation round is performed.
     :param train_loader: Dataloader object
-    :param n_train: size of train data
     :param model: model to train
     :param loss_fn: loss function to optimize
     :param optimizer: optimizer to use
@@ -89,10 +90,10 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
     loss_fn.to(DEVICE)
 
     step = 0
-    for epoch in range(1, EPOCHS + 1):
+    for epoch in range(1, epochs + 1):
         model.train()
 
-        with tqdm.tqdm(total=(n_train//BATCH_SIZE), desc=f'Epoch {epoch}/{EPOCHS}', unit='batches') as pbar:
+        with tqdm.tqdm(total=(len(train_loader)), desc=f'Epoch {epoch}/{epochs}', unit='batches') as pbar:
             for images, targets in train_loader:
                 images = images.to(DEVICE)
                 targets = targets.to(DEVICE)
@@ -190,13 +191,24 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     torch.cuda.empty_cache()
 
 
+def get_args() -> argparse.Namespace:
+    """defines arguments"""
+    parser = argparse.ArgumentParser(description='train')
+    parser.add_argument('--epochs', '-e', metavar='EPOCHS', type=int, default=1, help='number of epochs to train')
+    parser.add_argument('--name', '-n', metavar='NAME', type=str,
+                        default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
+                        help='name of run in tensorboard')
+
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
+    args = get_args()
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
 
     # setup tensor board
-    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    train_log_dir = 'logs/runs/' + current_time
+    train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(load_model=None, save_model='Models/model.pt')
+    train(load_model=None, save_model='Models/model.pt', epochs=args.epochs)
