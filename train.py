@@ -1,3 +1,7 @@
+"""
+module for training the hdSegment Model
+"""
+
 import datetime
 from typing import Tuple
 
@@ -12,13 +16,17 @@ from torch.utils.data import DataLoader
 
 from model import DhSegment
 from news_dataset import NewsDataset
+from predict import get_file
 
 EPOCHS = 1
+VAL_EVERY = 250
 BATCH_SIZE = 32
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = 0.01  # 0,0001 seems to work well
 LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
+
+LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
 torch.manual_seed(42)
@@ -134,9 +142,8 @@ def train_loop(train_loader: DataLoader, n_train: int, model: torch.nn.Module, l
                 del images, targets, pred, loss
                 torch.cuda.empty_cache()
 
-                if step % 5 == 0:
+                if step % VAL_EVERY == 0:
                     validation(val_loader, model, loss_fn, epoch, step)
-
 
 
 def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
@@ -182,6 +189,9 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
 
+    log_image = get_file(LOGGING_IMAGE)
+    log_pred = model.predict(torch.tensor(log_image).to(DEVICE))
+
     # update tensor board logs
     with summary_writer.as_default():
         tf.summary.scalar('val loss', loss_sum / size, step=step)
@@ -193,10 +203,14 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         tf.summary.image('val target', torch.unsqueeze(
             torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
         tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
+        tf.summary.image('full site prediction', log_pred[None, :, :, None].repeat(1, 1, 1, 3), step=step)
 
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
+
+    del image, target, pred, log_image, log_pred
+    torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':
