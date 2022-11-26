@@ -3,12 +3,11 @@ module for training the hdSegment Model
 """
 
 import datetime
-from typing import Tuple
 
 import numpy as np
 import sklearn.metrics  # type: ignore
 import tensorflow as tf  # type: ignore
-import torch
+import torch # type: ignore
 import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
@@ -32,28 +31,6 @@ LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 torch.manual_seed(42)
 
 
-def get_normalization_parameters(data: DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    calculate mean and standard deviation
-    :param: data: dataloader
-    :return: mean and std values for each channel
-    """
-    batch_means = []
-    batch_stds = []
-
-    for batch in data:
-        images = batch[0]
-        mean = images.mean((0, 2, 3))
-        std = images.std((0, 2, 3))
-
-        batch_means.append(mean)
-        batch_stds.append(std)
-
-    channel_means = torch.stack(batch_means).mean(0)
-    channel_stds = torch.stack(batch_stds).mean(0)
-    return channel_means, channel_stds
-
-
 def train(load_model=None, save_model=None):
     """
     train function. Initializes dataloaders and optimzer.
@@ -73,10 +50,14 @@ def train(load_model=None, save_model=None):
     dataset = NewsDataset()
 
     # splitting with fractions should work according to pytorch doc, but it does not
-    train_set, validation_set, _ = dataset.random_split([.9, .05, .05])
+    train_set, validation_set, _ = dataset.random_split((.9, .05, .05))
     print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
 
     print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
+
+    # set mean and std in model for normalization
+    model.means = train_set.mean
+    model.stds = train_set.std
 
     # set optimizer and loss_fn
     optimizer = Adam(model.parameters(), lr=LEARNING_RATE) # weight_decay=1e-4
@@ -85,10 +66,6 @@ def train(load_model=None, save_model=None):
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
     val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
-
-    means, stds = get_normalization_parameters(train_loader)
-    model.means = means
-    model.stds = stds
 
     train_loop(train_loader, len(train_set), model, loss_fn, optimizer, val_loader)
 
@@ -190,7 +167,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     pred = model(image).argmax(dim=1).float()
 
     log_image = get_file(LOGGING_IMAGE)
-    log_pred = model.predict(torch.tensor(log_image).to(DEVICE))
+    log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
     with summary_writer.as_default():

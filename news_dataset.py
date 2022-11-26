@@ -124,6 +124,20 @@ class NewsDataset(Dataset):
 
         return train_dataset, test_dataset, valid_dataset
 
+    @property
+    def mean(self) -> torch.tensor:
+        """
+        returns the mean for every color-channel in the dataset
+        """
+        return torch.tensor(self.images.mean(axis=(0, 2, 3))).float()
+
+    @property
+    def std(self) -> torch.tensor:
+        """
+        returns the standard-deviation for every color-channel in the dataset
+        """
+        return torch.tensor(self.images.std(axis=(0, 2, 3))).float()
+
 
 if __name__ == '__main__':
     dataset = NewsDataset()
