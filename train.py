@@ -13,6 +13,7 @@ import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torchvision import transforms  # type: ignore
 
 from model import DhSegment
 from news_dataset import NewsDataset
@@ -74,7 +75,7 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     model.save(save_model)
 
 
-def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.nn.Module, epochs: int,
+def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Module, epochs: int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader):
     """
     executes all training epochs. After each epoch a validation round is performed.
@@ -145,8 +146,10 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     accuracy_sum = 0
     for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
-        images = images.to(DEVICE)
-        targets = targets.to(DEVICE)
+        augmentations = get_augmentations()
+        data = augmentations(torch.concat((images, targets[:, np.newaxis, :, :]), dim=1))
+        images = data[:, :-1].to(device=DEVICE, dtype=torch.float32)
+        targets = data[:, -1].to(device=DEVICE, dtype=torch.long)
 
         pred = model(images)
         loss = loss_fn(pred, targets)
@@ -195,6 +198,15 @@ def log_pred(model: DhSegment) -> torch.Tensor:
     image = get_file(LOGGING_IMAGE)
     pred = model.predict(image.to(DEVICE))
     return pred
+
+
+def get_augmentations() -> transforms.Compose:
+    """Defines transformations"""
+    return transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(180)
+    ])
 
 
 def get_args() -> argparse.Namespace:
