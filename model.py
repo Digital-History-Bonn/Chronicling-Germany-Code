@@ -1,7 +1,10 @@
+from typing import Union
+
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
+import numpy as np
 from utils import replace_substrings
 
 """
@@ -139,6 +142,8 @@ class DhSegment(nn.Module):
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None, load_resnet_weights=False):
         super(DhSegment, self).__init__()
+        self.out_channel = out_channel
+
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
@@ -271,6 +276,12 @@ class DhSegment(nn.Module):
             return
         self.load_state_dict(torch.load(path))
         self.eval()
+
+    def predict(self, image: torch.tensor) -> torch.Tensor:
+        pred = self(image).argmax(dim=1).float().cpu()
+        prediction = torch.squeeze(pred / self.out_channel) * 255
+        return prediction
+
 
     def _load_ResNet(self):
         state_dict = load_state_dict_from_url('https://download.pytorch.org/models/resnet50-19c8e357.pth',
