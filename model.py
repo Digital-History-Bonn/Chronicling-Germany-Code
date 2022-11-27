@@ -277,7 +277,7 @@ class DhSegment(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
 
-    def predict(self, image: torch.tensor) -> torch.tensor:
+    def predict(self, image: torch.tensor) -> torch.Tensor:
         pred = self(image).argmax(dim=1).float().cpu()
         prediction = torch.squeeze(pred / self.out_channel) * 255
         return prediction

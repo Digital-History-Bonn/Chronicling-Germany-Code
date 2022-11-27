@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 import sklearn.metrics  # type: ignore
 import tensorflow as tf  # type: ignore
-import torch # type: ignore
+import torch  # type: ignore
 import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
@@ -32,7 +32,7 @@ LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 torch.manual_seed(42)
 
 
-def train(load_model=None, save_model=None, epochs: int=EPOCHS):
+def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     """
     train function. Initializes dataloaders and optimzer.
     :param load_model: (default: None) path to model to load
@@ -62,7 +62,7 @@ def train(load_model=None, save_model=None, epochs: int=EPOCHS):
     model.stds = train_set.std
 
     # set optimizer and loss_fn
-    optimizer = Adam(model.parameters(), lr=LEARNING_RATE) # weight_decay=1e-4
+    optimizer = Adam(model.parameters(), lr=LEARNING_RATE)  # weight_decay=1e-4
     loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
@@ -74,7 +74,7 @@ def train(load_model=None, save_model=None, epochs: int=EPOCHS):
     model.save(save_model)
 
 
-def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.nn.Module, epochs:int,
+def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.nn.Module, epochs: int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader):
     """
     executes all training epochs. After each epoch a validation round is performed.
@@ -83,6 +83,7 @@ def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.
     :param loss_fn: loss function to optimize
     :param optimizer: optimizer to use
     :param val_loader: dataloader with validation data
+    :param epochs: number of epochs that will be executed
     :return: None
     """
 
@@ -167,9 +168,6 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
 
-    log_image = get_file(LOGGING_IMAGE)
-    log_pred = model.predict(log_image.to(DEVICE))
-
     # update tensor board logs
     with summary_writer.as_default():
         tf.summary.scalar('val loss', loss_sum / size, step=step)
@@ -181,14 +179,22 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         tf.summary.image('val target', torch.unsqueeze(
             torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
         tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
-        tf.summary.image('full site prediction', log_pred[None, :, :, None].repeat(1, 1, 1, 3), step=step)
+        tf.summary.image('full site prediction', log_pred(model)[None, :, :, None].repeat(1, 1, 1, 3), step=step)
 
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
 
-    del image, target, pred, log_image, log_pred
+    del image, target, pred
     torch.cuda.empty_cache()
+
+
+def log_pred(model: DhSegment) -> torch.Tensor:
+    """calls load and predict function for full image prediction
+    :param model: prediction model"""
+    image = get_file(LOGGING_IMAGE)
+    pred = model.predict(image.to(DEVICE))
+    return pred
 
 
 def get_args() -> argparse.Namespace:

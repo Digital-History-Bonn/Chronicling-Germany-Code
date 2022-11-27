@@ -9,8 +9,8 @@ from PIL import Image  # type: ignore
 import tqdm  # type: ignore
 import numpy as np
 import torch  # type: ignore
+from torch import randperm
 from torch.utils.data import Dataset  # type: ignore
-from torch import randperm  # type: ignore
 
 from preprocessing import Preprocessing
 
@@ -84,8 +84,7 @@ class NewsDataset(Dataset):
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        return torch.tensor(self.images[item], dtype=torch.float), \
-               torch.tensor(self.targets[item]).long()
+        return torch.tensor(self.images[item], dtype=torch.float), torch.tensor(self.targets[item]).long()
 
     def class_ratio(self, class_nr: int) -> dict:
         """
@@ -125,14 +124,14 @@ class NewsDataset(Dataset):
         return train_dataset, test_dataset, valid_dataset
 
     @property
-    def mean(self) -> torch.tensor:
+    def mean(self) -> torch.Tensor:
         """
         returns the mean for every color-channel in the dataset
         """
         return torch.tensor(self.images.mean(axis=(0, 2, 3))).float()
 
     @property
-    def std(self) -> torch.tensor:
+    def std(self) -> torch.Tensor:
         """
         returns the standard-deviation for every color-channel in the dataset
         """
