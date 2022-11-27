@@ -14,6 +14,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
+import preprocessing
 from model import DhSegment
 from news_dataset import NewsDataset
 from predict import get_file
@@ -32,14 +33,18 @@ LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 torch.manual_seed(42)
 
 
-def train(load_model=None, save_model=None, epochs: int = EPOCHS):
+def train(args: argparse.Namespace, load_model=None, save_model=None):
     """
     train function. Initializes dataloaders and optimzer.
+    :param args: command line arguments
     :param load_model: (default: None) path to model to load
     :param save_model: (default: None) path to save the model
-    :param epochs: (default: EPOCHS) number of epochs
     :return: None
     """
+
+    epochs = args.epochs
+    batch_size = args.batch_size
+    lr = args.lr
     # create model
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
 
@@ -49,7 +54,7 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     model.load(load_model)
 
     # load data
-    dataset = NewsDataset()
+    dataset = NewsDataset(scale=args.scale)
 
     # splitting with fractions should work according to pytorch doc, but it does not
     train_set, validation_set, _ = dataset.random_split((.9, .05, .05))
@@ -62,12 +67,12 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     model.stds = train_set.std
 
     # set optimizer and loss_fn
-    optimizer = Adam(model.parameters(), lr=LEARNING_RATE)  # weight_decay=1e-4
+    optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
     loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
 
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
-    val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
+    val_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=False, num_workers=DATALOADER_WORKER)
 
     train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader)
 
@@ -200,10 +205,16 @@ def log_pred(model: DhSegment) -> torch.Tensor:
 def get_args() -> argparse.Namespace:
     """defines arguments"""
     parser = argparse.ArgumentParser(description='train')
-    parser.add_argument('--epochs', '-e', metavar='EPOCHS', type=int, default=1, help='number of epochs to train')
+    parser.add_argument('--epochs', '-e', metavar='EPOCHS', type=int, default=EPOCHS, help='number of epochs to train')
     parser.add_argument('--name', '-n', metavar='NAME', type=str,
                         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                         help='name of run in tensorboard')
+    parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
+                        help='Batch size')
+    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=LEARNING_RATE,
+                        help='Learning rate', dest='lr')
+    parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
+                        help='Downscaling factor of the images')
 
     return parser.parse_args()
 
@@ -217,4 +228,4 @@ if __name__ == '__main__':
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(load_model=None, save_model='Models/model.pt', epochs=args.epochs)
+    train(args, load_model=None, save_model='Models/model.pt')
