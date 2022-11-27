@@ -73,7 +73,7 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
 
     train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader, save_model)
 
-def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.nn.Module, epochs: int,
+def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Module, epochs: int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader, save_model: str):
     """
     executes all training epochs. After each epoch a validation round is performed.
@@ -187,11 +187,10 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
         tf.summary.scalar('epoch', epoch, step=step)
         tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)),
                          step=step)
-        tf.summary.image('val target', torch.unsqueeze(
-            torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
-        tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
+        tf.summary.image('val target', target.float().cpu()[None, :, :, None] / OUT_CHANNELS, step=step)
+        tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=step)
         tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=step)
-        tf.summary.image('full site prediction result', torch.unsqueeze(torch.unsqueeze(log_pred, dim=0), 3), step=step)
+        tf.summary.image('full site prediction result', log_pred[None, :, :, None], step=step)
 
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
