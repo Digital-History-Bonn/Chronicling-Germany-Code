@@ -71,13 +71,10 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER,
                             drop_last=True)
 
-    train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader)
-
-    model.save(save_model)
-
+    train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader, save_model)
 
 def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.nn.Module, epochs: int,
-               optimizer: torch.optim.Optimizer, val_loader: DataLoader):
+               optimizer: torch.optim.Optimizer, val_loader: DataLoader, save_model: str):
     """
     executes all training epochs. After each epoch a validation round is performed.
     :param train_loader: Dataloader object
@@ -118,6 +115,9 @@ def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.
                 step += 1
                 with summary_writer.as_default():
                     tf.summary.scalar('train loss', loss.item(), step=step)
+                    # tf.summary.image('train image', torch.permute(images.cpu(), (0, 2, 3, 1)), step=step)
+                    # tf.summary.image('train prediction', preds.float().detach().cpu().argmax(axis=1)[:, :, :, None] / OUT_CHANNELS, step=step)
+                    # tf.summary.image('train targets', targets[:, :, :, None].float().cpu() / OUT_CHANNELS, step=step)
 
                 # delete data from gpu cache
                 del images, targets, preds, loss
@@ -125,6 +125,8 @@ def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.
 
                 if step % VAL_EVERY == 0:
                     validation(val_loader, model, loss_fn, epoch, step)
+
+        model.save(save_model)
 
 
 def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
@@ -190,9 +192,13 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
         tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
         tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=step)
         tf.summary.image('full site prediction result', torch.unsqueeze(torch.unsqueeze(log_pred, dim=0), 3), step=step)
+
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
+
+    del size, image, target, pred, log_image, log_pred
+    torch.cuda.empty_cache()
 
 
 def get_args() -> argparse.Namespace:
