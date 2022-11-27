@@ -4,6 +4,7 @@ module for training the hdSegment Model
 
 import datetime
 import argparse
+import random
 
 import numpy as np
 import sklearn.metrics  # type: ignore
@@ -67,7 +68,8 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
-    val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
+    val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER,
+                            drop_last=True)
 
     train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader)
 
@@ -100,8 +102,8 @@ def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.
                 targets = targets.to(DEVICE)
 
                 # Compute prediction and loss
-                pred = model(images)
-                loss = loss_fn(pred, targets)
+                preds = model(images)
+                loss = loss_fn(preds, targets)
 
                 # Backpropagation
                 optimizer.zero_grad(set_to_none=True)
@@ -118,7 +120,7 @@ def train_loop(train_loader: DataLoader, model: torch.nn.Module, loss_fn: torch.
                     tf.summary.scalar('train loss', loss.item(), step=step)
 
                 # delete data from gpu cache
-                del images, targets, pred, loss
+                del images, targets, preds, loss
                 torch.cuda.empty_cache()
 
                 if step % VAL_EVERY == 0:
@@ -164,9 +166,16 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         del images, targets, pred, loss
         torch.cuda.empty_cache()
 
-    image, target = val_loader.dataset[0]
+    val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader)
+
+
+def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader):
+    size = len(val_loader)
+    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size))]
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
+    log_image = get_file(LOGGING_IMAGE)
+    log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
     with summary_writer.as_default():
@@ -174,27 +183,16 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
         tf.summary.scalar('epoch', epoch, step=step)
-        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1),
+        tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)),
                          step=step)
         tf.summary.image('val target', torch.unsqueeze(
             torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
         tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
-        tf.summary.image('full site prediction', log_pred(model)[None, :, :, None].repeat(1, 1, 1, 3), step=step)
-
+        tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=step)
+        tf.summary.image('full site prediction result', torch.unsqueeze(torch.unsqueeze(log_pred, dim=0), 3), step=step)
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
-
-    del image, target, pred
-    torch.cuda.empty_cache()
-
-
-def log_pred(model: DhSegment) -> torch.Tensor:
-    """calls load and predict function for full image prediction
-    :param model: prediction model"""
-    image = get_file(LOGGING_IMAGE)
-    pred = model.predict(image.to(DEVICE))
-    return pred
 
 
 def get_args() -> argparse.Namespace:
