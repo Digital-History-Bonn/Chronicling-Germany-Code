@@ -4,6 +4,7 @@ module for training the hdSegment Model
 
 import datetime
 import argparse
+from typing import List
 
 import numpy as np
 import sklearn.metrics  # type: ignore
@@ -24,7 +25,7 @@ BATCH_SIZE = 32
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
-LOSS_WEIGHTS = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
+LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
