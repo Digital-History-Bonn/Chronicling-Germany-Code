@@ -61,8 +61,6 @@ def get_args() -> argparse.Namespace:
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images', required=True)
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
-    parser.add_argument('--mask-threshold', '-t', type=float, default=0.5,
-                        help='Minimum probability value to consider a mask pixel white')
     parser.add_argument('--scale', '-s', metavar='scale', type=float, default=0.25,
                         help='Scale factor for the input images')
     parser.add_argument('--with-validation', '-v', metavar='val', type=bool, default=False,

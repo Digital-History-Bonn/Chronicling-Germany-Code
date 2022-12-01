@@ -25,7 +25,7 @@ class NewsDataset(Dataset):
 
     def __init__(self, images: Union[str, np.ndarray] = INPUT,
                  targets: Union[str, np.ndarray] = TARGETS,
-                 limit: Union[None, int] = None):
+                 limit: Union[None, int] = None, scale: float = None):
         """
         Dataset object
         if images and targets are paths to folder with images/np.array
@@ -41,7 +41,7 @@ class NewsDataset(Dataset):
             self.targets = targets
 
         elif isinstance(images, str) and isinstance(targets, str):
-            pipeline = Preprocessing()
+            pipeline = Preprocessing(scale=scale)
             lst_images, lst_targets = [], []
 
             # load images
