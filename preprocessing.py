@@ -17,35 +17,13 @@ CROP_FACTOR = 1.5
 CROP_SIZE = 256
 
 
-def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    scales down all given image and target by scale
-    :param image (Image): image
-    :param target (np.ndarray): target
-    return: ndarray tuple containing scaled image and target
-    """
-    if SCALE == 1:
-        image = np.array(image)
-        return np.transpose(image, (2, 0, 1)), target
-
-    shape = int(image.size[0] * SCALE), int(image.size[1] * SCALE)
-
-    image = image.resize(shape, resample=Image.BICUBIC)
-
-    target_img = Image.fromarray(target.astype(np.uint8))
-    target_img = target_img.resize(shape, resample=Image.NEAREST)
-
-    image, target = np.array(image), np.array(target_img)  # type: ignore
-
-    return np.transpose(image, (2, 0, 1)), target
-
-
 class Preprocessing:
     """
     class for preprocessing newspaper images and targets
     """
+
     def __init__(self, scale=SCALE, expansion: int = EXPANSION,
-                 crop_factor: int = CROP_FACTOR, crop_size: int = CROP_SIZE):
+                 crop_factor: float = CROP_FACTOR, crop_size: int = CROP_SIZE, crop: bool = True):
         """
         :param scale: (default: 4)
         :param expansion: (default: 5) number of time the image must be scaled to
@@ -56,6 +34,7 @@ class Preprocessing:
         self.expansion = 2 ** expansion
         self.crop_factor = crop_factor
         self.crop_size = crop_size
+        self.crop = crop
 
     def __call__(self, image: Image) -> Image:
         """
@@ -65,9 +44,37 @@ class Preprocessing:
         """
         # scale
         t_dummy = np.zeros(image.size)
-        image, _ = _scale_img(image, t_dummy)
+        image, _ = self._scale_img(image, t_dummy)
 
         return image
+
+    def _scale_img(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        scales down all given image and target by scale
+        :param image (Image): image
+        :param target (np.ndarray): target
+        return: ndarray tuple containing scaled image and target
+        """
+        if SCALE == 1:
+            image = np.array(image)
+            return np.transpose(image, (2, 0, 1)), target
+
+        shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
+
+        image = image.resize(shape, resample=Image.BICUBIC)
+
+        target_img = Image.fromarray(target.astype(np.uint8))
+        target_img = target_img.resize(shape, resample=Image.NEAREST)
+
+        # cropping for full image prediction
+        if not self.crop:
+            w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
+            image = np.pad(np.asarray(image), ((0, h_pad), (0, w_pad), (0, 0)), 'constant', constant_values=0)
+            target_img = np.pad(np.asarray(target_img), ((0, h_pad), (0, w_pad)), 'constant', constant_values=0)
+
+        image, target = np.array(image), np.array(target_img)  # type: ignore
+
+        return np.transpose(image, (2, 0, 1)), target
 
     def preprocess(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -77,11 +84,11 @@ class Preprocessing:
         :return: image, target
         """
         # scale
-        image, target = _scale_img(image, target)
-
-        data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
-
-        return data[:, :-1], data[:, -1]
+        image, target = self._scale_img(image, target)
+        if self.crop:
+            data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
+            return data[:, :-1], data[:, -1]
+        return image, target
 
     def _crop_img(self, data: ndarray) -> ndarray:
         """

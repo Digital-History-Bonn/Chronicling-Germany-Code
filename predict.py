@@ -8,6 +8,7 @@ import numpy as np
 import sklearn  # type: ignore
 import tensorflow as tf  # type: ignore
 import torch  # type: ignore
+import tqdm  # type: ignore
 from PIL import Image  # type: ignore
 from numpy import ndarray
 from torch.nn import CrossEntropyLoss
@@ -30,15 +31,15 @@ def _get_model(path: str) -> DhSegment:
     return result
 
 
-def get_file(file: str, scaling=0.25) -> torch.Tensor:
+def get_file(file: str, scale=0.25) -> torch.Tensor:
     """
     loads a image as tensor
     :param file: path to file
-    :param scaling: scale
+    :param scale: scale
     :return: image as torch.Tensor
     """
     img = Image.open(file).convert('RGB')
-    shape = int(img.size[0] * scaling), int(img.size[1] * scaling)
+    shape = int(img.size[0] * scale), int(img.size[1] * scale)
     img = img.resize(shape, resample=Image.BICUBIC)
 
     w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
@@ -63,7 +64,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
     parser.add_argument('--scale', '-s', metavar='scale', type=float, default=0.25,
                         help='Scale factor for the input images')
-    parser.add_argument('--with-validation', '-v', metavar='val', type=bool, default=False,
+    parser.add_argument('--with-validation', '-v', dest='val', action='store_true',
                         help='If True, news_dataset must be linked to a Directory containing validation data, '
                              'similar to data loaded in train.py. This data will be validated, results are logged '
                              'with tensor board ')
@@ -74,13 +75,13 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_validation():
+def run_validation(scale: float):
     """runs validation on data of NewsDataset"""
-    dataset = NewsDataset()
+    dataset = NewsDataset(scale=scale, crop=False)
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
-    loss_fn = CrossEntropyLoss(weight=torch.tensor(train.LOSS_WEIGHTS))
+    loss_fn = CrossEntropyLoss(weight=torch.tensor(train.LOSS_WEIGHTS)).to(DEVICE)
     step = 0
-    for data in loader:
+    for data in tqdm.tqdm(loader, desc='validation_round', total=len(loader)):
         val_image = data[0].to(DEVICE)
         target = data[1].to(DEVICE)
 
@@ -98,21 +99,23 @@ def run_validation():
         target = torch.tensor(target)
 
         with summary_writer.as_default():
-            tf.summary.scalar('loss', loss.item, step=step)
+            tf.summary.scalar('loss', loss, step=step)
             tf.summary.scalar('accuracy', accuracy_score, step=step)
             tf.summary.scalar('jaccard score', jaccard_score, step=step)
-            tf.summary.image('image', torch.permute(val_image, (1, 2, 0)),
+            tf.summary.image('image', torch.permute(val_image, (0, 2, 3, 1)),
                              step=step)
-            tf.summary.image('target', target.float() / OUT_CHANNELS, step=step)
+            tf.summary.image('target', torch.unsqueeze(target.float(), 3) / OUT_CHANNELS, step=step)
 
             step += 1
+
+        del val_image, target, prediction, loss
+        torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':
     args = get_args()
     in_files = args.input
     out_files = get_output_filenames(args.output, args.input)
-    scale = args.scale
 
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
@@ -122,11 +125,10 @@ if __name__ == '__main__':
     model = _get_model(args.model)
 
     if args.val:
-        run_validation()
-
+        run_validation(args.scale)
     else:
         for i, filename in enumerate(in_files):
-            image = get_file(filename, scaling=scale)
+            image = get_file(filename, scale=args.scale)
             pred: ndarray = np.array(model.predict(torch.tensor(image).to(DEVICE)))
             result_img = Image.fromarray(pred).convert('RGB')
             result_img.save(out_files[i])

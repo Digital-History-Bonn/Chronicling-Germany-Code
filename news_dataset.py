@@ -25,7 +25,7 @@ class NewsDataset(Dataset):
 
     def __init__(self, images: Union[str, np.ndarray] = INPUT,
                  targets: Union[str, np.ndarray] = TARGETS,
-                 limit: Union[None, int] = None, scale: float = None):
+                 limit: Union[None, int] = None, scale: float = None, crop=True):
         """
         Dataset object
         if images and targets are paths to folder with images/np.array
@@ -35,17 +35,20 @@ class NewsDataset(Dataset):
         :param: images (str | list): path to folder of images or list of images
         :param: targets (str | list): path to folder of targets or list of np.arrays
         :param: limit (int): max size of dataloader
+        :param scale: scaling of images in preprocessing
+        :param crop: if False cropping will be deactivated for prediction purposes. Normalization and training will not
+        work on uncropped images.
         """
         if isinstance(images, np.ndarray) and isinstance(targets, np.ndarray):
             self.images = images
             self.targets = targets
 
         elif isinstance(images, str) and isinstance(targets, str):
-            pipeline = Preprocessing(scale=scale)
+            pipeline = Preprocessing(scale=scale, crop=crop)
             lst_images, lst_targets = [], []
 
             # load images
-            paths = [f[:-4] for f in os.listdir(images) if f.endswith(".tif")]
+            paths = [f[:-4] for f in os.listdir(images) if f.endswith(".png")]
 
             if limit is not None:
                 paths = paths[:limit]
@@ -53,7 +56,7 @@ class NewsDataset(Dataset):
             # Open the image form working directory
             for file in tqdm.tqdm(paths, desc='load data', total=len(paths)):
                 # load image
-                image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
+                image = Image.open(f"{INPUT}{file}.png").convert('RGB')
 
                 # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")
@@ -63,10 +66,15 @@ class NewsDataset(Dataset):
                 lst_images.append(images)
                 lst_targets.append(targets)
 
-            self.images = np.concatenate(lst_images, axis=0)
-            print(f"{self.images.shape=}")
-            self.targets = np.concatenate(lst_targets, axis=0)
-            print(f"{self.images.shape=}")
+            if crop:
+                self.images = np.concatenate(lst_images, axis=0)
+                print(f"{self.images.shape=}")
+                self.targets = np.concatenate(lst_targets, axis=0)
+                print(f"{self.images.shape=}")
+            else:
+                # mypy types are ignored to use this class for full image prediction
+                self.images = lst_images  # type: ignore
+                self.targets = lst_targets  # type: ignore
 
         else:
             raise Exception("Wrong combination of argument types")
@@ -128,14 +136,16 @@ class NewsDataset(Dataset):
         """
         returns the mean for every color-channel in the dataset
         """
-        return torch.tensor(self.images.mean(axis=(0, 2, 3))).float()
+        # mypy types are ignored to use this class for full image prediction
+        return torch.tensor(self.images.mean(axis=(0, 2, 3))).float() # type: ignore
 
     @property
     def std(self) -> torch.Tensor:
         """
         returns the standard-deviation for every color-channel in the dataset
         """
-        return torch.tensor(self.images.std(axis=(0, 2, 3))).float()
+        # mypy types are ignored to use this class for full image prediction
+        return torch.tensor(self.images.std(axis=(0, 2, 3))).float() # type: ignore
 
 
 if __name__ == '__main__':
