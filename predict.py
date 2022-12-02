@@ -97,6 +97,7 @@ def run_validation(scale: float):
         jaccard_score = sklearn.metrics.jaccard_score(target.flatten(), prediction.flatten(), average='macro')
         accuracy_score = sklearn.metrics.accuracy_score(target.flatten(), prediction.flatten())
         target = torch.tensor(target)
+        prediction = torch.tensor(prediction)
 
         with summary_writer.as_default():
             tf.summary.scalar('loss', loss, step=step)
@@ -105,6 +106,7 @@ def run_validation(scale: float):
             tf.summary.image('image', torch.permute(val_image, (0, 2, 3, 1)),
                              step=step)
             tf.summary.image('target', torch.unsqueeze(target.float(), 3) / OUT_CHANNELS, step=step)
+            tf.summary.image('prediction', torch.unsqueeze(prediction.float(), 3) / OUT_CHANNELS, step=step)
 
             step += 1
 
