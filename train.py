@@ -163,6 +163,8 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     accuracy_sum = 0
     for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
+        images = images.to(DEVICE)
+        targets = targets.to(DEVICE)
 
         pred = model(images)
         loss = loss_fn(pred, targets)
