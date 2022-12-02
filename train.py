@@ -107,9 +107,6 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
 
         with tqdm.tqdm(total=(len(train_loader)), desc=f'Epoch {epoch}/{epochs}', unit='batches') as pbar:
             for images, targets in train_loader:
-                images = images.to(DEVICE)
-                targets = targets.to(DEVICE)
-
                 # Compute prediction and loss
                 augmentations = get_augmentations()
                 data = augmentations(torch.concat((images, targets[:, np.newaxis, :, :]), dim=1))
@@ -134,9 +131,6 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                     tf.summary.scalar('train loss', loss.item(), step=step)
                     tf.summary.scalar('batch mean', images.mean(), step=step)
                     tf.summary.scalar('batch std', images.std(), step=step)
-                    # tf.summary.image('train image', torch.permute(images.cpu(), (0, 2, 3, 1)), step=step)
-                    # tf.summary.image('train prediction', preds.float().detach().cpu().argmax(axis=1)[:, :, :, None] / OUT_CHANNELS, step=step)
-                    # tf.summary.image('train targets', targets[:, :, :, None].float().cpu() / OUT_CHANNELS, step=step)
 
                 # delete data from gpu cache
                 del images, targets, preds, loss, data
