@@ -30,7 +30,7 @@ def _scale_img(image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray
 
     shape = int(image.size[0] * SCALE), int(image.size[1] * SCALE)
 
-    image = image.resize(shape, resample=Image.BICUBIC)
+    image = image.resize(shape, resample=Image.NEAREST)
 
     target_img = Image.fromarray(target.astype(np.uint8))
     target_img = target_img.resize(shape, resample=Image.NEAREST)
