@@ -4,6 +4,7 @@ module for training the hdSegment Model
 
 import datetime
 import argparse
+import random
 
 import numpy as np
 import sklearn.metrics  # type: ignore
@@ -15,6 +16,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision import transforms  # type: ignore
 
+import preprocessing
 from model import DhSegment
 from news_dataset import NewsDataset
 from predict import get_file
@@ -33,14 +35,19 @@ LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 torch.manual_seed(42)
 
 
-def train(load_model=None, save_model=None, epochs: int = EPOCHS):
+def train(args: argparse.Namespace, load_model=None, save_model=None):
     """
     train function. Initializes dataloaders and optimzer.
+    :param args: command line arguments
     :param load_model: (default: None) path to model to load
     :param save_model: (default: None) path to save the model
     :param epochs: (default: EPOCHS) number of epochs
     :return: None
     """
+
+    epochs = args.epochs
+    batch_size = args.batch_size
+    lr = args.lr
     # create model
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
 
@@ -50,7 +57,7 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     model.load(load_model)
 
     # load data
-    dataset = NewsDataset()
+    dataset = NewsDataset(scale=args.scale)
 
     # splitting with fractions should work according to pytorch doc, but it does not
     train_set, validation_set, _ = dataset.random_split((.9, .05, .05))
@@ -63,20 +70,18 @@ def train(load_model=None, save_model=None, epochs: int = EPOCHS):
     model.stds = train_set.std
 
     # set optimizer and loss_fn
-    optimizer = Adam(model.parameters(), lr=LEARNING_RATE)  # weight_decay=1e-4
+    optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
     loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
 
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
-    val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER)
+    val_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, num_workers=DATALOADER_WORKER,
+                            drop_last=True)
 
-    train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader)
-
-    model.save(save_model)
-
+    train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader, save_model)
 
 def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Module, epochs: int,
-               optimizer: torch.optim.Optimizer, val_loader: DataLoader):
+               optimizer: torch.optim.Optimizer, val_loader: DataLoader, save_model: str):
     """
     executes all training epochs. After each epoch a validation round is performed.
     :param train_loader: Dataloader object
@@ -101,8 +106,8 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                 targets = targets.to(DEVICE)
 
                 # Compute prediction and loss
-                pred = model(images)
-                loss = loss_fn(pred, targets)
+                preds = model(images)
+                loss = loss_fn(preds, targets)
 
                 # Backpropagation
                 optimizer.zero_grad(set_to_none=True)
@@ -117,13 +122,18 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                 step += 1
                 with summary_writer.as_default():
                     tf.summary.scalar('train loss', loss.item(), step=step)
+                    # tf.summary.image('train image', torch.permute(images.cpu(), (0, 2, 3, 1)), step=step)
+                    # tf.summary.image('train prediction', preds.float().detach().cpu().argmax(axis=1)[:, :, :, None] / OUT_CHANNELS, step=step)
+                    # tf.summary.image('train targets', targets[:, :, :, None].float().cpu() / OUT_CHANNELS, step=step)
 
                 # delete data from gpu cache
-                del images, targets, pred, loss
+                del images, targets, preds, loss
                 torch.cuda.empty_cache()
 
                 if step % VAL_EVERY == 0:
                     validation(val_loader, model, loss_fn, epoch, step)
+
+        model.save(save_model)
 
 
 def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
@@ -167,9 +177,16 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         del images, targets, pred, loss
         torch.cuda.empty_cache()
 
-    image, target = val_loader.dataset[0]
+    val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader)
+
+
+def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader):
+    size = len(val_loader)
+    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size))]
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
+    log_image = get_file(LOGGING_IMAGE)
+    log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
     with summary_writer.as_default():
@@ -177,27 +194,19 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
         tf.summary.scalar('epoch', epoch, step=step)
-        tf.summary.image('val image', torch.transpose(image.cpu(), 3, 1),
+        tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)),
                          step=step)
-        tf.summary.image('val target', torch.unsqueeze(
-            torch.unsqueeze(target.float().cpu() / OUT_CHANNELS, 0), 3), step=step)
-        tf.summary.image('val prediction', torch.unsqueeze(pred.float().cpu() / OUT_CHANNELS, 3), step=step)
-        tf.summary.image('full site prediction', log_pred(model)[None, :, :, None].repeat(1, 1, 1, 3), step=step)
+        tf.summary.image('val target', target.float().cpu()[None, :, :, None] / OUT_CHANNELS, step=step)
+        tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=step)
+        tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=step)
+        tf.summary.image('full site prediction result', log_pred[None, :, :, None], step=step)
 
     print(f"average loss: {loss_sum / size}")
     print(f"average accuracy: {accuracy_sum / size}")
     print(f"average jaccard score: {jaccard_sum / size}")  # Intersection over Union
 
-    del image, target, pred
+    del size, image, target, pred, log_image, log_pred
     torch.cuda.empty_cache()
-
-
-def log_pred(model: DhSegment) -> torch.Tensor:
-    """calls load and predict function for full image prediction
-    :param model: prediction model"""
-    image = get_file(LOGGING_IMAGE)
-    pred = model.predict(image.to(DEVICE))
-    return pred
 
 
 def get_augmentations() -> transforms.Compose:
@@ -212,10 +221,16 @@ def get_augmentations() -> transforms.Compose:
 def get_args() -> argparse.Namespace:
     """defines arguments"""
     parser = argparse.ArgumentParser(description='train')
-    parser.add_argument('--epochs', '-e', metavar='EPOCHS', type=int, default=1, help='number of epochs to train')
+    parser.add_argument('--epochs', '-e', metavar='EPOCHS', type=int, default=EPOCHS, help='number of epochs to train')
     parser.add_argument('--name', '-n', metavar='NAME', type=str,
                         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                         help='name of run in tensorboard')
+    parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
+                        help='Batch size')
+    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=LEARNING_RATE,
+                        help='Learning rate', dest='lr')
+    parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
+                        help='Downscaling factor of the images')
 
     return parser.parse_args()
 
@@ -229,4 +244,4 @@ if __name__ == '__main__':
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(load_model=None, save_model='Models/model.pt', epochs=args.epochs)
+    train(args, load_model=None, save_model='Models/model.pt')
