@@ -16,10 +16,11 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision import transforms  # type: ignore
 
-import preprocessing
-from model import DhSegment
-from news_dataset import NewsDataset
-from predict import get_file
+import preprocessing  # type: ignore
+from model import DhSegment  # type: ignore
+from news_dataset import NewsDataset  # type: ignore
+from predict import get_file  # type: ignore
+
 
 EPOCHS = 1
 VAL_EVERY = 250
@@ -79,6 +80,7 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
                             drop_last=True)
 
     train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader, save_model)
+
 
 def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Module, epochs: int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader, save_model: str):
