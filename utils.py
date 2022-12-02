@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn.functional as f
+import torch
+import PIL.Image as Image
 
 
 def step(x):
@@ -74,6 +76,23 @@ def replace_substrings(string, replacements):
     for i, j in replacements.items():
         string = string.replace(i, j)
     return string
+
+
+def get_file(file: str, scale=0.25) -> torch.Tensor:
+    """
+    loads a image as tensor
+    :param file: path to file
+    :param scale: scale
+    :return: image as torch.Tensor
+    """
+    img = Image.open(file).convert('RGB')
+    shape = int(img.size[0] * scale), int(img.size[1] * scale)
+    img = img.resize(shape, resample=Image.BICUBIC)
+
+    w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
+    img_np = np.pad(np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), 'constant', constant_values=0)
+    img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
+    return torch.unsqueeze(torch.tensor(img_t), dim=0)
 
 
 class RollingAverage:

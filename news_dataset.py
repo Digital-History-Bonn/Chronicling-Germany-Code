@@ -48,7 +48,7 @@ class NewsDataset(Dataset):
             lst_images, lst_targets = [], []
 
             # load images
-            paths = [f[:-4] for f in os.listdir(images) if f.endswith(".png")]
+            paths = [f[:-4] for f in os.listdir(images) if f.endswith(".tif")]
 
             if limit is not None:
                 paths = paths[:limit]
@@ -56,7 +56,7 @@ class NewsDataset(Dataset):
             # Open the image form working directory
             for file in tqdm.tqdm(paths, desc='load data', total=len(paths)):
                 # load image
-                image = Image.open(f"{INPUT}{file}.png").convert('RGB')
+                image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
 
                 # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")

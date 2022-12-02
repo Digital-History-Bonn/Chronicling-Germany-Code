@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 import preprocessing
 from model import DhSegment
 from news_dataset import NewsDataset
-from predict import get_file
+from utils import get_file
 
 EPOCHS = 1
 VAL_EVERY = 250
