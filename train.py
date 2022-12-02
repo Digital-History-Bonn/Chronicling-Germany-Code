@@ -14,11 +14,13 @@ import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torchvision import transforms  # type: ignore
 
-import preprocessing
-from model import DhSegment
-from news_dataset import NewsDataset
-from predict import get_file
+import preprocessing  # type: ignore
+from model import DhSegment  # type: ignore
+from news_dataset import NewsDataset  # type: ignore
+from predict import get_file  # type: ignore
+
 
 EPOCHS = 1
 VAL_EVERY = 250
@@ -78,6 +80,7 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
                             drop_last=True)
 
     train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader, save_model)
+
 
 def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Module, epochs: int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader, save_model: str):
@@ -155,8 +158,10 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     accuracy_sum = 0
     for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
-        images = images.to(DEVICE)
-        targets = targets.to(DEVICE)
+        augmentations = get_augmentations()
+        data = augmentations(torch.concat((images, targets[:, np.newaxis, :, :]), dim=1))
+        images = data[:, :-1].to(device=DEVICE, dtype=torch.float32)
+        targets = data[:, -1].to(device=DEVICE, dtype=torch.long)
 
         pred = model(images)
         loss = loss_fn(pred, targets)
@@ -204,6 +209,15 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
 
     del size, image, target, pred, log_image, log_pred
     torch.cuda.empty_cache()
+
+
+def get_augmentations() -> transforms.Compose:
+    """Defines transformations"""
+    return transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(180)
+    ])
 
 
 def get_args() -> argparse.Namespace:
