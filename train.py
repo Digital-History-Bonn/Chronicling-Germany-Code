@@ -67,8 +67,11 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
     # set mean and std in model for normalization
-    model.means = train_set.mean
-    model.stds = train_set.std
+    mean = train_set.mean
+    model.means = mean
+    std = train_set.std
+    model.stds = std
+    print(f"dataset mean: {mean}, std: {std}")
 
     # set optimizer and loss_fn
     optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
@@ -124,6 +127,8 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                 step += 1
                 with summary_writer.as_default():
                     tf.summary.scalar('train loss', loss.item(), step=step)
+                    tf.summary.scalar('batch mean', images.mean(), step=step)
+                    tf.summary.scalar('batch std', images.std(), step=step)
                     # tf.summary.image('train image', torch.permute(images.cpu(), (0, 2, 3, 1)), step=step)
                     # tf.summary.image('train prediction', preds.float().detach().cpu().argmax(axis=1)[:, :, :, None] / OUT_CHANNELS, step=step)
                     # tf.summary.image('train targets', targets[:, :, :, None].float().cpu() / OUT_CHANNELS, step=step)
@@ -196,7 +201,7 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
         tf.summary.scalar('epoch', epoch, step=step)
-        tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)),
+        tf.summary.image('val image', torch.permute(image.cpu()/255, (0, 2, 3, 1)),
                          step=step)
         tf.summary.image('val target', target.float().cpu()[None, :, :, None] / OUT_CHANNELS, step=step)
         tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=step)
