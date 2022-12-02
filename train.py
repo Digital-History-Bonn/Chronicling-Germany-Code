@@ -111,6 +111,11 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                 targets = targets.to(DEVICE)
 
                 # Compute prediction and loss
+                augmentations = get_augmentations()
+                data = augmentations(torch.concat((images, targets[:, np.newaxis, :, :]), dim=1))
+                images = data[:, :-1].to(device=DEVICE, dtype=torch.float32)
+                targets = data[:, -1].to(device=DEVICE, dtype=torch.long)
+
                 preds = model(images)
                 loss = loss_fn(preds, targets)
 
@@ -134,7 +139,7 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                     # tf.summary.image('train targets', targets[:, :, :, None].float().cpu() / OUT_CHANNELS, step=step)
 
                 # delete data from gpu cache
-                del images, targets, preds, loss
+                del images, targets, preds, loss, data
                 torch.cuda.empty_cache()
 
                 if step % VAL_EVERY == 0:
@@ -163,10 +168,8 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
     accuracy_sum = 0
     for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
-        augmentations = get_augmentations()
-        data = augmentations(torch.concat((images, targets[:, np.newaxis, :, :]), dim=1))
-        images = data[:, :-1].to(device=DEVICE, dtype=torch.float32)
-        targets = data[:, -1].to(device=DEVICE, dtype=torch.long)
+        images = images.to(DEVICE)
+        targets = targets.to(DEVICE)
 
         pred = model(images)
         loss = loss_fn(pred, targets)
