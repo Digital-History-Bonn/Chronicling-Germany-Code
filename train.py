@@ -24,7 +24,7 @@ from news_dataset import NewsDataset  # type: ignore
 from utils import get_file # type: ignore
 
 EPOCHS = 1
-VAL_EVERY = 5
+VAL_EVERY = 250
 BATCH_SIZE = 32
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
@@ -59,7 +59,7 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     model.load(load_model)
 
     # load data
-    dataset = NewsDataset(scale=args.scale, limit=25)
+    dataset = NewsDataset(scale=args.scale)
 
     # splitting with fractions should work according to pytorch doc, but it does not
     train_set, validation_set, _ = dataset.random_split((.9, .05, .05))
@@ -251,10 +251,12 @@ def get_args() -> argparse.Namespace:
                         help='name of run in tensorboard')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
                         help='Batch size')
-    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=LEARNING_RATE,
+    parser.add_argument('--learning-rate', '-lr', metavar='LR', type=float, default=LEARNING_RATE,
                         help='Learning rate', dest='lr')
-    parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
+    parser.add_argument('--scale', '-s', type=float, dest='scale', default=preprocessing.SCALE,
                         help='Downscaling factor of the images')
+    parser.add_argument('--load', '-l', type=str, dest='load', default=None,
+                        help='model to load (default is None)')
 
     return parser.parse_args()
 
@@ -268,4 +270,4 @@ if __name__ == '__main__':
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(args, load_model=None, save_model=f'Models/model_{args.name}.pt')
+    train(args, load_model=f'Models/model_{args.load}.pt', save_model=f'Models/model_{args.name}.pt')
