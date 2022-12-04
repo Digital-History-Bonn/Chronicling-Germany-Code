@@ -61,6 +61,9 @@ class NewsDataset(Dataset):
                 # load target
                 target = np.load(f"{TARGETS}pc-{file}.npy")
 
+                assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], \
+                    f"shape of image ({image.size=}) doesn't match shape of target ({target.shape=}). In Image {file}."
+
                 images, targets = pipeline.preprocess(image, target)
 
                 lst_images.append(images)

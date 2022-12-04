@@ -9,7 +9,7 @@ from PIL import Image  # type: ignore
 from numpy import ndarray
 from skimage.util.shape import view_as_windows  # type: ignore
 
-SCALE = 0.5
+SCALE = 1
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
@@ -85,6 +85,10 @@ class Preprocessing:
         """
         # scale
         image, target = self._scale_img(image, target)
+
+        assert image.shape[1] == target.shape[0] and image.shape[2] == target.shape[1], \
+            f"image has shape {image.shape}, but target has shape {target.shape}"
+
         if self.crop:
             data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
             return data[:, :-1], data[:, -1]
