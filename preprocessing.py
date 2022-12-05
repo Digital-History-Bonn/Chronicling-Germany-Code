@@ -61,7 +61,7 @@ class Preprocessing:
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
-        image = image.resize(shape, resample=Image.NEAREST)
+        image = image.resize(shape, resample=Image.BICUBIC)
 
         target_img = Image.fromarray(target.astype(np.uint8))
         target_img = target_img.resize(shape, resample=Image.NEAREST)
