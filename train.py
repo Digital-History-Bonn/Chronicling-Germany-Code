@@ -53,6 +53,7 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
 
     model = model.float()
+    model.freeze_encoder()
 
     # load model if argument is None it does nothing
     model.load(load_model)

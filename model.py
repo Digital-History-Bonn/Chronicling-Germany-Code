@@ -3,9 +3,12 @@ Module contains a U-Net Model.
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
+from typing import Iterator
+
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
+from torch.nn.parameter import Parameter
 
 from utils import replace_substrings
 from torchvision.transforms.functional import normalize  # type: ignore
@@ -183,6 +186,18 @@ class DhSegment(nn.Module):
         self.register_buffer('means', torch.tensor([0] * in_channels))
         self.register_buffer('stds', torch.tensor([1] * in_channels))
         self.normalize = normalize
+
+    def freeze_encoder(self, requires_grad = False):
+        """Set requires grad of encoder to True or False. Freezes encoder weights"""
+        def freeze(params: Iterator[Parameter]):
+            for param in params:
+                param.requires_grad_(requires_grad)
+        freeze(self.conv1.parameters())
+        freeze(self.bn1.parameters())
+        freeze(self.block1.parameters())
+        freeze(self.block2.parameters())
+        freeze(self.block3.parameters())
+        freeze(self.block4.parameters())
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer
