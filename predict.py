@@ -21,7 +21,7 @@ from utils import get_file # type: ignore
 
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 
-SCALE = 0.25
+SCALE = train.PREDICT_SCALE
 
 
 def _get_model(path: str) -> DhSegment:

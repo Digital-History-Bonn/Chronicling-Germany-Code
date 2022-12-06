@@ -30,6 +30,7 @@ IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
+PREDICT_SCALE = 0.25
 PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
@@ -327,7 +328,7 @@ def get_args() -> argparse.Namespace:
                         help='Learning rate', dest='lr')
     parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
                         help='Downscaling factor of the images')
-    parser.add_argument('--predict-scale', '-p', metavar='p_scale', type=float, default=predict.SCALE,
+    parser.add_argument('--predict-scale', '-p', metavar='p_scale', type=float, default=PREDICT_SCALE,
                         help='Downscaling factor of the predict image')
 
     return parser.parse_args()
