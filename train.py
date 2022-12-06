@@ -328,7 +328,6 @@ def get_args() -> argparse.Namespace:
                         help='Learning rate', dest='lr')
     parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
                         help='Downscaling factor of the images')
-    parser.add_argument('--predict-scale', '-p', metavar='p_scale', type=float, default=PREDICT_SCALE,
     parser.add_argument('--predict-scale', '-p', type=float, default=PREDICT_SCALE,
                         help='Downscaling factor of the predict image')
 
