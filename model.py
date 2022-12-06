@@ -6,6 +6,7 @@ from torch.hub import load_state_dict_from_url
 
 import numpy as np
 from utils import replace_substrings
+from torchvision.transforms.functional import normalize
 
 """
 Most of the code of this model is from the implementation of ResNet 
@@ -120,22 +121,6 @@ class Bottleneck(nn.Module):
 
         return out
 
-class Normalize(torch.nn.Module):
-    """
-    Handles input normalization
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x: torch.Tensor, means: torch.Tensor, stds: torch.Tensor) ->  torch.Tensor:
-        """
-        input normalization with mean and standard deviation
-        """
-        normalized = ((x - means[None, :, None, None].to(x.device)) /
-                      stds[None, :, None, None].to(x.device))
-        return normalized
-
 
 class DhSegment(nn.Module):
     def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
@@ -200,7 +185,7 @@ class DhSegment(nn.Module):
         # initialize normalization
         self.register_buffer('means', torch.tensor([0]*in_channels))
         self.register_buffer('stds', torch.tensor([1]*in_channels))
-        self.normalize = Normalize()
+        self.normalize = normalize
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer

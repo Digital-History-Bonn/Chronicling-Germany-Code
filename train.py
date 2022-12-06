@@ -67,8 +67,8 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
     # set mean and std in model for normalization
-    model.means = train_set.mean
-    model.stds = train_set.std
+    model.means = torch.tensor((0.485, 0.456, 0.406))
+    model.stds = torch.tensor((0.229, 0.224, 0.225))
 
     # set optimizer and loss_fn
     optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
