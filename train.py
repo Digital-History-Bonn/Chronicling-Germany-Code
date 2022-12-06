@@ -23,14 +23,16 @@ from news_dataset import NewsDataset  # type: ignore
 from utils import get_file  # type: ignore
 
 EPOCHS = 1
-VAL_EVERY = 250
+# todo: remove
+VAL_EVERY = 1
 BATCH_SIZE = 32
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
-LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
+# todo remove and argument
+LOGGING_IMAGE = "test.png"
 
 # set random seed for reproducibility
 torch.manual_seed(42)
@@ -87,9 +89,8 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
 
     # print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
-    # set optimizer and loss_fn
+    # set optimizer
     optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
-    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))  # weight=torch.tensor(LOSS_WEIGHTS)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
@@ -100,10 +101,10 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     # set mean and std in model for normalization
     model.means, model.stds = get_normalization_parameters(train_loader)
 
-    train_loop(train_loader, model, loss_fn, epochs, optimizer, val_loader, save_model, batch_size)
+    train_loop(train_loader, model, epochs, optimizer, val_loader, save_model, batch_size)
 
 
-def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Module, epochs: int,
+def train_loop(train_loader: DataLoader, model: DhSegment, epochs: int,
                optimizer: torch.optim.Optimizer, val_loader: DataLoader, save_model: str, batch_size: int):
     """
     executes all training epochs. After each epoch a validation round is performed.
@@ -117,6 +118,7 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
     :param batch_size: batch size
     :return: None
     """
+    loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))
 
     model.to(DEVICE)
     loss_fn.to(DEVICE)
@@ -132,7 +134,7 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                 data = torch.cat((torch.flatten(images, start_dim=0, end_dim=1),
                                   torch.flatten(targets, start_dim=0, end_dim=1)[:, np.newaxis, :, :]), dim=1)
                 indices = torch.randperm(data.shape[0])
-                data = torch.tensor(data[indices])
+                data = data[indices]
                 loss = run_batches(data, loss_fn, model, optimizer, batch_size)
 
                 # update description
@@ -152,7 +154,7 @@ def train_loop(train_loader: DataLoader, model: DhSegment, loss_fn: torch.nn.Mod
                 torch.cuda.empty_cache()
 
                 if step % VAL_EVERY == 0:
-                    validation(val_loader, model, loss_fn, epoch, step)
+                    validation(val_loader, model, loss_fn, epoch, step, batch_size)
 
         model.save(save_model)
 
@@ -175,7 +177,6 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
         if size - i < batch_size:
             break
         count += 1
-        data = data.to(device=DEVICE)
         batch_data = data[i: i + batch_size]
 
         # Compute prediction and loss
@@ -198,9 +199,10 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
     return loss / count
 
 
-def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
+def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int, batch_size: int):
     """
     Executes one validation round, containing the evaluation of the current model on the entire validation set.
+    :param batch_size: batch size
     :param model: model to validate
     :param loss_fn: loss_fn to validate with
     :param val_loader: dataloader with validation data
@@ -213,37 +215,55 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int):
 
     size = len(val_loader)
 
-    loss_sum = 0.0
-    jaccard_sum = 0
-    accuracy_sum = 0
     for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
         # Compute prediction and loss
-        data = torch.concat((images, targets[:, :, np.newaxis, :, :]), dim=2)
-        count = 0
-        loss = 0.0
-        for batch in data:
-            count += 1
-            batch_images = batch[:, :-1].to(device=DEVICE, dtype=torch.float32)
-            batch_targets = batch[:, -1].to(device=DEVICE, dtype=torch.long)
+        data = torch.cat((torch.flatten(images, start_dim=0, end_dim=1),
+                          torch.flatten(targets, start_dim=0, end_dim=1)[:, np.newaxis, :, :]), dim=1)
+        accuracy_sum, jaccard_sum, loss = run_val_batches(batch_size, data, loss_fn,
+                                                          model)
 
-            pred = model(batch_images)
-            batch_loss = loss_fn(pred, batch_targets)
+    val_logging(accuracy_sum, epoch, jaccard_sum, loss, model, step, val_loader)
 
-            pred = pred.detach().cpu().numpy()
-            batch_loss = batch_loss.detach().cpu().numpy()
 
-            batch_targets = batch_targets.detach().cpu().numpy()
+def run_val_batches(batch_size, data, loss_fn, model):
+    """
+    Executes validation batches.
+    :param batch_size: batch size
+    :param data: Contains cropped and shuffled images and targets. These are selected from a number of original images,
+        according to batch_size
+    :param loss_fn: loss_fn to validate with
+    :param model: model to validate
+    """
+    jaccard_sum = 0
+    accuracy_sum = 0
+    count = 0
+    loss = 0.0
+    size = data.shape[0]
+    for i in range(0, size, int(batch_size)):
+        if size - i < batch_size:
+            break
+        count += 1
+        batch_data = data[i: i + batch_size]
+        count += 1
+        batch_images = batch_data[:, :-1].to(device=DEVICE, dtype=torch.float32)
+        batch_targets = batch_data[:, -1].to(device=DEVICE, dtype=torch.long)
 
-            loss += batch_loss
-            pred = np.argmax(pred, axis=1)
-            jaccard_sum += sklearn.metrics.jaccard_score(batch_targets.flatten(), pred.flatten(), average='macro')
-            accuracy_sum += sklearn.metrics.accuracy_score(batch_targets.flatten(), pred.flatten())
+        pred = model(batch_images)
+        batch_loss = loss_fn(pred, batch_targets)
 
-            del images, targets, pred, batch_loss
-            torch.cuda.empty_cache()
-        loss_sum += loss / count
+        pred = pred.detach().cpu().numpy()
+        batch_loss = batch_loss.detach().cpu().numpy()
 
-    val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader)
+        batch_targets = batch_targets.detach().cpu().numpy()
+
+        loss += batch_loss
+        pred = np.argmax(pred, axis=1)
+        jaccard_sum += sklearn.metrics.jaccard_score(batch_targets.flatten(), pred.flatten(), average='macro')
+        accuracy_sum += sklearn.metrics.accuracy_score(batch_targets.flatten(), pred.flatten())
+
+        del pred, batch_loss
+        torch.cuda.empty_cache()
+    return accuracy_sum, jaccard_sum, loss / count
 
 
 def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader):
@@ -258,11 +278,12 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
     :param val_loader: dataloader with validation data
     """
     size = len(val_loader)
-    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size))]
+    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size) -1)]
     rand_index = random.randint(0, image.shape[0])
     image = torch.unsqueeze(image[rand_index].to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
-    log_image = get_file(LOGGING_IMAGE)
+    # todo: remove and argument
+    log_image = get_file(LOGGING_IMAGE, scale=0.125)
     log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
