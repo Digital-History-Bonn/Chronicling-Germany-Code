@@ -1,20 +1,17 @@
-from typing import Union
-
+"""
+Module contains a U-Net Model.
+Most of the code of this model is from the implementation of ResNet
+from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
+"""
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
-import numpy as np
 from utils import replace_substrings
-from torchvision.transforms.functional import normalize
-
-"""
-Most of the code of this model is from the implementation of ResNet 
-from https://github.com/pytorch/vision/blob/1aef87d01eec2c0989458387fa04baebcc86ea7b/torchvision/models/resnet.py
-"""
+from torchvision.transforms.functional import normalize  # type: ignore
 
 model_urls = {
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-11ad3fa6.pth',
 }
 
 
@@ -183,8 +180,8 @@ class DhSegment(nn.Module):
             self._load_ResNet()
 
         # initialize normalization
-        self.register_buffer('means', torch.tensor([0]*in_channels))
-        self.register_buffer('stds', torch.tensor([1]*in_channels))
+        self.register_buffer('means', torch.tensor([0] * in_channels))
+        self.register_buffer('stds', torch.tensor([1] * in_channels))
         self.normalize = normalize
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
@@ -267,9 +264,8 @@ class DhSegment(nn.Module):
         prediction = torch.squeeze(pred / self.out_channel)
         return prediction
 
-
     def _load_ResNet(self):
-        state_dict = load_state_dict_from_url('https://download.pytorch.org/models/resnet50-19c8e357.pth',
+        state_dict = load_state_dict_from_url(model_urls['resnet50'],
                                               progress=True)
 
         replacements = {"layer1": "block1.layers",
