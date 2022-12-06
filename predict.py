@@ -8,11 +8,12 @@ from PIL import Image  # type: ignore
 import torch  # type: ignore
 from numpy import ndarray
 
+import train
 from model import DhSegment
 
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 
-SCALE = 0.25
+SCALE = train.PREDICT_SCALE
 
 
 def _get_model(path: str) -> DhSegment:
