@@ -30,7 +30,7 @@ IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
-LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
+PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
 torch.manual_seed(42)
@@ -278,7 +278,7 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
     rand_index = random.randint(0, image.shape[0])
     image = torch.unsqueeze(image[rand_index].to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
-    log_image = get_file(LOGGING_IMAGE)
+    log_image = get_file(predict_image, predict_scale)
     log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
@@ -318,18 +318,26 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--name', '-n', metavar='NAME', type=str,
                         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                         help='name of run in tensorboard')
+    parser.add_argument('--predict_image', '-i', metavar='p_image', type=str,
+                        default=PREDICT_IMAGE,
+                        help='path for full image prediction')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
                         help='Batch size')
     parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=LEARNING_RATE,
                         help='Learning rate', dest='lr')
     parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
                         help='Downscaling factor of the images')
+    parser.add_argument('--predict-scale', '-p', metavar='p_scale', type=float, default=predict.SCALE,
+                        help='Downscaling factor of the predict image')
 
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = get_args()
+    predict_scale = args.p_scale
+    predict_image = args.p_iamge
+
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
 

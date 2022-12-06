@@ -21,6 +21,8 @@ from utils import get_file # type: ignore
 
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 
+SCALE = 0.25
+
 
 def _get_model(path: str) -> DhSegment:
     # create model
@@ -46,7 +48,7 @@ def get_args() -> argparse.Namespace:
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images')
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
-    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=0.25,
+    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=SCALE,
                         help='Scale factor for the input images')
     parser.add_argument('--with-validation', '-v', dest='val', action='store_true',
                         help='If True, news_dataset must be linked to a Directory containing validation data, '
