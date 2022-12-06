@@ -46,13 +46,13 @@ def get_normalization_parameters(data: DataLoader) -> Tuple[torch.Tensor, torch.
 
     for batch in data:
         images = batch[0]
-        batch_means.append(images.mean((0, 2, 3)))
+        batch_means.append(images.mean((0, 1, 3, 4)))
 
     channel_means = torch.stack(batch_means).mean(0)
 
     for batch in data:
         images = batch[0]
-        batch_vars.append(torch.mean((images - channel_means[None, :, None, None]) ** 2, dim=(0, 2, 3)))
+        batch_vars.append(torch.mean((images - channel_means[None, None, :, None, None]) ** 2, dim=(0, 1, 3, 4)))
 
     channel_stds = torch.sqrt(torch.stack(batch_vars).mean(0))
     return channel_means, channel_stds
@@ -175,7 +175,8 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
         if size - i < batch_size:
             break
         count += 1
-        batch_data = data[i: i + batch_size].clone()
+        data = data.to(device=DEVICE)
+        batch_data = data[i: i + batch_size]
 
         # Compute prediction and loss
         augmentations = get_augmentations()
