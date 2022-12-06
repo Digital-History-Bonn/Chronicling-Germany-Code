@@ -228,7 +228,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--name', '-n', metavar='NAME', type=str,
                         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                         help='name of run in tensorboard')
-    parser.add_argument('--predict_image', '-i', metavar='p_image', type=str,
+    parser.add_argument('--predict_image', '-i', type=str,
                         default=PREDICT_IMAGE,
                         help='path for full image prediction')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
@@ -237,7 +237,7 @@ def get_args() -> argparse.Namespace:
                         help='Learning rate', dest='lr')
     parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
                         help='Downscaling factor of the images')
-    parser.add_argument('--predict-scale', '-p', metavar='p_scale', type=float, default=PREDICT_SCALE,
+    parser.add_argument('--predict-scale', '-p', type=float, default=PREDICT_SCALE,
                         help='Downscaling factor of the predict image')
 
     return parser.parse_args()
@@ -245,8 +245,8 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == '__main__':
     args = get_args()
-    predict_scale = args.p_scale
-    predict_image = args.p_iamge
+    predict_scale = args.predict_scale
+    predict_image = args.predict_image
 
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
