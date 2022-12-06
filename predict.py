@@ -12,6 +12,8 @@ from model import DhSegment
 
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 
+SCALE = 0.25
+
 
 def _get_model(path: str) -> DhSegment:
     # create model
@@ -54,7 +56,7 @@ def get_args() -> argparse.Namespace:
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images', required=True)
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
-    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=0.25,
+    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=SCALE,
                         help='Scale factor for the input images')
 
     return parser.parse_args()
