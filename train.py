@@ -17,22 +17,20 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision import transforms  # type: ignore
 
-import preprocessing  # type: ignore
-from model import DhSegment  # type: ignore
-from news_dataset import NewsDataset  # type: ignore
-from utils import get_file  # type: ignore
+import preprocessing
+from model import DhSegment
+from news_dataset import NewsDataset
+from utils import get_file
 
 EPOCHS = 1
-# todo: remove
-VAL_EVERY = 1
+VAL_EVERY = 250
 BATCH_SIZE = 32
 DATALOADER_WORKER = 4
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
-# todo remove and argument
-LOGGING_IMAGE = "test.png"
+LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
 torch.manual_seed(42)
@@ -60,10 +58,9 @@ def get_normalization_parameters(data: DataLoader) -> Tuple[torch.Tensor, torch.
     return channel_means, channel_stds
 
 
-def train(args: argparse.Namespace, load_model=None, save_model=None):
+def train(load_model=None, save_model=None):
     """
     train function. Initializes dataloaders and optimzer.
-    :param args: command line arguments
     :param load_model: (default: None) path to model to load
     :param save_model: (default: None) path to save the model
     :return: None
@@ -94,9 +91,9 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
-    # todo: drop last
+
     val_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=False, num_workers=DATALOADER_WORKER,
-                            drop_last=False)
+                            drop_last=True)
 
     # set mean and std in model for normalization
     model.means, model.stds = get_normalization_parameters(train_loader)
@@ -111,7 +108,6 @@ def train_loop(train_loader: DataLoader, model: DhSegment, epochs: int,
     :param save_model: path for saving model
     :param train_loader: Dataloader object
     :param model: model to train
-    :param loss_fn: loss function to optimize
     :param optimizer: optimizer to use
     :param val_loader: dataloader with validation data
     :param epochs: number of epochs that will be executed
@@ -282,8 +278,7 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
     rand_index = random.randint(0, image.shape[0])
     image = torch.unsqueeze(image[rand_index].to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
-    # todo: remove and argument
-    log_image = get_file(LOGGING_IMAGE, scale=0.125)
+    log_image = get_file(LOGGING_IMAGE)
     log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
@@ -342,4 +337,4 @@ if __name__ == '__main__':
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(args, load_model=None, save_model='Models/model.pt')
+    train(load_model=None, save_model='Models/model.pt')

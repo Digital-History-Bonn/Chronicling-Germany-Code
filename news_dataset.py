@@ -48,8 +48,7 @@ class NewsDataset(Dataset):
             #     lst_images, lst_targets = [], []
 
             # load images
-            # todo: remove
-            self.paths = [f[:-4] for f in os.listdir(image_path) if f.endswith(".png")]
+            self.paths = [f[:-4] for f in os.listdir(image_path) if f.endswith(".tif")]
 
             if limit is not None:
                 self.paths = self.paths[:limit]
@@ -73,8 +72,7 @@ class NewsDataset(Dataset):
         # Open the image form working directory
         file = self.paths[item]
         # load image
-        # todo: remove
-        image = Image.open(f"{INPUT}{file}.png").convert('RGB')
+        image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
 
         # load target
         target = np.load(f"{TARGETS}pc-{file}.npy")
