@@ -175,6 +175,8 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
     count = 0
     loss = 0
     size = data.shape[0]
+    # second for loop related batchsize
+    batch_size = 32
     for i in range(0, size, int(batch_size)):
         if size - i < batch_size:
             break
@@ -247,6 +249,8 @@ def run_val_batches(batch_size, data, loss_fn, epoch, step, model, val_loader):
     size = data.shape[0]
     multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS)
     class_accs = np.zeros(OUT_CHANNELS)
+    # second for loop related batchsize
+    batch_size = 32
     for i in range(0, size, int(batch_size)):
         if size - i < batch_size:
             break
