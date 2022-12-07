@@ -232,10 +232,10 @@ class DhSegment(nn.Module):
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
-        identity = x
         # print(f"input: x:{x.shape}, identity:{identity.shape}")
 
         x = self.normalize(x, self.means, self.stds)
+        identity = x
         x = self.conv1(x)
         x = self.bn1(x)
         copy_0 = self.relu(x)
