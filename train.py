@@ -204,7 +204,7 @@ def val_logging(epoch: int, step: int, accuracy_sum: float, class_acc: np.ndarra
     """
 
     size = len(val_loader)
-    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size))]
+    image, target = val_loader.dataset[random.randint(0, size * val_loader.batch_size if val_loader.batch_size else 1)]
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
     log_image = get_file(predict_image, predict_scale)
