@@ -54,6 +54,7 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
 
     model = model.float()
+    model.freeze_encoder()
 
     # load model if argument is None it does nothing
     model.load(load_model)
@@ -68,11 +69,8 @@ def train(args: argparse.Namespace, load_model=None, save_model=None):
     print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
     # set mean and std in model for normalization
-    mean = train_set.mean
-    model.means = mean
-    std = train_set.std
-    model.stds = std
-    print(f"dataset mean: {mean}, std: {std}")
+    model.means = torch.tensor((0.485, 0.456, 0.406))
+    model.stds = torch.tensor((0.229, 0.224, 0.225))
 
     # set optimizer and loss_fn
     optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
