@@ -31,7 +31,8 @@ IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
-LOGGING_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
+PREDICT_SCALE = 0.25
+PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
 torch.manual_seed(42)
@@ -201,10 +202,10 @@ def val_logging(epoch: int, step: int, accuracy_sum: float, class_acc: np.ndarra
     """
 
     size = len(val_loader)
-    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size))]
+    image, target = val_loader.dataset[random.randint(0, size * val_loader.batch_size if val_loader.batch_size else 1)]
     image = torch.unsqueeze(image.to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
-    log_image = get_file(LOGGING_IMAGE)
+    log_image = get_file(predict_image, predict_scale)
     log_pred = model.predict(log_image.to(DEVICE))
 
     # update tensor board logs
@@ -247,6 +248,9 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--name', '-n', metavar='NAME', type=str,
                         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
                         help='name of run in tensorboard')
+    parser.add_argument('--predict_image', '-i', type=str,
+                        default=PREDICT_IMAGE,
+                        help='path for full image prediction')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
                         help='Batch size')
     parser.add_argument('--learning-rate', '-lr', metavar='LR', type=float, default=LEARNING_RATE,
@@ -255,12 +259,17 @@ def get_args() -> argparse.Namespace:
                         help='Downscaling factor of the images')
     parser.add_argument('--load', '-l', type=str, dest='load', default=None,
                         help='model to load (default is None)')
+    parser.add_argument('--predict-scale', '-p', type=float, default=PREDICT_SCALE,
+                        help='Downscaling factor of the predict image')
 
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = get_args()
+    predict_scale = args.predict_scale
+    predict_image = args.predict_image
+
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
 

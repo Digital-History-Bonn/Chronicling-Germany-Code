@@ -14,12 +14,14 @@ from numpy import ndarray
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 
-import train # type: ignore
-from model import DhSegment # type: ignore
-from news_dataset import NewsDataset # type: ignore
-from utils import get_file # type: ignore
+import train
+from model import DhSegment
+from news_dataset import NewsDataset
+from utils import get_file
 
 IN_CHANNELS, OUT_CHANNELS = 3, 10
+
+SCALE = train.PREDICT_SCALE
 
 
 def _get_model(path: str) -> DhSegment:
@@ -46,7 +48,7 @@ def get_args() -> argparse.Namespace:
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images')
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
-    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=0.25,
+    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=SCALE,
                         help='Scale factor for the input images')
     parser.add_argument('--with-validation', '-v', dest='val', action='store_true',
                         help='If True, news_dataset must be linked to a Directory containing validation data, '

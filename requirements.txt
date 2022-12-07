@@ -12,4 +12,3 @@ pylint
 tensorflow~=2.9.1
 tensorboard
 torchvision~=0.14.0
-torchmetrics==0.11.0
