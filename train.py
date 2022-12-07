@@ -26,7 +26,7 @@ from utils import get_file # type: ignore
 EPOCHS = 1
 VAL_EVERY = 250
 BATCH_SIZE = 32
-DATALOADER_WORKER = 4
+DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
