@@ -17,6 +17,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchmetrics.classification import MulticlassAccuracy # type: ignore
 from torchvision import transforms  # type: ignore
+from torchmetrics.classification import MulticlassAccuracy  # type: ignore
 
 import preprocessing
 from model import DhSegment
@@ -146,7 +147,7 @@ def train_loop(train_loader: DataLoader, model: DhSegment, epochs: int,
                 # update tensor board logs
                 step += 1
                 with summary_writer.as_default():
-                    tf.summary.scalar('train loss', loss.item(), step=step)
+                    tf.summary.scalar('train loss', loss, step=step)
                     tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=step)
                     tf.summary.scalar('batch std', images.detach().cpu().std(), step=step)
 
@@ -197,17 +198,19 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
 
         del batch_images, batch_targets, batch_loss, batch_data, preds
         torch.cuda.empty_cache()
+
     return loss / count
 
 
 def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int, batch_size: int):
     """
     Executes one validation round, containing the evaluation of the current model on the entire validation set.
+    :param val_loader: dataloader with validation data
     :param model: model to validate
     :param loss_fn: loss_fn to validate with
-    :param val_loader: dataloader with validation data
     :param epoch: current epoch value for logging
     :param step: current batch related step value for logging. Count of batches that have been loaded.
+    :param batch_size: batch size
     :return: None
     """
     # class for accuracy
@@ -221,26 +224,29 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int, ba
         # Compute prediction and loss
         data = torch.cat((torch.flatten(images, start_dim=0, end_dim=1),
                           torch.flatten(targets, start_dim=0, end_dim=1)[:, np.newaxis, :, :]), dim=1)
-        accuracy_sum, jaccard_sum, loss = run_val_batches(batch_size, data, loss_fn,
-                                                          model)
 
-    val_logging(accuracy_sum, epoch, jaccard_sum, loss, model, step, val_loader)
+        run_val_batches(batch_size, data, loss_fn, epoch, step, model, val_loader)
 
 
-def run_val_batches(batch_size, data, loss_fn, model):
+def run_val_batches(batch_size, data, loss_fn, epoch, step, model, val_loader):
     """
     Executes validation batches.
     :param batch_size: batch size
     :param data: Contains cropped and shuffled images and targets. These are selected from a number of original images,
         according to batch_size
     :param loss_fn: loss_fn to validate with
+    :param epoch: current epoch value for logging
+    :param step: current batch related step value for logging. Count of batches that have been loaded.
     :param model: model to validate
+    :param val_loader: dataloader with validation data
     """
     jaccard_sum = 0
     accuracy_sum = 0
     count = 0
     loss = 0.0
     size = data.shape[0]
+    multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS)
+    class_accs = np.zeros(OUT_CHANNELS)
     for i in range(0, size, int(batch_size)):
         if size - i < batch_size:
             break
@@ -262,15 +268,18 @@ def run_val_batches(batch_size, data, loss_fn, model):
         pred = np.argmax(pred, axis=1)
         jaccard_sum += sklearn.metrics.jaccard_score(batch_targets.flatten(), pred.flatten(), average='macro')
         accuracy_sum += sklearn.metrics.accuracy_score(batch_targets.flatten(), pred.flatten())
+        class_accs += multi_class_accuracy(torch.tensor(pred).flatten(), torch.tensor(batch_targets).flatten()).numpy()
 
         del pred, batch_loss
         torch.cuda.empty_cache()
-    return accuracy_sum, jaccard_sum, loss / count
+
+    val_logging(accuracy_sum, epoch, jaccard_sum, loss, class_accs / count, model, step, val_loader)
 
 
-def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loader):
+def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, class_accs, model, step, val_loader):
     """Handles logging for loss values and validation images. Per epoch one random cropped image from the validation set
     will be evaluated. Furthermore, one full size image will be predicted and logged.
+
     :param accuracy_sum: accuracy sum for validation round
     :param epoch: current training epoch
     :param jaccard_sum: jaccard sum for validation round
@@ -290,18 +299,23 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
     # update tensor board logs
     with summary_writer.as_default():
         tf.summary.scalar('epoch', epoch, step=step)
+
         tf.summary.scalar('val loss', loss_sum / size, step=step)
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
 
         for i in range(OUT_CHANNELS):
-            tf.summary.scalar(f'val accuracy for class {i}', class_acc[i]/ size, step=step)
+            tf.summary.scalar(f'val accuracy for class {i}', class_accs[i]/ size, step=step)
 
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
-        tf.summary.scalar('epoch', epoch, step=step)
+
+        for i, acc in enumerate(class_accs):
+            tf.summary.scalar(f'val accuracy for class {i}', acc / size, step=step)
+
         tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)),
                          step=step)
         tf.summary.image('val target', target[rand_index].float().cpu()[None, :, :, None] / OUT_CHANNELS, step=step)
         tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=step)
+
         tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=step)
         tf.summary.image('full site prediction result', log_pred[None, :, :, None], step=step)
 
