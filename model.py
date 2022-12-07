@@ -187,17 +187,25 @@ class DhSegment(nn.Module):
         self.register_buffer('stds', torch.tensor([1] * in_channels))
         self.normalize = normalize
 
-    def freeze_encoder(self, requires_grad = False):
+    def freeze_encoder(self, requires_grad=False):
         """Set requires grad of encoder to True or False. Freezes encoder weights"""
+
         def freeze(params: Iterator[Parameter]):
             for param in params:
                 param.requires_grad_(requires_grad)
+
         freeze(self.conv1.parameters())
         freeze(self.bn1.parameters())
         freeze(self.block1.parameters())
         freeze(self.block2.parameters())
         freeze(self.block3.parameters())
         freeze(self.block4.parameters())
+
+        # unfreeze weights, which are not loaded
+        requires_grad = True
+        freeze(self.block3.conv.parameters())
+        freeze(self.block4.conv.parameters())
+        freeze(self.block4.self.block4.layers[3].parameters())
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer
