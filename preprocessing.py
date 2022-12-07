@@ -86,9 +86,6 @@ class Preprocessing:
         # scale
         image, target = self._scale_img(image, target)
 
-        assert image.shape[1] == target.shape[0] and image.shape[2] == target.shape[1], \
-            f"image has shape {image.shape}, but target has shape {target.shape}"
-
         if self.crop:
             data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
             return data[:, :-1], data[:, -1]

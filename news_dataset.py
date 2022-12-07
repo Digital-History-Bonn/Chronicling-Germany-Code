@@ -76,13 +76,16 @@ class NewsDataset(Dataset):
         # load target
         target = np.load(f"{TARGETS}pc-{file}.npy")
 
+        assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], \
+            f"image {file=} has shape {image.size}, but target has shape {target.shape}"
+
         images, targets = self.pipeline.preprocess(image, target)
 
-        assert len(images) >= 100, f"number of crops lower than 100 {images.shape=}"
+        # assert len(images) >= 100, f"number of crops lower than 100 {images.shape=}"
 
-        indices = randperm(len(images), generator=torch.Generator()).tolist()
+        # indices = randperm(len(images), generator=torch.Generator()).tolist()
 
-        return torch.tensor(images[indices[:100]], dtype=torch.float), torch.tensor(targets[indices[:100]]).long()
+        return torch.tensor(images, dtype=torch.float), torch.tensor(targets).long()
 
     # def class_ratio(self, class_nr: int) -> dict:
     #     """

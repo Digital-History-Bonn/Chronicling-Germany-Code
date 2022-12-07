@@ -167,7 +167,7 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, step: int, model: 
         # update tensor board logs
         step += 1
         with summary_writer.as_default():
-            tf.summary.scalar('train loss', loss, step=step)
+            tf.summary.scalar('train loss', batch_loss.item(), step=step)
             tf.summary.scalar('batch mean', batch_images.detach().cpu().mean(), step=step)
             tf.summary.scalar('batch std', batch_images.detach().cpu().std(), step=step)
 
