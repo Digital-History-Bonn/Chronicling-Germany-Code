@@ -39,28 +39,6 @@ PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 torch.manual_seed(42)
 
 
-def get_normalization_parameters(data: DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
-    """calculate mean and standard deviation. Mean is calculated first to then use it to calculate std. Just
-    calculating std over every batch and then taking the mean would be incorrect
-    :param data: Dataloader for which normalization should be applied
-    """
-    batch_means = []
-    batch_vars = []
-
-    for batch in data:
-        images = batch[0]
-        batch_means.append(images.mean((0, 1, 3, 4)))
-
-    channel_means = torch.stack(batch_means).mean(0)
-
-    for batch in data:
-        images = batch[0]
-        batch_vars.append(torch.mean((images - channel_means[None, None, :, None, None]) ** 2, dim=(0, 1, 3, 4)))
-
-    channel_stds = torch.sqrt(torch.stack(batch_vars).mean(0))
-    return channel_means, channel_stds
-
-
 def train(load_model=None, save_model=None):
     """
     train function. Initializes dataloaders and optimzer.
@@ -102,9 +80,6 @@ def train(load_model=None, save_model=None):
     val_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=False, num_workers=DATALOADER_WORKER,
                             drop_last=True)
 
-    # set mean and std in model for normalization
-    model.means, model.stds = get_normalization_parameters(train_loader)
-
     train_loop(train_loader, model, epochs, optimizer, val_loader, save_model, batch_size)
 
 
@@ -138,31 +113,22 @@ def train_loop(train_loader: DataLoader, model: DhSegment, epochs: int,
                                   torch.flatten(targets, start_dim=0, end_dim=1)[:, np.newaxis, :, :]), dim=1)
                 indices = torch.randperm(data.shape[0])
                 data = data[indices]
-                loss = run_batches(data, loss_fn, model, optimizer, batch_size)
+                loss = run_batches(data, loss_fn, step, model, optimizer, batch_size, val_loader, epoch)
 
                 # update description
                 pbar.update(1)
                 pbar.set_postfix(**{'loss (batch)': loss})
 
-                # update tensor board logs
-                step += 1
-                with summary_writer.as_default():
-                    tf.summary.scalar('train loss', loss, step=step)
-                    tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=step)
-                    tf.summary.scalar('batch std', images.detach().cpu().std(), step=step)
-
                 # delete data from gpu cache
                 del images, targets, loss, data
                 torch.cuda.empty_cache()
 
-                if step % VAL_EVERY == 0:
-                    validation(val_loader, model, loss_fn, epoch, step, batch_size)
 
         model.save(save_model)
 
 
-def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, optimizer: torch.optim.Optimizer,
-                batch_size: int) -> float:
+def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, step: int, model: DhSegment, optimizer: torch.optim.Optimizer,
+                batch_size: int, val_loader: DataLoader, epoch: int) -> float:
     """Runs training batch-wise.
     :param data: Contains cropped and shuffled images and targets. These are selected from a number of original images,
         according to BATCH_SIZE
@@ -198,6 +164,16 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
         optimizer.step()
         loss += batch_loss.item()
 
+        # update tensor board logs
+        step += 1
+        with summary_writer.as_default():
+            tf.summary.scalar('train loss', loss, step=step)
+            tf.summary.scalar('batch mean', batch_images.detach().cpu().mean(), step=step)
+            tf.summary.scalar('batch std', batch_images.detach().cpu().std(), step=step)
+
+        if step % VAL_EVERY == 0:
+            validation(val_loader, model, loss_fn, epoch, step, batch_size)
+
         del batch_images, batch_targets, batch_loss, batch_data, preds
         torch.cuda.empty_cache()
 
@@ -215,11 +191,7 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int, ba
     :param batch_size: batch size
     :return: None
     """
-    # class for accuracy
-    multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS, average=None)
-
     model.eval()
-
     size = len(val_loader)
 
     for images, targets in tqdm.tqdm(val_loader, desc='validation_round', total=size):
@@ -369,11 +341,13 @@ if __name__ == '__main__':
     predict_scale = args.predict_scale
     predict_image = args.predict_image
 
-    DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+    DEVICE = "cuda:1" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
 
     # setup tensor board
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(load_model=f'Models/model_{args.load}.pt', save_model=f'Models/model_{args.name}.pt')
+    load_model = f'Models/model_{args.load}.pt' if args.load else None
+
+    train(load_model=load_model, save_model=f'Models/model_{args.name}.pt')
