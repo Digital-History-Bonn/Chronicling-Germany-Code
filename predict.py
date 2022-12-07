@@ -62,7 +62,7 @@ def get_args() -> argparse.Namespace:
 
 
 def run_validation(scale: float):
-    """runs validation on data of NewsDataset"""
+    """runs validation on complete dataset of NewsDataset"""
     dataset = NewsDataset(scale=scale, crop=False)
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
     loss_fn = CrossEntropyLoss(weight=torch.tensor(train.LOSS_WEIGHTS)).to(DEVICE)

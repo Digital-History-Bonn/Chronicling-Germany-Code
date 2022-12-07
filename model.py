@@ -1,19 +1,20 @@
-from typing import Union
+"""
+Module contains a U-Net Model.
+Most of the code of this model is from the implementation of ResNet
+from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
+"""
+from typing import Iterator
 
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
+from torch.nn.parameter import Parameter
 
-import numpy as np
 from utils import replace_substrings
-
-"""
-Most of the code of this model is from the implementation of ResNet 
-from https://github.com/pytorch/vision/blob/1aef87d01eec2c0989458387fa04baebcc86ea7b/torchvision/models/resnet.py
-"""
+from torchvision.transforms.functional import normalize  # type: ignore
 
 model_urls = {
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-11ad3fa6.pth',
 }
 
 
@@ -120,22 +121,6 @@ class Bottleneck(nn.Module):
 
         return out
 
-class Normalize(torch.nn.Module):
-    """
-    Handles input normalization
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x: torch.Tensor, means: torch.Tensor, stds: torch.Tensor) ->  torch.Tensor:
-        """
-        input normalization with mean and standard deviation
-        """
-        normalized = ((x - means[None, :, None, None].to(x.device)) /
-                      stds[None, :, None, None].to(x.device))
-        return normalized
-
 
 class DhSegment(nn.Module):
     def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
@@ -198,9 +183,29 @@ class DhSegment(nn.Module):
             self._load_ResNet()
 
         # initialize normalization
-        self.register_buffer('means', torch.tensor([0]*in_channels))
-        self.register_buffer('stds', torch.tensor([1]*in_channels))
-        self.normalize = Normalize()
+        self.register_buffer('means', torch.tensor([0] * in_channels))
+        self.register_buffer('stds', torch.tensor([1] * in_channels))
+        self.normalize = normalize
+
+    def freeze_encoder(self, requires_grad=False):
+        """Set requires grad of encoder to True or False. Freezes encoder weights"""
+
+        def freeze(params: Iterator[Parameter]):
+            for param in params:
+                param.requires_grad_(requires_grad)
+
+        freeze(self.conv1.parameters())
+        freeze(self.bn1.parameters())
+        freeze(self.block1.parameters())
+        freeze(self.block2.parameters())
+        freeze(self.block3.parameters())
+        freeze(self.block4.parameters())
+
+        # unfreeze weights, which are not loaded
+        requires_grad = True
+        freeze(self.block3.conv.parameters())
+        freeze(self.block4.conv.parameters())
+        freeze(self.block4.self.block4.layers[3].parameters())
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer
@@ -227,10 +232,10 @@ class DhSegment(nn.Module):
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
-        identity = x
         # print(f"input: x:{x.shape}, identity:{identity.shape}")
 
         x = self.normalize(x, self.means, self.stds)
+        identity = x
         x = self.conv1(x)
         x = self.bn1(x)
         copy_0 = self.relu(x)
@@ -282,9 +287,8 @@ class DhSegment(nn.Module):
         prediction = torch.squeeze(pred / self.out_channel)
         return prediction
 
-
     def _load_ResNet(self):
-        state_dict = load_state_dict_from_url('https://download.pytorch.org/models/resnet50-19c8e357.pth',
+        state_dict = load_state_dict_from_url(model_urls['resnet50'],
                                               progress=True)
 
         replacements = {"layer1": "block1.layers",

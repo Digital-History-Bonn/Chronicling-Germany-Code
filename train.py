@@ -15,6 +15,7 @@ import tqdm  # type: ignore
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torchmetrics.classification import MulticlassAccuracy # type: ignore
 from torchvision import transforms  # type: ignore
 
 import preprocessing
@@ -25,7 +26,7 @@ from utils import get_file
 EPOCHS = 1
 VAL_EVERY = 250
 BATCH_SIZE = 32
-DATALOADER_WORKER = 4
+DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
 LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
@@ -74,6 +75,7 @@ def train(load_model=None, save_model=None):
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True)
 
     model = model.float()
+    model.freeze_encoder()
 
     # load model if argument is None it does nothing
     model.load(load_model)
@@ -87,12 +89,15 @@ def train(load_model=None, save_model=None):
 
     # print(f"ration between classes: {train_set.class_ratio(OUT_CHANNELS)}")
 
-    # set optimizer
+    # set mean and std in model for normalization
+    model.means = torch.tensor((0.485, 0.456, 0.406))
+    model.stds = torch.tensor((0.229, 0.224, 0.225))
+
+    # set optimizer and loss_fn
     optimizer = Adam(model.parameters(), lr=lr)  # weight_decay=1e-4
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
                                                num_workers=DATALOADER_WORKER, drop_last=True)
-
     val_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=False, num_workers=DATALOADER_WORKER,
                             drop_last=True)
 
@@ -141,10 +146,9 @@ def train_loop(train_loader: DataLoader, model: DhSegment, epochs: int,
                 # update tensor board logs
                 step += 1
                 with summary_writer.as_default():
-                    tf.summary.scalar('train loss', loss, step=step)
-                    # tf.summary.image('train image', torch.permute(batch_images.cpu(), (0, 2, 3, 1)), step=step)
-                    # tf.summary.image('train prediction', preds.float().detach().cpu().argmax(axis=1)[:, :, :, None] / OUT_CHANNELS, step=step)
-                    # tf.summary.image('train batch_targets', batch_targets[:, :, :, None].float().cpu() / OUT_CHANNELS, step=step)
+                    tf.summary.scalar('train loss', loss.item(), step=step)
+                    tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=step)
+                    tf.summary.scalar('batch std', images.detach().cpu().std(), step=step)
 
                 # delete data from gpu cache
                 del images, targets, loss, data
@@ -199,7 +203,6 @@ def run_batches(data: torch.Tensor, loss_fn: torch.nn.Module, model: DhSegment, 
 def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int, batch_size: int):
     """
     Executes one validation round, containing the evaluation of the current model on the entire validation set.
-    :param batch_size: batch size
     :param model: model to validate
     :param loss_fn: loss_fn to validate with
     :param val_loader: dataloader with validation data
@@ -207,6 +210,8 @@ def validation(val_loader: DataLoader, model, loss_fn, epoch: int, step: int, ba
     :param step: current batch related step value for logging. Count of batches that have been loaded.
     :return: None
     """
+    # class for accuracy
+    multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS, average=None)
 
     model.eval()
 
@@ -275,7 +280,7 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
     :param val_loader: dataloader with validation data
     """
     size = len(val_loader)
-    image, target = val_loader.dataset[random.randint(0, size * int(val_loader.batch_size) -1)]
+    image, target = val_loader.dataset[random.randint(0, (size * val_loader.batch_size if val_loader.batch_size else 1) -1)]
     rand_index = random.randint(0, image.shape[0])
     image = torch.unsqueeze(image[rand_index].to(DEVICE), 0)
     pred = model(image).argmax(dim=1).float()
@@ -284,8 +289,13 @@ def val_logging(accuracy_sum, epoch, jaccard_sum, loss_sum, model, step, val_loa
 
     # update tensor board logs
     with summary_writer.as_default():
+        tf.summary.scalar('epoch', epoch, step=step)
         tf.summary.scalar('val loss', loss_sum / size, step=step)
         tf.summary.scalar('val accuracy', accuracy_sum / size, step=step)
+
+        for i in range(OUT_CHANNELS):
+            tf.summary.scalar(f'val accuracy for class {i}', class_acc[i]/ size, step=step)
+
         tf.summary.scalar('val jaccard score', jaccard_sum / size, step=step)
         tf.summary.scalar('epoch', epoch, step=step)
         tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)),
@@ -324,10 +334,12 @@ def get_args() -> argparse.Namespace:
                         help='path for full image prediction')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=BATCH_SIZE,
                         help='Batch size')
-    parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=LEARNING_RATE,
+    parser.add_argument('--learning-rate', '-lr', metavar='LR', type=float, default=LEARNING_RATE,
                         help='Learning rate', dest='lr')
-    parser.add_argument('--scale', '-s', type=float, default=preprocessing.SCALE,
+    parser.add_argument('--scale', '-s', type=float, dest='scale', default=preprocessing.SCALE,
                         help='Downscaling factor of the images')
+    parser.add_argument('--load', '-l', type=str, dest='load', default=None,
+                        help='model to load (default is None)')
     parser.add_argument('--predict-scale', '-p', type=float, default=PREDICT_SCALE,
                         help='Downscaling factor of the predict image')
 
@@ -346,4 +358,4 @@ if __name__ == '__main__':
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    train(load_model=None, save_model='Models/model.pt')
+    train(load_model=f'Models/model_{args.load}.pt', save_model=f'Models/model_{args.name}.pt')
