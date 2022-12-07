@@ -13,8 +13,8 @@ from torch.utils.data import Dataset  # type: ignore
 
 from preprocessing import Preprocessing
 
-INPUT = "Data/input/"
-TARGETS = "Data/Targets/"
+INPUT = "../prima/inputs/"
+TARGETS = "../prima/targets/"
 
 
 class NewsDataset(Dataset):
@@ -45,7 +45,6 @@ class NewsDataset(Dataset):
             self.paths = paths
 
         elif isinstance(image_path, str) and isinstance(target_path, str):
-            #     lst_images, lst_targets = [], []
 
             # load images
             self.paths = [f[:-4] for f in os.listdir(image_path) if f.endswith(".tif")]
@@ -79,9 +78,11 @@ class NewsDataset(Dataset):
 
         images, targets = self.pipeline.preprocess(image, target)
 
-        # print(f"{images.shape=}")
-        # print(f"{targets.shape=}")
-        return torch.tensor(images, dtype=torch.float), torch.tensor(targets).long()
+        assert len(images) >= 100, f"number of crops lower than 100 {images.shape=}"
+
+        indices = randperm(len(images), generator=torch.Generator()).tolist()
+
+        return torch.tensor(images[indices[:100]], dtype=torch.float), torch.tensor(targets[indices[:100]]).long()
 
     # def class_ratio(self, class_nr: int) -> dict:
     #     """
@@ -113,7 +114,7 @@ class NewsDataset(Dataset):
         nd_paths = np.array(self.paths)
 
         train_dataset = NewsDataset(paths=list(nd_paths[indices[:splits[0]]]), scale=self.scale, crop=self.crop)
-        test_dataset = NewsDataset(paths=list(nd_paths[indices[:splits[0]:splits[1]]]), scale=self.scale, crop=self.crop)
+        test_dataset = NewsDataset(paths=list(nd_paths[indices[splits[0]:splits[1]]]), scale=self.scale, crop=self.crop)
         valid_dataset = NewsDataset(paths=list(nd_paths[indices[:splits[1]]]), scale=self.scale, crop=self.crop)
 
         return train_dataset, test_dataset, valid_dataset

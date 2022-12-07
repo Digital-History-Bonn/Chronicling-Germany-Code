@@ -205,7 +205,7 @@ class DhSegment(nn.Module):
         requires_grad = True
         freeze(self.block3.conv.parameters())
         freeze(self.block4.conv.parameters())
-        freeze(self.block4.self.block4.layers[3].parameters())
+        freeze(self.block4.layers[3].parameters())
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer
