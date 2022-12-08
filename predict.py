@@ -90,7 +90,7 @@ def run_validation(scale: float):
             tf.summary.scalar('loss', loss, step=step)
             tf.summary.scalar('accuracy', accuracy_score, step=step)
             tf.summary.scalar('jaccard score', jaccard_score, step=step)
-            tf.summary.image('image', torch.permute(val_image, (0, 2, 3, 1)),
+            tf.summary.image('image', torch.permute(val_image.float() / 255, (0, 2, 3, 1)),
                              step=step)
             tf.summary.image('target', torch.unsqueeze(target.float(), 3) / OUT_CHANNELS, step=step)
             tf.summary.image('prediction', torch.unsqueeze(prediction.float(), 3) / OUT_CHANNELS, step=step)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     train_log_dir = 'logs/runs/' + args.name
     summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    DEVICE = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     model = _get_model(args.model)
 

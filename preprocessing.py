@@ -61,7 +61,7 @@ class Preprocessing:
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
-        image = image.resize(shape, resample=Image.NEAREST)
+        image = image.resize(shape, resample=Image.BICUBIC)
 
         target_img = Image.fromarray(target.astype(np.uint8))
         target_img = target_img.resize(shape, resample=Image.NEAREST)
@@ -85,9 +85,6 @@ class Preprocessing:
         """
         # scale
         image, target = self._scale_img(image, target)
-
-        assert image.shape[1] == target.shape[0] and image.shape[2] == target.shape[1], \
-            f"image has shape {image.shape}, but target has shape {target.shape}"
 
         if self.crop:
             data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
