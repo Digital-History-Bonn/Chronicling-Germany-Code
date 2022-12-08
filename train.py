@@ -271,12 +271,12 @@ class Trainer:
             for i, acc in enumerate(class_accs):
                 tf.summary.scalar(f'val accuracy for class {i}', acc, step=self.step)
 
-            tf.summary.image('val image', torch.permute(image.cpu(), (0, 2, 3, 1)), step=self.step)
+            tf.summary.image('val image', torch.permute(image.cpu()/255, (0, 2, 3, 1)), step=self.step)
             tf.summary.image('val target', target[rand_index].float().cpu()[None, :, :, None] / OUT_CHANNELS,
                              step=self.step)
             tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=self.step)
 
-            tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=self.step)
+            tf.summary.image('full site prediction input', torch.permute(log_image.cpu()/255, (0, 2, 3, 1)), step=self.step)
             tf.summary.image('full site prediction result', log_pred[None, :, :, None], step=self.step)
 
         print(f"average loss: {loss}")
