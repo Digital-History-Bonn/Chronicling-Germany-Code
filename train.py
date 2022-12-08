@@ -25,12 +25,12 @@ from news_dataset import NewsDataset
 from utils import get_file
 
 EPOCHS = 1
-VAL_EVERY = 250
+VAL_EVERY = 5000
 BATCH_SIZE = 32
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
 LEARNING_RATE = .001  # 0,0001 seems to work well
-LOSS_WEIGHTS: List[float] = [1.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
+LOSS_WEIGHTS: List[float] = [2.0, 10.0, 10.0, 10.0, 4.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 PREDICT_SCALE = 0.25
 PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
@@ -71,7 +71,7 @@ class Trainer:
         self.model.stds = torch.tensor((0.229, 0.224, 0.225))
 
         # set optimizer and loss_fn
-        self.optimizer = Adam(self.model.parameters(), lr=lr)  # weight_decay=1e-4
+        self.optimizer = Adam(self.model.parameters(), lr=lr, weight_decay=1e-8)  # weight_decay=1e-4
         self.loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))
 
         # load data
@@ -189,7 +189,7 @@ class Trainer:
             # Compute prediction and loss
             data = torch.cat((torch.flatten(images, start_dim=0, end_dim=1),
                               torch.flatten(targets, start_dim=0, end_dim=1)[:, np.newaxis, :, :]), dim=1)
-            count += data.shape[0]
+            count += 1
             batch_loss, batch_jaccard_sum, batch_accuracy_sum, batch_class_acc_sum = self.run_val_batches(data)
             loss_sum += batch_loss
             jaccard_sum += batch_jaccard_sum
@@ -197,8 +197,8 @@ class Trainer:
             class_acc_sum += batch_class_acc_sum
 
         self.val_logging(loss_sum / count, jaccard_sum / count,
-                         accuracy_sum / (count * 3 * 255 * 255),
-                         class_acc_sum / (count * 3 * 255 * 255))
+                         accuracy_sum / count,
+                         class_acc_sum / count)
 
     def run_val_batches(self, data):
         """
@@ -214,7 +214,9 @@ class Trainer:
 
         # second for loop related batchsize
         batch_size = 32
-        for batch_data in torch.split(data, batch_size):
+        batches = torch.split(data, batch_size)
+        num_batches = len(batches)
+        for batch_data in batches:
             batch_images = batch_data[:, :-1].to(device=self.device, dtype=torch.float32)
             batch_targets = batch_data[:, -1].to(device=self.device, dtype=torch.long)
 
@@ -223,21 +225,20 @@ class Trainer:
 
             # detach results
             pred = pred.detach().cpu().numpy()
-            batch_loss = batch_loss.detach().cpu().numpy()
 
             batch_targets = batch_targets.detach().cpu().numpy()
 
-            loss += batch_loss
+            loss += batch_loss.item()
             pred = np.argmax(pred, axis=1)
-            jaccard_sum += jaccard_score(batch_targets.flatten(), pred.flatten(), average='micro')
-            accuracy_sum += accuracy_score(batch_targets.flatten(), pred.flatten(), normalize=False)
+            jaccard_sum += jaccard_score(batch_targets.flatten(), pred.flatten(), average='macro')
+            accuracy_sum += accuracy_score(batch_targets.flatten(), pred.flatten())
             class_acc_sum += multi_class_accuracy(torch.tensor(pred).flatten(),
                                                   torch.tensor(batch_targets).flatten()).numpy()
 
             del pred, batch_loss
             torch.cuda.empty_cache()
 
-            return loss, jaccard_sum, accuracy_sum, class_acc_sum
+        return loss / num_batches, jaccard_sum / num_batches, accuracy_sum / num_batches, class_acc_sum / num_batches
 
     def val_logging(self, loss, jaccard, accuracy, class_accs):
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
@@ -271,12 +272,12 @@ class Trainer:
             for i, acc in enumerate(class_accs):
                 tf.summary.scalar(f'val accuracy for class {i}', acc, step=self.step)
 
-            tf.summary.image('val image', torch.permute(image.cpu()/255, (0, 2, 3, 1)), step=self.step)
+            tf.summary.image('val image', torch.permute(image.float().cpu()/255, (0, 2, 3, 1)), step=self.step)
             tf.summary.image('val target', target[rand_index].float().cpu()[None, :, :, None] / OUT_CHANNELS,
                              step=self.step)
             tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=self.step)
 
-            tf.summary.image('full site prediction input', torch.permute(log_image.cpu()/255, (0, 2, 3, 1)), step=self.step)
+            tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=self.step)
             tf.summary.image('full site prediction result', log_pred[None, :, :, None], step=self.step)
 
         print(f"average loss: {loss}")
