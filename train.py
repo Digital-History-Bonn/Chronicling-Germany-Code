@@ -12,7 +12,6 @@ from sklearn.metrics import jaccard_score, accuracy_score  # type: ignore
 import tensorflow as tf  # type: ignore
 import torch  # type: ignore
 import tqdm  # type: ignore
-from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchmetrics.classification import MulticlassAccuracy  # type: ignore
@@ -41,7 +40,7 @@ torch.manual_seed(42)
 
 class Trainer:
     def __init__(self, load_model: Union[str, None] = None, save_model: Union[str, None] = None,
-                 batch_size: int = BATCH_SIZE, lr: float = LEARNING_RATE):
+                 batch_size: int = BATCH_SIZE, lr: float = LEARNING_RATE, scale: float = preprocessing.SCALE):
         """
         Trainer-class to train DhSegment Model
         :param load_model: model to load, init random if None
@@ -72,10 +71,9 @@ class Trainer:
 
         # set optimizer and loss_fn
         self.optimizer = Adam(self.model.parameters(), lr=lr, weight_decay=1e-4)  # weight_decay=1e-4
-        self.loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))
 
         # load data
-        dataset = NewsDataset(scale=args.scale)
+        dataset = NewsDataset(scale=scale)
 
         # splitting with fractions should work according to pytorch doc, but it does not
         train_set, validation_set, _ = dataset.random_split((.9, .05, .05))
@@ -90,6 +88,8 @@ class Trainer:
         # check for cuda
         self.device = "cuda:1" if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
+
+        self.loss_fn = torch.nn.CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS).to(self.device))
 
     def train(self, epochs: int = 1):
         """
@@ -149,18 +149,18 @@ class Trainer:
             batch_targets = batch_data[:, -1].to(device=self.device, dtype=torch.long)
 
             preds = self.model(batch_images)
-            batch_loss = self.loss_fn(preds, batch_targets)
+            single_loss = self.loss_fn(preds, batch_targets)
 
             # Backpropagation
             self.optimizer.zero_grad(set_to_none=True)
-            batch_loss.backward()
+            single_loss.backward()
             self.optimizer.step()
-            loss += batch_loss.item()
+            loss += single_loss.item()
 
             # update tensor board logs
             self.step += 1
             with summary_writer.as_default():
-                tf.summary.scalar('train loss', batch_loss.item(), step=self.step)
+                tf.summary.scalar('train loss', single_loss.item(), step=self.step)
                 tf.summary.scalar('batch mean', batch_images.detach().cpu().mean(), step=self.step)
                 tf.summary.scalar('batch std', batch_images.detach().cpu().std(), step=self.step)
                 tf.summary.scalar('target batch mean', batch_targets.detach().cpu().float().mean(), step=self.step)
@@ -169,7 +169,7 @@ class Trainer:
             if self.step % VAL_EVERY == 0:
                 self.validation()
 
-            del batch_images, batch_targets, batch_loss, batch_data, preds
+            del batch_images, batch_targets, single_loss, batch_data, preds
             torch.cuda.empty_cache()
 
         return loss / count
