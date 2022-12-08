@@ -71,7 +71,7 @@ class Trainer:
         self.model.stds = torch.tensor((0.229, 0.224, 0.225))
 
         # set optimizer and loss_fn
-        self.optimizer = Adam(self.model.parameters(), lr=lr, weight_decay=1e-8)  # weight_decay=1e-4
+        self.optimizer = Adam(self.model.parameters(), lr=lr, weight_decay=1e-4)  # weight_decay=1e-4
         self.loss_fn = CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS))
 
         # load data
@@ -100,8 +100,8 @@ class Trainer:
 
         self.model.to(self.device)
         self.loss_fn.to(self.device)
-
         self.step = 0
+
         for self.epoch in range(1, epochs + 1):
             self.model.train()
 
@@ -199,6 +199,7 @@ class Trainer:
         self.val_logging(loss_sum / count, jaccard_sum / count,
                          accuracy_sum / count,
                          class_acc_sum / count)
+        self.model.train()
 
     def run_val_batches(self, data):
         """
