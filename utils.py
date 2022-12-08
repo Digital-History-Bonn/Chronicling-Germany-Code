@@ -92,7 +92,7 @@ def get_file(file: str, scale=0.25) -> torch.Tensor:
     w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
     img_np = np.pad(np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), 'constant', constant_values=0)
     img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
-    return torch.unsqueeze(torch.tensor(img_t), dim=0)
+    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)
 
 
 class RollingAverage:
