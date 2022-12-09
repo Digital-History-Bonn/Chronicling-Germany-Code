@@ -3,7 +3,7 @@ module for Dataset class
 """
 from __future__ import annotations
 
-from typing import Union, Tuple, List
+from typing import Tuple, List
 import os
 from PIL import Image  # type: ignore
 import numpy as np
@@ -11,10 +11,8 @@ import torch  # type: ignore
 from torch import randperm # type: ignore
 from torch.utils.data import Dataset  # type: ignore
 
-from preprocessing import Preprocessing
 
-INPUT = "../prima/inputs/"
-TARGETS = "../prima/targets/"
+PATH = 'crops/'
 
 
 class NewsDataset(Dataset):
@@ -22,45 +20,32 @@ class NewsDataset(Dataset):
         A dataset class for the newspaper datasets
     """
 
-    def __init__(self, paths: List[str] = None, image_path: str = INPUT,
-                 target_path: str = TARGETS,
-                 limit: Union[None, int] = None, scale: float = None, crop=True):
+    def __init__(self, path: str = PATH, files: List[str] = None, limit: int = None):
         """
         Dataset object
-        if images and targets are paths to folder with images/np.array
-        it loads all images with annotations and preprocesses them
-        if images, targets and masks are np.ndarray it just creates a new NewsDataset object
+        load images and targets from folder
 
-        :param: images (str | list): path to folder of images or list of images
-        :param: targets (str | list): path to folder of targets or list of np.arrays
-        :param: limit (int): max size of dataloader
-        :param scale: scaling of images in preprocessing
-        :param crop: if False cropping will be deactivated for prediction purposes. Normalization and training will not
-        work on uncropped images.
+        :param path: path to folders with images and targets
         """
-        self.pipeline = Preprocessing(scale=scale, crop=crop)
-        self.crop = crop
-        self.scale = scale
-        if isinstance(paths, List):
-            self.paths = paths
+        # path to the over all folder
+        self.path = path
 
-        elif isinstance(image_path, str) and isinstance(target_path, str):
-
-            # load images
-            self.paths = [f[:-4] for f in os.listdir(image_path) if f.endswith(".tif")]
-
-            if limit is not None:
-                self.paths = self.paths[:limit]
-
+        # list paths of images and targets
+        if files is None:
+            print(f"{path}Images/")
+            self.file_names = [f[:-3] for f in os.listdir(f"{path}Images/") if f.endswith(".pt")]
         else:
-            raise Exception("Wrong combination of argument types")
+            self.file_names = files
+
+        if limit is not None:
+            self.file_names = self.file_names[:limit]
 
     def __len__(self):
         """
         standard len function
         :return: number of items in dateset
         """
-        return len(self.paths)
+        return len(self.file_names)
 
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -69,37 +54,17 @@ class NewsDataset(Dataset):
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
         # Open the image form working directory
-        file = self.paths[item]
+        file = self.file_names[item]
         # load image
-        image = Image.open(f"{INPUT}{file}.tif").convert('RGB')
+        image = torch.load(f"{self.path}Images/{file}.pt")
 
         # load target
-        target = np.load(f"{TARGETS}pc-{file}.npy")
+        target = torch.load(f"{self.path}Targets/{file}.pt")
 
-        assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], \
-            f"image {file=} has shape {image.size}, but target has shape {target.shape}"
+        assert image.shape[1] == target.shape[0] and image.shape[2] == target.shape[1], \
+            f"image {file=} has shape {image.shape}, but target has shape {target.shape}"
 
-        images, targets = self.pipeline.preprocess(image, target)
-
-        # assert len(images) >= 100, f"number of crops lower than 100 {images.shape=}"
-
-        # indices = randperm(len(images), generator=torch.Generator()).tolist()
-
-        return torch.tensor(images, dtype=torch.float), torch.tensor(targets).long()
-
-    # def class_ratio(self, class_nr: int) -> dict:
-    #     """
-    #     ratio between the classes over all images
-    #     :return: np array of ratio
-    #     """
-    #     ratio = {c: 0 for c in range(class_nr)}
-    #     size = 0
-    #     for target in tqdm.tqdm(self.targets, desc='calc class ratio'):
-    #         size += target.size
-    #         values, counts = np.unique(target, return_counts=True)
-    #         for value, count in zip(values, counts):
-    #             ratio[value] += count
-    #     return {c: v / size for c, v in ratio.items()}
+        return image.float(), target.long()
 
     def random_split(self, ratio: Tuple[float, float, float]) \
             -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
@@ -114,37 +79,24 @@ class NewsDataset(Dataset):
         splits = int(ratio[0] * len(self)), int(ratio[0] * len(self)) + int(ratio[1] * len(self))
 
         indices = randperm(len(self), generator=torch.Generator().manual_seed(42)).tolist()
-        nd_paths = np.array(self.paths)
+        nd_paths = np.array(self.file_names)
 
-        train_dataset = NewsDataset(paths=list(nd_paths[indices[:splits[0]]]), scale=self.scale, crop=self.crop)
-        test_dataset = NewsDataset(paths=list(nd_paths[indices[splits[0]:splits[1]]]), scale=self.scale, crop=self.crop)
-        valid_dataset = NewsDataset(paths=list(nd_paths[indices[:splits[1]]]), scale=self.scale, crop=self.crop)
+        train_dataset = NewsDataset(path=self.path, files=list(nd_paths[indices[:splits[0]]]))
+        test_dataset = NewsDataset(path=self.path, files=list(nd_paths[indices[splits[0]:splits[1]]]))
+        valid_dataset = NewsDataset(path=self.path, files=list(nd_paths[indices[splits[1]:]]))
 
         return train_dataset, test_dataset, valid_dataset
 
-    # @property
-    # def mean(self) -> torch.Tensor:
-    #     """
-    #     returns the mean for every color-channel in the dataset
-    #     """
-    #     # mypy types are ignored to use this class for full image prediction
-    #     return torch.tensor(self.images.mean(axis=(0, 2, 3))).float()  # type: ignore
-    #
-    # @property
-    # def std(self) -> torch.Tensor:
-    #     """
-    #     returns the standard-deviation for every color-channel in the dataset
-    #     """
-    #     # mypy types are ignored to use this class for full image prediction
-    #     return torch.tensor(self.images.std(axis=(0, 2, 3))).float()  # type: ignore
 
-# if __name__ == '__main__':
-#     dataset = NewsDataset()
-#     train_set, test_set, valid = dataset.random_split((.9, .05, .05))
-#     print(f"{type(train_set)=}")
-#     print(f"train: {len(train_set)}, test: {len(test_set)}, valid: {len(valid)}")
-#     print(f"{train_set.class_ratio(10)}")
-#     print()
-#     print(train_set.targets[0])
-#     print()
-#     print(train_set.images[0])
+if __name__ == '__main__':
+    dataset = NewsDataset()
+    print(f"{len(dataset)=}")
+
+    train, valid, test = dataset.random_split(ratio=(.9, .05, .05))
+    print(f"{len(train)=}")
+    print(f"{len(valid)=}")
+    print(f"{len(test)=}")
+
+    img, tar = train[0]
+    print(f"{img.shape=}, {type(img)=}")
+    print(f"{tar.shape=}, {type(tar)=}")
