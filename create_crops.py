@@ -38,8 +38,9 @@ def main():
             img_crop = torch.tensor(img_crop, dtype=torch.uint8)
             tar_crop = torch.tensor(tar_crop, dtype=torch.uint8)
 
-            torch.save(img_crop, f"{FOLDER}Images/{file}_{i}.pt")
-            torch.save(tar_crop, f"{FOLDER}Targets/{file}_{i}.pt")
+            data = torch.cat((img_crop, tar_crop[None, :]), dim=0)
+
+            torch.save(data, f"{FOLDER}{file}_{i}.pt")
 
 
 if __name__ == '__main__':

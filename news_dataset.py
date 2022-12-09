@@ -10,6 +10,7 @@ import numpy as np
 import torch  # type: ignore
 from torch import randperm # type: ignore
 from torch.utils.data import Dataset  # type: ignore
+from torchvision import transforms  # type: ignore
 
 
 PATH = 'crops/'
@@ -32,13 +33,14 @@ class NewsDataset(Dataset):
 
         # list paths of images and targets
         if files is None:
-            print(f"{path}Images/")
-            self.file_names = [f[:-3] for f in os.listdir(f"{path}Images/") if f.endswith(".pt")]
+            self.file_names = [f[:-3] for f in os.listdir(f"{path}") if f.endswith(".pt")]
         else:
             self.file_names = files
 
         if limit is not None:
             self.file_names = self.file_names[:limit]
+
+        self.augmentations = True
 
     def __len__(self):
         """
@@ -53,18 +55,15 @@ class NewsDataset(Dataset):
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        # Open the image form working directory
-        file = self.file_names[item]
-        # load image
-        image = torch.load(f"{self.path}Images/{file}.pt")
+        # load data
+        data = torch.load(f"{self.path}{self.file_names[item]}.pt")
 
-        # load target
-        target = torch.load(f"{self.path}Targets/{file}.pt")
+        # do augmentations
+        if self.augmentations:
+            augmentations = self.get_augmentations()
+            data = augmentations(data)
 
-        assert image.shape[1] == target.shape[0] and image.shape[2] == target.shape[1], \
-            f"image {file=} has shape {image.shape}, but target has shape {target.shape}"
-
-        return image.float(), target.long()
+        return data[:-1].float(), data[-1].long()
 
     def random_split(self, ratio: Tuple[float, float, float]) \
             -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
@@ -86,6 +85,15 @@ class NewsDataset(Dataset):
         valid_dataset = NewsDataset(path=self.path, files=list(nd_paths[indices[splits[1]:]]))
 
         return train_dataset, test_dataset, valid_dataset
+
+    @staticmethod
+    def get_augmentations() -> transforms.Compose:
+        """Defines transformations"""
+        return transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomRotation(180)
+        ])
 
 
 if __name__ == '__main__':
