@@ -63,7 +63,7 @@ class NewsDataset(Dataset):
             augmentations = self.get_augmentations()
             data = augmentations(data)
 
-        return data[:-1].float(), data[-1].long()
+        return data[:-1].float()/255, data[-1].long()
 
     def random_split(self, ratio: Tuple[float, float, float]) \
             -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
