@@ -274,7 +274,7 @@ class DhSegment(nn.Module):
     def save(self, path):
         if path is None or path is False:
             return
-        torch.save(self.state_dict(), path)
+        torch.save(self.state_dict(), path + '.pt')
 
     def load(self, path):
         if path is None or path is False:

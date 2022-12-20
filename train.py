@@ -54,6 +54,7 @@ class Trainer:
         self.batch_size: int = batch_size
         self.step: int = 0
         self.epoch: int = 0
+        self.cur_best = 1000
 
         # create model
         self.model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
@@ -137,7 +138,12 @@ class Trainer:
                     torch.cuda.empty_cache()
 
                     if self.step % VAL_EVERY == 0:
-                        self.validation()
+                        loss, acc = self.validation()
+
+                        # early stopping
+                        if loss + (1-acc) < self.cur_best:
+                            print(f'saved model because of early stopping with value {loss + (1-acc)}')
+                            self.model.save(self.save_model + '_best')
 
             # save model at end of epoch
             self.model.save(self.save_model)
@@ -174,6 +180,8 @@ class Trainer:
         self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / size)
 
         self.model.train()
+
+        return loss / size, accuracy / size
 
     def val_logging(self, loss, jaccard, accuracy, class_accs):
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
@@ -262,7 +270,7 @@ if __name__ == '__main__':
 
     load_model = f'Models/model_{args.load}.pt' if args.load else None
 
-    trainer = Trainer(load_model=load_model, save_model=f'Models/model_{args.name}.pt',
+    trainer = Trainer(load_model=load_model, save_model=f'Models/model_{args.name}',
                       batch_size=args.batch_size, lr=args.lr)
 
     trainer.train(epochs=args.epochs)
