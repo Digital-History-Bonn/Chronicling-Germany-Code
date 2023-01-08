@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.metrics import jaccard_score, accuracy_score  # type: ignore
 import tensorflow as tf  # type: ignore
 import torch  # type: ignore
-from tqdm import tqdm # type: ignore
+from tqdm import tqdm  # type: ignore
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchmetrics.classification import MulticlassAccuracy  # type: ignore
@@ -26,8 +26,8 @@ IN_CHANNELS, OUT_CHANNELS = 3, 10
 VAL_EVERY = 2500
 
 BATCH_SIZE = 32
-LEARNING_RATE = 1e-5 # 1e-5 from Paper .001 Standard 0,0001 seems to work well
-WEIGHT_DECAY = 1e-6 # 1e-6 from Paper
+LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
+WEIGHT_DECAY = 1e-6  # 1e-6 from Paper
 LOSS_WEIGHTS: List[float] = [2.0, 10.0, 10.0, 10.0, 4.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 PREDICT_SCALE = 0.25
@@ -92,7 +92,7 @@ class Trainer:
         print(f"Using {self.device} device")
 
         self.loss_fn = torch.nn.CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS).to(self.device))
-        self.multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS)
+        self.multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS, average='none')
 
     def train(self, epochs: int = 1):
         """
@@ -145,15 +145,16 @@ class Trainer:
     def validation(self):
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
+        jaccard score, accuracy and multiclass accuracy are calculated over the validation set. Multiclass accuracy
+        also tracks a class sum value, to handle nan values from MulticlassAccuracy
         :return: None
         """
         self.model.eval()
         size = len(self.val_loader)
 
-        loss, jaccard, accuracy, class_acc = 0, 0, 0, np.zeros(OUT_CHANNELS)
+        loss, jaccard, accuracy, class_acc, class_sum = 0, 0, 0, np.zeros(OUT_CHANNELS), np.zeros(OUT_CHANNELS)
 
         for images, targets in tqdm(self.val_loader, desc='validation_round', total=size, unit='batch(es)'):
-
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
 
@@ -165,13 +166,15 @@ class Trainer:
             pred = np.argmax(pred, axis=1)
             jaccard += jaccard_score(targets.flatten(), pred.flatten(), average='macro')
             accuracy += accuracy_score(targets.flatten(), pred.flatten())
-            class_acc += self.multi_class_accuracy(torch.tensor(pred).flatten(),
-                                                  torch.tensor(targets).flatten()).numpy()
+            batch_class_acc = self.multi_class_accuracy(torch.tensor(pred).flatten(),
+                                                        torch.tensor(targets).flatten()).numpy()
+            class_acc += np.nan_to_num(batch_class_acc)
+            class_sum += (batch_class_acc == batch_class_acc)  # ignore pylint error. This comparison detects nan values
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / size)
+        self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum)
 
         self.model.train()
 
@@ -211,7 +214,7 @@ class Trainer:
             for i, acc in enumerate(class_accs):
                 tf.summary.scalar(f'val accuracy for class {i}', acc, step=self.step)
 
-            tf.summary.image('val image', torch.permute(image.float().cpu()/255, (0, 2, 3, 1)), step=self.step)
+            tf.summary.image('val image', torch.permute(image.float().cpu() / 255, (0, 2, 3, 1)), step=self.step)
             tf.summary.image('val target', target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
                              step=self.step)
             tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=self.step)
