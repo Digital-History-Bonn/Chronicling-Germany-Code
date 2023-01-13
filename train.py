@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.metrics import jaccard_score, accuracy_score  # type: ignore
 import tensorflow as tf  # type: ignore
 import torch  # type: ignore
-from tqdm import tqdm # type: ignore
+from tqdm import tqdm  # type: ignore
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchmetrics.classification import MulticlassAccuracy  # type: ignore
@@ -26,8 +26,8 @@ IN_CHANNELS, OUT_CHANNELS = 3, 10
 VAL_EVERY = 2500
 
 BATCH_SIZE = 32
-LEARNING_RATE = 1e-5 # 1e-5 from Paper .001 Standard 0,0001 seems to work well
-WEIGHT_DECAY = 1e-6 # 1e-6 from Paper
+LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
+WEIGHT_DECAY = 1e-6  # 1e-6 from Paper
 LOSS_WEIGHTS: List[float] = [2.0, 10.0, 10.0, 10.0, 4.0, 10.0, 10.0, 10.0, 10.0, 10.0]  # 1 and 5 seems to work well
 
 PREDICT_SCALE = 0.25
@@ -76,17 +76,20 @@ class Trainer:
         dataset = NewsDataset()
 
         # splitting with fractions should work according to pytorch doc, but it does not
-        train_set, validation_set, _ = dataset.random_split((.9, .05, .05))
+        train_set, validation_set, test_set = dataset.random_split((.9, .05, .05))
         print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
 
         # Turn of augmentations on Validation-set
         validation_set.augmentations = False
+        test_set.augmentations = False
 
         # init dataloader
         self.train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True,
                                        num_workers=DATALOADER_WORKER, drop_last=True)
         self.val_loader = DataLoader(validation_set, batch_size=batch_size, shuffle=False,
                                      num_workers=DATALOADER_WORKER, drop_last=True)
+        self.test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False,
+                                      num_workers=DATALOADER_WORKER, drop_last=True)
 
         # check for cuda
         self.device = "cuda:1" if torch.cuda.is_available() else "cpu"
@@ -141,10 +144,10 @@ class Trainer:
                         loss, acc = self.validation()
 
                         # early stopping
-                        if loss + (1-acc) < self.cur_best:
+                        if loss + (1 - acc) < self.cur_best:
                             # update cur_best value
-                            self.cur_best = loss + (1-acc)
-                            print(f'saved model because of early stopping with value {loss + (1-acc)}')
+                            self.cur_best = loss + (1 - acc)
+                            print(f'saved model because of early stopping with value {loss + (1 - acc)}')
 
                             # log the step of current best model
                             with summary_writer.as_default():
@@ -157,18 +160,21 @@ class Trainer:
             # save model at end of epoch
             self.model.save(self.save_model)
 
-    def validation(self):
+        self.validation(test_validation=True)
+
+    def validation(self, test_validation: bool = False):
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
+        Is also being used for test-evaluation at the end of training with another dataset.
         :return: None
         """
+        loader = self.test_loader if test_validation else self.val_loader
         self.model.eval()
-        size = len(self.val_loader)
+        size = len(loader)
 
         loss, jaccard, accuracy, class_acc = 0, 0, 0, np.zeros(OUT_CHANNELS)
 
-        for images, targets in tqdm(self.val_loader, desc='validation_round', total=size, unit='batch(es)'):
-
+        for images, targets in tqdm(loader, desc='validation_round', total=size, unit='batch(es)'):
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
 
@@ -181,29 +187,31 @@ class Trainer:
             jaccard += jaccard_score(targets.flatten(), pred.flatten(), average='macro')
             accuracy += accuracy_score(targets.flatten(), pred.flatten())
             class_acc += self.multi_class_accuracy(torch.tensor(pred).flatten(),
-                                                  torch.tensor(targets).flatten()).numpy()
+                                                   torch.tensor(targets).flatten()).numpy()
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / size)
+        self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / size, test_validation)
 
         self.model.train()
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss, jaccard, accuracy, class_accs):
+    def val_logging(self, loss, jaccard, accuracy, class_accs, test_validation: bool):
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
+        :param loader: Dataloader
         :param loss: loss sum for validation round
         :param jaccard: jaccard score of validation round
         :param accuracy: accuracy of validation round
         :param class_accs: array of accuracy by class
         """
         # select random image and it's target
-        size = len(self.val_loader)
-        random_idx = np.random.randint(0, (size * self.val_loader.batch_size if self.val_loader.batch_size else 1))
-        image, target = self.val_loader.dataset[random_idx]
+        loader = self.test_loader if test_validation else self.val_loader
+        size = len(loader)
+        random_idx = np.random.randint(0, (size * loader.batch_size if loader.batch_size else 1))
+        image, target = loader.dataset[random_idx]
         image = image[None, :]
 
         # predict image
@@ -213,28 +221,30 @@ class Trainer:
         log_image = get_file(PREDICT_IMAGE, PREDICT_SCALE)
         log_pred = self.model.predict(log_image.to(self.device))
 
+        environment = "test" if test_validation else "val"
+
         # update tensor board logs
         with summary_writer.as_default():
             tf.summary.scalar('epoch', self.epoch, step=self.step)
 
-            tf.summary.scalar('val loss', loss, step=self.step)
-            tf.summary.scalar('val accuracy', accuracy, step=self.step)
+            tf.summary.scalar(f'{environment}/loss', loss, step=self.step)
+            tf.summary.scalar(f'{environment}/accuracy', accuracy, step=self.step)
 
-            for i in range(OUT_CHANNELS):
-                tf.summary.scalar(f'val accuracy for class {i}', class_accs[i], step=self.step)
-
-            tf.summary.scalar('val jaccard score', jaccard, step=self.step)
+            tf.summary.scalar(f'{environment}/jaccard score', jaccard, step=self.step)
 
             for i, acc in enumerate(class_accs):
-                tf.summary.scalar(f'val accuracy for class {i}', acc, step=self.step)
+                tf.summary.scalar(f'multi-acc-{environment}/class {i}', acc, step=self.step)
 
-            tf.summary.image('val image', torch.permute(image.float().cpu()/255, (0, 2, 3, 1)), step=self.step)
-            tf.summary.image('val target', target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+            tf.summary.image(f'image/{environment}-input', torch.permute(image.float().cpu(), (0, 2, 3, 1)),
                              step=self.step)
-            tf.summary.image('val prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS, step=self.step)
+            tf.summary.image(f'image/{environment}-target', target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+                             step=self.step)
+            tf.summary.image(f'image/{environment}-prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
+                             step=self.step)
 
-            tf.summary.image('full site prediction input', torch.permute(log_image.cpu(), (0, 2, 3, 1)), step=self.step)
-            tf.summary.image('full site prediction result', log_pred[None, :, :, None], step=self.step)
+            tf.summary.image('full-site-prediction/input', torch.permute(log_image.cpu(), (0, 2, 3, 1)),
+                             step=self.step)
+            tf.summary.image('full-site-prediction/result', log_pred[None, :, :, None], step=self.step)
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
