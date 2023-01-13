@@ -142,8 +142,17 @@ class Trainer:
 
                         # early stopping
                         if loss + (1-acc) < self.cur_best:
+                            # update cur_best value
+                            self.cur_best = loss + (1-acc)
                             print(f'saved model because of early stopping with value {loss + (1-acc)}')
-                            self.model.save(self.save_model + '_best')
+
+                            # log the step of current best model
+                            with summary_writer.as_default():
+                                tf.summary.scalar('current best', self.step, step=self.step)
+
+                            # save the model
+                            if self.save_model is not None:
+                                self.model.save(self.save_model + '_best')
 
             # save model at end of epoch
             self.model.save(self.save_model)
