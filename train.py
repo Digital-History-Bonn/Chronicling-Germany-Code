@@ -89,7 +89,7 @@ class Trainer:
                                      num_workers=DATALOADER_WORKER, drop_last=True)
 
         # check for cuda
-        self.device = "cuda:1" if torch.cuda.is_available() else "cpu"
+        self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
         self.loss_fn = torch.nn.CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS).to(self.device))
@@ -264,6 +264,8 @@ def get_args() -> argparse.Namespace:
                         help='model to load (default is None)')
     parser.add_argument('--predict-scale', '-p', type=float, default=PREDICT_SCALE,
                         help='Downscaling factor of the predict image')
+    parser.add_argument('--cuda-device', '-c', type=str, default="cuda:1",
+                        help='Cuda device string')
 
     return parser.parse_args()
 
