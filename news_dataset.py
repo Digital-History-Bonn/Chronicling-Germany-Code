@@ -3,7 +3,7 @@ module for Dataset class
 """
 from __future__ import annotations
 
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import os
 from PIL import Image  # type: ignore
 import numpy as np
@@ -61,9 +61,13 @@ class NewsDataset(Dataset):
         # do augmentations
         if self.augmentations:
             augmentations = self.get_augmentations()
-            data = augmentations(data)
+            data = augmentations["default"](data)
+            img = augmentations["images"](data[:-1]).float()/255
+            img = img + (torch.randn(img.shape) * 0.1)
+        else:
+            img = data[:-1].float()/255
 
-        return data[:-1].float()/255, data[-1].long()
+        return img, data[-1].long()
 
     def random_split(self, ratio: Tuple[float, float, float]) \
             -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
@@ -87,13 +91,17 @@ class NewsDataset(Dataset):
         return train_dataset, test_dataset, valid_dataset
 
     @staticmethod
-    def get_augmentations() -> transforms.Compose:
+    def get_augmentations() -> Dict[str, transforms.Compose]:
         """Defines transformations"""
-        return transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(180)
-        ])
+        return {
+            "default": transforms.Compose([
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(180)
+            ]),
+            "images": transforms.RandomApply([transforms.Compose([
+                transforms.GaussianBlur(5, (0.1, 1.5))
+            ])], p=0.8)}
 
 
 if __name__ == '__main__':
