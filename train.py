@@ -13,12 +13,11 @@ import torch  # type: ignore
 from tqdm import tqdm  # type: ignore
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torchmetrics.classification import MulticlassAccuracy  # type: ignore
 
 import preprocessing
 from model import DhSegment
 from news_dataset import NewsDataset
-from utils import get_file
+from utils import get_file, multi_class_csi
 
 EPOCHS = 1
 DATALOADER_WORKER = 1
@@ -92,7 +91,6 @@ class Trainer:
         print(f"Using {self.device} device")
 
         self.loss_fn = torch.nn.CrossEntropyLoss(weight=torch.tensor(LOSS_WEIGHTS).to(self.device))
-        self.multi_class_accuracy = MulticlassAccuracy(num_classes=OUT_CHANNELS, average='none')
 
     def train(self, epochs: int = 1):
         """
@@ -166,7 +164,7 @@ class Trainer:
             pred = np.argmax(pred, axis=1)
             jaccard += jaccard_score(targets.flatten(), pred.flatten(), average='macro')
             accuracy += accuracy_score(targets.flatten(), pred.flatten())
-            batch_class_acc = self.multi_class_accuracy(torch.tensor(pred).flatten(),
+            batch_class_acc = multi_class_csi(torch.tensor(pred).flatten(),
                                                         torch.tensor(targets).flatten()).numpy()
             class_acc += np.nan_to_num(batch_class_acc)
             class_sum += (batch_class_acc == batch_class_acc)  # ignore pylint error. This comparison detects nan values

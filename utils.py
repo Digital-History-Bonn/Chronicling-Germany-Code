@@ -3,7 +3,17 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as f
 import torch
 import PIL.Image as Image
+import sklearn
 
+
+
+def multi_class_csi(pred, tar):
+    m = sklearn.metrics.confusion_matrix(tar, pred)
+    s = np.sum(m)
+    tp = np.diagonal(m)
+    fp = np.sum(m, axis=1) - tp
+    fn = np.sum(m, axis=0) - tp
+    return tp / (tp + fn + fp)
 
 def step(x):
     return 1 if x > 0 else 0
