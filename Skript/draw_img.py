@@ -13,21 +13,22 @@ def draw_img(annotation: dict):
     :param annotation: dict with information
     :return: ndarray
     """
+    shift = 200
 
     x, y = annotation['size']
-    img = np.zeros((x, y), dtype=int)
+    img = np.zeros((y+2*shift, x+2*shift), dtype=np.uint8)
 
     for key, label in LABEL_ASSIGNMENTS.items():
         if key in annotation['tags'].keys():
             for polygon in annotation['tags'][key]:
-                img = draw_polygon(img, polygon, label=label)
+                img = draw_polygon(img, polygon, label=label, shift=shift)
 
-    return img
+    return img[shift:-shift, shift:-shift]
 
 
-def draw_polygon(img: np.ndarray, polygon: List[Tuple[int]], label: int = 1):
+def draw_polygon(img: np.ndarray, polygon: List[Tuple[int]], label: int = 1, shift: int = 0):
     polygon = np.array(polygon, dtype=int).T
-    rr, cc = draw.polygon(polygon[1], polygon[0])
+    rr, cc = draw.polygon(polygon[1]+shift, polygon[0]+shift)
     img[rr, cc] = label
 
     return img
