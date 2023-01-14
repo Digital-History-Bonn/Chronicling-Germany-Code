@@ -165,13 +165,14 @@ class Trainer:
             jaccard += jaccard_score(targets.flatten(), pred.flatten(), average='macro')
             accuracy += accuracy_score(targets.flatten(), pred.flatten())
             batch_class_acc = multi_class_csi(torch.tensor(pred).flatten(),
-                                                        torch.tensor(targets).flatten()).numpy()
+                                                        torch.tensor(targets).flatten())
             class_acc += np.nan_to_num(batch_class_acc)
             class_sum += (batch_class_acc == batch_class_acc)  # ignore pylint error. This comparison detects nan values
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
+        np.where(class_sum==0, class_acc+1, class_acc)
         self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum)
 
         self.model.train()

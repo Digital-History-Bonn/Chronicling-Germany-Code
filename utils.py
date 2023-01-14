@@ -1,19 +1,31 @@
+"""Utility Module"""
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # type: ignore
 import torch.nn.functional as f
 import torch
-import PIL.Image as Image
-import sklearn
+import PIL.Image as Image  # type: ignore
+import sklearn  # type: ignore
+from numpy import ndarray
 
 
+def multi_class_csi(pred: torch.Tensor, true: torch.Tensor, classes: int = 10) -> ndarray:
+    """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
+     Csi score is used as substitute for accuracy, calculated separately for each class.
+     Returns numpy array with an entry for every class. If every prediction is a true negative,
+     the score cant be calculated and the array will contain nan. These cases should be completely ignored.
+     :param pred: prediction tensor
+     :param true: target tensor
+     :param classes: number of possible classes
+     :return:
+     """
+    pred = pred.flatten()
+    true = true.flatten()
+    matrix = sklearn.metrics.confusion_matrix(true, pred, labels=range(0, classes))
+    true_positive = np.diagonal(matrix)
+    false_positive = np.sum(matrix, axis=1) - true_positive
+    false_negative = np.sum(matrix, axis=0) - true_positive
+    return np.array(true_positive / (true_positive + false_negative + false_positive))
 
-def multi_class_csi(pred, tar):
-    m = sklearn.metrics.confusion_matrix(tar, pred)
-    s = np.sum(m)
-    tp = np.diagonal(m)
-    fp = np.sum(m, axis=1) - tp
-    fn = np.sum(m, axis=0) - tp
-    return tp / (tp + fn + fp)
 
 def step(x):
     return 1 if x > 0 else 0
