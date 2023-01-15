@@ -5,13 +5,13 @@ from __future__ import annotations
 
 from typing import Tuple, List, Dict
 import os
-from PIL import Image  # type: ignore
 import numpy as np
 import torch  # type: ignore
-from torch import randperm # type: ignore
+# pylint thinks torch has no name randperm this is wrong
+# pylint: disable-next=no-name-in-module
+from torch import randperm  # type: ignore
 from torch.utils.data import Dataset  # type: ignore
 from torchvision import transforms  # type: ignore
-
 
 PATH = 'crops/'
 
@@ -62,10 +62,10 @@ class NewsDataset(Dataset):
         if self.augmentations:
             augmentations = self.get_augmentations()
             data = augmentations["default"](data)
-            img = augmentations["images"](data[:-1]).float()/255
+            img = augmentations["images"](data[:-1]).float() / 255
             img = img + (torch.randn(img.shape) * 0.1)
         else:
-            img = data[:-1].float()/255
+            img = data[:-1].float() / 255
 
         return img, data[-1].long()
 
@@ -102,17 +102,3 @@ class NewsDataset(Dataset):
             "images": transforms.RandomApply([transforms.Compose([
                 transforms.GaussianBlur(5, (0.1, 1.5))
             ])], p=0.8)}
-
-
-if __name__ == '__main__':
-    dataset = NewsDataset()
-    print(f"{len(dataset)=}")
-
-    train, valid, test = dataset.random_split(ratio=(.9, .05, .05))
-    print(f"{len(train)=}")
-    print(f"{len(valid)=}")
-    print(f"{len(test)=}")
-
-    img, tar = train[0]
-    print(f"{img.shape=}, {type(img)=}")
-    print(f"{tar.shape=}, {type(tar)=}")

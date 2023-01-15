@@ -1,9 +1,12 @@
+"""
+Module to crop data. Crops will be saved in crops folder
+"""
 import os
 
 import numpy as np
 import torch
 from PIL import Image  # type: ignore
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 from preprocessing import Preprocessing
 
@@ -14,6 +17,8 @@ FOLDER = "crops/"
 
 
 def main():
+    """Load image and target data and saves single crops as torch tensor. Tensor contains 4 dimension, 3 for RGB image
+    and target"""
     preprocessing = Preprocessing()
 
     # read all file names
@@ -45,4 +50,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
