@@ -12,7 +12,7 @@ from tqdm import tqdm  # type: ignore
 from Script.draw_img import draw_img
 from Script.read_xml import read_transcribus, read_hlna2013
 
-INPUT = "../Data/annotationen/"
+INPUT = "../Data/annotations-test/"
 OUTPUT = "../Data/targets/"
 
 
@@ -24,7 +24,7 @@ def main():
     for path in tqdm(paths):
         annotation = read(f'{INPUT}{path}.xml')
         img = draw_img(annotation)
-        io.imsave(f'{OUTPUT}{path}.png', img)
+        io.imsave(f'{OUTPUT}{path}.png', img/10)
 
         with open(f'{OUTPUT}{path}.json', 'w', encoding="utf-8") as file:
             json.dump(annotation, file)
@@ -34,7 +34,6 @@ def main():
 
         # save image
         np_save(f"{OUTPUT}{path}", img)
-        # img_save(f"{OUTPUT}{file}", img)
 
 
 def np_save(file: str, img: np.ndarray):
