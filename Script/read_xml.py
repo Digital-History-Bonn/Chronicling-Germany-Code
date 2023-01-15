@@ -23,7 +23,7 @@ def read_transcribus(path: str):
 
     page = bs_data.find('Page')
 
-    return {"size": (int(page['imageWidth']), int(page['imageHeight'])), 'tags': tags_dict}
+    return {"size": [int(page['imageWidth']), int(page['imageHeight'])], 'tags': tags_dict}
 
 
 def find_regions(data: BeautifulSoup, tag: str, search_children: bool, child_tag: str, tags_dict):
@@ -67,7 +67,7 @@ def read_hlna2013(path: str):
 
     # read xml
     bs_data = BeautifulSoup(data, "xml")
-    annotation['size'] = (int(bs_data.find('Page').get('imageHeight')), int(bs_data.find('Page').get('imageWidth')))
+    annotation['size'] = [int(bs_data.find('Page').get('imageHeight')), int(bs_data.find('Page').get('imageWidth'))]
     annotation['tags'] = {}  # type: ignore
 
     text_regions = bs_data.find_all('TextRegion')

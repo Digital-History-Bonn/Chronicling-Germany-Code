@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<PcGts xmlns="http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15 http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15/pagecontent.xsd">
+    <Metadata>
+        <Creator>Transkribus</Creator>
+        <Created>2022-10-08T15:52:42.497+02:00</Created>
+        <LastChange>2022-11-25T14:35:42.767+01:00</LastChange>
+        <TranskribusMetadata docId="1183334" pageId="48167504" pageNr="2" tsid="105039204" status="DONE" userId="133922" imgUrl="https://files.transkribus.eu/Get?id=MBDYKPULLVIZGUUTAHJIEWMT&amp;fileType=view" xmlUrl="https://files.transkribus.eu/Get?id=CEIPTYVRKTHHJBCJTXJLEOKP" imageId="39374139"/>
+    </Metadata>
+    <Page imageFilename="0002_Kölnische Zeitung 1866.06-1866.09 - 0100.jpg" imageWidth="5161" imageHeight="7126">
+        <ReadingOrder>
+            <OrderedGroup id="ro_1669967815043" caption="Regions reading order">
+                <RegionRefIndexed index="0" regionRef="region_1667474143077_318"/>
+                <RegionRefIndexed index="2" regionRef="region_1667474100302_308"/>
+                <RegionRefIndexed index="4" regionRef="region_1667474001019_266"/>
+                <RegionRefIndexed index="5" regionRef="region_1667474022329_271"/>
+                <RegionRefIndexed index="6" regionRef="region_1667474030998_274"/>
+                <RegionRefIndexed index="8" regionRef="region_1667473695337_222"/>
+                <RegionRefIndexed index="9" regionRef="region_1667473723927_231"/>
+                <RegionRefIndexed index="10" regionRef="region_1667473763741_236"/>
+                <RegionRefIndexed index="11" regionRef="region_1667473837139_244"/>
+                <RegionRefIndexed index="12" regionRef="region_1667473876304_250"/>
+                <RegionRefIndexed index="13" regionRef="region_1667473917832_255"/>
+                <RegionRefIndexed index="17" regionRef="region_1667473045228_169"/>
+                <RegionRefIndexed index="18" regionRef="region_1667473093614_177"/>
+                <RegionRefIndexed index="20" regionRef="region_1667472941130_145"/>
+                <RegionRefIndexed index="21" regionRef="region_1667472967361_152"/>
+                <RegionRefIndexed index="23" regionRef="region_1667472835830_129"/>
+                <RegionRefIndexed index="26" regionRef="region_1667472223814_102"/>
+                <RegionRefIndexed index="27" regionRef="region_1667472266284_112"/>
+                <RegionRefIndexed index="29" regionRef="region_1667472168684_90"/>
+                <RegionRefIndexed index="31" regionRef="region_1667471708171_60"/>
+                <RegionRefIndexed index="32" regionRef="region_1667471784259_66"/>
+                <RegionRefIndexed index="34" regionRef="region_1667471346326_34"/>
+                <RegionRefIndexed index="35" regionRef="region_1667471386406_42"/>
+                <RegionRefIndexed index="36" regionRef="region_1667471531546_49"/>
+                <RegionRefIndexed index="41" regionRef="region_1666962962472_342"/>
+                <RegionRefIndexed index="42" regionRef="region_1666962998519_347"/>
+                <RegionRefIndexed index="43" regionRef="region_1666963095164_355"/>
+            </OrderedGroup>
+        </ReadingOrder>
+        <TextRegion id="region_1667474143077_318" custom="readingOrder {index:0;} structure {type:article_;}">
+            <Coords points="3498,5612 4581,5626 4594,6971 3506,6955"/>
+        </TextRegion>
+        <SeparatorRegion id="Separator_1667474121191_313" custom="readingOrder {index:1;} structure {type:separator_short;}">
+            <Coords points="3904,5602 4178,5605 4177,5613 3901,5612"/>
+        </SeparatorRegion>
+        <TextRegion type="heading" id="region_1667474001019_266" custom="readingOrder {index:4;} structure {type:heading;}">
+            <Coords points="3786,4688 4281,4702 4284,4741 3785,4736"/>
+        </TextRegion>
+        <TextRegion id="region_1667473763741_236" custom="readingOrder {index:10;} structure {type:table;}">
+            <Coords points="3496,3312 4580,3312 4585,3496 3501,3496"/>
+        </TextRegion>
+        <SeparatorRegion id="Separator_1667473666019_216" custom="readingOrder {index:14;} structure {type:separator_horizontal;}">
+            <Coords points="106,821 4580,814 4579,850 107,857"/>
+        </SeparatorRegion>
+        <SeparatorRegion id="Separator_1667473186528_201" custom="readingOrder {index:15;} structure {type:separator_vertical;}">
+            <Coords points="3479,6976 3487,6977 3476,6622 3476,6347 3472,6022 3474,5664 3471,5370 3474,4755 3471,3860 3473,3786 3471,3554 3474,3227 3473,2978 3477,2894 3474,2710 3473,2035 3478,1376 3483,871 3477,871 3468,1373 3465,1768 3466,2034 3464,2708 3468,2897 3464,2975 3466,3227 3462,3553 3465,3809 3461,3856 3464,4757 3463,5371 3465,5659 3465,6027 3470,6347 3470,6622"/>
+        </SeparatorRegion>
+        <TextRegion type="caption" id="region_1666962962472_342" custom="readingOrder {index:41;} structure {type:caption;}">
+            <Coords points="108,446 1064,447 1071,817 106,818"/>
+        </TextRegion>
+        <TextRegion type="header" id="region_1666962998519_347" custom="readingOrder {index:42;} structure {type:header;}">
+            <Coords points="1227,-15 3476,444 3476,772 1227,772"/>
+        </TextRegion>
+        <TextRegion orientation="0.0" id="region_1666954192157_198" custom="readingOrder {index:4;} structure {type:article;}">
+            <Coords points="3969,2512 5049,2517 5044,3627 3965,3614"/>
+            <TextLine id="region_1666954192157_198l1" custom="readingOrder {index:0;}">
+                <Coords points="3972,2540 4025,2540 4078,2542 4131,2542 4185,2544 4238,2544 4291,2544 4345,2546 4398,2546 4451,2546 4505,2546 4558,2548 4611,2548 4664,2548 4718,2550 4771,2550 4824,2550 4878,2552 4931,2552 4984,2552 5038,2554 5038,2524 4984,2522 4931,2522 4878,2522 4824,2520 4771,2520 4718,2520 4664,2518 4611,2518 4558,2518 4505,2516 4451,2516 4398,2516 4345,2516 4291,2514 4238,2514 4185,2514 4131,2512 4078,2512 4025,2510 3972,2510"/>
+                <Baseline points="3972,2530 4025,2530 4078,2532 4131,2532 4185,2534 4238,2534 4291,2534 4345,2536 4398,2536 4451,2536 4505,2536 4558,2538 4611,2538 4664,2538 4718,2540 4771,2540 4824,2540 4878,2542 4931,2542 4984,2542 5038,2544"/>
+            </TextLine>
+            <TextLine id="region_1666954192157_198l2" custom="readingOrder {index:1;}">
+                <Coords points="4000,2572 4051,2572 4103,2573 4154,2574 4206,2574 4257,2574 4309,2575 4360,2576 4412,2576 4463,2578 4515,2578 4566,2578 4618,2580 4669,2580 4721,2581 4772,2582 4824,2582 4875,2584 4927,2584 4978,2584 5030,2586 5030,2556 4978,2554 4927,2554 4875,2554 4824,2552 4772,2552 4721,2551 4669,2550 4618,2550 4566,2548 4515,2548 4463,2548 4412,2546 4360,2546 4309,2545 4257,2544 4206,2544 4154,2544 4103,2543 4051,2542 4000,2542"/>
+                <Baseline points="4000,2562 4051,2562 4103,2563 4154,2564 4206,2564 4257,2564 4309,2565 4360,2566 4412,2566 4463,2568 4515,2568 4566,2568 4618,2570 4669,2570 4721,2571 4772,2572 4824,2572 4875,2574 4927,2574 4978,2574 5030,2576"/>
+            </TextLine>
+        </TextRegion>
+    </Page>
+</PcGts>
