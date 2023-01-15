@@ -189,7 +189,7 @@ class Trainer:
             batch_class_acc = multi_class_csi(torch.tensor(pred).flatten(),
                                                         torch.tensor(targets).flatten())
             class_acc += np.nan_to_num(batch_class_acc)
-            class_sum += (batch_class_acc == batch_class_acc)  # ignore pylint error. This comparison detects nan values
+            class_sum += ~np.isnan(batch_class_acc)  # ignore pylint error. This comparison detects nan values
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
