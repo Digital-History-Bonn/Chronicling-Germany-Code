@@ -4,6 +4,7 @@ module for training the hdSegment Model
 
 import datetime
 import argparse
+import warnings
 from typing import List, Union
 
 import numpy as np
@@ -194,7 +195,9 @@ class Trainer:
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum, test_validation)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum, test_validation)
 
         self.model.train()
 

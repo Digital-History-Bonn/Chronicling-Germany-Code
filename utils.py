@@ -1,4 +1,6 @@
 """Utility Module"""
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 import torch.nn.functional as f
@@ -24,7 +26,10 @@ def multi_class_csi(pred: torch.Tensor, true: torch.Tensor, classes: int = 10) -
     true_positive = np.diagonal(matrix)
     false_positive = np.sum(matrix, axis=1) - true_positive
     false_negative = np.sum(matrix, axis=0) - true_positive
-    return np.array(true_positive / (true_positive + false_negative + false_positive))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        csi = np.array(true_positive / (true_positive + false_negative + false_positive))
+    return csi
 
 
 def step(x):
