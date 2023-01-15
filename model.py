@@ -6,12 +6,14 @@ from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 from typing import Iterator
 
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.hub import load_state_dict_from_url
 from torch.nn.parameter import Parameter
+from torchvision.transforms.functional import normalize  # type: ignore
 
 from utils import replace_substrings
-from torchvision.transforms.functional import normalize  # type: ignore
+
+# as this is code obtained from pytorch docstrings are not added
 
 model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-11ad3fa6.pth',
@@ -123,6 +125,7 @@ class Bottleneck(nn.Module):
 
 
 class DhSegment(nn.Module):
+    """"""
     def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None, load_resnet_weights=False):

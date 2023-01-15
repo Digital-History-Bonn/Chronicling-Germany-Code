@@ -48,8 +48,8 @@ def get_args() -> argparse.Namespace:
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images')
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
-    parser.add_argument('--scale', '-s', metavar='scale', type=float, default=SCALE,
-                        help='Scale factor for the input images')
+    # parser.add_argument('--scale', '-s', metavar='scale', type=float, default=SCALE,
+    #                     help='Scale factor for the input images')
     parser.add_argument('--with-validation', '-v', dest='val', action='store_true',
                         help='If True, news_dataset must be linked to a Directory containing validation data, '
                              'similar to data loaded in train.py. This data will be validated, results are logged '
@@ -61,9 +61,9 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_validation(scale: float):
+def run_validation():
     """runs validation on complete dataset of NewsDataset"""
-    dataset = NewsDataset(scale=scale, crop=False)
+    dataset = NewsDataset()
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1)
     loss_fn = CrossEntropyLoss(weight=torch.tensor(train.LOSS_WEIGHTS)).to(DEVICE)
     step = 0
@@ -73,6 +73,7 @@ def run_validation(scale: float):
         target = data[1].to(DEVICE)
 
         prediction = model(val_image)
+        # pylint: disable-next=not-callable
         loss = loss_fn(prediction, target)
 
         prediction = prediction.detach().cpu().numpy()
@@ -86,6 +87,7 @@ def run_validation(scale: float):
         target = torch.tensor(target)
         prediction = torch.tensor(prediction)
 
+        # pylint: disable-next=not-context-manager
         with summary_writer.as_default():
             tf.summary.scalar('loss', loss, step=step)
             tf.summary.scalar('accuracy', accuracy_score, step=step)
@@ -112,7 +114,7 @@ if __name__ == '__main__':
     model = _get_model(args.model)
 
     if args.val:
-        run_validation(args.scale)
+        run_validation()
     else:
         in_files = args.input
         out_files = get_output_filenames(args.output, args.input)

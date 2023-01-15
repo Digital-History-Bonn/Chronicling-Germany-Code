@@ -4,6 +4,7 @@ module for training the hdSegment Model
 
 import datetime
 import argparse
+import warnings
 from typing import List, Union
 
 import numpy as np
@@ -17,7 +18,7 @@ from torch.utils.data import DataLoader
 import preprocessing
 from model import DhSegment
 from news_dataset import NewsDataset
-from utils import get_file, multi_class_csi
+from utils import multi_class_csi
 
 EPOCHS = 1
 DATALOADER_WORKER = 1
@@ -37,19 +38,21 @@ torch.manual_seed(42)
 
 
 class Trainer:
-    def __init__(self, load_model: Union[str, None] = None, save_model: Union[str, None] = None,
-                 batch_size: int = BATCH_SIZE, lr: float = LEARNING_RATE):
+    """Training class containing functions for training and validation."""
+
+    def __init__(self, load: Union[str, None] = None, save_model: Union[str, None] = None,
+                 batch_size: int = BATCH_SIZE, learningrate: float = LEARNING_RATE):
         """
         Trainer-class to train DhSegment Model
-        :param load_model: model to load, init random if None
+        :param load: model to load, init random if None
         :param save_model: name of the model in savefile and on tensorboard
         :param batch_size: size of batches
-        :param lr: learning-rate
+        :param learningrate: learning-rate
         """
 
         # init params
         self.save_model = save_model
-        self.lr: float = lr
+        self.learningrate: float = learningrate
         self.batch_size: int = batch_size
         self.step: int = 0
         self.epoch: int = 0
@@ -62,14 +65,14 @@ class Trainer:
         self.model.freeze_encoder()
 
         # load model if argument is None it does nothing
-        self.model.load(load_model)
+        self.model.load(load)
 
         # set mean and std in model for normalization
         self.model.means = torch.tensor((0.485, 0.456, 0.406))
         self.model.stds = torch.tensor((0.229, 0.224, 0.225))
 
         # set optimizer and loss_fn
-        self.optimizer = Adam(self.model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)  # weight_decay=1e-4
+        self.optimizer = Adam(self.model.parameters(), lr=learningrate, weight_decay=WEIGHT_DECAY)  # weight_decay=1e-4
 
         # load data
         dataset = NewsDataset()
@@ -123,6 +126,7 @@ class Trainer:
 
                     # update tensor board logs
                     self.step += 1
+                    # pylint: disable-next=not-context-manager
                     with summary_writer.as_default():
                         tf.summary.scalar('train loss', loss.item(), step=self.step)
                         tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=self.step)
@@ -148,6 +152,7 @@ class Trainer:
                             print(f'saved model because of early stopping with value {loss + (1 - acc)}')
 
                             # log the step of current best model
+                            # pylint: disable-next=not-context-manager
                             with summary_writer.as_default():
                                 tf.summary.scalar('current best', self.step, step=self.step)
 
@@ -187,14 +192,16 @@ class Trainer:
             jaccard += jaccard_score(targets.flatten(), pred.flatten(), average='macro')
             accuracy += accuracy_score(targets.flatten(), pred.flatten())
             batch_class_acc = multi_class_csi(torch.tensor(pred).flatten(),
-                                                        torch.tensor(targets).flatten())
+                                              torch.tensor(targets).flatten())
             class_acc += np.nan_to_num(batch_class_acc)
             class_sum += ~np.isnan(batch_class_acc)  # ignore pylint error. This comparison detects nan values
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum, test_validation)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum, test_validation)
 
         self.model.train()
 
@@ -203,7 +210,7 @@ class Trainer:
     def val_logging(self, loss, jaccard, accuracy, class_accs, test_validation: bool):
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
-        :param loader: Dataloader
+        :param test_validation: if true the test dataset will be used for validation
         :param loss: loss sum for validation round
         :param jaccard: jaccard score of validation round
         :param accuracy: accuracy of validation round
@@ -219,13 +226,10 @@ class Trainer:
         # predict image
         pred = self.model(image.to(self.device)).argmax(dim=1).float()
 
-        # predict full side
-        log_image = get_file(PREDICT_IMAGE, PREDICT_SCALE)
-        log_pred = self.model.predict(log_image.to(self.device))
-
         environment = "test" if test_validation else "val"
 
         # update tensor board logs
+        # pylint: disable-next=not-context-manager
         with summary_writer.as_default():
             tf.summary.scalar('epoch', self.epoch, step=self.step)
 
@@ -245,15 +249,11 @@ class Trainer:
             tf.summary.image(f'image/{environment}-prediction', pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
                              step=self.step)
 
-            tf.summary.image('full-site-prediction/input', torch.permute(log_image.cpu(), (0, 2, 3, 1)),
-                             step=self.step)
-            tf.summary.image('full-site-prediction/result', log_pred[None, :, :, None], step=self.step)
-
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
         print(f"average jaccard score: {jaccard}")  # Intersection over Union
 
-        del size, image, target, pred, log_image, log_pred
+        del size, image, target, pred
         torch.cuda.empty_cache()
 
 
@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
     load_model = f'Models/model_{args.load}.pt' if args.load else None
 
-    trainer = Trainer(load_model=load_model, save_model=f'Models/model_{args.name}',
-                      batch_size=args.batch_size, lr=args.lr)
+    trainer = Trainer(load=load_model, save_model=f'Models/model_{args.name}',
+                      batch_size=args.batch_size, learningrate=args.lr)
 
     trainer.train(epochs=args.epochs)
