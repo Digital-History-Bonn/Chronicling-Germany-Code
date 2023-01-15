@@ -172,7 +172,7 @@ class Trainer:
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        np.where(class_sum==0, class_acc+1, class_acc)
+        class_sum[class_sum == 0] += 1
         self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum)
 
         self.model.train()
