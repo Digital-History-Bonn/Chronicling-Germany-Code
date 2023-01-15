@@ -1,39 +1,40 @@
 """
-Script for reading out the Annotations from Transcribus exports
+Main Module for converting annotation xml files to numpy images
 """
 import argparse
-import os
 import json
+import os
 
 import numpy as np
+from skimage import io  # type: ignore
+from tqdm import tqdm  # type: ignore
 
-from read_xml import read_transcribus, read_hlna2013
-from draw_img import draw_img
-from skimage import io
-from tqdm import tqdm
-
+from Script.draw_img import draw_img
+from Script.read_xml import read_transcribus, read_hlna2013
 
 INPUT = "../Data/annotationen/"
 OUTPUT = "../Data/targets/"
 
 
 def main():
+    """Load xml files and save result image.
+    Calls read and draw functions"""
     read = read_transcribus if args.dataset == 'transcribus' else read_hlna2013
-    files = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
-    for file in tqdm(files):
-        annotation = read(f'{INPUT}{file}.xml')
+    paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
+    for path in tqdm(paths):
+        annotation = read(f'{INPUT}{path}.xml')
         img = draw_img(annotation)
-        io.imsave(f'{OUTPUT}{file}.png', img)
+        io.imsave(f'{OUTPUT}{path}.png', img)
 
-        with open(f'{OUTPUT}{file}.json', 'w') as f:
-            json.dump(annotation, f)
+        with open(f'{OUTPUT}{path}.json', 'w', encoding="utf-8") as file:
+            json.dump(annotation, file)
 
         # draw image
         img = draw_img(annotation)
 
         # save image
-        np_save(f"{OUTPUT}{file}", img)
-        #img_save(f"{OUTPUT}{file}", img)
+        np_save(f"{OUTPUT}{path}", img)
+        # img_save(f"{OUTPUT}{file}", img)
 
 
 def np_save(file: str, img: np.ndarray):

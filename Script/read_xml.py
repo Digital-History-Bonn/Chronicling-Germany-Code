@@ -1,18 +1,22 @@
+"""
+Module contains read xml functions for all datasets. Data will be writen into a dictionary
+mypy typing is ignored for this dictionary
+"""
 import re
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, ResultSet  # type: ignore
 
 
-def read_transcribus(path):
+def read_transcribus(path: str):
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
     :return: dictionary {height: , width: , tags: {tag_name_1: [], tag_name_2: [], ...}}
     """
-    with open(path, 'r') as f:
-        data = f.read()
+    with open(path, 'r', encoding='utf-8') as file:
+        data = file.read()
 
     bs_data = BeautifulSoup(data, "xml")
-    tags_dict = {'TextLine': []}
+    tags_dict = {'TextLine': []}  # type: ignore
 
     tags_dict = find_regions(bs_data, 'TextRegion', True, 'TextLine', tags_dict)
     tags_dict = find_regions(bs_data, 'SeparatorRegion', False, '', tags_dict)
@@ -22,7 +26,7 @@ def read_transcribus(path):
     return {"size": (int(page['imageWidth']), int(page['imageHeight'])), 'tags': tags_dict}
 
 
-def find_regions(data, tag, search_children, child_tag, tags_dict):
+def find_regions(data: BeautifulSoup, tag: str, search_children: bool, child_tag: str, tags_dict):
     """
     returns dictionary with all coordinates of specified regions
     :param data: BeautifulSoup xml data
@@ -34,11 +38,11 @@ def find_regions(data, tag, search_children, child_tag, tags_dict):
     """
     regions = data.find_all(tag)
     for region in regions:
-        region_type = re.search("readingOrder \{index:(.+?);} structure \{type:(.+?);}", region['custom'])
-        if region_type is None:
+        region_type_matches = re.search(r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region['custom'])
+        if region_type_matches is None:
             region_type = "UnknownRegion"
         else:
-            region_type = region_type.group(2)
+            region_type = region_type_matches.group(2)
         if region_type not in tags_dict:
             tags_dict[region_type] = []
         tags_dict[region_type].append([pair.split(',') for pair in region.Coords["points"].split()])
@@ -51,25 +55,44 @@ def find_regions(data, tag, search_children, child_tag, tags_dict):
     return tags_dict
 
 
-def read_hlna2013(path):
+def read_hlna2013(path: str):
     """
     reads xml file and returns important information in dict
     :param path: path to file
     :return: dict with important information
     """
     annotation = {}
-    with open(path, 'r') as f:
-        data = f.read()
+    with open(path, 'r', encoding="utf-8") as file:
+        data = file.read()
 
     # read xml
     bs_data = BeautifulSoup(data, "xml")
     annotation['size'] = (int(bs_data.find('Page').get('imageHeight')), int(bs_data.find('Page').get('imageWidth')))
-    annotation['tags'] = {}
+    annotation['tags'] = {}  # type: ignore
 
     text_regions = bs_data.find_all('TextRegion')
     separator_regions = bs_data.find_all('SeparatorRegion')
     table_regions = bs_data.find_all('TableRegion')
 
+    get_coordinates(annotation, separator_regions, text_regions)
+
+    # get coordinates of all Tables
+    tabels = []
+    for table in table_regions:
+        coord = table.find('Coords')
+        tabels.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
+
+    annotation['tags']['table'] = tabels  # type: ignore
+
+    return annotation
+
+
+def get_coordinates(annotation, separator_regions: ResultSet, text_regions: ResultSet):
+    """Append coordinates to annotation dictionary
+    :param annotation: dictionary to contain data
+    :param separator_regions: set of coordinates in string format
+    :param text_regions: set of coordinates in string format
+    """
     # get coordinates of all TextRegions
     paragraphs = []
     headings = []
@@ -85,26 +108,13 @@ def read_hlna2013(path):
             header.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
         else:
             unknown_region.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
-
     annotation['tags']['article'] = paragraphs
     annotation['tags']['heading'] = headings
     annotation['tags']['header'] = header
     annotation['tags']['UnknownRegion'] = unknown_region
-
     # get coordinates of all seperators
     separator = []
     for sep in separator_regions:
         coord = sep.find('Coords')
         separator.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
-
     annotation['tags']['separator_vertical'] = separator
-
-    # get coordinates of all Tables
-    tabels = []
-    for table in table_regions:
-        coord = table.find('Coords')
-        tabels.append([(int(p.get('x')), int(p.get('y'))) for p in coord.find_all('Point')])
-
-    annotation['tags']['table'] = tabels
-
-    return annotation
