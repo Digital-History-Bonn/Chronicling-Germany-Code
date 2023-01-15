@@ -194,7 +194,6 @@ class Trainer:
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        class_sum[class_sum == 0] += 1
         self.val_logging(loss / size, jaccard / size, accuracy / size, class_acc / class_sum, test_validation)
 
         self.model.train()
@@ -236,7 +235,8 @@ class Trainer:
             tf.summary.scalar(f'{environment}/jaccard score', jaccard, step=self.step)
 
             for i, acc in enumerate(class_accs):
-                tf.summary.scalar(f'multi-acc-{environment}/class {i}', acc, step=self.step)
+                if not np.isnan(acc):
+                    tf.summary.scalar(f'multi-acc-{environment}/class {i}', acc, step=self.step)
 
             tf.summary.image(f'image/{environment}-input', torch.permute(image.float().cpu(), (0, 2, 3, 1)),
                              step=self.step)
