@@ -22,10 +22,16 @@ def draw_img(annotation: dict):
     x_size, y_size = annotation['size']
     img = np.zeros((y_size + 2 * shift, x_size + 2 * shift), dtype=np.uint8)
 
+    # first draw all unkown regions
+    for key, polygons in annotation['tags'].items():
+        if key not in LABEL_ASSIGNMENTS:
+            for polygon in polygons:
+                img = draw_polygon(img, polygon, shift=shift)
+
+    # then draw regions in order
     for key, label in LABEL_ASSIGNMENTS.items():
-        if key in annotation['tags'].keys():
-            for polygon in annotation['tags'][key]:
-                img = draw_polygon(img, polygon, label=label, shift=shift)
+        for polygon in annotation['tags'][key]:
+            img = draw_polygon(img, polygon, label=label, shift=shift)
 
     return img[shift:-shift, shift:-shift]
 
