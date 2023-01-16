@@ -30,8 +30,9 @@ def draw_img(annotation: dict):
 
     # then draw regions in order
     for key, label in LABEL_ASSIGNMENTS.items():
-        for polygon in annotation['tags'][key]:
-            img = draw_polygon(img, polygon, label=label, shift=shift)
+        if key in annotation['tags']:
+            for polygon in annotation['tags'][key]:
+                img = draw_polygon(img, polygon, label=label, shift=shift)
 
     return img[shift:-shift, shift:-shift]
 
