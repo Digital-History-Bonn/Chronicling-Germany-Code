@@ -9,11 +9,11 @@ import numpy as np
 from skimage import io  # type: ignore
 from tqdm import tqdm  # type: ignore
 
-from Script.draw_img import draw_img
-from Script.read_xml import read_transcribus, read_hlna2013
+from draw_img import draw_img
+from read_xml import read_transcribus, read_hlna2013
 
-INPUT = "../Data/annotations-test/"
-OUTPUT = "../Data/targets/"
+INPUT = "../DataBonn/Annotations/"
+OUTPUT = "../DataBonn/targets/"
 
 
 def main():
@@ -56,7 +56,7 @@ def img_save(file: str, img: np.ndarray):
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description='train')
+    parser = argparse.ArgumentParser(description='creates targets from annotation xmls')
     parser.add_argument('--dataset', '-d', type=str, default='transcribus', help='select dataset to load '
                                                                                  '(transcribus, HLNA2013)')
 
