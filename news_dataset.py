@@ -63,7 +63,7 @@ class NewsDataset(Dataset):
             augmentations = self.get_augmentations()
             data = augmentations["default"](data)
             img = augmentations["images"](data[:-1]).float() / 255
-            img = img + (torch.randn(img.shape) * 0.1)
+            # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
         else:
             img = data[:-1].float() / 255
 
@@ -101,4 +101,4 @@ class NewsDataset(Dataset):
             ]),
             "images": transforms.RandomApply([transforms.Compose([
                 transforms.GaussianBlur(5, (0.1, 1.5))
-            ])], p=0.8)}
+            ])], p=0.5)}    # originally 0.8

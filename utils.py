@@ -1,5 +1,6 @@
 """Utility Module"""
 import warnings
+from typing import Dict
 
 import numpy as np
 import torch
@@ -45,3 +46,14 @@ def get_file(file: str, scale=0.25) -> torch.Tensor:
     img_np = np.pad(np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), 'constant', constant_values=0)
     img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
     return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)
+
+
+def replace_substrings(string: str, replacements: Dict[str, str]):
+    """replaces substring (string) with replacements
+    :param string: string with the substring(s) to replace
+    :param replacements: dict with all substrings and there replacements
+    :return: new string with replaced substrings
+    """
+    for substring, replacement in replacements.items():
+        string = string.replace(substring, replacement)
+    return string

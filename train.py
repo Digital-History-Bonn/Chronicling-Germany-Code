@@ -34,7 +34,7 @@ PREDICT_SCALE = 0.25
 PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
-torch.manual_seed(42)
+# torch.manual_seed(42)
 
 
 class Trainer:
@@ -57,6 +57,7 @@ class Trainer:
         self.step: int = 0
         self.epoch: int = 0
         self.cur_best = 1000
+        self.best_step = 0
 
         # create model
         self.model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
@@ -77,7 +78,6 @@ class Trainer:
         # load data
         dataset = NewsDataset()
 
-        # splitting with fractions should work according to pytorch doc, but it does not
         train_set, validation_set, test_set = dataset.random_split((.9, .05, .05))
         print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
 
@@ -129,17 +129,17 @@ class Trainer:
                     # pylint: disable-next=not-context-manager
                     with summary_writer.as_default():
                         tf.summary.scalar('train loss', loss.item(), step=self.step)
-                        tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=self.step)
-                        tf.summary.scalar('batch std', images.detach().cpu().std(), step=self.step)
-                        tf.summary.scalar('target batch mean', targets.detach().cpu().float().mean(), step=self.step)
-                        tf.summary.scalar('target batch std', targets.detach().cpu().float().std(), step=self.step)
+                        # tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=self.step)
+                        # tf.summary.scalar('batch std', images.detach().cpu().std(), step=self.step)
+                        # tf.summary.scalar('target batch mean', targets.detach().cpu().float().mean(), step=self.step)
+                        # tf.summary.scalar('target batch std', targets.detach().cpu().float().std(), step=self.step)
 
                     # update description
                     pbar.update(1)
                     pbar.set_postfix(**{'loss (batch)': loss.item()})
 
                     # delete data from gpu cache
-                    del images, targets, loss
+                    del images, targets, loss, preds
                     torch.cuda.empty_cache()
 
                     if self.step % VAL_EVERY == 0:
@@ -149,16 +149,17 @@ class Trainer:
                         if loss + (1 - acc) < self.cur_best:
                             # update cur_best value
                             self.cur_best = loss + (1 - acc)
+                            self.best_step = self.step
                             print(f'saved model because of early stopping with value {loss + (1 - acc)}')
-
-                            # log the step of current best model
-                            # pylint: disable-next=not-context-manager
-                            with summary_writer.as_default():
-                                tf.summary.scalar('current best', self.step, step=self.step)
 
                             # save the model
                             if self.save_model is not None:
                                 self.model.save(self.save_model + '_best')
+
+                    # log the step of current best model
+                    # pylint: disable-next=not-context-manager
+                    with summary_writer.as_default():
+                        tf.summary.scalar('current best', self.best_step, step=self.step)
 
             # save model at end of epoch
             self.model.save(self.save_model)
