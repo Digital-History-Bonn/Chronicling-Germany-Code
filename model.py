@@ -1,16 +1,22 @@
+"""
+Module contains a U-Net Model.
+Most of the code of this model is from the implementation of ResNet
+from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
+"""
+from typing import Iterator
+
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.hub import load_state_dict_from_url
+from torch.nn.parameter import Parameter
+from torchvision.transforms.functional import normalize  # type: ignore
 
 from utils import replace_substrings
 
-"""
-Most of the code of this model is from the implementation of ResNet 
-from https://github.com/pytorch/vision/blob/1aef87d01eec2c0989458387fa04baebcc86ea7b/torchvision/models/resnet.py
-"""
+# as this is code obtained from pytorch docstrings are not added
 
 model_urls = {
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-11ad3fa6.pth',
 }
 
 
@@ -118,16 +124,19 @@ class Bottleneck(nn.Module):
         return out
 
 
-class dhSegment(nn.Module):
+class DhSegment(nn.Module):
+    """"""
     def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None, load_resnet_weights=False):
-        super(dhSegment, self).__init__()
+        super(DhSegment, self).__init__()
+        self.out_channel = out_channel
+
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
+        self.first_channels = 64
 
-        self.inplanes = 64
         self.dilation = 1
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
@@ -138,13 +147,13 @@ class dhSegment(nn.Module):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(in_channels, self.inplanes, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(in_channels, self.first_channels, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        self.bn1 = norm_layer(self.inplanes)
+        self.bn1 = norm_layer(self.first_channels)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.block1 = self._make_layer(64, layers[0])
+        self.block1 = self._make_layer(self.first_channels, layers[0])
         self.block2 = self._make_layer(128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
         self.block3 = self._make_layer(256, layers[2], stride=2, dilate=replace_stride_with_dilation[1], conv_out=True)
         self.block4 = self._make_layer(512, layers[3], stride=2, dilate=replace_stride_with_dilation[2], conv_out=True)
@@ -158,25 +167,48 @@ class dhSegment(nn.Module):
 
         self.conv2 = conv1x1(32, out_channel)
 
-        self.softmax = nn.Softmax(1)  # maybe wrong dim!
-
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
-        if zero_init_residual:
-            for m in self.modules():
-                if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        #     elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+        #         nn.init.constant_(m.weight, 1)
+        #         nn.init.constant_(m.bias, 0)
+        #
+        # # Zero-initialize the last BN in each residual branch,
+        # # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        # # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+        # if zero_init_residual:
+        #     for m in self.modules():
+        #         if isinstance(m, Bottleneck):
+        #             nn.init.constant_(m.bn3.weight, 0)
 
         if load_resnet_weights:
             self._load_ResNet()
+
+        # initialize normalization
+        self.register_buffer('means', torch.tensor([0] * in_channels))
+        self.register_buffer('stds', torch.tensor([1] * in_channels))
+        self.normalize = normalize
+
+    def freeze_encoder(self, requires_grad=False):
+        """Set requires grad of encoder to True or False. Freezes encoder weights"""
+
+        def freeze(params: Iterator[Parameter]):
+            for param in params:
+                param.requires_grad_(requires_grad)
+
+        freeze(self.conv1.parameters())
+        freeze(self.bn1.parameters())
+        freeze(self.block1.parameters())
+        freeze(self.block2.parameters())
+        freeze(self.block3.parameters())
+        freeze(self.block4.parameters())
+
+        # unfreeze weights, which are not loaded
+        requires_grad = True
+        freeze(self.block3.conv.parameters())
+        freeze(self.block4.conv.parameters())
+        freeze(self.block4.layers[3].parameters())
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
         norm_layer = self._norm_layer
@@ -185,18 +217,17 @@ class dhSegment(nn.Module):
         if dilate:
             self.dilation *= stride
             stride = 1
-        if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
+        if stride != 1 or self.first_channels != planes * Bottleneck.expansion:
             downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
+                conv1x1(self.first_channels, planes * Bottleneck.expansion, stride),
                 norm_layer(planes * Bottleneck.expansion),
             )
 
-        layers = []
-        layers.append(Bottleneck(self.inplanes, planes, stride, downsample, self.groups,
-                                 self.base_width, previous_dilation, norm_layer))
-        self.inplanes = planes * Bottleneck.expansion
+        layers = [Bottleneck(self.first_channels, planes, stride, downsample, self.groups,
+                             self.base_width, previous_dilation, norm_layer)]
+        self.first_channels = planes * Bottleneck.expansion
         for _ in range(1, blocks):
-            layers.append(Bottleneck(self.inplanes, planes, groups=self.groups,
+            layers.append(Bottleneck(self.first_channels, planes, groups=self.groups,
                                      base_width=self.base_width, dilation=self.dilation,
                                      norm_layer=norm_layer))
 
@@ -204,9 +235,10 @@ class dhSegment(nn.Module):
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
-        identity = x
         # print(f"input: x:{x.shape}, identity:{identity.shape}")
 
+        x = self.normalize(x, self.means, self.stds)
+        identity = x
         x = self.conv1(x)
         x = self.bn1(x)
         copy_0 = self.relu(x)
@@ -237,7 +269,7 @@ class dhSegment(nn.Module):
         x = self.conv2(x)
         # print(f"out: {x.shape}")
 
-        return self.softmax(x)
+        return x
 
     def forward(self, x):
         return self._forward_impl(x)
@@ -245,7 +277,7 @@ class dhSegment(nn.Module):
     def save(self, path):
         if path is None or path is False:
             return
-        torch.save(self.state_dict(), path)
+        torch.save(self.state_dict(), path + '.pt')
 
     def load(self, path):
         if path is None or path is False:
@@ -253,8 +285,13 @@ class dhSegment(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
 
+    def predict(self, image: torch.Tensor) -> torch.Tensor:
+        pred = self(image).argmax(dim=1).float().cpu()
+        prediction = torch.squeeze(pred / self.out_channel)
+        return prediction
+
     def _load_ResNet(self):
-        state_dict = load_state_dict_from_url('https://download.pytorch.org/models/resnet50-19c8e357.pth',
+        state_dict = load_state_dict_from_url(model_urls['resnet50'],
                                               progress=True)
 
         replacements = {"layer1": "block1.layers",
@@ -275,12 +312,12 @@ class dhSegment(nn.Module):
 
 
 def _dhSegment(arch, layers, pretrained, progress, **kwargs):
-    model = dhSegment(layers, **kwargs)
+    net = DhSegment(layers, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
-        model.load_state_dict(state_dict)
-    return model
+        net.load_state_dict(state_dict)
+    return net
 
 
 def create_dhSegment(pretrained=False, progress=True, **kwargs):
@@ -299,4 +336,4 @@ if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
-    model = dhSegment([3, 4, 6, 4], 1, load_resnet_weights=True)
+    model = DhSegment([3, 4, 6, 4], 1, load_resnet_weights=True)
