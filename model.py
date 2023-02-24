@@ -1,5 +1,5 @@
 """
-Module contains a U-Net Model.
+Module contains a U-Net Model. The model is a replica of the dhSegment model from https://arxiv.org/abs/1804.10371
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
@@ -11,7 +11,7 @@ from torch.hub import load_state_dict_from_url
 from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize  # type: ignore
 
-from utils import replace_substrings
+from utils import replace_substrings # type: ignore
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -21,34 +21,64 @@ model_urls = {
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
-    """3x3 convolution with padding"""
+    """
+    3x3 convolution with padding
+    :param in_planes: number of input feature-maps
+    :param out_planes: number of output feature-maps
+    :param stride: stride for convolution
+    :param groups: groups for convolution
+    :param dilation: dilation for convolution
+    """
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=dilation, groups=groups, bias=False, dilation=dilation)
 
 
 def conv1x1(in_planes, out_planes, stride=1):
-    """1x1 convolution"""
+    """
+    1x1 convolution
+    :param in_planes: number of input feature-maps
+    :param out_planes: number of output feature-maps
+    :param stride: stride for convolution
+    """
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 
 class Block(nn.Module):
+    """
+    Encoder Block
+    """
     def __init__(self, layers, planes, conv_out=False):
+        """
+        Encoder Block
+        :param layers: List of layers (Bottleneck)
+        :param planes: size of Bottleneck
+        :param conv_out: adds extra convolutional layer before output
+        """
         super(Block, self).__init__()
         self.layers = nn.Sequential(*layers)
         self.conv_out = conv_out
         self.conv = conv1x1(planes * Bottleneck.expansion, 512) if conv_out else None
 
     def forward(self, x):
+        """
+        forward path of this Module
+        :param x: input
+        :return: output and copy for shortpath in UNet
+        """
         x = self.layers(x)
 
         if self.conv_out:
             copy = self.conv(x)
         else:
-            copy = x  # maybe produces trouble by backpropagation!
+            copy = x
 
         return x, copy
 
     def __repr__(self):
+        """
+        representation of the Module if model is printed
+        :return: string representation
+        """
         string = "Block: (\n"
         for layer in self.layers:
             string += f"\t {layer}\n"
@@ -56,7 +86,16 @@ class Block(nn.Module):
 
 
 class UpScaleBlock(nn.Module):
+    """
+    Decoder Block
+    """
     def __init__(self, in_up, in_copy, out_channels):
+        """
+        Decoder Block
+        :param in_up: number of input feature maps from up-scaling-path
+        :param in_copy: number of input feature maps from shortpath
+        :param out_channels: number of output feature maps
+        """
         super(UpScaleBlock, self).__init__()
         self.upscale = nn.ConvTranspose2d(in_channels=in_up, out_channels=in_up, kernel_size=2, stride=2)
         self.conv = conv3x3(in_copy + in_up, out_channels)
@@ -65,9 +104,9 @@ class UpScaleBlock(nn.Module):
     def forward(self, up, copy):
         """
         forward path of tha Upscaling Block
-        :param up: previous block feature map
-        :param copy: copy of the corresponding contracting feature map
-        :return: tensor
+        :param up: previous block feature maps
+        :param copy: copy of the corresponding contracting feature maps
+        :return: output
         """
         up = self.upscale(up)
         x = torch.concat((copy, up), 1)
@@ -76,21 +115,28 @@ class UpScaleBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
-    # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.conv2)
-    # while original implementation places the stride at the first 1x1 convolution(self.conv1)
-    # according to "Deep residual learning for image recognition"https://arxiv.org/abs/1512.03385.
-    # This variant is also known as ResNet V1.5 and improves accuracy according to
-    # https://ngc.nvidia.com/catalog/model-scripts/nvidia:resnet_50_v1_5_for_pytorch.
-
+    """
+    Bottleneck Layer from ResNet
+    """
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
                  base_width=64, dilation=1, norm_layer=None):
+        """
+        Bottleneck Layer from ResNet
+        :param inplanes: number of input feature-maps
+        :param planes: size of Bottleneck
+        :param stride: stride of conv3x3 Layer
+        :param downsample: Convolutional Layer for downsampling if input dim not the same as output dim
+        :param groups: groups for convolution
+        :param base_width: base_width of Bottleneck
+        :param dilation: dilation of conv3x3 Layer
+        :param norm_layer: Layer for Normalization default is BatchNorm2d
+        """
         super(Bottleneck, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
-        # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, width)
         self.bn1 = norm_layer(width)
         self.conv2 = conv3x3(width, width, stride, groups, dilation)
@@ -102,6 +148,11 @@ class Bottleneck(nn.Module):
         self.stride = stride
 
     def forward(self, x):
+        """
+        forward path of Bottleneck
+        :param x: input
+        :return: output
+        """
         identity = x
 
         out = self.conv1(x)
@@ -125,10 +176,22 @@ class Bottleneck(nn.Module):
 
 
 class DhSegment(nn.Module):
-    """"""
-    def __init__(self, layers, in_channels=3, out_channel=3, zero_init_residual=False,
-                 groups=1, width_per_group=64, replace_stride_with_dilation=None,
-                 norm_layer=None, load_resnet_weights=False):
+    """
+    DhSegment Model
+    """
+    def __init__(self, layers, in_channels=3, out_channel=3, groups=1, width_per_group=64,
+                 replace_stride_with_dilation=None, norm_layer=None, load_resnet_weights=False):
+        """
+        DhSegment Model
+        :param layers: List with numbers of Bottleneck-Layer per Block in Encoder
+        :param in_channels: Number of input-channels (default is 3 for rgb)
+        :param out_channel: Number of output-channels (number of predicted classes)
+        :param groups: groups for convolutional Layer
+        :param width_per_group: base_width of bottleneck-Layer
+        :param replace_stride_with_dilation:
+        :param norm_layer: Layer for Normalization default is BatchNorm2d
+        :param load_resnet_weights: Loads weights form pretrained model if True
+        """
         super(DhSegment, self).__init__()
         self.out_channel = out_channel
 
@@ -167,21 +230,6 @@ class DhSegment(nn.Module):
 
         self.conv2 = conv1x1(32, out_channel)
 
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d):
-        #         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        #     elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-        #         nn.init.constant_(m.weight, 1)
-        #         nn.init.constant_(m.bias, 0)
-        #
-        # # Zero-initialize the last BN in each residual branch,
-        # # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
-        # if zero_init_residual:
-        #     for m in self.modules():
-        #         if isinstance(m, Bottleneck):
-        #             nn.init.constant_(m.bn3.weight, 0)
-
         if load_resnet_weights:
             self._load_ResNet()
 
@@ -191,8 +239,10 @@ class DhSegment(nn.Module):
         self.normalize = normalize
 
     def freeze_encoder(self, requires_grad=False):
-        """Set requires grad of encoder to True or False. Freezes encoder weights"""
-
+        """
+        Set requires grad of encoder to True or False. Freezes encoder weights
+        :param requires_grad: freezes encoder weights if false else unfreezes the weights
+        """
         def freeze(params: Iterator[Parameter]):
             for param in params:
                 param.requires_grad_(requires_grad)
@@ -211,6 +261,15 @@ class DhSegment(nn.Module):
         freeze(self.block4.layers[3].parameters())
 
     def _make_layer(self, planes, blocks, stride=1, dilate=False, conv_out=False):
+        """
+        creates a Block of the ResNet Encoder
+        :param planes: ???
+        :param blocks: Number of Bottleneck-Blocks
+        :param stride: stride for convolutional-Layer
+        :param dilate: dilate for convolutional-Layer
+        :param conv_out: adds a extra convolutional-Layer to the output for the shortpath
+        :return: Block of the ResNet Encoder
+        """
         norm_layer = self._norm_layer
         downsample = None
         previous_dilation = self.dilation
@@ -234,52 +293,58 @@ class DhSegment(nn.Module):
         return Block(layers, planes, conv_out=conv_out)
 
     def _forward_impl(self, x):
-        # See note [TorchScript super()]
-        # print(f"input: x:{x.shape}, identity:{identity.shape}")
-
+        """
+        implementation of the forward path of dhSegment
+        :param x: input
+        :return: output
+        """
         x = self.normalize(x, self.means, self.stds)
         identity = x
         x = self.conv1(x)
         x = self.bn1(x)
         copy_0 = self.relu(x)
-        # print(f"conv1: x:{x.shape}, copy_0:{copy_0.shape}")
         x = self.maxpool(copy_0)
 
         x, copy_1 = self.block1(x)
-        # print(f"block1: x:{x.shape}, copy:{copy_1.shape}")
         x, copy_2 = self.block2(x)
-        # print(f"block2: x:{x.shape}, copy:{copy_2.shape}")
         x, copy_3 = self.block3(x)
-        # print(f"block3: x:{x.shape}, copy:{copy_3.shape}")
         _, copy_4 = self.block4(x)
-        # print(f"block4: copy:{copy_4.shape}")
 
         # upscaling
         x = self.up_block1(copy_4, copy_3)
-        # print(f"block1: x:{x.shape}, copy:{copy_2.shape}")
         x = self.up_block2(x, copy_2)
-        # print(f"block2: x:{x.shape}, copy:{copy_1.shape}")
         x = self.up_block3(x, copy_1)
-        # print(f"block3: x:{x.shape}, copy:{copy_0.shape}")
         x = self.up_block4(x, copy_0)
-        # print(f"block4: x:{x.shape}, copy:{identity.shape}")
         x = self.up_block5(x, identity)
-        # print(f"block5: x:{x.shape}")
 
         x = self.conv2(x)
-        # print(f"out: {x.shape}")
 
         return x
 
     def forward(self, x):
+        """
+        forward path of dhSegment
+        :param x: input
+        :return: output
+        """
         return self._forward_impl(x)
 
     def save(self, path):
+        """
+        saves the model weights
+        :param path: path to savepoint
+        :return: None
+        """
         if path is None or path is False:
             return
         torch.save(self.state_dict(), path + '.pt')
 
     def load(self, path):
+        """
+        load the model weights
+        :param path: path to savepoint
+        :return: None
+        """
         if path is None or path is False:
             return
         self.load_state_dict(torch.load(path))
@@ -291,6 +356,10 @@ class DhSegment(nn.Module):
         return prediction
 
     def _load_ResNet(self):
+        """
+        loads the weights of the pretrained ResNet
+        :return: None
+        """
         state_dict = load_state_dict_from_url(model_urls['resnet50'],
                                               progress=True)
 
@@ -312,6 +381,15 @@ class DhSegment(nn.Module):
 
 
 def _dhSegment(arch, layers, pretrained, progress, **kwargs):
+    """
+    create a dhSegment Model
+    :param arch: Spring name of the ResNet-architecture for loading pretrained weights
+    :param layers: List of Numbers of Bottleneck Blocks in ResNet-Blocks
+    :param pretrained: bool if pretrained ResNet-weights should be load
+    :param progress: bool if progressbar should be shown by loading
+    :param kwargs: kwargs for Model
+    :return:
+    """
     net = DhSegment(layers, **kwargs)
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
@@ -321,12 +399,12 @@ def _dhSegment(arch, layers, pretrained, progress, **kwargs):
 
 
 def create_dhSegment(pretrained=False, progress=True, **kwargs):
-    r"""ResNet-50 model from
-    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    dhSegement Model from https://arxiv.org/abs/1804.10371
+    :param pretrained: If True, returns a model pre-trained on ImageNet
+    :param progress: If True, displays a progress bar of the download to stderr
+    :param kwargs: kwargs of Model
+    :return: dhSegment Model
     """
     return _dhSegment('resnet50', [3, 4, 6, 4], pretrained, progress,
                       **kwargs)
