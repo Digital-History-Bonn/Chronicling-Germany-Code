@@ -12,8 +12,8 @@ from tqdm import tqdm  # type: ignore
 from draw_img import draw_img
 from read_xml import read_transcribus, read_hlna2013
 
-INPUT = "../DataBonn/Annotations/"
-OUTPUT = "../DataBonn/targets/"
+INPUT = "../Data/input_back/"
+OUTPUT = "../Data/Targets_back/"
 
 
 def main():
