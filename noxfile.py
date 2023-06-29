@@ -21,6 +21,7 @@ def run_test_fast(session):
 @nox.session(name="lint")
 def lint(session):
     """Check code conventions."""
+    session.install('-r', 'requirements.txt')
     session.install("pylint")
     session.run("pylint", "*.py", "tests")
 
