@@ -36,17 +36,38 @@ class Preprocessing:
         self.crop_size = crop_size
         self.crop = crop
 
-    def __call__(self, image: Image) -> Image:
+    def __call__(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        preprocess for the input image only
+        preprocess for image with annotations
         :param image: image
-        :return: image
+        :param target: annotations
+        :return: image, target
         """
         # scale
-        t_dummy = np.zeros(image.size)
-        image, _ = self._scale_img(image, t_dummy)
+        image, target = self._scale_img(image, target)
 
-        return image
+        if self.crop:
+            data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
+            return data[:, :-1], data[:, -1]
+        return image, target
+
+    def load(self, input_path, target_path, file):
+        """Load image and target
+        :param input_path: path to input image
+        :param target_path: path to target
+        :param file: name of image and target
+        :return:
+        """
+        # load image
+        image = Image.open(f"{input_path}").convert('RGB')
+
+        # load target
+        target = np.load(f"{target_path}")
+
+        assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], \
+            f"image {file=} has shape {image.size}, but target has shape {target.shape}"
+
+        return image, target
 
     def _scale_img(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -66,30 +87,9 @@ class Preprocessing:
         target_img = Image.fromarray(target.astype(np.uint8))
         target_img = target_img.resize(shape, resample=Image.NEAREST)
 
-        # cropping for full image prediction
-        if not self.crop:
-            w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
-            image = np.pad(np.asarray(image), ((0, h_pad), (0, w_pad), (0, 0)), 'constant', constant_values=0)
-            target_img = np.pad(np.asarray(target_img), ((0, h_pad), (0, w_pad)), 'constant', constant_values=0)
-
         image, target = np.array(image), np.array(target_img)  # type: ignore
 
         return np.transpose(image, (2, 0, 1)), target
-
-    def preprocess(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        preprocess for image with annotations
-        :param image: image
-        :param target: annotations
-        :return: image, target
-        """
-        # scale
-        image, target = self._scale_img(image, target)
-
-        if self.crop:
-            data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
-            return data[:, :-1], data[:, -1]
-        return image, target
 
     def _crop_img(self, data: ndarray) -> ndarray:
         """

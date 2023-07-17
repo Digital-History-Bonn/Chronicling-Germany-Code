@@ -4,9 +4,7 @@ Module to crop data. Crops will be saved in crops folder
 import argparse
 import os
 
-import numpy as np
 import torch
-from PIL import Image  # type: ignore
 from tqdm import tqdm  # type: ignore
 
 from preprocessing import Preprocessing
@@ -35,17 +33,10 @@ def main():
 
     # iterate over files
     for file in tqdm(paths, desc='cropping images', unit='image'):
-        # load image
-        image = Image.open(f"{INPUT}{file}{extension}").convert('RGB')
 
-        # load target
-        target = np.load(f"{TARGETS}{get_file_name(file)}")
-
-        assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], \
-            f"image {file=} has shape {image.size}, but target has shape {target.shape}"
-
+        image, target = preprocessing.load(f"{INPUT}{file}{extension}", f"{TARGETS}{get_file_name(file)}", f"{file}")
         # preprocess / create crops
-        img_crops, tar_crops = preprocessing.preprocess(image, target)
+        img_crops, tar_crops = preprocessing(image, target)
 
         for i, (img_crop, tar_crop) in enumerate(zip(img_crops, tar_crops)):
             img_crop = torch.tensor(img_crop, dtype=torch.uint8)
