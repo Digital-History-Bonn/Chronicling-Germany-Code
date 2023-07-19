@@ -71,12 +71,12 @@ class Preprocessing:
 
     def _scale_img(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        scales down all given image and target by scale
+        scales down all given images and target by scale
         :param image (Image): image
         :param target (np.ndarray): target
         return: ndarray tuple containing scaled image and target
         """
-        if SCALE == 1:
+        if self.scale == 1:
             image = np.array(image)
             return np.transpose(image, (2, 0, 1)), target
 

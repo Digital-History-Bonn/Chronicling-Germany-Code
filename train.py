@@ -65,10 +65,10 @@ class Trainer:
         self.model = self.model.float()
         self.model.freeze_encoder()
 
-        # load model if argument is None it does nothing
+        # load model if argument is None, it does nothing
         self.model.load(load)
 
-        # set mean and std in model for normalization
+        # set mean and std in a model for normalization
         self.model.means = torch.tensor((0.485, 0.456, 0.406))
         self.model.stds = torch.tensor((0.229, 0.224, 0.225))
 

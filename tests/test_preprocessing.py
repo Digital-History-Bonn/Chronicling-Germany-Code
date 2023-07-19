@@ -1,8 +1,9 @@
 """Test class for preprocessing"""
 import json
 
+import numpy as np
 import pytest
-import torch
+from PIL import Image  # type: ignore
 
 from preprocessing import Preprocessing
 
@@ -31,31 +32,35 @@ class TestClassPreprocessing:
             ground_truth = json.load(file)
             assert pytest.news_dataset.file_names == ground_truth and len(pytest.news_dataset) == 10
 
-    def test_getitem(self):
-        """Verify get_item. Particulary important is, that data ist in the right format.
-        For example, RGB Values from 0 to 1 for images """
-        pytest.news_dataset.augmentations = False
-        news_data = []
-        news_targets = []
-        for data in pytest.news_dataset:
-            news_data.append(data[0])
-            news_targets.append(data[1])
-        news_data = torch.cat(news_data)
-        news_targets = torch.cat(news_targets)
-        ground_truth_data = torch.load(f"{DATA_PATH}output/news_data.pt")
-        ground_truth_tragets = torch.load(f"{DATA_PATH}output/news_targets.pt")
+    def test_scale(self):
+        """Verify scale function"""
+        size = 100
+        channels = 3
+        image = Image.fromarray((np.random.rand(size, size, channels) * 255).astype('uint8')).convert('RGB')
+        target = np.random.randint(0, 10, (size, size))
 
-        assert torch.all(torch.eq(ground_truth_data, news_data))
-        assert torch.all(torch.eq(ground_truth_tragets, news_targets))
+        pytest.preprocessing.scale = 0.5
+        result_image, result_target = pytest.preprocessing._scale_img(image, target)  # pylint: disable=protected-access
 
-    def test_split(self):
-        """verify splitting operation"""
-        dataset_1, dataset_2, dataset_3 = pytest.news_dataset.random_split((0.5, 0.3, 0.2))
-        assert len(dataset_1) == 5 and len(dataset_2) == 3 and len(dataset_3) == 2
-        try:
-            dataset_1.augmentations = False
-            dataset_2.augmentations = False
-            dataset_2.augmentations = False
-        except AttributeError as exc:
-            assert False, f"random split does not result in Newsdatasets. Those are " \
-                          f"expected to have an augmentations attribute {exc}"
+        result_size = int(size * pytest.preprocessing.scale)
+        assert result_image.shape == (channels, result_size, result_size)
+        assert result_target.shape == (result_size, result_size)
+
+        pytest.preprocessing.scale = 1
+        result_image, result_target = pytest.preprocessing._scale_img(image, target)  # pylint: disable=protected-access
+
+        assert result_image.shape == (channels, size, size)
+        assert result_target.shape == (size, size)
+
+    def test_crop(self):
+        """Verify crop_img."""
+        size = 100
+        channels = 4
+        crop_size = 25
+        image = np.random.rand(channels, size, size) * 255
+        pytest.preprocessing.crop_size = crop_size
+        pytest.preprocessing.crop_factor = 1
+
+        windows = pytest.preprocessing._crop_img(image)  # pylint: disable=protected-access
+
+        assert windows.shape == (int(size/crop_size) ** 2, channels, crop_size, crop_size)
