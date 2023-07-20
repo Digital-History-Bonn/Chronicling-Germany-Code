@@ -15,13 +15,13 @@ class TestClassReadXML:
     def test_read(self):
         """tests read function of newspaper and HLNA Data"""
         result = read_transcribus(DATA_PATH + 'newspaper/test-annotation.xml')
-        print(os.getcwd())
         with open(DATA_PATH + 'newspaper/test-target.json', encoding="utf-8") as file:
             ground_truth = json.load(file)
             assert result == ground_truth
 
     def test_draw(self):
         """tests draw function of newspaper and HLNA Data"""
+        print(os.getcwd())
         with open(DATA_PATH + 'newspaper/test-target.json', encoding="utf-8") as file:
             result = draw_img(json.load(file))
         ground_truth = np.load(DATA_PATH + "newspaper/test-target.npy")
