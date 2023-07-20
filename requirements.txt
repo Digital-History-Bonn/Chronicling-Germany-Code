@@ -1,7 +1,7 @@
 matplotlib
 numpy
 pillow
-pytorch
+torch
 scikit-learn
 tqdm
 beautifulsoup4
