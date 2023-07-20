@@ -1,13 +1,12 @@
 """Test class for reading xml scripts"""
 import json
-import os
 
 import numpy as np
 
 from Script.read_xml import read_transcribus
 from Script.draw_img import draw_img
 
-DATA_PATH = 'data/'
+DATA_PATH = './tests/data/'
 
 
 class TestClassReadXML:
@@ -21,7 +20,6 @@ class TestClassReadXML:
 
     def test_draw(self):
         """tests draw function of newspaper and HLNA Data"""
-        print(os.getcwd())
         with open(DATA_PATH + 'newspaper/test-target.json', encoding="utf-8") as file:
             result = draw_img(json.load(file))
         ground_truth = np.load(DATA_PATH + "newspaper/test-target.npy")
