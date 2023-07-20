@@ -18,6 +18,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: pip install nox
+      - name: working directory
+        run: ls -la
       - name: Test with pytest
         run:
           nox -s fast-test
