@@ -1,5 +1,4 @@
 """Test class for preprocessing"""
-import json
 
 import numpy as np
 import pytest
@@ -28,9 +27,24 @@ class TestClassPreprocessing:
 
     def test_call(self):
         """Verify entire preprocessing"""
-        with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
-            ground_truth = json.load(file)
-            assert pytest.news_dataset.file_names == ground_truth and len(pytest.news_dataset) == 10
+        size = 100
+        channels = 3
+        crop_size = size
+        pytest.preprocessing.crop_size = crop_size
+        pytest.preprocessing.crop_factor = 1
+        image = Image.fromarray((np.random.rand(size, size, channels) * 255).astype('uint8')).convert('RGB')
+        target = np.random.randint(0, 10, (size, size))
+
+        result_image, result_target = pytest.preprocessing(image, target)
+
+        assert result_image.shape == (int(size/crop_size) ** 2, channels, size, size)
+        assert result_target.shape == (int(size/crop_size) ** 2, size, size)
+
+        pytest.preprocessing.crop=False
+
+        result_image, result_target = pytest.preprocessing(image, target)
+        assert result_image.shape == (channels, size, size)
+        assert result_target.shape == (size, size)
 
     def test_scale(self):
         """Verify scale function"""
