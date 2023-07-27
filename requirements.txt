@@ -13,3 +13,4 @@ tensorflow
 tensorboard
 torchvision
 nox
+lxml
