@@ -2,18 +2,18 @@
 module for training the hdSegment Model
 """
 
-import datetime
 import argparse
+import datetime
 import warnings
 from typing import List, Union
 
 import numpy as np
-from sklearn.metrics import jaccard_score, accuracy_score  # type: ignore
 import tensorflow as tf  # type: ignore
 import torch  # type: ignore
-from tqdm import tqdm  # type: ignore
+from sklearn.metrics import jaccard_score, accuracy_score  # type: ignore
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from tqdm import tqdm  # type: ignore
 
 import preprocessing
 from model import DhSegment
@@ -35,6 +35,26 @@ PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 # set random seed for reproducibility
 # torch.manual_seed(42)
+
+
+def init_model(load) -> DhSegment:
+    """
+    Initialise model
+    :param load: contains path to load the model from. If False, the model will be initialised randomly
+    :return: loaded model
+    """
+    # create model
+    model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
+                           load_resnet_weights=True)
+    model = model.float()
+    model.freeze_encoder()
+    # load model if argument is None, it does nothing
+    model.load(load)
+
+    # set mean and std in a model for normalization
+    model.means = torch.tensor((0.485, 0.456, 0.406))
+    model.stds = torch.tensor((0.229, 0.224, 0.225))
+    return model
 
 
 class Trainer:
@@ -59,18 +79,7 @@ class Trainer:
         self.cur_best = 1000
         self.best_step = 0
 
-        # create model
-        self.model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
-                               load_resnet_weights=True)
-        self.model = self.model.float()
-        self.model.freeze_encoder()
-
-        # load model if argument is None, it does nothing
-        self.model.load(load)
-
-        # set mean and std in a model for normalization
-        self.model.means = torch.tensor((0.485, 0.456, 0.406))
-        self.model.stds = torch.tensor((0.229, 0.224, 0.225))
+        self.model = init_model(load)
 
         # set optimizer and loss_fn
         self.optimizer = Adam(self.model.parameters(), lr=learningrate, weight_decay=WEIGHT_DECAY)  # weight_decay=1e-4
