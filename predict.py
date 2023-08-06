@@ -9,11 +9,13 @@ import numpy as np
 import torch
 from PIL import Image  # type: ignore
 from numpy import ndarray
+from skimage import draw
 from skimage.color import label2rgb  # type: ignore
 from torchvision import transforms  # type: ignore
 from tqdm import tqdm  # type: ignore
 
 import train
+from script.transkribus_export import prediction_to_polygons
 
 DATA_PATH = "data/newspaper/input/"
 RESULT_PATH = "data/output/"
@@ -35,7 +37,7 @@ def draw_prediction(img: ndarray, path: str):
     values = ["UnknownRegion", "caption", "table", "article", "heading", "header", "separator (vertical)",
               "separator (short)", "separator (horizontal)"]
     for i in range(len(values)):
-        img[-1][-(i+1)] = (i+1)
+        img[-1][-(i + 1)] = (i + 1)
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
     plt.axis('off')
     # create a patch (proxy artist) for every color
@@ -97,16 +99,24 @@ def predict():
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + '.png')
         if args.export:
-            prediction_to_polygons(pred)
+            segmentations = prediction_to_polygons(pred)
+            polygon_pred = np.zeros(pred.shape, dtype="uint8")
+            for label, segmentation in segmentations.items():
+                for polygon in segmentation:
+                    polygon = np.reshape(polygon, (-1, 2))
+                    x_coords, y_coords = draw.polygon(polygon[0], polygon[1])
+                    polygon_pred[x_coords, y_coords] = label
+            draw_prediction(polygon_pred, args.result_path + f"{os.path.splitext(file)[0]}_polygons" + '.png')
 
 
 def process_prediction(pred: ndarray, threshold: float) -> ndarray:
     """
     Apply argmax to prediction, and assign label 0 to all pixel that have a confidence below the threshold.
+    :param threshold: confidence threshold for prediction
     :param pred: prediction
     :return:
     """
-    argmax = np.argmax(pred, axis=0)
+    argmax: ndarray = np.argmax(pred, axis=0)
     argmax[np.max(pred, axis=0) < threshold] = 0
     return argmax
 
