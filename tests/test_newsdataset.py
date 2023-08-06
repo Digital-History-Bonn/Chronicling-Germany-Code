@@ -6,16 +6,16 @@ import torch
 
 from news_dataset import NewsDataset
 
-DATA_PATH = './data/newsdataset/'
+DATA_PATH = './tests/data/newsdataset/'
 
 
-class TestClassNesdataset:
+class TestClassNewsdataset:
     """Class for testing newsdataset"""
 
     @pytest.fixture(autouse=True)
     def setup(self):
         "will initiate NewsDataset for every test"
-        pytest.news_dataset = NewsDataset(path=f"{DATA_PATH}/data/")
+        pytest.news_dataset = NewsDataset(path=f"{DATA_PATH}data/")
 
     def test_init(self):
         """verify file names list and length"""

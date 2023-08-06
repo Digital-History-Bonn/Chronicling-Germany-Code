@@ -6,7 +6,7 @@ from PIL import Image  # type: ignore
 
 from preprocessing import Preprocessing
 
-DATA_PATH = './data/preprocessing/'
+DATA_PATH = './tests/data/preprocessing/'
 
 
 class TestClassPreprocessing:
