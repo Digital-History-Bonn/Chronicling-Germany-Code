@@ -9,8 +9,8 @@ import numpy as np
 from skimage import io  # type: ignore
 from tqdm import tqdm  # type: ignore
 
-from draw_img import draw_img
-from read_xml import read_transcribus, read_hlna2013
+import draw_img
+import read_xml
 
 INPUT = "../Data/input_back/"
 OUTPUT = "../Data/Targets_back/"
@@ -19,18 +19,18 @@ OUTPUT = "../Data/Targets_back/"
 def main():
     """Load xml files and save result image.
     Calls read and draw functions"""
-    read = read_transcribus if args.dataset == 'transcribus' else read_hlna2013
+    read = read_xml.read_transcribus if args.dataset == 'transcribus' else read_xml.read_hlna2013
     paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
     for path in tqdm(paths):
         annotation = read(f'{INPUT}{path}.xml')
-        img = draw_img(annotation)
+        img = draw_img.draw_img(annotation)
         io.imsave(f'{OUTPUT}{path}.png', img/10)
 
         with open(f'{OUTPUT}{path}.json', 'w', encoding="utf-8") as file:
             json.dump(annotation, file)
 
         # draw image
-        img = draw_img(annotation)
+        img = draw_img.draw_img(annotation)
 
         # save image
         np_save(f"{OUTPUT}{path}", img)
