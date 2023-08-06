@@ -59,6 +59,8 @@ def get_args() -> argparse.Namespace:
                         help='path to model .pt file')
     parser.add_argument('--cuda-device', '-c', type=str, default="cuda",
                         help='Cuda device string')
+    parser.add_argument('--threshold', '-t', type=float, default=0.6,
+                        help='Confidence threshold for assigning a label to a pixel.')
     return parser.parse_args()
 
 
@@ -77,7 +79,7 @@ def load_image(file: str) -> torch.Tensor:
 
 def predict():
     """
-    Loads all images from data folder and predicts segmentation.
+    Loads all images from the data folder and predicts segmentation.
     """
     device = args.cuda_device if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
@@ -89,7 +91,18 @@ def predict():
         image = load_image(file)
 
         pred = np.squeeze(model(image.to(device)).detach().cpu().numpy())
-        draw_prediction(np.argmax(pred, axis=0), args.result_path + os.path.splitext(file)[0] + '.png')
+        draw_prediction(process_prediction(pred, args.threshold), args.result_path + os.path.splitext(file)[0] + '.png')
+
+
+def process_prediction(pred: ndarray, threshold: float = 0.6) -> ndarray:
+    """
+    Apply argmax to prediction, and assign label 0 to all pixel that have a confidence below the threshold.
+    :param pred: prediction
+    :return:
+    """
+    argmax = np.argmax(pred, axis=0)
+    argmax[np.max(pred, axis=0) < threshold] = 0
+    return argmax
 
 
 if __name__ == '__main__':
