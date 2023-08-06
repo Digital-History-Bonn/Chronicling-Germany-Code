@@ -3,10 +3,10 @@ import json
 
 import numpy as np
 
-from Script.read_xml import read_transcribus
-from Script.draw_img import draw_img
+from script.read_xml import read_transcribus
+from script.draw_img import draw_img
 
-DATA_PATH = './data/'
+DATA_PATH = './tests/data/'
 
 
 class TestClassReadXML:
