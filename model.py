@@ -349,7 +349,7 @@ class DhSegment(nn.Module):
         """
         if path is None or path is False:
             return
-        self.load_state_dict(torch.load(path))
+        self.load_state_dict(torch.load(path, map_location='cuda:0'))
         self.eval()
 
     def predict(self, image: torch.Tensor) -> torch.Tensor:

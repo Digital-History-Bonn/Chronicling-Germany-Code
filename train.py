@@ -287,8 +287,9 @@ def get_args() -> argparse.Namespace:
                         help='model to load (default is None)')
     parser.add_argument('--predict-scale', '-p', type=float, default=PREDICT_SCALE,
                         help='Downscaling factor of the predict image')
-    parser.add_argument('--cuda-device', '-c', type=str, default="cuda:1",
+    parser.add_argument('--cuda-device', '-c', type=str, default="cuda:0",
                         help='Cuda device string')
+
 
     return parser.parse_args()
 

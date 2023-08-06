@@ -29,11 +29,13 @@ def draw_prediction(img: ndarray, path: str):
     :param img: prediction ndarray
     :param path: path for the prediction to be saved.
     """
-    img[-1][-1] = 1
+
     unique, counts = np.unique(img, return_counts=True)
     print(dict(zip(unique, counts)))
     values = ["UnknownRegion", "caption", "table", "article", "heading", "header", "separator (vertical)",
               "separator (short)", "separator (horizontal)"]
+    for i in range(len(values)):
+        img[-1][-(i+1)] = (i+1)
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
     plt.axis('off')
     # create a patch (proxy artist) for every color
@@ -57,9 +59,11 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--model-path', '-m', type=str,
                         default="model.pt",
                         help='path to model .pt file')
-    parser.add_argument('--cuda-device', '-c', type=str, default="cuda",
+    parser.add_argument('--transkribus-export', '-e', dest="export", action='store_true',
+                        help='Create transkribus Page-XML file')
+    parser.add_argument('--cuda-device', '-c', type=str, default="cuda:0",
                         help='Cuda device string')
-    parser.add_argument('--threshold', '-t', type=float, default=0.6,
+    parser.add_argument('--threshold', '-t', type=float, default=0.5,
                         help='Confidence threshold for assigning a label to a pixel.')
     return parser.parse_args()
 
@@ -85,16 +89,18 @@ def predict():
     print(f"Using {device} device")
     file_names = os.listdir(args.data_path)
     model = train.init_model(args.model_path)
-    model.eval()
     model.to(device)
     for file in tqdm(file_names, desc='predicting images', total=len(file_names), unit='files'):
         image = load_image(file)
 
         pred = np.squeeze(model(image.to(device)).detach().cpu().numpy())
-        draw_prediction(process_prediction(pred, args.threshold), args.result_path + os.path.splitext(file)[0] + '.png')
+        pred = process_prediction(pred, args.threshold)
+        draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + '.png')
+        if args.export:
+            prediction_to_polygons(pred)
 
 
-def process_prediction(pred: ndarray, threshold: float = 0.6) -> ndarray:
+def process_prediction(pred: ndarray, threshold: float) -> ndarray:
     """
     Apply argmax to prediction, and assign label 0 to all pixel that have a confidence below the threshold.
     :param pred: prediction

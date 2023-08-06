@@ -13,5 +13,5 @@ class TestClassExport:
                                       [[0.0, 0.6, 0.4], [0.05, 0.05, 0.9], [0.01, 0.59, 0.4]]]), (2, 0, 1))
         ground_truth = np.array([[0, 1, 1], [1, 2, 0]])
 
-        result = predict.process_prediction(data)
+        result = predict.process_prediction(data, 0.6)
         assert np.all(result == ground_truth)
