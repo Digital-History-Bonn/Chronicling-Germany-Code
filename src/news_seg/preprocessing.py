@@ -5,8 +5,9 @@
 from typing import Tuple
 
 import numpy as np
-from PIL import Image  # type: ignore
 from numpy import ndarray
+from PIL import Image  # type: ignore
+from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
 from skimage.util.shape import view_as_windows  # type: ignore
 
 SCALE = 1
@@ -22,8 +23,14 @@ class Preprocessing:
     class for preprocessing newspaper images and targets
     """
 
-    def __init__(self, scale=SCALE, expansion: int = EXPANSION,
-                 crop_factor: float = CROP_FACTOR, crop_size: int = CROP_SIZE, crop: bool = True):
+    def __init__(
+        self,
+        scale=SCALE,
+        expansion: int = EXPANSION,
+        crop_factor: float = CROP_FACTOR,
+        crop_size: int = CROP_SIZE,
+        crop: bool = True,
+    ):
         """
         :param scale: (default: 4)
         :param expansion: (default: 5) number of time the image must be scaled to
@@ -31,12 +38,14 @@ class Preprocessing:
         :param crop_size: width and height of crop
         """
         self.scale = scale
-        self.expansion = 2 ** expansion
+        self.expansion = 2**expansion
         self.crop_factor = crop_factor
         self.crop_size = crop_size
         self.crop = crop
 
-    def __call__(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def __call__(
+        self, image: Image, target: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         preprocess for image with annotations
         :param image: image
@@ -59,17 +68,20 @@ class Preprocessing:
         :return:
         """
         # load image
-        image = Image.open(f"{input_path}").convert('RGB')
+        image = Image.open(f"{input_path}").convert("RGB")
 
         # load target
         target = np.load(f"{target_path}")
 
-        assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], \
-            f"image {file=} has shape {image.size}, but target has shape {target.shape}"
+        assert (
+            image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
+        ), f"image {file=} has shape {image.size}, but target has shape {target.shape}"
 
         return image, target
 
-    def _scale_img(self, image: Image, target: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _scale_img(
+        self, image: Image, target: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         scales down all given images and target by scale
         :param image (Image): image
@@ -82,10 +94,10 @@ class Preprocessing:
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
-        image = image.resize(shape, resample=Image.BICUBIC)
+        image = image.resize(shape, resample=BICUBIC)
 
         target_img = Image.fromarray(target.astype(np.uint8))
-        target_img = target_img.resize(shape, resample=Image.NEAREST)
+        target_img = target_img.resize(shape, resample=NEAREST)
 
         image, target = np.array(image), np.array(target_img)  # type: ignore
 
@@ -97,12 +109,24 @@ class Preprocessing:
         :param data: ndarray containing image and target
         :return: ndarray of crops
         """
-        windows = np.array(view_as_windows(data, (data.shape[0], self.crop_size, self.crop_size),
-                                           step=int(self.crop_size // self.crop_factor)))
-        windows = np.reshape(windows,
-                             (np.prod(windows.shape[:3]), windows.shape[3], windows.shape[4], windows.shape[5]))
+        windows = np.array(
+            view_as_windows(
+                data,
+                (data.shape[0], self.crop_size, self.crop_size),
+                step=int(self.crop_size // self.crop_factor),
+            )
+        )
+        windows = np.reshape(
+            windows,
+            (
+                np.prod(windows.shape[:3]),
+                windows.shape[3],
+                windows.shape[4],
+                windows.shape[5],
+            ),
+        )
         return windows
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

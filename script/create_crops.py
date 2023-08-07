@@ -7,7 +7,7 @@ import os
 import torch
 from tqdm import tqdm  # type: ignore
 
-from preprocessing import Preprocessing
+from src.news_seg.preprocessing import Preprocessing
 
 INPUT = "DataBonn/Images/"
 TARGETS = "DataBonn/targets/"
@@ -20,7 +20,7 @@ def main():
     and target"""
     preprocessing = Preprocessing()
 
-    if args.dataset == 'transcribus':
+    if args.dataset == "transcribus":
         extension = ".jpg"
         get_file_name = lambda name: f"{name}.npy"
     else:
@@ -32,9 +32,10 @@ def main():
     print(f"{len(paths)=}")
 
     # iterate over files
-    for file in tqdm(paths, desc='cropping images', unit='image'):
-
-        image, target = preprocessing.load(f"{INPUT}{file}{extension}", f"{TARGETS}{get_file_name(file)}", f"{file}")
+    for file in tqdm(paths, desc="cropping images", unit="image"):
+        image, target = preprocessing.load(
+            f"{INPUT}{file}{extension}", f"{TARGETS}{get_file_name(file)}", f"{file}"
+        )
         # preprocess / create crops
         img_crops, tar_crops = preprocessing(image, target)
 
@@ -49,13 +50,18 @@ def main():
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description='creates targets from annotation xmls')
-    parser.add_argument('--dataset', '-d', type=str, default='transcribus', help='select dataset to crop '
-                                                                                 '(transcribus, HLNA2013)')
+    parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
+    parser.add_argument(
+        "--dataset",
+        "-d",
+        type=str,
+        default="transcribus",
+        help="select dataset to crop " "(transcribus, HLNA2013)",
+    )
 
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_args()
     main()
