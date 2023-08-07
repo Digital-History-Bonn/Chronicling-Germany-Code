@@ -16,12 +16,12 @@ class TestClassNewsdataset:
     def setup(self):
         "will initiate NewsDataset for every test"
         pytest.news_dataset = NewsDataset(path=f"{DATA_PATH}data/")
+        pytest.news_dataset.file_names.sort()
 
     def test_init(self):
         """verify file names list and length"""
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
-            pytest.news_dataset.file_names.sort()
             assert pytest.news_dataset.file_names == ground_truth and len(pytest.news_dataset) == 10
 
     def test_getitem(self):
