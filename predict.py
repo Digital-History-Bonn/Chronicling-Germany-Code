@@ -2,6 +2,7 @@
 
 import argparse
 import os
+from typing import Tuple, List, Dict
 
 import matplotlib.patches as mpatches  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
@@ -100,18 +101,30 @@ def predict():
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + '.png')
         if args.export:
             segmentations = prediction_to_polygons(pred)
-            polygon_pred = np.zeros(pred.shape, dtype="uint8")
-            for label, segmentation in segmentations.items():
-                for polygon in segmentation:
-                    polygon = np.reshape(polygon, (-1, 2))
-                    x_coords, y_coords = draw.polygon(polygon[0], polygon[1])
-                    polygon_pred[x_coords, y_coords] = label
+            polygon_pred = draw_polygons(segmentations, pred.shape)
             draw_prediction(polygon_pred, args.result_path + f"{os.path.splitext(file)[0]}_polygons" + '.png')
+
+
+def draw_polygons(segmentations: Dict[int, List[ndarray]], shape: Tuple[int,int]) -> ndarray:
+    """
+    Takes segmentation dictionary and draws polygons with assigned labels into a new image.
+    :param shape: shape of original image
+    :param segmentations: dictionary assigning labels to polygon lists
+    :return: result image as ndarray
+    """
+
+    polygon_pred = np.zeros(shape, dtype="uint8")
+    for label, segmentation in segmentations.items():
+        for polygon in segmentation:
+            polygon = np.reshape(polygon, (-1, 2)).T
+            x_coords, y_coords = draw.polygon(polygon[1], polygon[0])
+            polygon_pred[x_coords, y_coords] = label
+    return polygon_pred
 
 
 def process_prediction(pred: ndarray, threshold: float) -> ndarray:
     """
-    Apply argmax to prediction, and assign label 0 to all pixel that have a confidence below the threshold.
+    Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
     :param threshold: confidence threshold for prediction
     :param pred: prediction
     :return:

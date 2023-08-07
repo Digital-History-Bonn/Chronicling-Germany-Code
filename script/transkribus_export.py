@@ -1,9 +1,11 @@
+"""Module contains polygon conversion and export functions."""
+from typing import Dict, List
+
 import numpy as np  # type: ignore
 from PIL import Image  # type: ignore
 from numpy import ndarray
 from shapely.geometry import Polygon  # type: ignore
 from skimage import measure  # type: ignore
-from typing import Dict, List
 
 
 def create_sub_masks(mask_image: Image):
@@ -13,10 +15,10 @@ def create_sub_masks(mask_image: Image):
 
     # Initialize a dictionary of sub-masks indexed by RGB colors
     sub_masks= {}
-    for x in range(width):
-        for y in range(height):
+    for pos_x in range(width):
+        for pos_y in range(height):
             # Get the RGB values of the pixel
-            pixel = mask_image.getpixel((x, y))
+            pixel = mask_image.getpixel((pos_x, pos_y))
 
             # If the pixel is not black...
             if pixel != 0:
@@ -30,7 +32,7 @@ def create_sub_masks(mask_image: Image):
                     sub_masks[pixel] = Image.new('1', (width + 2, height + 2))
 
                 # Set the pixel value to 1 (default is 0), accounting for padding
-                sub_masks[pixel].putpixel((x + 1, y + 1), 1)
+                sub_masks[pixel].putpixel((pos_x + 1, pos_y + 1), 1)
 
     return sub_masks
 
@@ -61,7 +63,7 @@ def create_polygons(sub_mask: ndarray) -> List[ndarray]:
     return segmentations
 
 
-def prediction_to_polygons(pred: ndarray):
+def prediction_to_polygons(pred: ndarray) -> Dict[int, List[ndarray]]:
     """
     Converts prediction int ndarray to a dictionary of polygons
     :param pred:
