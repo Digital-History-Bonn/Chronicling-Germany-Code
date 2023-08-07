@@ -21,7 +21,7 @@ class TestClassNewsdataset:
         """verify file names list and length"""
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
-            assert pytest.news_dataset.file_names == ground_truth and len(pytest.news_dataset) == 10
+            assert pytest.news_dataset.file_names.sort() == ground_truth and len(pytest.news_dataset) == 10
 
     def test_getitem(self):
         """Verify get_item. Particulary important is, that data ist in the right format.
