@@ -93,7 +93,7 @@ class Block(nn.Module):
         """
         string = "Block: (\n"
         for layer in self.layers:
-            string += f"\t {layer}\n"
+            string.join(f"\t {layer}\n")
         return string + ")"
 
 

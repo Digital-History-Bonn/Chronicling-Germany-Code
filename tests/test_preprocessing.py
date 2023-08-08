@@ -62,7 +62,7 @@ class TestClassPreprocessing:
         target = np.random.randint(0, 10, (size, size))
 
         pytest.preprocessing.scale = 0.5
-        result_image, result_target = pytest.preprocessing._scale_img(
+        result_image, result_target = pytest.preprocessing.scale_img(
             image, target
         )  # pylint: disable=protected-access
 
@@ -71,7 +71,7 @@ class TestClassPreprocessing:
         assert result_target.shape == (result_size, result_size)
 
         pytest.preprocessing.scale = 1
-        result_image, result_target = pytest.preprocessing._scale_img(
+        result_image, result_target = pytest.preprocessing.scale_img(
             image, target
         )  # pylint: disable=protected-access
 
@@ -87,7 +87,7 @@ class TestClassPreprocessing:
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
 
-        windows = pytest.preprocessing._crop_img(
+        windows = pytest.preprocessing.crop_img(
             image
         )  # pylint: disable=protected-access
 

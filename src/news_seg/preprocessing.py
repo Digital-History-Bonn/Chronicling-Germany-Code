@@ -53,10 +53,10 @@ class Preprocessing:
         :return: image, target
         """
         # scale
-        image, target = self._scale_img(image, target)
+        image, target = self.scale_img(image, target)
 
         if self.crop:
-            data = self._crop_img(np.concatenate((image, target[np.newaxis, :, :])))
+            data = self.crop_img(np.concatenate((image, target[np.newaxis, :, :])))
             return data[:, :-1], data[:, -1]
         return image, target
 
@@ -79,7 +79,7 @@ class Preprocessing:
 
         return image, target
 
-    def _scale_img(
+    def scale_img(
         self, image: Image, target: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -103,7 +103,7 @@ class Preprocessing:
 
         return np.transpose(image, (2, 0, 1)), target
 
-    def _crop_img(self, data: ndarray) -> ndarray:
+    def crop_img(self, data: ndarray) -> ndarray:
         """
         Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
         :param data: ndarray containing image and target
