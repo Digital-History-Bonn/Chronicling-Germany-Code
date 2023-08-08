@@ -5,12 +5,12 @@ import argparse
 import json
 import os
 
-import draw_img
 import numpy as np
 from skimage import io  # type: ignore
 from tqdm import tqdm  # type: ignore
 
-from src.news_seg import read_xml
+from script import draw_img
+from script import read_xml
 
 INPUT = "../Data/input_back/"
 OUTPUT = "../Data/Targets_back/"

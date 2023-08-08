@@ -4,7 +4,7 @@ import json
 import pytest
 import torch
 
-from src.news_seg.news_dataset import NewsDataset
+from src.news_seg.news_dataset import NewsDataset  # type: ignore
 
 DATA_PATH = "./tests/data/newsdataset/"
 
@@ -14,7 +14,7 @@ class TestClassNewsdataset:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        "will initiate NewsDataset for every test"
+        """will initiate NewsDataset for every test"""
         pytest.news_dataset = NewsDataset(path=f"{DATA_PATH}data/")
         pytest.news_dataset.file_names.sort()
 
