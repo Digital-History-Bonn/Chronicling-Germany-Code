@@ -7,7 +7,7 @@ import sklearn  # type: ignore
 import torch
 from numpy import ndarray
 from PIL import Image  # type: ignore
-from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
+from PIL.Image import BICUBIC  # type: ignore # pylint: disable=no-name-in-module
 
 
 def multi_class_csi(

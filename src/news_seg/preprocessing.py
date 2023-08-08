@@ -5,9 +5,10 @@
 from typing import Tuple
 
 import numpy as np
-from numpy import ndarray
+import numpy.typing as npt # type: ignore
 from PIL import Image  # type: ignore
-from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
+from PIL.Image import BICUBIC, NEAREST  # type: ignore # pylint: disable=no-name-in-module
+from numpy import ndarray
 from skimage.util.shape import view_as_windows  # type: ignore
 
 SCALE = 1
@@ -25,7 +26,7 @@ class Preprocessing:
 
     def __init__(
         self,
-        scale=SCALE,
+        scale: float = SCALE,
         expansion: int = EXPANSION,
         crop_factor: float = CROP_FACTOR,
         crop_size: int = CROP_SIZE,
@@ -44,8 +45,8 @@ class Preprocessing:
         self.crop = crop
 
     def __call__(
-        self, image: Image, target: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, image: Image, target: npt.NDArray[np.uint]
+    ) -> Tuple[npt.NDArray[np.single], npt.NDArray[np.uint]]:
         """
         preprocess for image with annotations
         :param image: image
