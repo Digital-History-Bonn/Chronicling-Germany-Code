@@ -7,7 +7,7 @@ import os
 import torch
 from tqdm import tqdm  # type: ignore
 
-from src.news_seg.preprocessing import Preprocessing
+from src.news_seg.preprocessing import Preprocessing  # type: ignore
 
 INPUT = "DataBonn/Images/"
 TARGETS = "DataBonn/targets/"
@@ -22,10 +22,13 @@ def main():
 
     if args.dataset == "transcribus":
         extension = ".jpg"
-        get_file_name = lambda name: f"{name}.npy"
+
+        def get_file_name(name: str):
+            return f"{name}.npy"
     else:
         extension = ".tif"
-        get_file_name = lambda name: f"pc-{file}.npy"
+        def get_file_name(name: str):
+            return f"pc-{name}.npy"
 
     # read all file names
     paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(extension)]
