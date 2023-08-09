@@ -12,7 +12,7 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize  # type: ignore
 
 # pylint: disable=locally-disabled, import-error
-from utils import replace_substrings  # type: ignore
+from utils import replace_substrings # type: ignore
 
 # as this is code obtained from pytorch docstrings are not added
 
