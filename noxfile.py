@@ -39,6 +39,7 @@ def mypy(session):
         "--strict",
         "--no-warn-return-any",
         "--explicit-package-bases",
+        "--namespace-packages",
         "src",
     )
 
