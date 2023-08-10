@@ -9,11 +9,6 @@ from tqdm import tqdm  # type: ignore
 
 from src.news_seg.preprocessing import Preprocessing  # type: ignore
 
-INPUT = "DataBonn/Images/"
-TARGETS = "DataBonn/targets/"
-
-FOLDER = "cropsBonn/"
-
 
 def main():
     """Load image and target data and saves single crops as torch tensor. Tensor contains 4 dimension, 3 for RGB image
@@ -27,17 +22,18 @@ def main():
             return f"{name}.npy"
     else:
         extension = ".tif"
+
         def get_file_name(name: str):
             return f"pc-{name}.npy"
 
     # read all file names
-    paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(extension)]
+    paths = [f[:-4] for f in os.listdir(args.images) if f.endswith(extension)]
     print(f"{len(paths)=}")
 
     # iterate over files
     for file in tqdm(paths, desc="cropping images", unit="image"):
         image, target = preprocessing.load(
-            f"{INPUT}{file}{extension}", f"{TARGETS}{get_file_name(file)}", f"{file}"
+            f"{args.images}{file}{extension}", f"{args.targets}{get_file_name(file)}", f"{file}"
         )
         # preprocess / create crops
         img_crops, tar_crops = preprocessing(image, target)
@@ -48,7 +44,7 @@ def main():
 
             data = torch.cat((img_crop, tar_crop[None, :]), dim=0)
 
-            torch.save(data, f"{FOLDER}{file}_{i}.pt")
+            torch.save(data, f"{args.output}{file}_{i}.pt")
 
 
 def get_args() -> argparse.Namespace:
@@ -62,7 +58,27 @@ def get_args() -> argparse.Namespace:
         default="transcribus",
         help="select dataset to crop " "(transcribus, HLNA2013)",
     )
-
+    parser.add_argument(
+        "--images",
+        "-i",
+        type=str,
+        default="data/images/",
+        help="Image input folder",
+    )
+    parser.add_argument(
+        "--targets",
+        "-t",
+        type=str,
+        default="data/targets/",
+        help="Target input folder",
+    )
+    parser.add_argument(
+        "--output",
+        "-c",
+        type=str,
+        default="output/",
+        help="Output folder",
+    )
     return parser.parse_args()
 
 

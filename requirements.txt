@@ -7,7 +7,7 @@ tqdm
 beautifulsoup4
 scikit-image
 pytest
-mypy == 0.982
+mypy
 pylint
 tensorflow
 tensorboard

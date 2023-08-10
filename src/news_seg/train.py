@@ -5,7 +5,7 @@ module for training the hdSegment Model
 import argparse
 import datetime
 import warnings
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy as np
 import tensorflow as tf  # type: ignore
@@ -138,7 +138,7 @@ class Trainer:
             weight=torch.tensor(LOSS_WEIGHTS).to(self.device)
         )
 
-    def train(self, epochs: int = 1):
+    def train(self, epochs: int = 1) -> None:
         """
         executes all training epochs. After each epoch a validation round is performed.
         :param epochs: number of epochs that will be executed
@@ -212,7 +212,7 @@ class Trainer:
 
         self.validation(test_validation=True)
 
-    def validation(self, test_validation: bool = False):
+    def validation(self, test_validation: bool = False) -> Tuple[float, float]:
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
         jaccard score, accuracy and multiclass accuracy are calculated over the validation set. Multiclass accuracy
@@ -271,7 +271,7 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss, jaccard, accuracy, class_accs, test_validation: bool):
+    def val_logging(self, loss, jaccard, accuracy, class_accs, test_validation: bool) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
         :param test_validation: if true the test dataset will be used for validation

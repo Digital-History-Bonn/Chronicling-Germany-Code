@@ -3,7 +3,7 @@ Module contains a U-Net Model. The model is a replica of the dhSegment model fro
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
-from typing import Iterator, List, Tuple
+from typing import Iterator, List, Tuple, Union
 
 import torch
 from torch import nn
@@ -59,7 +59,7 @@ class Block(nn.Module):
     Encoder Block
     """
 
-    def __init__(self, layers, planes: int, conv_out: bool = False):
+    def __init__(self, layers: List[nn.Module], planes: int, conv_out: bool = False):
         """
         Encoder Block
         :param layers: List of layers (Bottleneck)
@@ -86,7 +86,7 @@ class Block(nn.Module):
 
         return out_x, copy
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         representation of the Module if model is printed
         :return: string representation
@@ -141,7 +141,7 @@ class Bottleneck(nn.Module):
             inplanes: int,
             planes: int,
             stride: int = 1,
-            downsample=None,
+            downsample: Union[nn.Module, None]=None,
             groups: int = 1,
             base_width: int = 64,
             dilation: int = 1,
@@ -213,9 +213,9 @@ class DhSegment(nn.Module):
             groups: int = 1,
             width_per_group: int = 64,
             replace_stride_with_dilation=None,
-            norm_layer=None,
+            norm_layer: Union[nn.Module, None] = None,
             load_resnet_weights: bool = False,
-    ):
+    ) -> None:
         """
         DhSegment Model
         :param layers: List with numbers of Bottleneck-Layer per Block in Encoder
@@ -295,13 +295,13 @@ class DhSegment(nn.Module):
         self.register_buffer("stds", torch.tensor([1] * in_channels))
         self.normalize = normalize
 
-    def freeze_encoder(self, requires_grad: bool = False):
+    def freeze_encoder(self, requires_grad: bool = False) -> None:
         """
         Set requires grad of encoder to True or False. Freezes encoder weights
         :param requires_grad: freezes encoder weights if false else unfreezes the weights
         """
 
-        def freeze(params: Iterator[Parameter]):
+        def freeze(params: Iterator[Parameter]) -> None:
             for param in params:
                 param.requires_grad_(requires_grad)
 
@@ -411,7 +411,7 @@ class DhSegment(nn.Module):
         """
         return self._forward_impl(tensor_x)
 
-    def save(self, path):
+    def save(self, path: str):
         """
         saves the model weights
         :param path: path to savepoint
@@ -421,7 +421,7 @@ class DhSegment(nn.Module):
             return
         torch.save(self.state_dict(), path + ".pt")
 
-    def load(self, path):
+    def load(self, path: str):
         """
         load the model weights
         :param path: path to savepoint
@@ -442,7 +442,7 @@ class DhSegment(nn.Module):
         prediction = torch.squeeze(pred / self.out_channel)
         return prediction
 
-    def _load_resnet(self):
+    def _load_resnet(self) -> None:
         """
         loads the weights of the pretrained ResNet
         :return: None
