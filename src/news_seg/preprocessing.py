@@ -5,11 +5,11 @@
 from typing import Tuple
 
 import numpy as np
-import numpy.typing as npt # type: ignore
-from PIL import Image  # type: ignore
-from PIL.Image import BICUBIC, NEAREST  # type: ignore # pylint: disable=no-name-in-module
+import numpy.typing as npt
+from PIL import Image
+from PIL.Image import BICUBIC, NEAREST # pylint: disable=no-name-in-module
 from numpy import ndarray
-from skimage.util.shape import view_as_windows  # type: ignore
+from skimage.util.shape import view_as_windows
 
 SCALE = 1
 EXPANSION = 5
@@ -61,7 +61,7 @@ class Preprocessing:
             return data[:, :-1], data[:, -1]
         return image, target
 
-    def load(self, input_path, target_path, file):
+    def load(self, input_path: str, target_path: str, file: str):
         """Load image and target
         :param input_path: path to input image
         :param target_path: path to target
@@ -100,7 +100,7 @@ class Preprocessing:
         target_img = Image.fromarray(target.astype(np.uint8))
         target_img = target_img.resize(shape, resample=NEAREST)
 
-        image, target = np.array(image), np.array(target_img)  # type: ignore
+        image, target = np.array(image), np.array(target_img)
 
         return np.transpose(image, (2, 0, 1)), target
 

@@ -3,11 +3,11 @@ import warnings
 from typing import Dict
 
 import numpy as np
-import sklearn  # type: ignore
+import sklearn
 import torch
 from numpy import ndarray
-from PIL import Image  # type: ignore
-from PIL.Image import BICUBIC  # type: ignore # pylint: disable=no-name-in-module
+from PIL import Image
+from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
 
 
 def multi_class_csi(
@@ -36,7 +36,7 @@ def multi_class_csi(
     return csi
 
 
-def get_file(file: str, scale=0.25) -> torch.Tensor:
+def get_file(file: str, scale: float=0.25) -> torch.Tensor:
     """
     loads a image as tensor
     :param file: path to file
@@ -55,7 +55,7 @@ def get_file(file: str, scale=0.25) -> torch.Tensor:
     return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)
 
 
-def replace_substrings(string: str, replacements: Dict[str, str]):
+def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
     """replaces substring (string) with replacements
     :param string: string with the substring(s) to replace
     :param replacements: dict with all substrings and there replacements

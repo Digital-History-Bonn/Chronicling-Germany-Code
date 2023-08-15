@@ -3,7 +3,7 @@ Module contains a U-Net Model. The model is a replica of the dhSegment model fro
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
-from typing import Iterator, List, Tuple, Union
+from typing import Iterator, List, Tuple, Union, Any
 
 import torch
 from torch import nn
@@ -141,11 +141,11 @@ class Bottleneck(nn.Module):
             inplanes: int,
             planes: int,
             stride: int = 1,
-            downsample: Union[nn.Module, None]=None,
+            downsample: Union[nn.Module, None] = None,
             groups: int = 1,
             base_width: int = 64,
             dilation: int = 1,
-            norm_layer=None,
+            norm_layer=nn.BatchNorm2d,
     ):
         """
         Bottleneck Layer from ResNet
@@ -159,8 +159,6 @@ class Bottleneck(nn.Module):
         :param norm_layer: Layer for Normalization default is BatchNorm2d
         """
         super().__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.0)) * groups
         self.conv1 = conv1x1(inplanes, width)
         self.bn1 = norm_layer(width)
@@ -212,8 +210,8 @@ class DhSegment(nn.Module):
             out_channel: int = 3,
             groups: int = 1,
             width_per_group: int = 64,
-            replace_stride_with_dilation=None,
-            norm_layer = nn.BatchNorm2d,
+            replace_stride_with_dilation: Union[Tuple[bool, bool, bool], None] = None,
+            norm_layer=nn.BatchNorm2d,
             load_resnet_weights: bool = False,
     ) -> None:
         """
@@ -223,21 +221,21 @@ class DhSegment(nn.Module):
         :param out_channel: Number of output-channels (number of predicted classes)
         :param groups: groups for convolutional Layer
         :param width_per_group: base_width of bottleneck-Layer
-        :param replace_stride_with_dilation:
+        :param replace_stride_with_dilation: each element in the tuple indicates if we should replace the 2x2 stride
+        with a dilated convolution instead
         :param norm_layer: Layer for Normalization default is BatchNorm2d
         :param load_resnet_weights: Loads weights form pretrained model if True
         """
         super().__init__()
         self.out_channel = out_channel
 
+        if replace_stride_with_dilation is None:
+            replace_stride_with_dilation = [False, False, False]
+
         self._norm_layer = norm_layer
         self.first_channels = 64
 
         self.dilation = 1
-        if replace_stride_with_dilation is None:
-            # each element in the tuple indicates if we should replace
-            # the 2x2 stride with a dilated convolution instead
-            replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
             raise ValueError(
                 "replace_stride_with_dilation should be None "
@@ -409,17 +407,17 @@ class DhSegment(nn.Module):
         """
         return self._forward_impl(tensor_x)
 
-    def save(self, path: Union[str, None]):
+    def save(self, path: Union[str, None]) -> None:
         """
         saves the model weights
         :param path: path to savepoint
         :return: None
         """
-        if path is None or path is False:
+        if path is None:
             return
         torch.save(self.state_dict(), path + ".pt")
 
-    def load(self, path: Union[str, None]):
+    def load(self, path: Union[str, None]) -> None:
         """
         load the model weights
         :param path: path to savepoint
@@ -471,9 +469,7 @@ class DhSegment(nn.Module):
         self.load_state_dict(state_dict, strict=False)
 
 
-def _dh_segment(
-        arch: str, layers: List[int], pretrained: bool, progress: bool, **kwargs
-) -> nn.Module:
+def _dh_segment(arch: str, layers: List[int], pretrained: bool, progress: bool, **kwargs: Any) -> nn.Module:
     """
     create a dhSegment Model
     :param arch: Spring name of the ResNet-architecture for loading pretrained weights
@@ -491,8 +487,7 @@ def _dh_segment(
 
 
 def create_dh_segment(
-        pretrained: bool = False, progress: bool = True, **kwargs
-) -> nn.Module:
+        pretrained: bool = False, progress: bool = True, **kwargs: Any) -> nn.Module:
     """
     dhSegement Model from https://arxiv.org/abs/1804.10371
     :param pretrained: If True, returns a model pre-trained on ImageNet

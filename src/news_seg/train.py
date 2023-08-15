@@ -8,12 +8,12 @@ import warnings
 from typing import List, Union, Tuple
 
 import numpy as np
-import tensorflow as tf  # type: ignore
-import torch  # type: ignore
-from sklearn.metrics import accuracy_score, jaccard_score  # type: ignore
+import tensorflow as tf
+import torch
+from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from .model import DhSegment
 from .news_dataset import NewsDataset
@@ -44,6 +44,7 @@ LOSS_WEIGHTS: List[float] = [
 PREDICT_SCALE = 0.25
 PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
+
 # set random seed for reproducibility
 # torch.manual_seed(42)
 
@@ -52,11 +53,11 @@ class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
-        self,
-        load: Union[str, None] = None,
-        save_model: Union[str, None] = None,
-        batch_size: int = BATCH_SIZE,
-        learningrate: float = LEARNING_RATE,
+            self,
+            load: Union[str, None] = None,
+            save_model: Union[str, None] = None,
+            batch_size: int = BATCH_SIZE,
+            learningrate: float = LEARNING_RATE,
     ):
         """
         Trainer-class to train DhSegment Model
@@ -153,9 +154,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                total=(len(self.train_loader)),
-                desc=f"Epoch {self.epoch}/{epochs}",
-                unit="batche(s)",
+                    total=(len(self.train_loader)),
+                    desc=f"Epoch {self.epoch}/{epochs}",
+                    unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -233,7 +234,7 @@ class Trainer:
         )
 
         for images, targets in tqdm(
-            loader, desc="validation_round", total=size, unit="batch(es)"
+                loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
@@ -271,7 +272,8 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss, jaccard, accuracy, class_accs, test_validation: bool) -> None:
+    def val_logging(self, loss: float, jaccard: float, accuracy: float, class_accs: List[float],
+                    test_validation: bool) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
         :param test_validation: if true the test dataset will be used for validation
