@@ -8,6 +8,7 @@ import warnings
 from typing import List, Union, Tuple
 
 import numpy as np
+from numpy import ndarray
 import tensorflow as tf
 import torch
 from sklearn.metrics import accuracy_score, jaccard_score
@@ -272,7 +273,7 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss: float, jaccard: float, accuracy: float, class_accs: List[float],
+    def val_logging(self, loss: float, jaccard: float, accuracy: float, class_accs: ndarray,
                     test_validation: bool) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.

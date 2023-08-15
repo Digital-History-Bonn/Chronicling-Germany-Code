@@ -145,7 +145,7 @@ class Bottleneck(nn.Module):
             groups: int = 1,
             base_width: int = 64,
             dilation: int = 1,
-            norm_layer=nn.BatchNorm2d,
+            norm_layer=nn.BatchNorm2d, # type: ignore
     ):
         """
         Bottleneck Layer from ResNet
@@ -210,8 +210,8 @@ class DhSegment(nn.Module):
             out_channel: int = 3,
             groups: int = 1,
             width_per_group: int = 64,
-            replace_stride_with_dilation: Union[Tuple[bool, bool, bool], None] = None,
-            norm_layer=nn.BatchNorm2d,
+            replace_stride_with_dilation: Tuple[bool, bool, bool] = (False, False, False),
+            norm_layer=nn.BatchNorm2d, # type: ignore
             load_resnet_weights: bool = False,
     ) -> None:
         """
@@ -228,9 +228,6 @@ class DhSegment(nn.Module):
         """
         super().__init__()
         self.out_channel = out_channel
-
-        if replace_stride_with_dilation is None:
-            replace_stride_with_dilation = [False, False, False]
 
         self._norm_layer = norm_layer
         self.first_channels = 64
@@ -423,7 +420,7 @@ class DhSegment(nn.Module):
         :param path: path to savepoint
         :return: None
         """
-        if path is None or path is False:
+        if path is None:
             return
         self.load_state_dict(torch.load(path))
         self.eval()

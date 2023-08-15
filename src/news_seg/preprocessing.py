@@ -61,7 +61,7 @@ class Preprocessing:
             return data[:, :-1], data[:, -1]
         return image, target
 
-    def load(self, input_path: str, target_path: str, file: str):
+    def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
         :param target_path: path to target
