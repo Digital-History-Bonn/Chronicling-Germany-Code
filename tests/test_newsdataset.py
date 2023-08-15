@@ -4,7 +4,7 @@ import json
 import pytest
 import torch
 
-from src.news_seg.news_dataset import NewsDataset  # type: ignore
+from src.news_seg.news_dataset import NewsDataset
 
 DATA_PATH = "./tests/data/newsdataset/"
 

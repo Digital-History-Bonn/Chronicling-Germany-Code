@@ -9,10 +9,10 @@ import torch
 from torch import nn
 from torch.hub import load_state_dict_from_url
 from torch.nn.parameter import Parameter
-from torchvision.transforms.functional import normalize  # type: ignore
+from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-from utils import replace_substrings # type: ignore
+from utils import replace_substrings
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -59,7 +59,7 @@ class Block(nn.Module):
     Encoder Block
     """
 
-    def __init__(self, layers: List[nn.Module], planes: int, conv_out: bool = False):
+    def __init__(self, layers: List[Bottleneck], planes: int, conv_out: bool = False):
         """
         Encoder Block
         :param layers: List of layers (Bottleneck)
@@ -213,7 +213,7 @@ class DhSegment(nn.Module):
             groups: int = 1,
             width_per_group: int = 64,
             replace_stride_with_dilation=None,
-            norm_layer: Union[nn.Module, None] = None,
+            norm_layer = nn.BatchNorm2d,
             load_resnet_weights: bool = False,
     ) -> None:
         """
@@ -230,8 +230,6 @@ class DhSegment(nn.Module):
         super().__init__()
         self.out_channel = out_channel
 
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
         self.first_channels = 64
 
@@ -372,7 +370,7 @@ class DhSegment(nn.Module):
                 )
             )
 
-        return Block(layers, planes, conv_out=conv_out)
+        return Block(layers, planes, conv_out)
 
     def _forward_impl(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
@@ -411,7 +409,7 @@ class DhSegment(nn.Module):
         """
         return self._forward_impl(tensor_x)
 
-    def save(self, path: str):
+    def save(self, path: Union[str, None]):
         """
         saves the model weights
         :param path: path to savepoint
@@ -421,7 +419,7 @@ class DhSegment(nn.Module):
             return
         torch.save(self.state_dict(), path + ".pt")
 
-    def load(self, path: str):
+    def load(self, path: Union[str, None]):
         """
         load the model weights
         :param path: path to savepoint

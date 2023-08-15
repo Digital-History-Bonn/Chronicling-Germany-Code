@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from PIL import Image  # type: ignore
+from PIL import Image
 
 from src.news_seg.preprocessing import Preprocessing
 
