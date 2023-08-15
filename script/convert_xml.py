@@ -4,13 +4,16 @@ Main Module for converting annotation xml files to numpy images
 import argparse
 import json
 import os
+from typing import Dict, List, Tuple
 
 import numpy as np
+from bs4 import BeautifulSoup
+from numpy import ndarray
 from skimage import io  # type: ignore
 from tqdm import tqdm  # type: ignore
 
-from draw_img import draw_img
-from read_xml import read_transcribus, read_hlna2013
+from draw_img import draw_img  # type: ignore
+from read_xml import read_transcribus, read_hlna2013  # type: ignore
 
 INPUT = "../Data/input_back/"
 OUTPUT = "../Data/Targets_back/"
@@ -24,7 +27,7 @@ def main():
     for path in tqdm(paths):
         annotation = read(f'{INPUT}{path}.xml')
         img = draw_img(annotation)
-        io.imsave(f'{OUTPUT}{path}.png', img/10)
+        io.imsave(f'{OUTPUT}{path}.png', img / 10)
 
         with open(f'{OUTPUT}{path}.json', 'w', encoding="utf-8") as file:
             json.dump(annotation, file)
@@ -61,6 +64,25 @@ def get_args() -> argparse.Namespace:
                                                                                  '(transcribus, HLNA2013)')
 
     return parser.parse_args()
+
+
+def create_xml(segmentations: Dict[int, List[ndarray]], file_name: str, size: Tuple[int, int]) -> BeautifulSoup:
+    """
+    Creates soup object containing Page Tag and Regions
+    :param segmentations: dictionary assigning labels to polygon lists
+    :param file_name: image file name
+    :param size: image size
+    """
+    soup = BeautifulSoup()
+    soup.append(soup.new_tag("Page", attrs={"imageFilename": file_name, "imageWidth": size[0], "imageHeight": size[1]}))
+    page = soup.Page
+    for i, (label, segmentation) in enumerate(segmentations.items()):
+        for polygon in segmentation:
+            region = soup.new_tag(
+                    "TextRegion", attrs={"custom": f"readingOrder {{index:{i};}} structure {{type:{label};}}"})
+            region.append(soup.new_tag("Coords", attrs={"points": str(polygon)}))
+            page.append(region)
+    return soup
 
 
 if __name__ == '__main__':

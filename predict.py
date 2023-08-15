@@ -16,6 +16,7 @@ from torchvision import transforms  # type: ignore
 from tqdm import tqdm  # type: ignore
 
 import train
+from script.convert_xml import create_xml
 from script.transkribus_export import prediction_to_polygons
 
 DATA_PATH = "data/newspaper/input/"
@@ -103,9 +104,10 @@ def predict():
             segmentations = prediction_to_polygons(pred)
             polygon_pred = draw_polygons(segmentations, pred.shape)
             draw_prediction(polygon_pred, args.result_path + f"{os.path.splitext(file)[0]}_polygons" + '.png')
+            create_xml(segmentations, file, polygon_pred.size)
 
 
-def draw_polygons(segmentations: Dict[int, List[ndarray]], shape: Tuple[int,int]) -> ndarray:
+def draw_polygons(segmentations: Dict[int, List[ndarray]], shape: Tuple[int, int]) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.
     :param shape: shape of original image
