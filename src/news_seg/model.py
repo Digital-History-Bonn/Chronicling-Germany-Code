@@ -144,8 +144,7 @@ class Bottleneck(nn.Module):
             downsample: Union[nn.Module, None] = None,
             groups: int = 1,
             base_width: int = 64,
-            dilation: int = 1,
-            norm_layer=nn.BatchNorm2d, # type: ignore
+            dilation: int = 1
     ):
         """
         Bottleneck Layer from ResNet
@@ -159,6 +158,7 @@ class Bottleneck(nn.Module):
         :param norm_layer: Layer for Normalization default is BatchNorm2d
         """
         super().__init__()
+        norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.0)) * groups
         self.conv1 = conv1x1(inplanes, width)
         self.bn1 = norm_layer(width)
@@ -211,8 +211,7 @@ class DhSegment(nn.Module):
             groups: int = 1,
             width_per_group: int = 64,
             replace_stride_with_dilation: Tuple[bool, bool, bool] = (False, False, False),
-            norm_layer=nn.BatchNorm2d, # type: ignore
-            load_resnet_weights: bool = False,
+            load_resnet_weights: bool = False
     ) -> None:
         """
         DhSegment Model
@@ -228,6 +227,8 @@ class DhSegment(nn.Module):
         """
         super().__init__()
         self.out_channel = out_channel
+
+        norm_layer = nn.BatchNorm2d
 
         self._norm_layer = norm_layer
         self.first_channels = 64
@@ -348,8 +349,7 @@ class DhSegment(nn.Module):
                 downsample,
                 self.groups,
                 self.base_width,
-                previous_dilation,
-                norm_layer,
+                previous_dilation
             )
         ]
         self.first_channels = planes * Bottleneck.expansion
@@ -360,8 +360,7 @@ class DhSegment(nn.Module):
                     planes,
                     groups=self.groups,
                     base_width=self.base_width,
-                    dilation=self.dilation,
-                    norm_layer=norm_layer,
+                    dilation=self.dilation
                 )
             )
 
