@@ -5,7 +5,7 @@ import nox
 @nox.session(name="test")
 def run_test(session):
     """Run pytest."""
-    session.install('-r', 'requirements.txt')
+    session.install("-r", "requirements.txt")
     session.install("pytest")
     session.run("pytest")
 
@@ -13,7 +13,7 @@ def run_test(session):
 @nox.session(name="fast-test")
 def run_test_fast(session):
     """Run pytest."""
-    session.install('-r', 'requirements.txt')
+    session.install("-r", "requirements.txt")
     session.install("pytest")
     session.run("pytest", "-m", "not slow")
 
@@ -21,15 +21,15 @@ def run_test_fast(session):
 @nox.session(name="lint")
 def lint(session):
     """Check code conventions."""
-    session.install('-r', 'requirements.txt')
+    session.install("-r", "requirements.txt")
     session.install("pylint")
-    session.run("pylint", "*.py", "tests")
+    session.run("pylint", "src", "tests", "script")
 
 
 @nox.session(name="typing")
 def mypy(session):
     """Check type hints."""
-    session.install('-r', 'requirements.txt')
+    session.install("-r", "requirements.txt")
     session.install("mypy")
     session.run(
         "mypy",
@@ -39,7 +39,8 @@ def mypy(session):
         "--strict",
         "--no-warn-return-any",
         "--explicit-package-bases",
-        "*.py",
+        "--namespace-packages",
+        "src",
     )
 
 
@@ -48,14 +49,14 @@ def format(session):
     """Fix common convention problems automatically."""
     session.install("black")
     session.install("isort")
-    session.run("isort", "src", "tests", "noxfile.py")
-    session.run("black", "src", "tests", "noxfile.py")
+    session.run("isort", "src", "script", "tests", "noxfile.py")
+    session.run("black", "src", "script", "tests", "noxfile.py")
 
 
 @nox.session(name="coverage")
 def check_coverage(session):
     """Check test coverage and generate a html report."""
-    session.install('-r', 'requirements.txt')
+    session.install("-r", "requirements.txt")
     session.install("pytest")
     session.install("coverage")
     try:
@@ -68,4 +69,3 @@ def check_coverage(session):
 def clean_coverage(session):
     """Remove the code coverage website."""
     session.run("rm", "-r", "htmlcov", external=True)
-

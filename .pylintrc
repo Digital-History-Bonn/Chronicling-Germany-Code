@@ -274,10 +274,10 @@ exclude-too-few-public-methods=
 ignored-parents=
 
 # Maximum number of arguments for function / method.
-max-args=7
+max-args=10
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=15
+max-attributes=25
 
 # Maximum number of boolean expressions in an if statement (see R0916).
 max-bool-expr=5
@@ -307,8 +307,8 @@ min-public-methods=2
 [EXCEPTIONS]
 
 # Exceptions that will emit a warning when caught.
-overgeneral-exceptions=BaseException,
-                       Exception
+overgeneral-exceptions=builtins.BaseException,
+                       builtins.Exception
 
 
 [FORMAT]
