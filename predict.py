@@ -17,6 +17,7 @@ from tqdm import tqdm  # type: ignore
 
 import train
 from script.convert_xml import create_xml
+from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons
 
 DATA_PATH = "data/newspaper/input/"
@@ -36,8 +37,7 @@ def draw_prediction(img: ndarray, path: str):
 
     unique, counts = np.unique(img, return_counts=True)
     print(dict(zip(unique, counts)))
-    values = ["UnknownRegion", "caption", "table", "article", "heading", "header", "separator (vertical)",
-              "separator (short)", "separator (horizontal)"]
+    values = LABEL_NAMES
     for i in range(len(values)):
         img[-1][-(i + 1)] = (i + 1)
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
@@ -56,15 +56,17 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='train')
     parser.add_argument('--data-path', '-p', type=str,
                         default=DATA_PATH,
-                        help='path for folder with images to be segmented')
+                        help='path for folder with images to be segmented. Images need to be png or jpg. Otherwise they'
+                             ' will be skipped')
     parser.add_argument('--result-path', '-r', type=str,
                         default=RESULT_PATH,
                         help='path for folder where prediction images are to be saved')
     parser.add_argument('--model-path', '-m', type=str,
                         default="model.pt",
                         help='path to model .pt file')
-    parser.add_argument('--transkribus-export', '-e', dest="export", action='store_true',
-                        help='Create transkribus Page-XML file')
+    parser.add_argument('--transkribus-export', '-e', dest="export", action="store_true",
+                        help='If True, annotation data ist added to xml files inside the page folder. The page folder '
+                             'needs to be inside the image folder.')
     parser.add_argument('--cuda-device', '-c', type=str, default="cuda:0",
                         help='Cuda device string')
     parser.add_argument('--threshold', '-t', type=float, default=0.5,
@@ -95,6 +97,8 @@ def predict():
     model = train.init_model(args.model_path)
     model.to(device)
     for file in tqdm(file_names, desc='predicting images', total=len(file_names), unit='files'):
+        if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
+            continue
         image = load_image(file)
 
         pred = np.squeeze(model(image.to(device)).detach().cpu().numpy())
@@ -104,7 +108,11 @@ def predict():
             segmentations = prediction_to_polygons(pred)
             polygon_pred = draw_polygons(segmentations, pred.shape)
             draw_prediction(polygon_pred, args.result_path + f"{os.path.splitext(file)[0]}_polygons" + '.png')
-            create_xml(segmentations, file, polygon_pred.size)
+            if args.export:
+                with open(f"{args.data_path}page/{os.path.splitext(file)[0]}.xml", 'r', encoding="utf-8") as xml_file:
+                    xml_data = create_xml(xml_file.read(), segmentations)
+                with open(f"{args.data_path}page/{os.path.splitext(file)[0]}.xml", 'w', encoding="utf-8") as xml_file:
+                    xml_file.write(xml_data.prettify())
 
 
 def draw_polygons(segmentations: Dict[int, List[ndarray]], shape: Tuple[int, int]) -> ndarray:
