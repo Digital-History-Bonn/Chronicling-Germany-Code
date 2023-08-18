@@ -81,11 +81,13 @@ def create_xml(xml_file: str, segmentations: Dict[int, List[List[float]]]) -> Be
     index = 0
     for label, segmentation in segmentations.items():
         for polygon in segmentation:
-            order_group.append(xml_data.new_tag("RegionRefIndexed", attrs={"index": str(index)}))
+            order_group.append(
+                xml_data.new_tag("RegionRefIndexed", attrs={"index": str(index), "regionRef": str(index)}))
             region = xml_data.new_tag(
                 "TextRegion",
-                attrs={"custom": f"readingOrder {{index:{index};}} structure {{type:{LABEL_NAMES[label]};}}"})
-            region.append(xml_data.new_tag("Coords", attrs={"points": list_to_str_int(polygon)}))
+                attrs={"id": str(index),
+                       "custom": f"readingOrder {{index:{index};}} structure {{type:{LABEL_NAMES[label]};}}"})
+            region.append(xml_data.new_tag("Coords", attrs={"points": polygon_to_string(polygon)}))
             page.append(region)
             index += 1
     order.append(order_group)
@@ -93,15 +95,16 @@ def create_xml(xml_file: str, segmentations: Dict[int, List[List[float]]]) -> Be
     return xml_data
 
 
-def list_to_str_int(input_list: List[float]) -> str:
+def polygon_to_string(input_list: List[float]) -> str:
     """
-    Converts a list to string, while converting each element in the list to an integer.
-    :param input_list: list with coordinates
-    :return: string
+    Converts a list to string, while converting each element in the list to an integer. X and y coordinates are
+    seperated by a comma, each pair is seperated from other coordinate pairs by a space. :param input_list: list with
+    coordinates :return: string
     """
-    input_map = map(int, input_list)
-    generator_expression = (str(element) for element in input_map)
-    string = ", ".join(generator_expression)
+    generator_expression = (f"{int(input_list[index])},{int(input_list[index + 1])}" for index in
+                            range(0, len(input_list), 2))
+    string = " ".join(generator_expression)
+
     return string
 
 
