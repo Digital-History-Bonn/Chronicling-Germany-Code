@@ -4,7 +4,7 @@ Module for converting region data into an image containing label values for each
 from typing import List, Tuple
 
 import numpy as np
-from skimage import draw  # type: ignore
+from skimage import draw
 
 LABEL_ASSIGNMENTS = {
     "UnknownRegion": 1,

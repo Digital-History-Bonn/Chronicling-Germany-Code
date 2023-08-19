@@ -3,7 +3,7 @@ Module contains read xml functions for all datasets. Data will be writen into a 
 mypy typing is ignored for this dictionary
 """
 import re
-from bs4 import BeautifulSoup, ResultSet  # type: ignore
+from bs4 import BeautifulSoup, ResultSet
 
 
 def read_transcribus(path: str):

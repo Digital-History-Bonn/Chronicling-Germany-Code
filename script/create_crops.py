@@ -5,14 +5,9 @@ import argparse
 import os
 
 import torch
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
-from preprocessing import Preprocessing
-
-INPUT = "DataBonn/Images/"
-TARGETS = "DataBonn/targets/"
-
-FOLDER = "cropsBonn/"
+from src.news_seg.preprocessing import Preprocessing
 
 
 def main():
@@ -20,21 +15,26 @@ def main():
     and target"""
     preprocessing = Preprocessing()
 
-    if args.dataset == 'transcribus':
+    if args.dataset == "transcribus":
         extension = ".jpg"
-        get_file_name = lambda name: f"{name}.npy"
+
+        def get_file_name(name: str):
+            return f"{name}.npy"
     else:
         extension = ".tif"
-        get_file_name = lambda name: f"pc-{file}.npy"
+
+        def get_file_name(name: str):
+            return f"pc-{name}.npy"
 
     # read all file names
-    paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(extension)]
+    paths = [f[:-4] for f in os.listdir(args.images) if f.endswith(extension)]
     print(f"{len(paths)=}")
 
     # iterate over files
-    for file in tqdm(paths, desc='cropping images', unit='image'):
-
-        image, target = preprocessing.load(f"{INPUT}{file}{extension}", f"{TARGETS}{get_file_name(file)}", f"{file}")
+    for file in tqdm(paths, desc="cropping images", unit="image"):
+        image, target = preprocessing.load(
+            f"{args.images}{file}{extension}", f"{args.targets}{get_file_name(file)}", f"{file}"
+        )
         # preprocess / create crops
         img_crops, tar_crops = preprocessing(image, target)
 
@@ -44,18 +44,44 @@ def main():
 
             data = torch.cat((img_crop, tar_crop[None, :]), dim=0)
 
-            torch.save(data, f"{FOLDER}{file}_{i}.pt")
+            torch.save(data, f"{args.output}{file}_{i}.pt")
 
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description='creates targets from annotation xmls')
-    parser.add_argument('--dataset', '-d', type=str, default='transcribus', help='select dataset to crop '
-                                                                                 '(transcribus, HLNA2013)')
-
+    # pylint: disable=locally-disabled, duplicate-code
+    parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
+    parser.add_argument(
+        "--dataset",
+        "-d",
+        type=str,
+        default="transcribus",
+        help="select dataset to crop " "(transcribus, HLNA2013)",
+    )
+    parser.add_argument(
+        "--images",
+        "-i",
+        type=str,
+        default="data/images/",
+        help="Image input folder",
+    )
+    parser.add_argument(
+        "--targets",
+        "-t",
+        type=str,
+        default="data/targets/",
+        help="Target input folder",
+    )
+    parser.add_argument(
+        "--output",
+        "-c",
+        type=str,
+        default="output/",
+        help="Output folder",
+    )
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_args()
     main()

@@ -9,8 +9,8 @@ from typing import List, Dict
 
 import numpy as np
 from bs4 import BeautifulSoup
-from skimage import io  # type: ignore
-from tqdm import tqdm  # type: ignore
+from skimage import io
+from tqdm import tqdm
 
 from script import draw_img
 from script import read_xml

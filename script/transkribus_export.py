@@ -1,11 +1,11 @@
 """Module contains polygon conversion and export functions."""
 from typing import Dict, List
 
-import numpy as np  # type: ignore
-from PIL import Image  # type: ignore
+import numpy as np
+from PIL import Image
 from numpy import ndarray
-from shapely.geometry import Polygon  # type: ignore
-from skimage import measure  # type: ignore
+from shapely.geometry import Polygon
+from skimage import measure
 
 
 def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:

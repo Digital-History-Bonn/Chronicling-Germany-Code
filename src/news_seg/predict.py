@@ -4,16 +4,16 @@ import argparse
 import os
 from typing import Tuple, List, Dict
 
-import matplotlib.patches as mpatches  # type: ignore
-import matplotlib.pyplot as plt  # type: ignore
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image  # type: ignore
+from PIL import Image
 from numpy import ndarray
 from skimage import draw
-from skimage.color import label2rgb  # type: ignore
-from torchvision import transforms  # type: ignore
-from tqdm import tqdm  # type: ignore
+from skimage.color import label2rgb
+from torchvision import transforms
+from tqdm import tqdm
 
 from src.news_seg import train
 from script.convert_xml import create_xml
@@ -39,7 +39,7 @@ def draw_prediction(img: ndarray, path: str):
     print(dict(zip(unique, counts)))
     values = LABEL_NAMES
     for i in range(len(values)):
-        img[-1][-(i + 1)] = (i + 1)
+        img[-1][-(i + 1)] = i + 1
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
     plt.axis('off')
     # create a patch (proxy artist) for every color
@@ -48,7 +48,7 @@ def draw_prediction(img: ndarray, path: str):
     plt.legend(handles=patches, loc=4)
     plt.autoscale(tight=True)
     plt.savefig(path, bbox_inches=0, pad_inches=0)
-    # plt.show()
+    plt.show()
 
 
 def get_args() -> argparse.Namespace:
