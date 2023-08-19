@@ -11,7 +11,7 @@ import torch
 from PIL import Image
 from numpy import ndarray
 from skimage import draw
-from skimage.color import label2rgb
+from skimage.color import label2rgb # pylint: disable=no-name-in-module
 from torchvision import transforms
 from tqdm import tqdm
 
