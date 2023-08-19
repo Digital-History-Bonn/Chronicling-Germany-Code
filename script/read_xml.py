@@ -8,7 +8,7 @@ from typing import Dict, List, Union, Tuple
 from bs4 import BeautifulSoup, ResultSet
 
 
-def read_transcribus(path: str) -> Dict[str, Union[List[int], Dict[str, List[List[str]]]]]:
+def read_transcribus(path: str) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
@@ -29,7 +29,7 @@ def read_transcribus(path: str) -> Dict[str, Union[List[int], Dict[str, List[Lis
 
 
 def find_regions(data: BeautifulSoup, tag: str, search_children: bool, child_tag: str,
-                 tags_dict: Dict[str, List[List[str]]]) -> Dict[str, List[List[str]]]:
+                 tags_dict: Dict[str, List[List[List[int]]]]) -> Dict[str, List[List[List[int]]]]:
     """
     returns dictionary with all coordinates of specified regions
     :param data: BeautifulSoup xml data
@@ -48,13 +48,13 @@ def find_regions(data: BeautifulSoup, tag: str, search_children: bool, child_tag
             region_type = region_type_matches.group(2)
         if region_type not in tags_dict:
             tags_dict[region_type] = []
-        tags_dict[region_type].append([str(pair.split(',')) for pair in region.Coords["points"].split()])
+        tags_dict[region_type].append([pair.split(',') for pair in region.Coords["points"].split()])
         if search_children:
             lines = region.find_all(child_tag)
             if child_tag not in tags_dict:
                 tags_dict[child_tag] = []
             for line in lines:
-                tags_dict[child_tag].append([str(pair.split(',')) for pair in line.Coords["points"].split()])
+                tags_dict[child_tag].append([pair.split(',') for pair in line.Coords["points"].split()])
     return tags_dict
 
 
@@ -89,7 +89,7 @@ def read_hlna2013(path: str) -> Dict[str, Union[List[int], Dict[str, List[List[T
 
 
 def get_coordinates(annotation: Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]],
-                    separator_regions: ResultSet, text_regions: ResultSet):
+                    separator_regions: ResultSet, text_regions: ResultSet) -> None:
     """Append coordinates to annotation dictionary
     :param annotation: dictionary to contain data
     :param separator_regions: set of coordinates in string format

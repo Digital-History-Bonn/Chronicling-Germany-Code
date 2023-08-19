@@ -30,7 +30,7 @@ def main() -> None:
     )
     paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
     for path in tqdm(paths):
-        annotation = read(f"{INPUT}{path}.xml")
+        annotation: dict = read(f"{INPUT}{path}.xml")  # type: ignore
         img = draw_img.draw_img(annotation)
         io.imsave(f"{OUTPUT}{path}.png", img / 10)
 

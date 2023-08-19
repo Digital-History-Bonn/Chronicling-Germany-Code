@@ -50,7 +50,7 @@ PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, bool]) -> DhSegment:
+def init_model(load: Union[str, None]) -> DhSegment:
     """
     Initialise model
     :param load: contains path to load the model from. If False, the model will be initialised randomly
