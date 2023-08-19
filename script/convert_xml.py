@@ -109,8 +109,10 @@ def create_xml(xml_file: str, segmentations: Dict[int, List[List[float]]]) -> Be
 def polygon_to_string(input_list: List[float]) -> str:
     """
     Converts a list to string, while converting each element in the list to an integer. X and y coordinates are
-     separated by a comma, each pair is separated from other coordinate pairs by a space. :param input_list: list with
-    coordinates :return: string
+    separated by a comma, each pair is separated from other coordinate pairs by a space. This format is required
+    for transkribus
+    :param input_list: list withcoordinates
+    :return: string
     """
     generator_expression = (f"{int(input_list[index])},{int(input_list[index + 1])}" for index in
                             range(0, len(input_list), 2))

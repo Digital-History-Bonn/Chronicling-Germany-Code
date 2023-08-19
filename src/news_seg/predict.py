@@ -48,7 +48,7 @@ def draw_prediction(img: ndarray, path: str):
     plt.legend(handles=patches, loc=4)
     plt.autoscale(tight=True)
     plt.savefig(path, bbox_inches=0, pad_inches=0)
-    plt.show()
+    # plt.show()
 
 
 def get_args() -> argparse.Namespace:

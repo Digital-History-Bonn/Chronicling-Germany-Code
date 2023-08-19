@@ -12,7 +12,7 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-from utils import replace_substrings
+from src.news_seg.utils import replace_substrings
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -52,6 +52,74 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     :param stride: stride for convolution
     """
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+
+class Bottleneck(nn.Module):
+    """
+    Bottleneck Layer from ResNet
+    """
+
+    expansion = 4
+
+    def __init__(
+            self,
+            inplanes: int,
+            planes: int,
+            stride: int = 1,
+            downsample: Union[nn.Module, None] = None,
+            groups: int = 1,
+            base_width: int = 64,
+            dilation: int = 1
+    ):
+        """
+        Bottleneck Layer from ResNet
+        :param inplanes: number of input feature-maps
+        :param planes: size of Bottleneck
+        :param stride: stride of conv3x3 Layer
+        :param downsample: Convolutional Layer for downsampling if input dim not the same as output dim
+        :param groups: groups for convolution
+        :param base_width: base_width of Bottleneck
+        :param dilation: dilation of conv3x3 Layer
+        """
+        super().__init__()
+        norm_layer = nn.BatchNorm2d
+        width = int(planes * (base_width / 64.0)) * groups
+        self.conv1 = conv1x1(inplanes, width)
+        self.bn1 = norm_layer(width)
+        self.conv2 = conv3x3(width, width, stride, groups, dilation)
+        self.bn2 = norm_layer(width)
+        self.conv3 = conv1x1(width, planes * self.expansion)
+        self.bn3 = norm_layer(planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
+        """
+        forward path of Bottleneck
+        :param tensor_x: input
+        :return: output
+        """
+        identity = tensor_x
+
+        out = self.conv1(tensor_x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(tensor_x)
+
+        out += identity
+        out = self.relu(out)
+
+        return torch.Tensor(out)
 
 
 class Block(nn.Module):
@@ -129,75 +197,6 @@ class UpScaleBlock(nn.Module):
         return torch.Tensor(self.relu(feat_x))
 
 
-class Bottleneck(nn.Module):
-    """
-    Bottleneck Layer from ResNet
-    """
-
-    expansion = 4
-
-    def __init__(
-            self,
-            inplanes: int,
-            planes: int,
-            stride: int = 1,
-            downsample: Union[nn.Module, None] = None,
-            groups: int = 1,
-            base_width: int = 64,
-            dilation: int = 1
-    ):
-        """
-        Bottleneck Layer from ResNet
-        :param inplanes: number of input feature-maps
-        :param planes: size of Bottleneck
-        :param stride: stride of conv3x3 Layer
-        :param downsample: Convolutional Layer for downsampling if input dim not the same as output dim
-        :param groups: groups for convolution
-        :param base_width: base_width of Bottleneck
-        :param dilation: dilation of conv3x3 Layer
-        :param norm_layer: Layer for Normalization default is BatchNorm2d
-        """
-        super().__init__()
-        norm_layer = nn.BatchNorm2d
-        width = int(planes * (base_width / 64.0)) * groups
-        self.conv1 = conv1x1(inplanes, width)
-        self.bn1 = norm_layer(width)
-        self.conv2 = conv3x3(width, width, stride, groups, dilation)
-        self.bn2 = norm_layer(width)
-        self.conv3 = conv1x1(width, planes * self.expansion)
-        self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
-        """
-        forward path of Bottleneck
-        :param tensor_x: input
-        :return: output
-        """
-        identity = tensor_x
-
-        out = self.conv1(tensor_x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            identity = self.downsample(tensor_x)
-
-        out += identity
-        out = self.relu(out)
-
-        return torch.Tensor(out)
-
-
 class DhSegment(nn.Module):
     """
     DhSegment Model
@@ -222,7 +221,6 @@ class DhSegment(nn.Module):
         :param width_per_group: base_width of bottleneck-Layer
         :param replace_stride_with_dilation: each element in the tuple indicates if we should replace the 2x2 stride
         with a dilated convolution instead
-        :param norm_layer: Layer for Normalization default is BatchNorm2d
         :param load_resnet_weights: Loads weights form pretrained model if True
         """
         super().__init__()

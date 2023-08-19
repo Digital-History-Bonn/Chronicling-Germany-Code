@@ -8,7 +8,7 @@ from shapely.geometry import Polygon  # type: ignore
 from skimage import measure  # type: ignore
 
 
-def create_sub_masks(mask_image: Image) -> Dict[int, Image]:
+def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
     """ Split prediction in to submasks.
     From https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset"""
     width, height = mask_image.size
@@ -48,8 +48,8 @@ def create_polygons(sub_mask: ndarray) -> List[List[float]]:
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
-        for i in enumerate(contour):
-            row, col = contour[i]
+        for i, coords in enumerate(contour):
+            row, col = coords
             contour[i] = (col - 1, row - 1)
 
         # Make a polygon and simplify it

@@ -45,7 +45,7 @@ class Preprocessing:
         self.crop = crop
 
     def __call__(
-        self, image: Image, target: npt.NDArray[np.uint]
+        self, image: Image.Image, target: npt.NDArray[np.uint]
     ) -> Tuple[npt.NDArray[np.single], npt.NDArray[np.uint]]:
         """
         preprocess for image with annotations
@@ -61,7 +61,7 @@ class Preprocessing:
             return data[:, :-1], data[:, -1]
         return image, target
 
-    def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image, ndarray]:
+    def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image.Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
         :param target_path: path to target
@@ -81,7 +81,7 @@ class Preprocessing:
         return image, target
 
     def scale_img(
-        self, image: Image, target: np.ndarray
+        self, image: Image.Image, target: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         scales down all given images and target by scale
