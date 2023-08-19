@@ -28,7 +28,7 @@ cmap = [(1.0, 0.0, 0.16), (1.0, 0.43843843843843844, 0.0), (0, 0.222, 0.222), (0
         (0.0422705314009658, 0.0, 1.0), (0.6461352657004831, 0.0, 1.0), (1.0, 0.0, 0.75)]
 
 
-def draw_prediction(img: ndarray, path: str):
+def draw_prediction(img: ndarray, path: str) -> None:
     """
     Draw prediction with legend. And save it.
     :param img: prediction ndarray
@@ -87,7 +87,7 @@ def load_image(file: str) -> torch.Tensor:
     return data
 
 
-def predict():
+def predict() -> None:
     """
     Loads all images from the data folder and predicts segmentation.
     """
@@ -115,7 +115,7 @@ def predict():
                     xml_file.write(xml_data.prettify())
 
 
-def draw_polygons(segmentations: Dict[int, List[ndarray]], shape: Tuple[int, int]) -> ndarray:
+def draw_polygons(segmentations: Dict[int, List[List[float]]], shape: Tuple[int, int]) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.
     :param shape: shape of original image
@@ -126,8 +126,8 @@ def draw_polygons(segmentations: Dict[int, List[ndarray]], shape: Tuple[int, int
     polygon_pred = np.zeros(shape, dtype="uint8")
     for label, segmentation in segmentations.items():
         for polygon in segmentation:
-            polygon = np.reshape(polygon, (-1, 2)).T
-            x_coords, y_coords = draw.polygon(polygon[1], polygon[0])
+            polygon_ndarray = np.reshape(polygon, (-1, 2)).T
+            x_coords, y_coords = draw.polygon(polygon_ndarray[1], polygon_ndarray[0])
             polygon_pred[x_coords, y_coords] = label
     return polygon_pred
 

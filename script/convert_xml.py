@@ -20,7 +20,7 @@ INPUT = "../Data/input_back/"
 OUTPUT = "../Data/Targets_back/"
 
 
-def main():
+def main() -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
     read = (
@@ -44,7 +44,7 @@ def main():
         np_save(f"{OUTPUT}{path}", img)
 
 
-def np_save(file: str, img: np.ndarray):
+def np_save(file: str, img: np.ndarray) -> None:
     """
     saves given image in outfile.npy
     :param file: name of the file without ending
@@ -53,7 +53,7 @@ def np_save(file: str, img: np.ndarray):
     np.save(f"{file}.npy", img)
 
 
-def img_save(file: str, img: np.ndarray):
+def img_save(file: str, img: np.ndarray) -> None:
     """
     saves given as outfile.png
     :param file: name of the file without ending
@@ -119,6 +119,7 @@ def polygon_to_string(input_list: List[float]) -> str:
     string = " ".join(generator_expression)
 
     return string
+
 
 if __name__ == "__main__":
     args = get_args()
