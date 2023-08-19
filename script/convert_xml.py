@@ -1,16 +1,20 @@
 """
-Main Module for converting annotation xml files to numpy images
+Main Module for converting annotation xml files to numpy images. Also contains backwards converting functions, which
+take polygon data and convert it to xml.
 """
 import argparse
 import json
 import os
+from typing import List, Dict
 
 import numpy as np
+from bs4 import BeautifulSoup
 from skimage import io  # type: ignore
 from tqdm import tqdm  # type: ignore
 
 from script import draw_img
 from script import read_xml
+from script.draw_img import LABEL_NAMES
 
 INPUT = "../Data/input_back/"
 OUTPUT = "../Data/Targets_back/"
@@ -71,6 +75,48 @@ def get_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
+
+def create_xml(xml_file: str, segmentations: Dict[int, List[List[float]]]) -> BeautifulSoup:
+    """
+    Creates a soup object containing Page Tag and Regions
+    :param xml_file: xml file, to which the page data will be written
+    :param segmentations: dictionary assigning labels to polygon lists
+    :param file_name: image file name
+    :param size: image size
+    """
+    xml_data = BeautifulSoup(xml_file, "xml")
+    page = xml_data.find("Page")
+    order = xml_data.new_tag("ReadingOrder")
+    order_group = xml_data.new_tag("OrderedGroup", attrs={"caption": "Regions reading order"})
+
+    index = 0
+    for label, segmentation in segmentations.items():
+        for polygon in segmentation:
+            order_group.append(
+                xml_data.new_tag("RegionRefIndexed", attrs={"index": str(index), "regionRef": str(index)}))
+            region = xml_data.new_tag(
+                "TextRegion",
+                attrs={"id": str(index),
+                       "custom": f"readingOrder {{index:{index};}} structure {{type:{LABEL_NAMES[label]};}}"})
+            region.append(xml_data.new_tag("Coords", attrs={"points": polygon_to_string(polygon)}))
+            page.append(region)
+            index += 1
+    order.append(order_group)
+    page.insert(1, order)
+    return xml_data
+
+
+def polygon_to_string(input_list: List[float]) -> str:
+    """
+    Converts a list to string, while converting each element in the list to an integer. X and y coordinates are
+     separated by a comma, each pair is separated from other coordinate pairs by a space. :param input_list: list with
+    coordinates :return: string
+    """
+    generator_expression = (f"{int(input_list[index])},{int(input_list[index + 1])}" for index in
+                            range(0, len(input_list), 2))
+    string = " ".join(generator_expression)
+
+    return string
 
 if __name__ == "__main__":
     args = get_args()

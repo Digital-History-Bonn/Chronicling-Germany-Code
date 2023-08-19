@@ -8,13 +8,13 @@ from shapely.geometry import Polygon  # type: ignore
 from skimage import measure  # type: ignore
 
 
-def create_sub_masks(mask_image: Image):
+def create_sub_masks(mask_image: Image) -> Dict[int, Image]:
     """ Split prediction in to submasks.
     From https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset"""
     width, height = mask_image.size
 
     # Initialize a dictionary of sub-masks indexed by RGB colors
-    sub_masks= {}
+    sub_masks: Dict[int, Image] = {}
     for pos_x in range(width):
         for pos_y in range(height):
             # Get the RGB values of the pixel
@@ -37,18 +37,18 @@ def create_sub_masks(mask_image: Image):
     return sub_masks
 
 
-def create_polygons(sub_mask: ndarray) -> List[ndarray]:
+def create_polygons(sub_mask: ndarray) -> List[List[float]]:
     """ Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g., an elephant behind a tree)
     # from https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset"""
     contours = measure.find_contours(sub_mask, 0.5, positive_orientation='low')
-    segmentations: List[ndarray] = []
+    segmentations: List[List[float]] = []
     polygons = []
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
-        for i in range(len(contour)):
+        for i in enumerate(contour):
             row, col = contour[i]
             contour[i] = (col - 1, row - 1)
 
@@ -63,7 +63,7 @@ def create_polygons(sub_mask: ndarray) -> List[ndarray]:
     return segmentations
 
 
-def prediction_to_polygons(pred: ndarray) -> Dict[int, List[ndarray]]:
+def prediction_to_polygons(pred: ndarray) -> Dict[int, List[List[float]]]:
     """
     Converts prediction int ndarray to a dictionary of polygons
     :param pred:

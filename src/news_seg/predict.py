@@ -15,13 +15,13 @@ from skimage.color import label2rgb  # type: ignore
 from torchvision import transforms  # type: ignore
 from tqdm import tqdm  # type: ignore
 
-import train
+from src.news_seg import train
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons
 
-DATA_PATH = "data/newspaper/input/"
-RESULT_PATH = "data/output/"
+DATA_PATH = "../../data/newspaper/input/"
+RESULT_PATH = "../../data/output/"
 
 cmap = [(1.0, 0.0, 0.16), (1.0, 0.43843843843843844, 0.0), (0, 0.222, 0.222), (0.36036036036036045, 0.5, 0.5),
         (0.0, 1.0, 0.2389486260454002), (0.8363201911589008, 1.0, 0.0), (0.0, 0.5615942028985507, 1.0),

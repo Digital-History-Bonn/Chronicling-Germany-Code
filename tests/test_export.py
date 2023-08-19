@@ -1,7 +1,7 @@
 """Class for testing prediction and export scripts"""
 import numpy as np
 
-import predict
+from src.news_seg import predict
 
 
 class TestClassExport:
