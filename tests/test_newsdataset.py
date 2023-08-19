@@ -4,28 +4,32 @@ import json
 import pytest
 import torch
 
-from news_dataset import NewsDataset
+from src.news_seg.news_dataset import NewsDataset
 
-DATA_PATH = './data/newsdataset/'
+DATA_PATH = "./tests/data/newsdataset/"
 
 
-class TestClassNesdataset:
+class TestClassNewsdataset:
     """Class for testing newsdataset"""
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        "will initiate NewsDataset for every test"
-        pytest.news_dataset = NewsDataset(path=f"{DATA_PATH}/data/")
+        """will initiate NewsDataset for every test"""
+        pytest.news_dataset = NewsDataset(path=f"{DATA_PATH}data/")
+        pytest.news_dataset.file_names.sort()
 
     def test_init(self):
         """verify file names list and length"""
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
-            assert pytest.news_dataset.file_names == ground_truth and len(pytest.news_dataset) == 10
+            assert (
+                pytest.news_dataset.file_names == ground_truth
+                and len(pytest.news_dataset) == 10
+            )
 
     def test_getitem(self):
         """Verify get_item. Particulary important is, that data ist in the right format.
-        For example, RGB Values from 0 to 1 for images """
+        For example, RGB Values from 0 to 1 for images"""
         pytest.news_dataset.augmentations = False
         news_data = []
         news_targets = []
@@ -42,12 +46,16 @@ class TestClassNesdataset:
 
     def test_split(self):
         """verify splitting operation"""
-        dataset_1, dataset_2, dataset_3 = pytest.news_dataset.random_split((0.5, 0.3, 0.2))
+        dataset_1, dataset_2, dataset_3 = pytest.news_dataset.random_split(
+            (0.5, 0.3, 0.2)
+        )
         assert len(dataset_1) == 5 and len(dataset_2) == 3 and len(dataset_3) == 2
         try:
             dataset_1.augmentations = False
             dataset_2.augmentations = False
             dataset_2.augmentations = False
         except AttributeError as exc:
-            assert False, f"random split does not result in Newsdatasets. Those are " \
-                          f"expected to have an augmentations attribute {exc}"
+            assert False, (
+                f"random split does not result in Newsdatasets. Those are "
+                f"expected to have an augmentations attribute {exc}"
+            )
