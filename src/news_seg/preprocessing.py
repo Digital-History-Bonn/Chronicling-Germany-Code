@@ -59,7 +59,7 @@ class Preprocessing:
         if self.crop:
             data = self.crop_img(np.concatenate((image, target[np.newaxis, :, :])))
             return data[:, :-1], data[:, -1]
-        return image, target
+        return image, target #todo: return data
 
     def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image.Image, ndarray]:
         """Load image and target
@@ -72,7 +72,7 @@ class Preprocessing:
         image = Image.open(f"{input_path}").convert("RGB")
 
         # load target
-        target = np.load(f"{target_path}")
+        target = np.load(f"{target_path}") # todo: dtype
 
         assert (
             image.size[1] == target.shape[0] and image.size[0] == target.shape[1]

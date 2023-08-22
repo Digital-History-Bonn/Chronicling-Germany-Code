@@ -15,7 +15,8 @@ from torch import randperm
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-PATH = "crops/"
+IMAGE_PATH = "data/images"
+TARGET_PATH = "data/targets/"
 
 
 class NewsDataset(Dataset):
@@ -23,26 +24,47 @@ class NewsDataset(Dataset):
     A dataset class for the newspaper datasets
     """
 
-    def __init__(self, path: str = PATH, files: Union[List[str], None] = None, limit: Union[int, None] = None):
+    def __init__(self, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH, limit: Union[int, None] = None,
+                 dataset: str = "transcribus"):
         """
         Dataset object
         load images and targets from folder
 
         :param path: path to folders with images and targets
         """
-        # path to the over all folder
-        self.path = path
 
-        # list paths of images and targets
-        if files is None:
-            self.file_names: List[str] = [
-                f[:-3] for f in os.listdir(f"{path}") if f.endswith(".pt")
-            ]
+        self.preprocessing = Preprocessing()
+        self.dataset = dataset
+
+        # load data
+        if self.dataset == "transcribus":
+            extension = ".jpg"
+
+            def get_file_name(name: str):
+                return f"{name}.npy"
         else:
-            self.file_names = files
+            extension = ".tif"
+
+            def get_file_name(name: str):
+                return f"pc-{name}.npy"
+
+        # read all file names
+        file_names = [f[:-4] for f in os.listdir(path) if f.endswith(extension)]
 
         if limit is not None:
             self.file_names = self.file_names[:limit]
+
+        # iterate over files
+        for file in tqdm(file_names, desc="cropping images", unit="image"):
+            image, target = preprocessing.load(
+                f"{args.images}{file}{extension}", f"{args.targets}{get_file_name(file)}", f"{file}"
+            )
+            # preprocess / create crops
+            img_crops, tar_crops = preprocessing(image, target)
+            img_crop = torch.tensor(img_crop, dtype=torch.uint8)
+            tar_crop = torch.tensor(tar_crop, dtype=torch.uint8)
+
+            data = torch.cat((img_crop, tar_crop[None, :]), dim=0)
 
         self.augmentations = True
 
@@ -59,8 +81,15 @@ class NewsDataset(Dataset):
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        # load data
-        data = torch.load(f"{self.path}{self.file_names[item]}.pt")
+
+
+        image, target = preprocessing.load(
+            f"{args.images}{self.file_names[item]}{extension}", f"{args.targets}{get_file_name(self.file_names[item])}", f"{file}"
+        )
+        # preprocess / create crops
+        img_crops, tar_crops = preprocessing(image, target)
+
+        data = torch.cat((img_crops, tar_crops[None, :]), dim=0)
 
         # do augmentations
         if self.augmentations:
