@@ -64,7 +64,7 @@ class TestClassPreprocessing:
         pytest.preprocessing.scale = 0.5
         result_image, result_target = pytest.preprocessing.scale_img(
             image, target
-        )  # pylint: disable=protected-access
+        )
 
         result_size = int(size * pytest.preprocessing.scale)
         assert result_image.shape == (channels, result_size, result_size)
@@ -73,7 +73,7 @@ class TestClassPreprocessing:
         pytest.preprocessing.scale = 1
         result_image, result_target = pytest.preprocessing.scale_img(
             image, target
-        )  # pylint: disable=protected-access
+        )
 
         assert result_image.shape == (channels, size, size)
         assert result_target.shape == (size, size)

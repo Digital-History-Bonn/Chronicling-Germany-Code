@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 from typing import Dict, List, Tuple, Union
 
-import numpy as np
 import torch
 
 # pylint thinks torch has no name randperm this is wrong
@@ -26,11 +25,15 @@ class NewsDataset(Dataset):
     """
     A dataset class for the newspaper datasets
     """
+
     def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
                  data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
-                 dataset: str = "transcribus", ):
+                 dataset: str = "transcribus", sort: bool = False):
         """
         load images and targets from folder
+        :param preprocessing:
+        :param data: uses this list instead of loading data from disc
+        :param sort: sort file_names for testing purposes
         :param image_path: image path
         :param target_path: target path
         :param limit: limits the quantity of loaded images
@@ -60,6 +63,8 @@ class NewsDataset(Dataset):
 
             # read all file names
             self.file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
+            if sort:
+                self.file_names.sort()
 
             if limit is not None:
                 self.file_names = self.file_names[:limit]
@@ -75,14 +80,12 @@ class NewsDataset(Dataset):
 
         self.augmentations = True
 
-
     def __len__(self) -> int:
         """
         standard len function
         :return: number of items in dateset
         """
         return len(self.data)
-
 
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -104,7 +107,6 @@ class NewsDataset(Dataset):
 
         return img, data[-1].long()
 
-
     def random_split(
             self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
@@ -123,20 +125,22 @@ class NewsDataset(Dataset):
         indices = randperm(
             len(self), generator=torch.Generator().manual_seed(42)
         ).tolist()
-        np_data = np.array(self.data)
+        torch_data = torch.cat(self.data)
 
         train_dataset = NewsDataset(self.preprocessing,
-            image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[: splits[0]]])
-        )
+                                    image_path=self.image_path, target_path=self.target_path,
+                                    data=list(torch_data[indices[: splits[0]]])
+                                    )
         test_dataset = NewsDataset(self.preprocessing,
-            image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[splits[0]: splits[1]]])
-        )
+                                   image_path=self.image_path, target_path=self.target_path,
+                                   data=list(torch_data[indices[splits[0]: splits[1]]])
+                                   )
         valid_dataset = NewsDataset(self.preprocessing,
-            image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[splits[1]:]])
-        )
+                                    image_path=self.image_path, target_path=self.target_path,
+                                    data=list(torch_data[indices[splits[1]:]])
+                                    )
 
         return train_dataset, test_dataset, valid_dataset
-
 
     @staticmethod
     def get_augmentations() -> Dict[str, transforms.Compose]:

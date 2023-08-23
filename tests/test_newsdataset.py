@@ -17,8 +17,7 @@ class TestClassNewsdataset:
     def setup(self):
         """will initiate NewsDataset for every test"""
         pytest.news_dataset = NewsDataset(Preprocessing(), image_path=f"{DATA_PATH}input/",
-                                          target_path=f"{DATA_PATH}target_data/")
-        pytest.news_dataset.file_names.sort()
+                                          target_path=f"{DATA_PATH}target_data/", sort=True)
 
     def test_init(self):
         """verify file names list and length"""
