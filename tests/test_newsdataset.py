@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from src.news_seg.news_dataset import NewsDataset
+from src.news_seg.preprocessing import Preprocessing
 
 DATA_PATH = "./tests/data/newsdataset/"
 
@@ -15,7 +16,8 @@ class TestClassNewsdataset:
     @pytest.fixture(autouse=True)
     def setup(self):
         """will initiate NewsDataset for every test"""
-        pytest.news_dataset = NewsDataset(image_path=f"{DATA_PATH}input/", target_path=f"{DATA_PATH}target_data/")
+        pytest.news_dataset = NewsDataset(Preprocessing(), image_path=f"{DATA_PATH}input/",
+                                          target_path=f"{DATA_PATH}target_data/")
         pytest.news_dataset.file_names.sort()
 
     def test_init(self):
@@ -26,12 +28,12 @@ class TestClassNewsdataset:
             crop_quantity = 25
 
             assert (
-                pytest.news_dataset.file_names == ground_truth
-                and len(pytest.news_dataset.file_names) == file_quantity
+                    pytest.news_dataset.file_names == ground_truth
+                    and len(pytest.news_dataset.file_names) == file_quantity
             )
-            assert(
-                len(pytest.news_dataset) == crop_quantity * file_quantity
-                and pytest.news_dataset.data[0].dtype == torch.uint8
+            assert (
+                    len(pytest.news_dataset) == crop_quantity * file_quantity
+                    and pytest.news_dataset.data[0].dtype == torch.uint8
             )
 
     def test_getitem(self):
@@ -49,7 +51,6 @@ class TestClassNewsdataset:
         news_targets = torch.cat(news_targets)
         ground_truth_data = torch.load(f"{DATA_PATH}output/news_data.pt")
         ground_truth_tragets = torch.load(f"{DATA_PATH}output/news_targets.pt")
-
 
         assert torch.all(torch.eq(ground_truth_data, news_data))
         assert torch.all(torch.eq(ground_truth_tragets, news_targets))

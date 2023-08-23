@@ -126,13 +126,13 @@ class NewsDataset(Dataset):
         ).tolist()
         np_data = np.array(self.data)
 
-        train_dataset = NewsDataset(
+        train_dataset = NewsDataset(self.preprocessing,
             image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[: splits[0]]])
         )
-        test_dataset = NewsDataset(
+        test_dataset = NewsDataset(self.preprocessing,
             image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[splits[0]: splits[1]]])
         )
-        valid_dataset = NewsDataset(
+        valid_dataset = NewsDataset(self.preprocessing,
             image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[splits[1]:]])
         )
 

@@ -15,6 +15,7 @@ def main():
     and target"""
     preprocessing = Preprocessing()
 
+    # pylint: disable=duplicate-code
     if args.dataset == "transcribus":
         extension = ".jpg"
 
