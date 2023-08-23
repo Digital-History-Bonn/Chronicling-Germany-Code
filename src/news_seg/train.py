@@ -109,7 +109,7 @@ class Trainer:
         preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size)
         dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images",
                               target_path=f"{args.data_path}targets",
-                              limit=args.limit)
+                              limit=args.limit, dataset=args.dataset)
 
         train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
         print(f"train size: {len(train_set)}, test size: {len(validation_set)}")

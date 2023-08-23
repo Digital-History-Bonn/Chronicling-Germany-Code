@@ -28,7 +28,7 @@ class NewsDataset(Dataset):
     """
     def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
                  data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
-                 dataset: str = "HLNA2013", ):
+                 dataset: str = "transcribus", ):
         """
         load images and targets from folder
         :param image_path: image path
@@ -42,6 +42,7 @@ class NewsDataset(Dataset):
         self.image_path = image_path
         self.target_path = target_path
 
+        self.data: List[torch.Tensor] = []
         if data:
             self.data = data
         else:
@@ -49,12 +50,12 @@ class NewsDataset(Dataset):
             if self.dataset == "transcribus":
                 extension = ".jpg"
 
-                def get_file_name(name: str):
+                def get_file_name(name: str) -> str:
                     return f"{name}.npy"
             else:
                 extension = ".tif"
 
-                def get_file_name(name: str):
+                def get_file_name(name: str) -> str:
                     return f"pc-{name}.npy"
 
             # read all file names
@@ -62,8 +63,6 @@ class NewsDataset(Dataset):
 
             if limit is not None:
                 self.file_names = self.file_names[:limit]
-
-            self.data: List[torch.Tensor] = []
 
             # iterate over files
             for file in tqdm(self.file_names, desc="cropping images", unit="image"):
