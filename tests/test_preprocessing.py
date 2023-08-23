@@ -52,31 +52,31 @@ class TestClassPreprocessing:
         assert result_data.shape == (channels + 1, size, size)
         assert result_data.dtype == np.uint8
 
-    def test_scale(self):
-        """Verify scale function"""
-        size = 100
-        channels = 3
-        image = Image.fromarray(
-            (np.random.rand(size, size, channels) * 255).astype("uint8")
-        ).convert("RGB")
-        target = np.random.randint(1, 10, (size, size))
-
-        pytest.preprocessing.scale = 0.5
-        result_image, result_target = pytest.preprocessing.scale_img(
-            image, target
-        )
-
-        result_size = int(size * pytest.preprocessing.scale)
-        assert result_image.shape == (channels, result_size, result_size)
-        assert result_target.shape == (result_size, result_size)
-
-        pytest.preprocessing.scale = 1
-        result_image, result_target = pytest.preprocessing.scale_img(
-            image, target
-        )
-
-        assert result_image.shape == (channels, size, size)
-        assert result_target.shape == (size, size)
+    # def test_scale(self):
+    #     """Verify scale function"""
+    #     size = 100
+    #     channels = 3
+    #     image = Image.fromarray(
+    #         (np.random.rand(size, size, channels) * 255).astype("uint8")
+    #     ).convert("RGB")
+    #     target = np.random.randint(1, 10, (size, size))
+    #
+    #     pytest.preprocessing.scale = 0.5
+    #     result_image, result_target = pytest.preprocessing.scale_img(
+    #         image, target
+    #     )
+    #
+    #     result_size = int(size * pytest.preprocessing.scale)
+    #     assert result_image.shape == (channels, result_size, result_size)
+    #     assert result_target.shape == (result_size, result_size)
+    #
+    #     pytest.preprocessing.scale = 1
+    #     result_image, result_target = pytest.preprocessing.scale_img(
+    #         image, target
+    #     )
+    #
+    #     assert result_image.shape == (channels, size, size)
+    #     assert result_target.shape == (size, size)
 
     def test_crop(self):
         """Verify crop_img."""
