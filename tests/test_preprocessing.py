@@ -59,7 +59,7 @@ class TestClassPreprocessing:
         image = Image.fromarray(
             (np.random.rand(size, size, channels) * 255).astype("uint8")
         ).convert("RGB")
-        target = np.random.randint(0, 10, (size, size))
+        target = np.random.randint(1, 10, (size, size))
 
         pytest.preprocessing.scale = 0.5
         result_image, result_target = pytest.preprocessing.scale_img(
