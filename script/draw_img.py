@@ -56,6 +56,6 @@ def draw_polygon(
     """Takes corner coordinates and fills entire polygon with label values"""
     polygon_np = np.array(polygon, dtype=int).T
     x_coords, y_coords = draw.polygon(polygon_np[1] + shift, polygon_np[0] + shift)
-    img[y_coords, x_coords] = label
+    img[x_coords, y_coords] = label
 
     return img
