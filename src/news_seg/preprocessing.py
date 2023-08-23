@@ -27,19 +27,16 @@ class Preprocessing:
     def __init__(
         self,
         scale: float = SCALE,
-        expansion: int = EXPANSION,
         crop_factor: float = CROP_FACTOR,
         crop_size: int = CROP_SIZE,
         crop: bool = True,
     ):
         """
         :param scale: (default: 4)
-        :param expansion: (default: 5) number of time the image must be scaled to
         :param crop_factor: (default 1.5) step_size of crop is crop_size / crop_factor
         :param crop_size: width and height of crop
         """
         self.scale = scale
-        self.expansion = 2**expansion
         self.crop_factor = crop_factor
         self.crop_size = crop_size
         self.crop = crop

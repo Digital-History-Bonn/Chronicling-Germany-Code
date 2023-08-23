@@ -16,6 +16,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from .preprocessing import Preprocessing
 from .model import DhSegment
 from .news_dataset import NewsDataset
 from .preprocessing import SCALE
@@ -105,7 +106,9 @@ class Trainer:
         )  # weight_decay=1e-4
 
         # load data
-        dataset = NewsDataset(image_path=f"{args.data_path}images", target_path=f"{args.data_path}targets",
+        preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size)
+        dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images",
+                              target_path=f"{args.data_path}targets",
                               limit=args.limit)
 
         train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
@@ -405,28 +408,19 @@ def get_args() -> argparse.Namespace:
         help="path for folder with folders 'images' and 'targets'",
     )
     parser.add_argument(
-        "--image_folder",
-        "-i",
-        type=str,
-        dest="load",
-        default=None,
-        help="model to load (default is None)",
-    )
-    parser.add_argument(
-        "--predict-scale",
-        "-p",
-        type=float,
-        default=PREDICT_SCALE,
-        help="Downscaling factor of the predict image",
-    )
-    parser.add_argument(
         "--limit",
         type=int,
         default=None,
         help="limit quantity of loaded images for testing purposes",
     )
+    parser.add_argument('--crop_size', type=int, default=256, help='Window size of image cropping')
+    parser.add_argument('--scale', '-s', type=float, default=1.0, help='Downscaling factor of the images')
+    parser.add_argument('--crop_factor', type=float, default=1.5, help='Scaling factor for cropping steps')
+    parser.add_argument('--dataset', type=str, default="transcribus",
+                        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
+                             "(europeaner newspaper project)")
     parser.add_argument(
-        "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
+        "--cuda-device", "-c", type=str, default="cuda", help="Cuda device string"
     )
     return parser.parse_args()
 

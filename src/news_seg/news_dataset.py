@@ -26,9 +26,9 @@ class NewsDataset(Dataset):
     """
     A dataset class for the newspaper datasets
     """
-    def __init__(self, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
+    def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
                  data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
-                 dataset: str = "transcribus"):
+                 dataset: str = "HLNA2013", ):
         """
         load images and targets from folder
         :param image_path: image path
@@ -37,7 +37,7 @@ class NewsDataset(Dataset):
         :param dataset: which dataset to expect. Options are 'transcribus' and 'HLNA2013' (europeaner newspaper project)
         """
 
-        self.preprocessing = Preprocessing()
+        self.preprocessing = preprocessing
         self.dataset = dataset
         self.image_path = image_path
         self.target_path = target_path
