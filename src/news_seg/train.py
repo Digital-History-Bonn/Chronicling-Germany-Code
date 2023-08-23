@@ -58,7 +58,7 @@ def init_model(load: Union[str, None]) -> DhSegment:
     """
     # create model
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
-                           load_resnet_weights=True)
+                      load_resnet_weights=True)
     model = model.float()
     model.freeze_encoder()
     # load model if argument is None, it does nothing
@@ -105,7 +105,8 @@ class Trainer:
         )  # weight_decay=1e-4
 
         # load data
-        dataset = NewsDataset()
+        dataset = NewsDataset(image_path=f"{args.data_path}images", target_path=f"{args.data_path}targets",
+                              limit=args.limit)
 
         train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
         print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
@@ -362,13 +363,6 @@ def get_args() -> argparse.Namespace:
         help="name of run in tensorboard",
     )
     parser.add_argument(
-        "--predict_image",
-        "-i",
-        type=str,
-        default=PREDICT_IMAGE,
-        help="path for full image prediction",
-    )
-    parser.add_argument(
         "--batch-size",
         "-b",
         dest="batch_size",
@@ -403,6 +397,22 @@ def get_args() -> argparse.Namespace:
         help="model to load (default is None)",
     )
     parser.add_argument(
+        "--data-path",
+        "-d",
+        type=str,
+        dest="data_path",
+        default=None,
+        help="path for folder with folders 'images' and 'targets'",
+    )
+    parser.add_argument(
+        "--image_folder",
+        "-i",
+        type=str,
+        dest="load",
+        default=None,
+        help="model to load (default is None)",
+    )
+    parser.add_argument(
         "--predict-scale",
         "-p",
         type=float,
@@ -410,10 +420,14 @@ def get_args() -> argparse.Namespace:
         help="Downscaling factor of the predict image",
     )
     parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="limit quantity of loaded images for testing purposes",
+    )
+    parser.add_argument(
         "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
     )
-
-
     return parser.parse_args()
 
 
