@@ -45,8 +45,8 @@ class Preprocessing:
         self.crop = crop
 
     def __call__(
-        self, image: Image.Image, target: npt.NDArray[np.uint]
-    ) -> Tuple[npt.NDArray[np.single], npt.NDArray[np.uint]]:
+        self, image: Image.Image, target: npt.NDArray[np.uint8]
+    ) -> npt.NDArray[np.uint8]:
         """
         preprocess for image with annotations
         :param image: image
@@ -55,11 +55,10 @@ class Preprocessing:
         """
         # scale
         image, target = self.scale_img(image, target)
-
+        data = np.concatenate((np.array(image, dtype=np.uint8), target[np.newaxis, :, :]))
         if self.crop:
-            data = self.crop_img(np.concatenate((image, target[np.newaxis, :, :])))
-            return data[:, :-1], data[:, -1]
-        return image, target #todo: return data
+            data = self.crop_img(data)
+        return data
 
     def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image.Image, ndarray]:
         """Load image and target
@@ -72,8 +71,8 @@ class Preprocessing:
         image = Image.open(f"{input_path}").convert("RGB")
 
         # load target
-        target = np.load(f"{target_path}") # todo: dtype
-
+        target = np.load(f"{target_path}")
+        assert target.dtype == np.uint8
         assert (
             image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
         ), f"image {file=} has shape {image.size}, but target has shape {target.shape}"
@@ -81,8 +80,8 @@ class Preprocessing:
         return image, target
 
     def scale_img(
-        self, image: Image.Image, target: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, image: Image.Image, target: npt.NDArray[np.uint8]
+    ) -> Tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
         """
         scales down all given images and target by scale
         :param image (Image): image
@@ -90,21 +89,21 @@ class Preprocessing:
         return: ndarray tuple containing scaled image and target
         """
         if self.scale == 1:
-            image = np.array(image)
+            image = np.array(image, dtype=np.uint8)
             return np.transpose(image, (2, 0, 1)), target
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
         image = image.resize(shape, resample=BICUBIC)
 
-        target_img = Image.fromarray(target.astype(np.uint8))
+        target_img = Image.fromarray(target)
         target_img = target_img.resize(shape, resample=NEAREST)
 
-        image, target = np.array(image), np.array(target_img)
+        image, target = np.array(image, dtype=np.uint8), np.array(target_img, dtype=np.uint8)
 
         return np.transpose(image, (2, 0, 1)), target
 
-    def crop_img(self, data: ndarray) -> ndarray:
+    def crop_img(self, data: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
         """
         Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
         :param data: ndarray containing image and target
@@ -116,7 +115,7 @@ class Preprocessing:
                 (data.shape[0], self.crop_size, self.crop_size),
                 step=int(self.crop_size // self.crop_factor),
             )
-        )
+        , dtype=np.uint8)
         windows = np.reshape(
             windows,
             (

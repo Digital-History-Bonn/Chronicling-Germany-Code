@@ -14,6 +14,9 @@ import torch
 from torch import randperm
 from torch.utils.data import Dataset
 from torchvision import transforms
+from tqdm import tqdm
+
+from src.news_seg.preprocessing import Preprocessing
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -23,57 +26,64 @@ class NewsDataset(Dataset):
     """
     A dataset class for the newspaper datasets
     """
-
-    def __init__(self, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH, limit: Union[int, None] = None,
+    def __init__(self, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
+                 data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
                  dataset: str = "transcribus"):
         """
-        Dataset object
         load images and targets from folder
-
-        :param path: path to folders with images and targets
+        :param image_path: image path
+        :param target_path: target path
+        :param limit: limits the quantity of loaded images
+        :param dataset: which dataset to expect. Options are 'transcribus' and 'HLNA2013' (europeaner newspaper project)
         """
 
         self.preprocessing = Preprocessing()
         self.dataset = dataset
+        self.image_path = image_path
+        self.target_path = target_path
 
-        # load data
-        if self.dataset == "transcribus":
-            extension = ".jpg"
-
-            def get_file_name(name: str):
-                return f"{name}.npy"
+        if data:
+            self.data = data
         else:
-            extension = ".tif"
+            # load data
+            if self.dataset == "transcribus":
+                extension = ".jpg"
 
-            def get_file_name(name: str):
-                return f"pc-{name}.npy"
+                def get_file_name(name: str):
+                    return f"{name}.npy"
+            else:
+                extension = ".tif"
 
-        # read all file names
-        file_names = [f[:-4] for f in os.listdir(path) if f.endswith(extension)]
+                def get_file_name(name: str):
+                    return f"pc-{name}.npy"
 
-        if limit is not None:
-            self.file_names = self.file_names[:limit]
+            # read all file names
+            self.file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
 
-        # iterate over files
-        for file in tqdm(file_names, desc="cropping images", unit="image"):
-            image, target = preprocessing.load(
-                f"{args.images}{file}{extension}", f"{args.targets}{get_file_name(file)}", f"{file}"
-            )
-            # preprocess / create crops
-            img_crops, tar_crops = preprocessing(image, target)
-            img_crop = torch.tensor(img_crop, dtype=torch.uint8)
-            tar_crop = torch.tensor(tar_crop, dtype=torch.uint8)
+            if limit is not None:
+                self.file_names = self.file_names[:limit]
 
-            data = torch.cat((img_crop, tar_crop[None, :]), dim=0)
+            self.data: List[torch.Tensor] = []
+
+            # iterate over files
+            for file in tqdm(self.file_names, desc="cropping images", unit="image"):
+                image, target = self.preprocessing.load(
+                    f"{image_path}{file}{extension}", f"{target_path}{get_file_name(file)}", file
+                )
+                # preprocess / create crops
+                crops = list(torch.tensor(self.preprocessing(image, target)))
+                self.data += crops
 
         self.augmentations = True
+
 
     def __len__(self) -> int:
         """
         standard len function
         :return: number of items in dateset
         """
-        return len(self.file_names)
+        return len(self.data)
+
 
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -82,14 +92,7 @@ class NewsDataset(Dataset):
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
 
-
-        image, target = preprocessing.load(
-            f"{args.images}{self.file_names[item]}{extension}", f"{args.targets}{get_file_name(self.file_names[item])}", f"{file}"
-        )
-        # preprocess / create crops
-        img_crops, tar_crops = preprocessing(image, target)
-
-        data = torch.cat((img_crops, tar_crops[None, :]), dim=0)
+        data: torch.Tensor = self.data[item]
 
         # do augmentations
         if self.augmentations:
@@ -101,6 +104,7 @@ class NewsDataset(Dataset):
             img = data[:-1].float() / 255
 
         return img, data[-1].long()
+
 
     def random_split(
             self, ratio: Tuple[float, float, float]
@@ -120,19 +124,20 @@ class NewsDataset(Dataset):
         indices = randperm(
             len(self), generator=torch.Generator().manual_seed(42)
         ).tolist()
-        nd_paths = np.array(self.file_names)
+        np_data = np.array(self.data)
 
         train_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[: splits[0]]])
+            image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[: splits[0]]])
         )
         test_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[splits[0]: splits[1]]])
+            image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[splits[0]: splits[1]]])
         )
         valid_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[splits[1]:]])
+            image_path=self.image_path, target_path=self.target_path, data=list(np_data[indices[splits[1]:]])
         )
 
         return train_dataset, test_dataset, valid_dataset
+
 
     @staticmethod
     def get_augmentations() -> Dict[str, transforms.Compose]:

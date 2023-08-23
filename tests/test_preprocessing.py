@@ -39,18 +39,18 @@ class TestClassPreprocessing:
         image = Image.fromarray(
             (np.random.rand(size, size, channels) * 255).astype("uint8")
         ).convert("RGB")
-        target = np.random.randint(0, 10, (size, size))
+        target = np.random.randint(0, 10, (size, size), dtype=np.uint8)
 
-        result_image, result_target = pytest.preprocessing(image, target)
+        result_data = pytest.preprocessing(image, target)
 
-        assert result_image.shape == (int(size / crop_size) ** 2, channels, size, size)
-        assert result_target.shape == (int(size / crop_size) ** 2, size, size)
+        assert result_data.shape == (int(size / crop_size) ** 2, channels + 1, size, size)
+        assert result_data.dtype == np.uint8
 
         pytest.preprocessing.crop = False
 
-        result_image, result_target = pytest.preprocessing(image, target)
-        assert result_image.shape == (channels, size, size)
-        assert result_target.shape == (size, size)
+        result_data = pytest.preprocessing(image, target)
+        assert result_data.shape == (channels + 1, size, size)
+        assert result_data.dtype == np.uint8
 
     def test_scale(self):
         """Verify scale function"""

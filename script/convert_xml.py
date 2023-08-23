@@ -3,7 +3,6 @@ Main Module for converting annotation xml files to numpy images. Also contains b
 take polygon data and convert it to xml.
 """
 import argparse
-import json
 import os
 from typing import List, Dict
 
@@ -16,8 +15,8 @@ from script import draw_img
 from script import read_xml
 from script.draw_img import LABEL_NAMES
 
-INPUT = "../Data/input_back/"
-OUTPUT = "../Data/Targets_back/"
+INPUT = "../../data/europeaner/annotations/"
+OUTPUT = "../../data/europeaner/targets/"
 
 
 def main() -> None:
@@ -32,15 +31,15 @@ def main() -> None:
     for path in tqdm(paths):
         annotation: dict = read(f"{INPUT}{path}.xml")  # type: ignore
         img = draw_img.draw_img(annotation)
-        io.imsave(f"{OUTPUT}{path}.png", img / 10)
 
-        with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
-            json.dump(annotation, file)
+        # Debug
+        # io.imsave(f"{OUTPUT}{path}.png", img / 10)
+        #
+        # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
+        #     json.dump(annotation, file)
 
-        # draw image
-        img = draw_img.draw_img(annotation)
 
-        # save image
+        # save ndarray
         np_save(f"{OUTPUT}{path}", img)
 
 
