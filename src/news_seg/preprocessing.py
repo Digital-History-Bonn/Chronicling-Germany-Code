@@ -52,7 +52,7 @@ class Preprocessing:
         """
         # scale
         image, target = self.scale_img(image, target)
-        data = np.concatenate((np.array(image, dtype=np.uint8), target[np.newaxis, :, :]))
+        data: npt.NDArray[np.uint8] = np.concatenate((np.array(image, dtype=np.uint8), target[np.newaxis, :, :]))
         if self.crop:
             data = self.crop_img(data)
         return data
@@ -81,13 +81,14 @@ class Preprocessing:
     ) -> Tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
         """
         scales down all given images and target by scale
-        :param image (Image): image
-        :param target (np.ndarray): target
+        :param image (Image.Image): image
+        :param target (npt.NDArray[np.uint8]): target
         return: ndarray tuple containing scaled image and target
         """
         if self.scale == 1:
             image = np.array(image, dtype=np.uint8)
             return np.transpose(image, (2, 0, 1)), target
+
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 

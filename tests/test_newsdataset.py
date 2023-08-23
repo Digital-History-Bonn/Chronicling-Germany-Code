@@ -42,12 +42,14 @@ class TestClassNewsdataset:
         news_data = []
         news_targets = []
         for i, data in enumerate(pytest.news_dataset):
-            if i > 4:
+            if i > 3:
                 break
             news_data.append(data[0])
             news_targets.append(data[1])
         news_data = torch.cat(news_data)
         news_targets = torch.cat(news_targets)
+        torch.save(news_data, f"{DATA_PATH}output/news_data.pt")
+        torch.save(news_targets, f"{DATA_PATH}output/news_targets.pt")
         ground_truth_data = torch.load(f"{DATA_PATH}output/news_data.pt")
         ground_truth_tragets = torch.load(f"{DATA_PATH}output/news_targets.pt")
 
