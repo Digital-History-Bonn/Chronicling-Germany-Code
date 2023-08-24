@@ -125,7 +125,7 @@ class NewsDataset(Dataset):
         indices = randperm(
             len(self), generator=torch.Generator().manual_seed(42)
         ).tolist()
-        torch_data = torch.cat(self.data)
+        torch_data = torch.stack(self.data)
 
         train_dataset = NewsDataset(self.preprocessing,
                                     image_path=self.image_path, target_path=self.target_path,

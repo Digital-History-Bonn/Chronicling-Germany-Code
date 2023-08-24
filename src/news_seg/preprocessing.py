@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
-from PIL.Image import BICUBIC, NEAREST # pylint: disable=no-name-in-module
+from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
 from numpy import ndarray
 from skimage.util.shape import view_as_windows
 
@@ -25,11 +25,11 @@ class Preprocessing:
     """
 
     def __init__(
-        self,
-        scale: float = SCALE,
-        crop_factor: float = CROP_FACTOR,
-        crop_size: int = CROP_SIZE,
-        crop: bool = True,
+            self,
+            scale: float = SCALE,
+            crop_factor: float = CROP_FACTOR,
+            crop_size: int = CROP_SIZE,
+            crop: bool = True,
     ):
         """
         :param scale: (default: 4)
@@ -42,7 +42,7 @@ class Preprocessing:
         self.crop = crop
 
     def __call__(
-        self, image: Image.Image, target: npt.NDArray[np.uint8]
+            self, image: Image.Image, target: npt.NDArray[np.uint8]
     ) -> npt.NDArray[np.uint8]:
         """
         preprocess for image with annotations
@@ -71,13 +71,14 @@ class Preprocessing:
         target = np.load(f"{target_path}")
         assert target.dtype == np.uint8
         assert (
-            image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
-        ), f"image {file=} has shape {image.size}, but target has shape {target.shape}"
+                image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
+        ), (f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, but target has shape w:{target.shape[1]}, "
+            f"h: {target.shape[0]}")
 
         return image, target
 
     def scale_img(
-        self, image: Image.Image, target: npt.NDArray[np.uint8]
+            self, image: Image.Image, target: npt.NDArray[np.uint8]
     ) -> Tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
         """
         scales down all given images and target by scale
@@ -88,7 +89,6 @@ class Preprocessing:
         if self.scale == 1:
             image = np.array(image, dtype=np.uint8)
             return np.transpose(image, (2, 0, 1)), target
-
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
@@ -113,7 +113,7 @@ class Preprocessing:
                 (data.shape[0], self.crop_size, self.crop_size),
                 step=int(self.crop_size // self.crop_factor),
             )
-        , dtype=np.uint8)
+            , dtype=np.uint8)
         windows = np.reshape(
             windows,
             (

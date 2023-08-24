@@ -102,7 +102,7 @@ class Bottleneck(nn.Module):
         """
         identity = tensor_x
 
-        out = self.conv1(tensor_x)
+        out: torch.Tensor = self.conv1(tensor_x)
         out = self.bn1(out)
         out = self.relu(out)
 
@@ -119,7 +119,7 @@ class Bottleneck(nn.Module):
         out += identity
         out = self.relu(out)
 
-        return torch.Tensor(out)
+        return out
 
 
 class Block(nn.Module):
@@ -194,7 +194,7 @@ class UpScaleBlock(nn.Module):
         prev_up = self.upscale(prev_up)
         feat_x = torch.concat((copy, prev_up), 1)
         feat_x = self.conv(feat_x)
-        return torch.Tensor(self.relu(feat_x))
+        return self.relu(feat_x) # type: ignore
 
 
 class DhSegment(nn.Module):

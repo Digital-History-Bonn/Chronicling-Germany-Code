@@ -16,11 +16,11 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from .preprocessing import Preprocessing
-from .model import DhSegment
-from .news_dataset import NewsDataset
-from .preprocessing import SCALE
-from .utils import multi_class_csi
+from src.news_seg.preprocessing import Preprocessing
+from src.news_seg.model import DhSegment
+from src.news_seg.news_dataset import NewsDataset
+from src.news_seg.preprocessing import SCALE
+from src.news_seg.utils import multi_class_csi
 
 EPOCHS = 1
 DATALOADER_WORKER = 1
@@ -42,9 +42,6 @@ LOSS_WEIGHTS: List[float] = [
     10.0,
     10.0,
 ]  # 1 and 5 seems to work well
-
-PREDICT_SCALE = 0.25
-PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 
 
 # set random seed for reproducibility
@@ -107,8 +104,8 @@ class Trainer:
 
         # load data
         preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size)
-        dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images",
-                              target_path=f"{args.data_path}targets",
+        dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images/",
+                              target_path=f"{args.data_path}targets/",
                               limit=args.limit, dataset=args.dataset)
 
         train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
@@ -414,7 +411,6 @@ def get_args() -> argparse.Namespace:
         help="limit quantity of loaded images for testing purposes",
     )
     parser.add_argument('--crop_size', type=int, default=256, help='Window size of image cropping')
-    parser.add_argument('--scale', '-s', type=float, default=1.0, help='Downscaling factor of the images')
     parser.add_argument('--crop_factor', type=float, default=1.5, help='Scaling factor for cropping steps')
     parser.add_argument('--dataset', type=str, default="transcribus",
                         help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
@@ -427,8 +423,6 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = get_args()
-    PREDICT_SCALE = args.predict_scale
-    PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
@@ -438,7 +432,7 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         load=load_model,
-        save_model=f"Models/model_{args.name}",
+        save_model=f"models/model_{args.name}",
         batch_size=args.batch_size,
         learningrate=args.lr,
     )

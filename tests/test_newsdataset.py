@@ -33,6 +33,7 @@ class TestClassNewsdataset:
             assert (
                     len(pytest.news_dataset) == crop_quantity * file_quantity
                     and pytest.news_dataset.data[0].dtype == torch.uint8
+                    and pytest.news_dataset.data[0].shape == (4, 256, 256)
             )
 
     def test_getitem(self):
@@ -73,3 +74,7 @@ class TestClassNewsdataset:
                 f"random split does not result in Newsdatasets. Those are "
                 f"expected to have an augmentations attribute {exc}"
             )
+
+        assert dataset_1.data[0].shape == (4, 256, 256)
+        assert dataset_2.data[0].shape == (4, 256, 256)
+        assert dataset_3.data[0].shape == (4, 256, 256)

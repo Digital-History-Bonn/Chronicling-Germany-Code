@@ -15,8 +15,8 @@ from script import draw_img
 from script import read_xml
 from script.draw_img import LABEL_NAMES
 
-INPUT = "../../data/europeaner/annotations/"
-OUTPUT = "../../data/europeaner/targets/"
+INPUT = "../data/newspaper/annotations/"
+OUTPUT = "../data/data/targets/"
 
 
 def main() -> None:
