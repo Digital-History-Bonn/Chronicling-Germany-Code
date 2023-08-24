@@ -17,7 +17,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.news_seg.preprocessing import Preprocessing
-from src.news_seg.model import DhSegment
+from src.news_seg.models.dh_segment import DhSegment
+from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.news_dataset import NewsDataset
 from src.news_seg.preprocessing import SCALE
 from src.news_seg.utils import multi_class_csi
@@ -54,17 +55,21 @@ def init_model(load: Union[str, None]) -> DhSegment:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :return: loaded model
     """
-    # create model
-    model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
-                      load_resnet_weights=True)
-    model = model.float()
-    model.freeze_encoder()
-    # load model if argument is None, it does nothing
-    model.load(load)
+    if args.model == "DhSegment":
+        # create model
+        model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
+                          load_resnet_weights=True)
+        model = model.float()
+        model.freeze_encoder()
+        # load model if argument is None, it does nothing
+        model.load(load)
 
-    # set mean and std in a model for normalization
-    model.means = torch.tensor((0.485, 0.456, 0.406))
-    model.stds = torch.tensor((0.229, 0.224, 0.225))
+        # set mean and std in a model for normalization
+        model.means = torch.tensor((0.485, 0.456, 0.406))
+        model.stds = torch.tensor((0.229, 0.224, 0.225))
+    else:
+        model = VisionTransformer()
+
     return model
 
 
@@ -403,6 +408,13 @@ def get_args() -> argparse.Namespace:
         dest="data_path",
         default=None,
         help="path for folder with folders 'images' and 'targets'",
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default=None,
+        help="Which model to use. Available are 'DhSegment' and 'TransUNet'",
     )
     parser.add_argument(
         "--limit",
