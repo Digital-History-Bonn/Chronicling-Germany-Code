@@ -94,7 +94,7 @@ class Preprocessing:
 
         image = image.resize(shape, resample=BICUBIC)
 
-        target_img = Image.fromarray(np.array(target))
+        target_img = Image.fromarray(np.array(target.astype(np.uint8)))
         target_img = target_img.resize(shape, resample=NEAREST)
 
         image, target = np.array(image, dtype=np.uint8), np.array(target_img, dtype=np.uint8)
