@@ -428,8 +428,6 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
     torch.manual_seed(args.torch_seed)
-    PREDICT_SCALE = args.predict_scale
-    PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
