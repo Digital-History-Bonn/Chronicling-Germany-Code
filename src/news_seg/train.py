@@ -8,12 +8,12 @@ import warnings
 from typing import List, Union, Tuple
 
 import numpy as np
-from numpy import ndarray
-import tensorflow as tf
 import torch
+from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from .model import DhSegment
@@ -58,7 +58,7 @@ def init_model(load: Union[str, None]) -> DhSegment:
     """
     # create model
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
-                           load_resnet_weights=True)
+                      load_resnet_weights=True)
     model = model.float()
     model.freeze_encoder()
     # load model if argument is None, it does nothing
@@ -176,12 +176,14 @@ class Trainer:
                     # update tensor board logs
                     self.step += 1
                     # pylint: disable-next=not-context-manager
-                    with summary_writer.as_default():
-                        tf.summary.scalar("train loss", loss.item(), step=self.step)
-                        # tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=self.step)
-                        # tf.summary.scalar('batch std', images.detach().cpu().std(), step=self.step)
-                        # tf.summary.scalar('target batch mean', targets.detach().cpu().float().mean(), step=self.step)
-                        # tf.summary.scalar('target batch std', targets.detach().cpu().float().std(), step=self.step)
+
+                    summary_writer.add_scalar("train loss", loss.item(), global_step=self.step)
+                    # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(), global_step=self.step)
+                    # summary_writer.add_scalar('batch std', images.detach().cpu().std(), global_step=self.step)
+                    # summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
+                    # global_step=self.step)
+                    # summary_writer.add_scalar('target batch std', targets.detach().cpu().float().std(),
+                    # global_step=self.step)
 
                     # update description
                     pbar.update(1)
@@ -209,10 +211,9 @@ class Trainer:
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
-                    with summary_writer.as_default():
-                        tf.summary.scalar(
-                            "current best", self.best_step, step=self.step
-                        )
+                    summary_writer.add_scalar(
+                        "current best", self.best_step, global_step=self.step
+                    )
 
             # save model at end of epoch
             self.model.save(self.save_model)
@@ -304,35 +305,34 @@ class Trainer:
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
-        with summary_writer.as_default():
-            tf.summary.scalar("epoch", self.epoch, step=self.step)
+        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
-            tf.summary.scalar(f"{environment}/loss", loss, step=self.step)
-            tf.summary.scalar(f"{environment}/accuracy", accuracy, step=self.step)
+        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
+        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)
 
-            tf.summary.scalar(f"{environment}/jaccard score", jaccard, step=self.step)
+        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)
 
-            for i, acc in enumerate(class_accs):
-                if not np.isnan(acc):
-                    tf.summary.scalar(
-                        f"multi-acc-{environment}/class {i}", acc, step=self.step
-                    )
+        for i, acc in enumerate(class_accs):
+            if not np.isnan(acc):
+                summary_writer.add_scalar(
+                    f"multi-acc-{environment}/class {i}", acc, global_step=self.step
+                )
 
-            tf.summary.image(
-                f"image/{environment}-input",
-                torch.permute(image.float().cpu(), (0, 2, 3, 1)),
-                step=self.step,
-            )
-            tf.summary.image(
-                f"image/{environment}-target",
-                target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
-                step=self.step,
-            )
-            tf.summary.image(
-                f"image/{environment}-prediction",
-                pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
-                step=self.step,
-            )
+        summary_writer.add_image(
+            f"image/{environment}-input",
+            torch.permute(image.float().cpu(), (0, 2, 3, 1)),
+            global_step=self.step,
+        )
+        summary_writer.add_image(
+            f"image/{environment}-target",
+            target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+            global_step=self.step,
+        )
+        summary_writer.add_image(
+            f"image/{environment}-prediction",
+            pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
+            global_step=self.step,
+        )
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
@@ -412,19 +412,22 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
     )
-
+    parser.add_argument(
+        "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
+    )
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = get_args()
+    torch.manual_seed(args.torch_seed)
     PREDICT_SCALE = args.predict_scale
     PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = tf.summary.create_file_writer(train_log_dir)
+    summary_writer = SummaryWriter(train_log_dir)
 
     load_model = f"Models/model_{args.load}.pt" if args.load else None
 
