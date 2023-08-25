@@ -15,6 +15,7 @@ class TestClassPreprocessing:
     @pytest.fixture(autouse=True)
     def setup(self):
         "will initiate NewsDataset for every test"
+        np.random.seed(314)
         pytest.preprocessing = Preprocessing()
 
     def test_load(self):
