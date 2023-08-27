@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.news_seg.preprocessing import Preprocessing
+from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
 from src.news_seg.model import DhSegment
 from src.news_seg.news_dataset import NewsDataset
 from src.news_seg.preprocessing import SCALE
@@ -25,7 +25,7 @@ from src.news_seg.utils import multi_class_csi
 EPOCHS = 1
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
-VAL_EVERY = 2500
+VAL_EVERY = 10
 
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
@@ -321,7 +321,7 @@ class Trainer:
 
         summary_writer.add_image(
             f"image/{environment}-input",
-            torch.permute(image.float().cpu(), (0, 2, 3, 1)),
+            image.float().cpu(),
             global_step=self.step,
         )
         summary_writer.add_image(
@@ -394,7 +394,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         dest="load",
         default=None,
-        help="model to load (default is None)",
+        help="Name of model to load (default is None)",
     )
     parser.add_argument(
         "--data-path",
@@ -410,8 +410,8 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="limit quantity of loaded images for testing purposes",
     )
-    parser.add_argument('--crop_size', type=int, default=256, help='Window size of image cropping')
-    parser.add_argument('--crop_factor', type=float, default=1.5, help='Scaling factor for cropping steps')
+    parser.add_argument('--crop_size', type=int, default=CROP_SIZE, help='Window size of image cropping')
+    parser.add_argument('--crop_factor', type=float, default=CROP_FACTOR, help='Scaling factor for cropping steps')
     parser.add_argument('--dataset', type=str, default="transcribus",
                         help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
                              "(europeaner newspaper project)")
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     train_log_dir = "logs/runs/" + args.name
     summary_writer = SummaryWriter(train_log_dir)
 
-    load_model = f"Models/model_{args.load}.pt" if args.load else None
+    load_model = f"models/model_{args.load}.pt" if args.load else None
 
     trainer = Trainer(
         load=load_model,

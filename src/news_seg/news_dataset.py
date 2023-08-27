@@ -63,6 +63,9 @@ class NewsDataset(Dataset):
 
             # read all file names
             self.file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
+            assert len(
+                self.file_names) > 0, (f"No Images in {image_path} with extension{extension} found. Make sure the "
+                                       f"specified dataset and path are correct.")
             if sort:
                 self.file_names.sort()
 
@@ -73,7 +76,7 @@ class NewsDataset(Dataset):
             for file in tqdm(self.file_names, desc="cropping images", unit="image"):
                 image, target = self.preprocessing.load(
                     f"{image_path}{file}{extension}", f"{target_path}{get_file_name(file)}", file
-                )
+                    , dataset)
                 # preprocess / create crops
                 crops = list(torch.tensor(self.preprocessing(image, target)))
                 self.data += crops
