@@ -4,6 +4,7 @@ module for training the hdSegment Model
 
 import argparse
 import datetime
+import json
 import warnings
 from typing import List, Union, Tuple
 
@@ -16,9 +17,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
 from src.news_seg.model import DhSegment
 from src.news_seg.news_dataset import NewsDataset
+from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
 from src.news_seg.preprocessing import SCALE
 from src.news_seg.utils import multi_class_csi
 
@@ -54,6 +55,7 @@ def init_model(load: Union[str, None]) -> DhSegment:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :return: loaded model
     """
+    load_score(load)
     # create model
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
                       load_resnet_weights=True)
@@ -68,34 +70,47 @@ def init_model(load: Union[str, None]) -> DhSegment:
     return model
 
 
+def load_score(load: bool) -> float:
+    """
+    Load the score corresponding to the loaded model if requestet.
+    """
+    best_score = 1000
+    if args.load_score and load:
+        with open(f"scores/model_{args.load}", "r", encoding="utf-8") as file:
+            best_score = float(json.load(file))
+    return best_score
+
+
 class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
             self,
+            save_model: str,
+            save_score: str,
             load: Union[str, None] = None,
-            save_model: Union[str, None] = None,
             batch_size: int = BATCH_SIZE,
             learningrate: float = LEARNING_RATE,
     ):
         """
         Trainer-class to train DhSegment Model
         :param load: model to load, init random if None
-        :param save_model: name of the model in savefile and on tensorboard
+        :param save_model: path to the model savefile
+        :param save_score: path to the score savefile
         :param batch_size: size of batches
         :param learningrate: learning-rate
         """
 
         # init params
         self.save_model = save_model
+        self.save_score = save_score
         self.learningrate: float = learningrate
         self.batch_size: int = batch_size
         self.step: int = 0
         self.epoch: int = 0
-        self.cur_best = 1000
         self.best_step = 0
 
-        self.model = init_model(load)
+        self.model, self.best_score = init_model(load)
 
         # set optimizer and loss_fn
         self.optimizer = Adam(
@@ -198,17 +213,18 @@ class Trainer:
                         loss, acc = self.validation()
 
                         # early stopping
-                        if loss + (1 - acc) < self.cur_best:
+                        score = loss + (1 - acc)
+                        if score < self.best_score:
                             # update cur_best value
-                            self.cur_best = loss + (1 - acc)
+                            self.best_score = loss + (1 - acc)
                             self.best_step = self.step
                             print(
                                 f"saved model because of early stopping with value {loss + (1 - acc)}"
                             )
 
-                            # save the model
-                            if self.save_model is not None:
-                                self.model.save(self.save_model + "_best")
+                            self.model.save(self.save_model + "_best")
+                            with open(f"{self.save_score}_best.json", "w", encoding="utf-8") as file:
+                                json.dump(score, file)
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -421,6 +437,10 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
     )
+    parser.add_argument(
+        "--load-score", "-ls", action='store_true',
+        help="Whether the score corresponding to the loaded model should be loaded as well."
+    )
 
     return parser.parse_args()
 
@@ -438,6 +458,7 @@ if __name__ == "__main__":
     trainer = Trainer(
         load=load_model,
         save_model=f"models/model_{args.name}",
+        save_score=f"scores/model_{args.name}",
         batch_size=args.batch_size,
         learningrate=args.lr,
     )
