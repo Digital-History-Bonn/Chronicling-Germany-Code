@@ -16,7 +16,8 @@ class TestClassNewsdataset:
     @pytest.fixture(autouse=True)
     def setup(self):
         """will initiate NewsDataset for every test"""
-        pytest.news_dataset = NewsDataset(Preprocessing(), image_path=f"{DATA_PATH}input/",
+        pytest.news_dataset = NewsDataset(Preprocessing(crop_size=256, crop_factor=1.5),
+                                          image_path=f"{DATA_PATH}input/",
                                           target_path=f"{DATA_PATH}target_data/", sort=True)
 
     def test_init(self):

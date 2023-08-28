@@ -26,6 +26,7 @@ class TestClassPreprocessing:
             f"{DATA_PATH}input/test-image.jpg",
             f"{DATA_PATH}input/test-target.npy",
             "test",
+            dataset = "transcibus"
         )
         assert image.mode == "RGB"
         assert f"{target.dtype}" == "uint8"

@@ -55,7 +55,6 @@ def init_model(load: Union[str, None]) -> DhSegment:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :return: loaded model
     """
-    load_score(load)
     # create model
     model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
                       load_resnet_weights=True)
@@ -70,15 +69,16 @@ def init_model(load: Union[str, None]) -> DhSegment:
     return model
 
 
-def load_score(load: bool) -> float:
+def load_score(load: bool) -> Tuple[float, int]:
     """
-    Load the score corresponding to the loaded model if requestet.
+    Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
     """
     best_score = 1000
+    step = 0
     if args.load_score and load:
-        with open(f"scores/model_{args.load}", "r", encoding="utf-8") as file:
-            best_score = float(json.load(file))
-    return best_score
+        with open(f"scores/model_{args.load}.json", "r", encoding="utf-8") as file:
+            best_score, step = json.load(file)
+    return best_score, step
 
 
 class Trainer:
@@ -102,15 +102,15 @@ class Trainer:
         """
 
         # init params
+        self.best_score, self.step = load_score(load)
         self.save_model = save_model
         self.save_score = save_score
         self.learningrate: float = learningrate
         self.batch_size: int = batch_size
-        self.step: int = 0
         self.epoch: int = 0
         self.best_step = 0
 
-        self.model, self.best_score = init_model(load)
+        self.model = init_model(load)
 
         # set optimizer and loss_fn
         self.optimizer = Adam(
@@ -224,7 +224,7 @@ class Trainer:
 
                             self.model.save(self.save_model + "_best")
                             with open(f"{self.save_score}_best.json", "w", encoding="utf-8") as file:
-                                json.dump(score, file)
+                                json.dump((score, self.step), file)
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -337,17 +337,17 @@ class Trainer:
 
         summary_writer.add_image(
             f"image/{environment}-input",
-            image.float().cpu(),
+            torch.squeeze(image.float().cpu()),
             global_step=self.step,
         )
         summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+            target.float().cpu()[None, :, :,] / OUT_CHANNELS,
             global_step=self.step,
         )
         summary_writer.add_image(
             f"image/{environment}-prediction",
-            pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
+            pred.float().cpu() / OUT_CHANNELS,
             global_step=self.step,
         )
 
