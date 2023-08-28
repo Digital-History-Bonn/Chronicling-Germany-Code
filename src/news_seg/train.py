@@ -14,7 +14,7 @@ from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
 from src.news_seg.model import DhSegment
@@ -69,7 +69,7 @@ def init_model(load: Union[str, None]) -> DhSegment:
     return model
 
 
-def load_score(load: bool) -> Tuple[float, int]:
+def load_score(load: Union[str, None]) -> Tuple[float, int]:
     """
     Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
     """
@@ -193,13 +193,15 @@ class Trainer:
                     self.step += 1
                     # pylint: disable-next=not-context-manager
 
-                    summary_writer.add_scalar("train loss", loss.item(), global_step=self.step)
-                    # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(), global_step=self.step)
-                    # summary_writer.add_scalar('batch std', images.detach().cpu().std(), global_step=self.step)
+                    summary_writer.add_scalar("train loss", loss.item(), global_step=self.step)  # type:ignore
+                    # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(),
+                    # global_step=self.step) #type:ignore
+                    # summary_writer.add_scalar('batch std', images.detach().cpu().std(),
+                    # global_step=self.step) #type:ignore
                     # summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
-                    # global_step=self.step)
+                    # global_step=self.step) #type:ignore
                     # summary_writer.add_scalar('target batch std', targets.detach().cpu().float().std(),
-                    # global_step=self.step)
+                    # global_step=self.step) #type:ignore
 
                     # update description
                     pbar.update(1)
@@ -230,7 +232,7 @@ class Trainer:
                     # pylint: disable-next=not-context-manager
                     summary_writer.add_scalar(
                         "current best", self.best_step, global_step=self.step
-                    )
+                    )  # type:ignore
 
             # save model at end of epoch
             self.model.save(self.save_model)
@@ -322,34 +324,34 @@ class Trainer:
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
-        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
+        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)  # type:ignore
 
-        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
-        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)
+        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)  # type:ignore
+        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)  # type:ignore
 
-        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)
+        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)  # type:ignore
 
         for i, acc in enumerate(class_accs):
             if not np.isnan(acc):
                 summary_writer.add_scalar(
                     f"multi-acc-{environment}/class {i}", acc, global_step=self.step
-                )
+                )  # type:ignore
 
         summary_writer.add_image(
             f"image/{environment}-input",
             torch.squeeze(image.float().cpu()),
             global_step=self.step,
-        )
+        )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :,] / OUT_CHANNELS,
+            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
             global_step=self.step,
-        )
+        )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-prediction",
             pred.float().cpu() / OUT_CHANNELS,
             global_step=self.step,
-        )
+        )  # type:ignore
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
@@ -451,7 +453,7 @@ if __name__ == "__main__":
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = SummaryWriter(train_log_dir)
+    summary_writer = SummaryWriter(train_log_dir)  # type:ignore
 
     load_model = f"models/model_{args.load}.pt" if args.load else None
 
