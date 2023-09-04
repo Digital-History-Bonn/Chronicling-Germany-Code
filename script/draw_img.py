@@ -39,7 +39,8 @@ def draw_img(annotation: dict) -> ndarray:
     for key, polygons in annotation["tags"].items():
         if key not in LABEL_ASSIGNMENTS:
             for polygon in polygons:
-                img = draw_polygon(img, polygon, shift=shift)
+                    if len(polygon) > 0:
+                        img = draw_polygon(img, polygon, shift=shift)
 
     # then draw regions in order
     for key, label in LABEL_ASSIGNMENTS.items():

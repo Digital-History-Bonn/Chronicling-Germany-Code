@@ -25,7 +25,9 @@ def read_transcribus(path: str) -> Dict[str, Union[List[int], Dict[str, List[Lis
 
     page = bs_data.find('Page')
 
-    return {"size": [int(page['imageWidth']), int(page['imageHeight'])], 'tags': tags_dict}
+    if page:
+        return {"size": [int(page['imageWidth']), int(page['imageHeight'])], 'tags': tags_dict}
+    return {}
 
 
 def find_regions(data: BeautifulSoup, tag: str, search_children: bool, child_tag: str,
