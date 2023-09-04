@@ -104,7 +104,7 @@ class Trainer:
         # init params
         batch_size = args.gpu_count * batch_size
         self.best_score, _ = load_score(load)
-        self. step = 0
+        self.step = 0
         self.save_model = save_model
         self.save_score = save_score
         self.learningrate: float = learningrate
@@ -154,6 +154,9 @@ class Trainer:
             num_workers=DATALOADER_WORKER,
             drop_last=True,
         )
+
+        assert len(self.train_loader) > 0 and len(self.val_loader) > 0 and len(
+            self.test_loader) > 0, "At least one Dataset is to small to assemble at least one batch"
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -226,7 +229,7 @@ class Trainer:
                                 f"saved model because of early stopping with value {loss + (1 - acc)}"
                             )
 
-                            self.model.save(self.save_model + "_best")
+                            self.model.module.save(self.save_model + "_best")
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -235,7 +238,7 @@ class Trainer:
                     )  # type:ignore
 
             # save model at end of epoch
-            self.model.save(self.save_model)
+            self.model.module.save(self.save_model)
             with open(f"{self.save_score}.json", "w", encoding="utf-8") as file:
                 json.dump((score, self.step), file)
 
@@ -412,7 +415,6 @@ def get_args() -> argparse.Namespace:
         "--load",
         "-l",
         type=str,
-        dest="load",
         default=None,
         help="Name of model to load (default is None)",
     )
