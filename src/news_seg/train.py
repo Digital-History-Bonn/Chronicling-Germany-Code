@@ -26,7 +26,7 @@ from src.news_seg.utils import multi_class_csi
 EPOCHS = 1
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
-VAL_EVERY = 10
+VAL_NUMBER = 5
 
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
@@ -102,7 +102,9 @@ class Trainer:
         """
 
         # init params
-        self.best_score, self.step = load_score(load)
+        batch_size = args.gpu_count * batch_size
+        self.best_score, _ = load_score(load)
+        self. step = 0
         self.save_model = save_model
         self.save_score = save_score
         self.learningrate: float = learningrate
@@ -110,7 +112,7 @@ class Trainer:
         self.epoch: int = 0
         self.best_step = 0
 
-        self.model = init_model(load)
+        self.model = torch.nn.DataParallel(init_model(load))
 
         # set optimizer and loss_fn
         self.optimizer = Adam(
@@ -211,7 +213,7 @@ class Trainer:
                     del images, targets, loss, preds
                     torch.cuda.empty_cache()
 
-                    if self.step % VAL_EVERY == 0:
+                    if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
                         loss, acc = self.validation()
 
                         # early stopping
@@ -225,8 +227,6 @@ class Trainer:
                             )
 
                             self.model.save(self.save_model + "_best")
-                            with open(f"{self.save_score}_best.json", "w", encoding="utf-8") as file:
-                                json.dump((score, self.step), file)
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -236,6 +236,8 @@ class Trainer:
 
             # save model at end of epoch
             self.model.save(self.save_model)
+            with open(f"{self.save_score}.json", "w", encoding="utf-8") as file:
+                json.dump((score, self.step), file)
 
         self.validation(test_validation=True)
 
@@ -434,7 +436,7 @@ def get_args() -> argparse.Namespace:
                         help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
                              "(europeaner newspaper project)")
     parser.add_argument(
-        "--cuda-device", "-c", type=str, default="cuda", help="Cuda device string"
+        "--cuda-device", "-c", type=str, default="cuda", help="Cuda device string e.g. cuda:0,1 for multiple gpus"
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
@@ -442,6 +444,9 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--load-score", "-ls", action='store_true',
         help="Whether the score corresponding to the loaded model should be loaded as well."
+    )
+    parser.add_argument(
+        "--gpu-count", "-g", type=int, default=1, help="Number of gpu that should be used for training"
     )
 
     return parser.parse_args()
