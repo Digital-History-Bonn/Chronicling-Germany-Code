@@ -15,8 +15,8 @@ from script import draw_img
 from script import read_xml
 from script.draw_img import LABEL_NAMES
 
-INPUT = "../data/newspaper/annotations/"
-OUTPUT = "../data/data/targets/"
+INPUT = "../../data/newspaper/annotations/"
+OUTPUT = "../../data/newspaper/targets/"
 
 
 def main() -> None:
@@ -28,7 +28,7 @@ def main() -> None:
         else read_xml.read_hlna2013
     )
     paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
-    target_paths = [f[:-4] for f in os.listdir(OUTPUT) if f.endswith(".xml")]
+    target_paths = [f[:-4] for f in os.listdir(OUTPUT) if f.endswith(".npy")]
     for path in tqdm(paths):
         if path in target_paths:
             continue
