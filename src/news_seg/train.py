@@ -69,16 +69,17 @@ def init_model(load: Union[str, None]) -> DhSegment:
     return model
 
 
-def load_score(load: Union[str, None]) -> Tuple[float, int]:
+def load_score(load: Union[str, None]) -> Tuple[float, int, int]:
     """
     Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
     """
     best_score = 1000
     step = 0
+    epoch = 1
     if args.load_score and load:
         with open(f"scores/model_{args.load}.json", "r", encoding="utf-8") as file:
-            best_score, step = json.load(file)
-    return best_score, step
+            best_score, step, epoch = json.load(file)
+    return best_score, step, epoch
 
 
 class Trainer:
@@ -103,13 +104,11 @@ class Trainer:
 
         # init params
         batch_size = args.gpu_count * batch_size
-        self.best_score, _ = load_score(load)
-        self.step = 0
+        self.best_score, self.step, self.epoch = load_score(load)
         self.save_model = save_model
         self.save_score = save_score
         self.learningrate: float = learningrate
         self.batch_size: int = batch_size
-        self.epoch: int = 0
         self.best_step = 0
 
         self.model = torch.nn.DataParallel(init_model(load))
@@ -175,9 +174,8 @@ class Trainer:
 
         self.model.to(self.device)
         self.loss_fn.to(self.device)
-        self.step = 0
 
-        for self.epoch in range(1, epochs + 1):
+        for self.epoch in range(self.epoch, epochs + 1):
             self.model.train()
 
             with tqdm(
@@ -240,7 +238,8 @@ class Trainer:
             # save model at end of epoch
             self.model.module.save(self.save_model)
             with open(f"{self.save_score}.json", "w", encoding="utf-8") as file:
-                json.dump((score, self.step), file)
+                json.dump((score, self.step, self.epoch + 1), file)
+            summary_writer.flush()
 
         self.validation(test_validation=True)
 
@@ -460,7 +459,7 @@ if __name__ == "__main__":
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = SummaryWriter(train_log_dir)  # type:ignore
+    summary_writer = SummaryWriter(train_log_dir)
 
     load_model = f"models/model_{args.load}.pt" if args.load else None
 
