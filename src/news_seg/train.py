@@ -5,14 +5,14 @@ module for training the hdSegment Model
 import argparse
 import datetime
 import warnings
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
-from numpy import ndarray
-import tensorflow as tf
 import torch
+from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
+from torch.utils import tensorboard
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -50,15 +50,39 @@ PREDICT_IMAGE = "../prima/inputs/NoAnnotations/00675238.tif"
 # torch.manual_seed(42)
 
 
+def init_model(load: Union[str, None]) -> DhSegment:
+    """
+    Initialise model
+    :param load: contains path to load the model from. If False, the model will be initialised randomly
+    :return: loaded model
+    """
+    # create model
+    model = DhSegment(
+        [3, 4, 6, 4],
+        in_channels=IN_CHANNELS,
+        out_channel=OUT_CHANNELS,
+        load_resnet_weights=True,
+    )
+    model = model.float()
+    model.freeze_encoder()
+    # load model if argument is None, it does nothing
+    model.load(load)
+
+    # set mean and std in a model for normalization
+    model.means = torch.tensor((0.485, 0.456, 0.406))
+    model.stds = torch.tensor((0.229, 0.224, 0.225))
+    return model
+
+
 class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
-            self,
-            load: Union[str, None] = None,
-            save_model: Union[str, None] = None,
-            batch_size: int = BATCH_SIZE,
-            learningrate: float = LEARNING_RATE,
+        self,
+        load: Union[str, None] = None,
+        save_model: Union[str, None] = None,
+        batch_size: int = BATCH_SIZE,
+        learningrate: float = LEARNING_RATE,
     ):
         """
         Trainer-class to train DhSegment Model
@@ -77,22 +101,7 @@ class Trainer:
         self.cur_best = 1000
         self.best_step = 0
 
-        # create model
-        self.model = DhSegment(
-            [3, 4, 6, 4],
-            in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
-            load_resnet_weights=True,
-        )
-        self.model = self.model.float()
-        self.model.freeze_encoder()
-
-        # load model if argument is None, it does nothing
-        self.model.load(load)
-
-        # set mean and std in a model for normalization
-        self.model.means = torch.tensor((0.485, 0.456, 0.406))
-        self.model.stds = torch.tensor((0.229, 0.224, 0.225))
+        self.model = init_model(load)
 
         # set optimizer and loss_fn
         self.optimizer = Adam(
@@ -155,9 +164,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                    total=(len(self.train_loader)),
-                    desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batche(s)",
+                total=(len(self.train_loader)),
+                desc=f"Epoch {self.epoch}/{epochs}",
+                unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -171,12 +180,16 @@ class Trainer:
                     # update tensor board logs
                     self.step += 1
                     # pylint: disable-next=not-context-manager
-                    with summary_writer.as_default():
-                        tf.summary.scalar("train loss", loss.item(), step=self.step)
-                        # tf.summary.scalar('batch mean', images.detach().cpu().mean(), step=self.step)
-                        # tf.summary.scalar('batch std', images.detach().cpu().std(), step=self.step)
-                        # tf.summary.scalar('target batch mean', targets.detach().cpu().float().mean(), step=self.step)
-                        # tf.summary.scalar('target batch std', targets.detach().cpu().float().std(), step=self.step)
+
+                    summary_writer.add_scalar(
+                        "train loss", loss.item(), global_step=self.step
+                    )
+                    # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(), global_step=self.step)
+                    # summary_writer.add_scalar('batch std', images.detach().cpu().std(), global_step=self.step)
+                    # summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
+                    # global_step=self.step)
+                    # summary_writer.add_scalar('target batch std', targets.detach().cpu().float().std(),
+                    # global_step=self.step)
 
                     # update description
                     pbar.update(1)
@@ -204,10 +217,9 @@ class Trainer:
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
-                    with summary_writer.as_default():
-                        tf.summary.scalar(
-                            "current best", self.best_step, step=self.step
-                        )
+                    summary_writer.add_scalar(
+                        "current best", self.best_step, global_step=self.step
+                    )
 
             # save model at end of epoch
             self.model.save(self.save_model)
@@ -235,7 +247,7 @@ class Trainer:
         )
 
         for images, targets in tqdm(
-                loader, desc="validation_round", total=size, unit="batch(es)"
+            loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
@@ -273,8 +285,14 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss: float, jaccard: float, accuracy: float, class_accs: ndarray,
-                    test_validation: bool) -> None:
+    def val_logging(
+        self,
+        loss: float,
+        jaccard: float,
+        accuracy: float,
+        class_accs: ndarray,
+        test_validation: bool,
+    ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
         :param test_validation: if true the test dataset will be used for validation
@@ -299,35 +317,38 @@ class Trainer:
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
-        with summary_writer.as_default():
-            tf.summary.scalar("epoch", self.epoch, step=self.step)
+        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
-            tf.summary.scalar(f"{environment}/loss", loss, step=self.step)
-            tf.summary.scalar(f"{environment}/accuracy", accuracy, step=self.step)
+        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
+        summary_writer.add_scalar(
+            f"{environment}/accuracy", accuracy, global_step=self.step
+        )
 
-            tf.summary.scalar(f"{environment}/jaccard score", jaccard, step=self.step)
+        summary_writer.add_scalar(
+            f"{environment}/jaccard score", jaccard, global_step=self.step
+        )
 
-            for i, acc in enumerate(class_accs):
-                if not np.isnan(acc):
-                    tf.summary.scalar(
-                        f"multi-acc-{environment}/class {i}", acc, step=self.step
-                    )
+        for i, acc in enumerate(class_accs):
+            if not np.isnan(acc):
+                summary_writer.add_scalar(
+                    f"multi-acc-{environment}/class {i}", acc, global_step=self.step
+                )
 
-            tf.summary.image(
-                f"image/{environment}-input",
-                torch.permute(image.float().cpu(), (0, 2, 3, 1)),
-                step=self.step,
-            )
-            tf.summary.image(
-                f"image/{environment}-target",
-                target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
-                step=self.step,
-            )
-            tf.summary.image(
-                f"image/{environment}-prediction",
-                pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
-                step=self.step,
-            )
+        summary_writer.add_image(
+            f"image/{environment}-input",
+            torch.permute(image.float().cpu(), (0, 2, 3, 1)),
+            global_step=self.step,
+        )
+        summary_writer.add_image(
+            f"image/{environment}-target",
+            target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+            global_step=self.step,
+        )
+        summary_writer.add_image(
+            f"image/{environment}-prediction",
+            pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
+            global_step=self.step,
+        )
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
@@ -407,18 +428,22 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
     )
+    parser.add_argument(
+        "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
+    )
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = get_args()
+    torch.manual_seed(args.torch_seed)
     PREDICT_SCALE = args.predict_scale
     PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = tf.summary.create_file_writer(train_log_dir)
+    summary_writer = tensorboard.SummaryWriter(train_log_dir)
 
     load_model = f"Models/model_{args.load}.pt" if args.load else None
 

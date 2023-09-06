@@ -23,7 +23,12 @@ class NewsDataset(Dataset):
     A dataset class for the newspaper datasets
     """
 
-    def __init__(self, path: str = PATH, files: Union[List[str], None] = None, limit: Union[int, None] = None):
+    def __init__(
+        self,
+        path: str = PATH,
+        files: Union[List[str], None] = None,
+        limit: Union[int, None] = None,
+    ):
         """
         Dataset object
         load images and targets from folder
@@ -74,7 +79,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-            self, ratio: Tuple[float, float, float]
+        self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -97,10 +102,10 @@ class NewsDataset(Dataset):
             path=self.path, files=list(nd_paths[indices[: splits[0]]])
         )
         test_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[splits[0]: splits[1]]])
+            path=self.path, files=list(nd_paths[indices[splits[0] : splits[1]]])
         )
         valid_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[splits[1]:]])
+            path=self.path, files=list(nd_paths[indices[splits[1] :]])
         )
 
         return train_dataset, test_dataset, valid_dataset

@@ -5,12 +5,13 @@ torch
 scikit-learn
 tqdm
 beautifulsoup4
-scikit-image
+scikit-image >= 0.19.2
 pytest
 mypy
 pylint
-tensorflow
+tensorflow-cpu
 tensorboard
 torchvision
 nox
 lxml
+shapely

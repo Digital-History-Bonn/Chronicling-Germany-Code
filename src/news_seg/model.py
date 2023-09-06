@@ -3,7 +3,7 @@ Module contains a U-Net Model. The model is a replica of the dhSegment model fro
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
-from typing import Iterator, List, Tuple, Union, Any
+from typing import Any, Iterator, List, Tuple, Union
 
 import torch
 from torch import nn
@@ -12,7 +12,7 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-from utils import replace_substrings
+from src.news_seg.utils import replace_substrings
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -22,7 +22,7 @@ model_urls = {
 
 
 def conv3x3(
-        in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1
+    in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1
 ) -> nn.Conv2d:
     """
     3x3 convolution with padding
@@ -52,6 +52,74 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     :param stride: stride for convolution
     """
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+
+class Bottleneck(nn.Module):
+    """
+    Bottleneck Layer from ResNet
+    """
+
+    expansion = 4
+
+    def __init__(
+        self,
+        inplanes: int,
+        planes: int,
+        stride: int = 1,
+        downsample: Union[nn.Module, None] = None,
+        groups: int = 1,
+        base_width: int = 64,
+        dilation: int = 1,
+    ):
+        """
+        Bottleneck Layer from ResNet
+        :param inplanes: number of input feature-maps
+        :param planes: size of Bottleneck
+        :param stride: stride of conv3x3 Layer
+        :param downsample: Convolutional Layer for downsampling if input dim not the same as output dim
+        :param groups: groups for convolution
+        :param base_width: base_width of Bottleneck
+        :param dilation: dilation of conv3x3 Layer
+        """
+        super().__init__()
+        norm_layer = nn.BatchNorm2d
+        width = int(planes * (base_width / 64.0)) * groups
+        self.conv1 = conv1x1(inplanes, width)
+        self.bn1 = norm_layer(width)
+        self.conv2 = conv3x3(width, width, stride, groups, dilation)
+        self.bn2 = norm_layer(width)
+        self.conv3 = conv1x1(width, planes * self.expansion)
+        self.bn3 = norm_layer(planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
+        """
+        forward path of Bottleneck
+        :param tensor_x: input
+        :return: output
+        """
+        identity = tensor_x
+
+        out = self.conv1(tensor_x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(tensor_x)
+
+        out += identity
+        out = self.relu(out)
+
+        return torch.Tensor(out)
 
 
 class Block(nn.Module):
@@ -129,89 +197,20 @@ class UpScaleBlock(nn.Module):
         return torch.Tensor(self.relu(feat_x))
 
 
-class Bottleneck(nn.Module):
-    """
-    Bottleneck Layer from ResNet
-    """
-
-    expansion = 4
-
-    def __init__(
-            self,
-            inplanes: int,
-            planes: int,
-            stride: int = 1,
-            downsample: Union[nn.Module, None] = None,
-            groups: int = 1,
-            base_width: int = 64,
-            dilation: int = 1
-    ):
-        """
-        Bottleneck Layer from ResNet
-        :param inplanes: number of input feature-maps
-        :param planes: size of Bottleneck
-        :param stride: stride of conv3x3 Layer
-        :param downsample: Convolutional Layer for downsampling if input dim not the same as output dim
-        :param groups: groups for convolution
-        :param base_width: base_width of Bottleneck
-        :param dilation: dilation of conv3x3 Layer
-        :param norm_layer: Layer for Normalization default is BatchNorm2d
-        """
-        super().__init__()
-        norm_layer = nn.BatchNorm2d
-        width = int(planes * (base_width / 64.0)) * groups
-        self.conv1 = conv1x1(inplanes, width)
-        self.bn1 = norm_layer(width)
-        self.conv2 = conv3x3(width, width, stride, groups, dilation)
-        self.bn2 = norm_layer(width)
-        self.conv3 = conv1x1(width, planes * self.expansion)
-        self.bn3 = norm_layer(planes * self.expansion)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
-        """
-        forward path of Bottleneck
-        :param tensor_x: input
-        :return: output
-        """
-        identity = tensor_x
-
-        out = self.conv1(tensor_x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            identity = self.downsample(tensor_x)
-
-        out += identity
-        out = self.relu(out)
-
-        return torch.Tensor(out)
-
-
 class DhSegment(nn.Module):
     """
     DhSegment Model
     """
 
     def __init__(
-            self,
-            layers: List[int],
-            in_channels: int = 3,
-            out_channel: int = 3,
-            groups: int = 1,
-            width_per_group: int = 64,
-            replace_stride_with_dilation: Tuple[bool, bool, bool] = (False, False, False),
-            load_resnet_weights: bool = False
+        self,
+        layers: List[int],
+        in_channels: int = 3,
+        out_channel: int = 3,
+        groups: int = 1,
+        width_per_group: int = 64,
+        replace_stride_with_dilation: Tuple[bool, bool, bool] = (False, False, False),
+        load_resnet_weights: bool = False,
     ) -> None:
         """
         DhSegment Model
@@ -222,7 +221,6 @@ class DhSegment(nn.Module):
         :param width_per_group: base_width of bottleneck-Layer
         :param replace_stride_with_dilation: each element in the tuple indicates if we should replace the 2x2 stride
         with a dilated convolution instead
-        :param norm_layer: Layer for Normalization default is BatchNorm2d
         :param load_resnet_weights: Loads weights form pretrained model if True
         """
         super().__init__()
@@ -313,12 +311,12 @@ class DhSegment(nn.Module):
         freeze(self.block4.layers[3].parameters())  # type: ignore
 
     def _make_layer(
-            self,
-            planes: int,
-            blocks: int,
-            stride: int = 1,
-            dilate: bool = False,
-            conv_out: bool = False,
+        self,
+        planes: int,
+        blocks: int,
+        stride: int = 1,
+        dilate: bool = False,
+        conv_out: bool = False,
     ) -> nn.Module:
         """
         creates a Block of the ResNet Encoder
@@ -349,7 +347,7 @@ class DhSegment(nn.Module):
                 downsample,
                 self.groups,
                 self.base_width,
-                previous_dilation
+                previous_dilation,
             )
         ]
         self.first_channels = planes * Bottleneck.expansion
@@ -360,7 +358,7 @@ class DhSegment(nn.Module):
                     planes,
                     groups=self.groups,
                     base_width=self.base_width,
-                    dilation=self.dilation
+                    dilation=self.dilation,
                 )
             )
 
@@ -421,7 +419,7 @@ class DhSegment(nn.Module):
         """
         if path is None:
             return
-        self.load_state_dict(torch.load(path))
+        self.load_state_dict(torch.load(path, map_location="cuda:0"))
         self.eval()
 
     def predict(self, image: torch.Tensor) -> torch.Tensor:
@@ -459,13 +457,15 @@ class DhSegment(nn.Module):
             for key in self.state_dict().keys()
             # pylint: disable=locally-disabled, unsubscriptable-object
             if key in state_dict.keys()
-               and state_dict[key].size() == self.state_dict()[key].size()
+            and state_dict[key].size() == self.state_dict()[key].size()
         }
 
         self.load_state_dict(state_dict, strict=False)
 
 
-def _dh_segment(arch: str, layers: List[int], pretrained: bool, progress: bool, **kwargs: Any) -> nn.Module:
+def _dh_segment(
+    arch: str, layers: List[int], pretrained: bool, progress: bool, **kwargs: Any
+) -> nn.Module:
     """
     create a dhSegment Model
     :param arch: Spring name of the ResNet-architecture for loading pretrained weights
@@ -483,7 +483,8 @@ def _dh_segment(arch: str, layers: List[int], pretrained: bool, progress: bool, 
 
 
 def create_dh_segment(
-        pretrained: bool = False, progress: bool = True, **kwargs: Any) -> nn.Module:
+    pretrained: bool = False, progress: bool = True, **kwargs: Any
+) -> nn.Module:
     """
     dhSegement Model from https://arxiv.org/abs/1804.10371
     :param pretrained: If True, returns a model pre-trained on ImageNet

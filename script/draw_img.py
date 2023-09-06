@@ -4,7 +4,8 @@ Module for converting region data into an image containing label values for each
 from typing import List, Tuple
 
 import numpy as np
-from skimage import draw  # type: ignore
+from numpy import ndarray
+from skimage import draw
 
 LABEL_ASSIGNMENTS = {
     "UnknownRegion": 1,
@@ -19,8 +20,20 @@ LABEL_ASSIGNMENTS = {
     "separator_horizontal": 9,
 }
 
+LABEL_NAMES = [
+    "UnknownRegion",
+    "caption",
+    "table",
+    "article",
+    "heading",
+    "header",
+    "separator_vertical",
+    "separator_short",
+    "separator_horizontal",
+]
 
-def draw_img(annotation: dict):
+
+def draw_img(annotation: dict) -> ndarray:
     """
     draws an image with the information from the read-function
     :param annotation: dict with information
@@ -47,10 +60,10 @@ def draw_img(annotation: dict):
 
 
 def draw_polygon(
-    img: np.ndarray, polygon: List[Tuple[int]], label: int = 1, shift: int = 0
-) -> np.ndarray:
+    img: ndarray, polygon: List[Tuple[int]], label: int = 1, shift: int = 0
+) -> ndarray:
     """Takes corner coordinates and fills entire polygon with label values"""
-    polygon_np = np.array(polygon, dtype=int).T  # type: ignore
+    polygon_np = np.array(polygon, dtype=int).T
     x_coords, y_coords = draw.polygon(polygon_np[1] + shift, polygon_np[0] + shift)
     img[x_coords, y_coords] = label
 

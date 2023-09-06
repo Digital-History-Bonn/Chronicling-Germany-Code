@@ -36,7 +36,7 @@ def multi_class_csi(
     return csi
 
 
-def get_file(file: str, scale: float=0.25) -> torch.Tensor:
+def get_file(file: str, scale: float = 0.25) -> torch.Tensor:
     """
     loads a image as tensor
     :param file: path to file
