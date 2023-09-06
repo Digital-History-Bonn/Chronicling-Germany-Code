@@ -20,8 +20,17 @@ LABEL_ASSIGNMENTS = {
     "separator_horizontal": 9,
 }
 
-LABEL_NAMES = ["UnknownRegion", "caption", "table", "article", "heading",
-                     "header", "separator_vertical", "separator_short", "separator_horizontal"]
+LABEL_NAMES = [
+    "UnknownRegion",
+    "caption",
+    "table",
+    "article",
+    "heading",
+    "header",
+    "separator_vertical",
+    "separator_short",
+    "separator_horizontal",
+]
 
 
 def draw_img(annotation: dict) -> ndarray:

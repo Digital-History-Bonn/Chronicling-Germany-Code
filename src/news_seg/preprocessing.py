@@ -6,9 +6,9 @@ from typing import Tuple
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
-from PIL.Image import BICUBIC, NEAREST # pylint: disable=no-name-in-module
 from numpy import ndarray
+from PIL import Image
+from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
 from skimage.util.shape import view_as_windows
 
 SCALE = 1
@@ -61,7 +61,9 @@ class Preprocessing:
             return data[:, :-1], data[:, -1]
         return image, target
 
-    def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image.Image, ndarray]:
+    def load(
+        self, input_path: str, target_path: str, file: str
+    ) -> Tuple[Image.Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
         :param target_path: path to target

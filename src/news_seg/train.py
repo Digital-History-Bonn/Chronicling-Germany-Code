@@ -5,15 +5,15 @@ module for training the hdSegment Model
 import argparse
 import datetime
 import warnings
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
+from torch.utils import tensorboard
 from torch.utils.data import DataLoader
-from torch.utils import tensorboard 
 from tqdm import tqdm
 
 from .model import DhSegment
@@ -57,8 +57,12 @@ def init_model(load: Union[str, None]) -> DhSegment:
     :return: loaded model
     """
     # create model
-    model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
-                      load_resnet_weights=True)
+    model = DhSegment(
+        [3, 4, 6, 4],
+        in_channels=IN_CHANNELS,
+        out_channel=OUT_CHANNELS,
+        load_resnet_weights=True,
+    )
     model = model.float()
     model.freeze_encoder()
     # load model if argument is None, it does nothing
@@ -74,11 +78,11 @@ class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
-            self,
-            load: Union[str, None] = None,
-            save_model: Union[str, None] = None,
-            batch_size: int = BATCH_SIZE,
-            learningrate: float = LEARNING_RATE,
+        self,
+        load: Union[str, None] = None,
+        save_model: Union[str, None] = None,
+        batch_size: int = BATCH_SIZE,
+        learningrate: float = LEARNING_RATE,
     ):
         """
         Trainer-class to train DhSegment Model
@@ -160,9 +164,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                    total=(len(self.train_loader)),
-                    desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batche(s)",
+                total=(len(self.train_loader)),
+                desc=f"Epoch {self.epoch}/{epochs}",
+                unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -177,7 +181,9 @@ class Trainer:
                     self.step += 1
                     # pylint: disable-next=not-context-manager
 
-                    summary_writer.add_scalar("train loss", loss.item(), global_step=self.step)
+                    summary_writer.add_scalar(
+                        "train loss", loss.item(), global_step=self.step
+                    )
                     # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(), global_step=self.step)
                     # summary_writer.add_scalar('batch std', images.detach().cpu().std(), global_step=self.step)
                     # summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
@@ -241,7 +247,7 @@ class Trainer:
         )
 
         for images, targets in tqdm(
-                loader, desc="validation_round", total=size, unit="batch(es)"
+            loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
@@ -279,8 +285,14 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss: float, jaccard: float, accuracy: float, class_accs: ndarray,
-                    test_validation: bool) -> None:
+    def val_logging(
+        self,
+        loss: float,
+        jaccard: float,
+        accuracy: float,
+        class_accs: ndarray,
+        test_validation: bool,
+    ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
         :param test_validation: if true the test dataset will be used for validation
@@ -308,9 +320,13 @@ class Trainer:
         summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
         summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
-        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)
+        summary_writer.add_scalar(
+            f"{environment}/accuracy", accuracy, global_step=self.step
+        )
 
-        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)
+        summary_writer.add_scalar(
+            f"{environment}/jaccard score", jaccard, global_step=self.step
+        )
 
         for i, acc in enumerate(class_accs):
             if not np.isnan(acc):
