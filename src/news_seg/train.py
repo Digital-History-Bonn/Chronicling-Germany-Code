@@ -13,7 +13,7 @@ from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils import tensorboard 
 from tqdm import tqdm
 
 from .model import DhSegment
@@ -427,7 +427,7 @@ if __name__ == "__main__":
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = SummaryWriter(train_log_dir)
+    summary_writer = tensorboard.SummaryWriter(train_log_dir)
 
     load_model = f"Models/model_{args.load}.pt" if args.load else None
 
