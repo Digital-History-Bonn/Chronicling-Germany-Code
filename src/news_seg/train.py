@@ -136,21 +136,21 @@ class Trainer:
             train_set,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=DATALOADER_WORKER,
+            num_workers=args.num_workers,
             drop_last=True,
         )
         self.val_loader = DataLoader(
             validation_set,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=DATALOADER_WORKER,
+            num_workers=args.num_workers,
             drop_last=True,
         )
         self.test_loader = DataLoader(
             test_set,
             batch_size=batch_size,
             shuffle=False,
-            num_workers=DATALOADER_WORKER,
+            num_workers=args.num_workers,
             drop_last=True,
         )
 
@@ -448,6 +448,9 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--gpu-count", "-g", type=int, default=1, help="Number of gpu that should be used for training"
+    )
+    parser.add_argument(
+        "--num-workers", "-w", type=int, default=DATALOADER_WORKER, help="Number of workers for the Dataloader"
     )
 
     return parser.parse_args()
