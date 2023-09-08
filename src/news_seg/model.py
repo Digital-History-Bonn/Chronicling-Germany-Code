@@ -12,7 +12,10 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-from utils import replace_substrings
+# from utils import replace_substrings
+
+# pylint: disable=locally-disabled, import-error
+from src.news_seg.utils import replace_substrings
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -148,7 +151,7 @@ class Block(nn.Module):
         out_x = self.layers(in_x)
 
         if self.conv_out:
-            copy = self.conv(out_x)
+            copy = self.conv(out_x)  # pylint: disable=locally-disabled, not-callable # type: ignore
         else:
             copy = out_x
 
@@ -194,7 +197,7 @@ class UpScaleBlock(nn.Module):
         prev_up = self.upscale(prev_up)
         feat_x = torch.concat((copy, prev_up), 1)
         feat_x = self.conv(feat_x)
-        return self.relu(feat_x) # type: ignore
+        return self.relu(feat_x)  # type: ignore
 
 
 class DhSegment(nn.Module):

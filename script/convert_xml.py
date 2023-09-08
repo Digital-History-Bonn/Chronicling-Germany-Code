@@ -11,9 +11,14 @@ from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
-import draw_img
-import read_xml
-from draw_img import LABEL_NAMES
+
+# import draw_img
+# import read_xml
+# from draw_img import LABEL_NAMES
+
+from script import draw_img
+from script import read_xml
+from script.draw_img import LABEL_NAMES
 
 INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
