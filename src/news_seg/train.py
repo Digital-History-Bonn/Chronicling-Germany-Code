@@ -233,7 +233,7 @@ class Trainer:
                                 f"saved model because of early stopping with value {loss + (1 - acc)}"
                             )
 
-                            self.model.module.save(self.save_model + "_best")
+                            self.model.module.save(self.save_model + "_best") # type: ignore
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -242,7 +242,7 @@ class Trainer:
                     )  # type:ignore
 
             # save model at end of epoch
-            self.model.module.save(self.save_model)
+            self.model.module.save(self.save_model) # type: ignore
             with open(f"{self.save_score}.json", "w", encoding="utf-8") as file:
                 json.dump((score, self.step, self.epoch + 1), file)
             summary_writer.flush()

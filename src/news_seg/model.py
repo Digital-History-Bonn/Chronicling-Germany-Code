@@ -150,8 +150,8 @@ class Block(nn.Module):
         """
         out_x = self.layers(in_x)
 
-        if self.conv_out:
-            copy = self.conv(out_x)  # pylint: disable=locally-disabled, not-callable # type: ignore
+        if self.conv:
+            copy = self.conv(out_x) # type: ignore # pylint: disable=locally-disabled, not-callable
         else:
             copy = out_x
 
