@@ -137,7 +137,7 @@ class Block(nn.Module):
         super().__init__()
         self.layers = nn.Sequential(*layers)
         self.conv_out = conv_out
-        self.conv = conv1x1(planes * Bottleneck.expansion, 512)
+        self.conv = conv1x1(planes * Bottleneck.expansion, 512) if conv_out else None
 
     def forward(self, in_x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
