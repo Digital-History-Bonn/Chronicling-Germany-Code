@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 from typing import Dict, List, Tuple, Union
 
-import numpy as np
 import torch
 
 # pylint thinks torch has no name randperm this is wrong
@@ -14,8 +13,16 @@ import torch
 from torch import randperm
 from torch.utils.data import Dataset
 from torchvision import transforms
+from tqdm import tqdm
 
-PATH = "crops/"
+# from preprocessing import Preprocessing
+
+from src.news_seg.preprocessing import Preprocessing
+
+
+
+IMAGE_PATH = "data/images"
+TARGET_PATH = "data/targets/"
 
 
 class NewsDataset(Dataset):
@@ -23,26 +30,60 @@ class NewsDataset(Dataset):
     A dataset class for the newspaper datasets
     """
 
-    def __init__(self, path: str = PATH, files: Union[List[str], None] = None, limit: Union[int, None] = None):
+    def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
+                 data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
+                 dataset: str = "transcribus", sort: bool = False):
         """
-        Dataset object
         load images and targets from folder
-
-        :param path: path to folders with images and targets
+        :param preprocessing:
+        :param data: uses this list instead of loading data from disc
+        :param sort: sort file_names for testing purposes
+        :param image_path: image path
+        :param target_path: target path
+        :param limit: limits the quantity of loaded images
+        :param dataset: which dataset to expect. Options are 'transcribus' and 'HLNA2013' (europeaner newspaper project)
         """
-        # path to the over all folder
-        self.path = path
 
-        # list paths of images and targets
-        if files is None:
-            self.file_names: List[str] = [
-                f[:-3] for f in os.listdir(f"{path}") if f.endswith(".pt")
-            ]
+        self.preprocessing = preprocessing
+        self.dataset = dataset
+        self.image_path = image_path
+        self.target_path = target_path
+
+        self.data: List[torch.Tensor] = []
+        if data:
+            self.data = data
         else:
-            self.file_names = files
+            # load data
+            if self.dataset == "transcribus":
+                extension = ".jpg"
 
-        if limit is not None:
-            self.file_names = self.file_names[:limit]
+                def get_file_name(name: str) -> str:
+                    return f"{name}.npy"
+            else:
+                extension = ".tif"
+
+                def get_file_name(name: str) -> str:
+                    return f"pc-{name}.npy"
+
+            # read all file names
+            self.file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
+            assert len(
+                self.file_names) > 0, (f"No Images in {image_path} with extension{extension} found. Make sure the "
+                                       f"specified dataset and path are correct.")
+            if sort:
+                self.file_names.sort()
+
+            if limit is not None:
+                self.file_names = self.file_names[:limit]
+
+            # iterate over files
+            for file in tqdm(self.file_names, desc="cropping images", unit="image"):
+                image, target = self.preprocessing.load(
+                    f"{image_path}{file}{extension}", f"{target_path}{get_file_name(file)}", file
+                    , dataset)
+                # preprocess / create crops
+                crops = list(torch.tensor(self.preprocessing(image, target)))
+                self.data += crops
 
         self.augmentations = True
 
@@ -51,7 +92,7 @@ class NewsDataset(Dataset):
         standard len function
         :return: number of items in dateset
         """
-        return len(self.file_names)
+        return len(self.data)
 
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -59,8 +100,8 @@ class NewsDataset(Dataset):
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
-        # load data
-        data = torch.load(f"{self.path}{self.file_names[item]}.pt")
+
+        data: torch.Tensor = self.data[item]
 
         # do augmentations
         if self.augmentations:
@@ -74,7 +115,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-            self, ratio: Tuple[float, float, float]
+        self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -91,17 +132,20 @@ class NewsDataset(Dataset):
         indices = randperm(
             len(self), generator=torch.Generator().manual_seed(42)
         ).tolist()
-        nd_paths = np.array(self.file_names)
+        torch_data = torch.stack(self.data)
 
-        train_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[: splits[0]]])
-        )
-        test_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[splits[0]: splits[1]]])
-        )
-        valid_dataset = NewsDataset(
-            path=self.path, files=list(nd_paths[indices[splits[1]:]])
-        )
+        train_dataset = NewsDataset(self.preprocessing,
+                                    image_path=self.image_path, target_path=self.target_path,
+                                    data=list(torch_data[indices[: splits[0]]])
+                                    )
+        test_dataset = NewsDataset(self.preprocessing,
+                                   image_path=self.image_path, target_path=self.target_path,
+                                   data=list(torch_data[indices[splits[0]: splits[1]]])
+                                   )
+        valid_dataset = NewsDataset(self.preprocessing,
+                                    image_path=self.image_path, target_path=self.target_path,
+                                    data=list(torch_data[indices[splits[1]:]])
+                                    )
 
         return train_dataset, test_dataset, valid_dataset
 

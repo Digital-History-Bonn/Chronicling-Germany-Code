@@ -15,6 +15,7 @@ class TestClassPreprocessing:
     @pytest.fixture(autouse=True)
     def setup(self):
         "will initiate NewsDataset for every test"
+        np.random.seed(314)
         pytest.preprocessing = Preprocessing()
 
     def test_load(self):
@@ -25,6 +26,7 @@ class TestClassPreprocessing:
             f"{DATA_PATH}input/test-image.jpg",
             f"{DATA_PATH}input/test-target.npy",
             "test",
+            dataset = "transcibus"
         )
         assert image.mode == "RGB"
         assert f"{target.dtype}" == "uint8"
@@ -39,18 +41,18 @@ class TestClassPreprocessing:
         image = Image.fromarray(
             (np.random.rand(size, size, channels) * 255).astype("uint8")
         ).convert("RGB")
-        target = np.random.randint(0, 10, (size, size))
+        target = np.random.randint(0, 10, (size, size), dtype=np.uint8)
 
-        result_image, result_target = pytest.preprocessing(image, target)
+        result_data = pytest.preprocessing(image, target)
 
-        assert result_image.shape == (int(size / crop_size) ** 2, channels, size, size)
-        assert result_target.shape == (int(size / crop_size) ** 2, size, size)
+        assert result_data.shape == (int(size / crop_size) ** 2, channels + 1, size, size)
+        assert result_data.dtype == np.uint8
 
         pytest.preprocessing.crop = False
 
-        result_image, result_target = pytest.preprocessing(image, target)
-        assert result_image.shape == (channels, size, size)
-        assert result_target.shape == (size, size)
+        result_data = pytest.preprocessing(image, target)
+        assert result_data.shape == (channels + 1, size, size)
+        assert result_data.dtype == np.uint8
 
     def test_scale(self):
         """Verify scale function"""
@@ -59,12 +61,12 @@ class TestClassPreprocessing:
         image = Image.fromarray(
             (np.random.rand(size, size, channels) * 255).astype("uint8")
         ).convert("RGB")
-        target = np.random.randint(0, 10, (size, size))
+        target = np.random.randint(1, 10, (size, size)).astype("uint8")
 
         pytest.preprocessing.scale = 0.5
         result_image, result_target = pytest.preprocessing.scale_img(
             image, target
-        )  # pylint: disable=protected-access
+        )
 
         result_size = int(size * pytest.preprocessing.scale)
         assert result_image.shape == (channels, result_size, result_size)
@@ -73,7 +75,7 @@ class TestClassPreprocessing:
         pytest.preprocessing.scale = 1
         result_image, result_target = pytest.preprocessing.scale_img(
             image, target
-        )  # pylint: disable=protected-access
+        )
 
         assert result_image.shape == (channels, size, size)
         assert result_target.shape == (size, size)
