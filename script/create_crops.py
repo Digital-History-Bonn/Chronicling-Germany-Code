@@ -7,6 +7,8 @@ import os
 import torch
 from tqdm import tqdm
 
+# from preprocessing import Preprocessing
+
 from src.news_seg.preprocessing import Preprocessing
 
 
@@ -15,6 +17,7 @@ def main():
     and target"""
     preprocessing = Preprocessing()
 
+    # pylint: disable=duplicate-code
     if args.dataset == "transcribus":
         extension = ".jpg"
 
@@ -34,9 +37,7 @@ def main():
     # iterate over files
     for file in tqdm(paths, desc="cropping images", unit="image"):
         image, target = preprocessing.load(
-            f"{args.images}{file}{extension}",
-            f"{args.targets}{get_file_name(file)}",
-            f"{file}",
+            f"{args.images}{file}{extension}", f"{args.targets}{get_file_name(file)}", f"{file}", dataset= args.dataset
         )
         # preprocess / create crops
         img_crops, tar_crops = preprocessing(image, target)

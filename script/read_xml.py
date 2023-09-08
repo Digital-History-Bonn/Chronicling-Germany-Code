@@ -27,10 +27,9 @@ def read_transcribus(
 
     page = bs_data.find("Page")
 
-    return {
-        "size": [int(page["imageWidth"]), int(page["imageHeight"])],
-        "tags": tags_dict,
-    }
+    if page:
+        return {"size": [int(page['imageWidth']), int(page['imageHeight'])], 'tags': tags_dict}
+    return {}
 
 
 def find_regions(

@@ -8,8 +8,8 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from numpy import ndarray
 from PIL import Image
+from numpy import ndarray
 from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
@@ -19,6 +19,8 @@ from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons
 from src.news_seg import train
+
+# import train
 
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"

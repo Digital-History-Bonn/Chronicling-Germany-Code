@@ -3,7 +3,6 @@ Main Module for converting annotation xml files to numpy images. Also contains b
 take polygon data and convert it to xml.
 """
 import argparse
-import json
 import os
 from typing import Dict, List
 
@@ -12,11 +11,15 @@ from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
+
+# import draw_img, read_xml
+# from draw_img import LABEL_NAMES
+
 from script import draw_img, read_xml
 from script.draw_img import LABEL_NAMES
 
-INPUT = "../Data/input_back/"
-OUTPUT = "../Data/Targets_back/"
+INPUT = "../../data/newspaper/annotations/"
+OUTPUT = "../../data/newspaper/targets/"
 
 
 def main() -> None:
@@ -28,18 +31,23 @@ def main() -> None:
         else read_xml.read_hlna2013
     )
     paths = [f[:-4] for f in os.listdir(INPUT) if f.endswith(".xml")]
+    target_paths = [f[:-4] for f in os.listdir(OUTPUT) if f.endswith(".npy")]
     for path in tqdm(paths):
+        if path in target_paths:
+            continue
         annotation: dict = read(f"{INPUT}{path}.xml")  # type: ignore
-        img = draw_img.draw_img(annotation)
-        io.imsave(f"{OUTPUT}{path}.png", img / 10)
-
-        with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
-            json.dump(annotation, file)
-
-        # draw image
+        if len(annotation) < 1:
+            continue
         img = draw_img.draw_img(annotation)
 
-        # save image
+        # Debug
+        # io.imsave(f"{OUTPUT}{path}.png", img / 10)
+        #
+        # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
+        #     json.dump(annotation, file)
+
+
+        # save ndarray
         np_save(f"{OUTPUT}{path}", img)
 
 
@@ -71,7 +79,22 @@ def get_args() -> argparse.Namespace:
         default="transcribus",
         help="select dataset to load " "(transcribus, HLNA2013)",
     )
-
+    parser.add_argument(
+        "--annotations-path",
+        "-a",
+        type=str,
+        dest="annotations_path",
+        default=INPUT,
+        help="path for folder with annotations",
+    )
+    parser.add_argument(
+        "--output-path",
+        "-o",
+        type=str,
+        dest="output_path",
+        default=OUTPUT,
+        help="path for ouput folder",
+    )
     return parser.parse_args()
 
 

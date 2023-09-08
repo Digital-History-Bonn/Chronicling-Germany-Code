@@ -12,6 +12,9 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
+# from utils import replace_substrings
+
+# pylint: disable=locally-disabled, import-error
 from src.news_seg.utils import replace_substrings
 
 # as this is code obtained from pytorch docstrings are not added
@@ -102,7 +105,7 @@ class Bottleneck(nn.Module):
         """
         identity = tensor_x
 
-        out = self.conv1(tensor_x)
+        out: torch.Tensor = self.conv1(tensor_x)
         out = self.bn1(out)
         out = self.relu(out)
 
@@ -119,7 +122,7 @@ class Bottleneck(nn.Module):
         out += identity
         out = self.relu(out)
 
-        return torch.Tensor(out)
+        return out
 
 
 class Block(nn.Module):
@@ -137,7 +140,7 @@ class Block(nn.Module):
         super().__init__()
         self.layers = nn.Sequential(*layers)
         self.conv_out = conv_out
-        self.conv = conv1x1(planes * Bottleneck.expansion, 512)
+        self.conv = conv1x1(planes * Bottleneck.expansion, 512) if conv_out else None
 
     def forward(self, in_x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -147,8 +150,8 @@ class Block(nn.Module):
         """
         out_x = self.layers(in_x)
 
-        if self.conv_out:
-            copy = self.conv(out_x)
+        if self.conv:
+            copy = self.conv(out_x) # type: ignore # pylint: disable=locally-disabled, not-callable
         else:
             copy = out_x
 
@@ -194,7 +197,7 @@ class UpScaleBlock(nn.Module):
         prev_up = self.upscale(prev_up)
         feat_x = torch.concat((copy, prev_up), 1)
         feat_x = self.conv(feat_x)
-        return torch.Tensor(self.relu(feat_x))
+        return self.relu(feat_x)  # type: ignore
 
 
 class DhSegment(nn.Module):
