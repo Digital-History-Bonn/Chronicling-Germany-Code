@@ -13,7 +13,6 @@ import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
-from torch.utils import tensorboard
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
@@ -396,13 +395,6 @@ def get_args() -> argparse.Namespace:
         help="name of run in tensorboard",
     )
     parser.add_argument(
-        "--predict_image",
-        "-i",
-        type=str,
-        default=PREDICT_IMAGE,
-        help="path for full image prediction",
-    )
-    parser.add_argument(
         "--batch-size",
         "-b",
         dest="batch_size",
@@ -449,6 +441,28 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="limit quantity of loaded images for testing purposes",
+    )
+    parser.add_argument('--crop_size', type=int, default=CROP_SIZE, help='Window size of image cropping')
+    parser.add_argument('--crop_factor', type=float, default=CROP_FACTOR, help='Scaling factor for cropping steps')
+    parser.add_argument('--dataset', type=str, default="transcribus",
+                        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
+                             "(europeaner newspaper project)")
+    parser.add_argument(
+        "--load-score", "-ls", action='store_true',
+        help="Whether the score corresponding to the loaded model should be loaded as well."
+    )
+    parser.add_argument(
+        "--gpu-count", "-g", type=int, default=1, help="Number of gpu that should be used for training"
+    )
+    parser.add_argument(
+        "--num-workers", "-w", type=int, default=DATALOADER_WORKER, help="Number of workers for the Dataloader"
+    )
+
 
     return parser.parse_args()
 
@@ -467,7 +481,8 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         load=load_model,
-        save_model=f"Models/model_{args.name}",
+        save_model=f"models/model_{args.name}",
+        save_score=f"scores/model_{args.name}",
         batch_size=args.batch_size,
         learningrate=args.lr,
     )

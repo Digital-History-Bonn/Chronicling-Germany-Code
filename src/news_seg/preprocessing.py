@@ -6,7 +6,6 @@ from typing import Tuple
 
 import numpy as np
 import numpy.typing as npt
-from numpy import ndarray
 from PIL import Image
 from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
 from numpy import ndarray
