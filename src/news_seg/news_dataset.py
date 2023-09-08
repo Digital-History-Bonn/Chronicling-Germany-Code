@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.news_seg.preprocessing import Preprocessing
+from preprocessing import Preprocessing
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"

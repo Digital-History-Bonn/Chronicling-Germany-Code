@@ -11,9 +11,9 @@ from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
-from script import draw_img
-from script import read_xml
-from script.draw_img import LABEL_NAMES
+import draw_img
+import read_xml
+from draw_img import LABEL_NAMES
 
 INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
@@ -76,7 +76,22 @@ def get_args() -> argparse.Namespace:
         default="transcribus",
         help="select dataset to load " "(transcribus, HLNA2013)",
     )
-
+    parser.add_argument(
+        "--annotations-path",
+        "-a",
+        type=str,
+        dest="annotations_path",
+        default=INPUT,
+        help="path for folder with annotations",
+    )
+    parser.add_argument(
+        "--output-path",
+        "-o",
+        type=str,
+        dest="output_path",
+        default=OUTPUT,
+        help="path for ouput folder",
+    )
     return parser.parse_args()
 
 

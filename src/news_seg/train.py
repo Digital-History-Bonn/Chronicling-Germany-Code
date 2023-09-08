@@ -17,11 +17,11 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-from src.news_seg.model import DhSegment
-from src.news_seg.news_dataset import NewsDataset
-from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
-from src.news_seg.preprocessing import SCALE
-from src.news_seg.utils import multi_class_csi
+from model import DhSegment
+from news_dataset import NewsDataset
+from preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
+from preprocessing import SCALE
+from utils import multi_class_csi
 
 EPOCHS = 1
 DATALOADER_WORKER = 1

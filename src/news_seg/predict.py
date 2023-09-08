@@ -15,7 +15,7 @@ from skimage.color import label2rgb # pylint: disable=no-name-in-module
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.news_seg import train
+import train
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons
