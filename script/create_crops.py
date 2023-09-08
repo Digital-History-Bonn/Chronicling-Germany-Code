@@ -23,6 +23,7 @@ def main():
 
         def get_file_name(name: str):
             return f"{name}.npy"
+
     else:
         extension = ".tif"
 

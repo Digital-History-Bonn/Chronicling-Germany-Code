@@ -2,16 +2,16 @@
 
 import argparse
 import os
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image
 from numpy import ndarray
+from PIL import Image
 from skimage import draw
-from skimage.color import label2rgb # pylint: disable=no-name-in-module
+from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -21,13 +21,23 @@ from src.news_seg import train
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons
+from src.news_seg import train
 
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
 
-cmap = [(1.0, 0.0, 0.16), (1.0, 0.43843843843843844, 0.0), (0, 0.222, 0.222), (0.36036036036036045, 0.5, 0.5),
-        (0.0, 1.0, 0.2389486260454002), (0.8363201911589008, 1.0, 0.0), (0.0, 0.5615942028985507, 1.0),
-        (0.0422705314009658, 0.0, 1.0), (0.6461352657004831, 0.0, 1.0), (1.0, 0.0, 0.75)]
+cmap = [
+    (1.0, 0.0, 0.16),
+    (1.0, 0.43843843843843844, 0.0),
+    (0, 0.222, 0.222),
+    (0.36036036036036045, 0.5, 0.5),
+    (0.0, 1.0, 0.2389486260454002),
+    (0.8363201911589008, 1.0, 0.0),
+    (0.0, 0.5615942028985507, 1.0),
+    (0.0422705314009658, 0.0, 1.0),
+    (0.6461352657004831, 0.0, 1.0),
+    (1.0, 0.0, 0.75),
+]
 
 
 def draw_prediction(img: ndarray, path: str) -> None:
@@ -43,7 +53,7 @@ def draw_prediction(img: ndarray, path: str) -> None:
     for i in range(len(values)):
         img[-1][-(i + 1)] = i + 1
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
-    plt.axis('off')
+    plt.axis("off")
     # create a patch (proxy artist) for every color
     patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
     # put those patched as legend-handles into the legend
@@ -55,24 +65,47 @@ def draw_prediction(img: ndarray, path: str) -> None:
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description='train')
-    parser.add_argument('--data-path', '-p', type=str,
-                        default=DATA_PATH,
-                        help='path for folder with images to be segmented. Images need to be png or jpg. Otherwise they'
-                             ' will be skipped')
-    parser.add_argument('--result-path', '-r', type=str,
-                        default=RESULT_PATH,
-                        help='path for folder where prediction images are to be saved')
-    parser.add_argument('--model-path', '-m', type=str,
-                        default="model.pt",
-                        help='path to model .pt file')
-    parser.add_argument('--transkribus-export', '-e', dest="export", action="store_true",
-                        help='If True, annotation data ist added to xml files inside the page folder. The page folder '
-                             'needs to be inside the image folder.')
-    parser.add_argument('--cuda-device', '-c', type=str, default="cuda:0",
-                        help='Cuda device string')
-    parser.add_argument('--threshold', '-t', type=float, default=0.5,
-                        help='Confidence threshold for assigning a label to a pixel.')
+    parser = argparse.ArgumentParser(description="train")
+    parser.add_argument(
+        "--data-path",
+        "-p",
+        type=str,
+        default=DATA_PATH,
+        help="path for folder with images to be segmented. Images need to be png or jpg. Otherwise they"
+        " will be skipped",
+    )
+    parser.add_argument(
+        "--result-path",
+        "-r",
+        type=str,
+        default=RESULT_PATH,
+        help="path for folder where prediction images are to be saved",
+    )
+    parser.add_argument(
+        "--model-path",
+        "-m",
+        type=str,
+        default="model.pt",
+        help="path to model .pt file",
+    )
+    parser.add_argument(
+        "--transkribus-export",
+        "-e",
+        dest="export",
+        action="store_true",
+        help="If True, annotation data ist added to xml files inside the page folder. The page folder "
+        "needs to be inside the image folder.",
+    )
+    parser.add_argument(
+        "--cuda-device", "-c", type=str, default="cuda:0", help="Cuda device string"
+    )
+    parser.add_argument(
+        "--threshold",
+        "-t",
+        type=float,
+        default=0.5,
+        help="Confidence threshold for assigning a label to a pixel.",
+    )
     return parser.parse_args()
 
 
@@ -82,7 +115,7 @@ def load_image(file: str) -> torch.Tensor:
     :param file: path to image
     :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 0.
     """
-    image = Image.open(args.data_path + file).convert('RGB')
+    image = Image.open(args.data_path + file).convert("RGB")
     transform = transforms.PILToTensor()
     data: torch.Tensor = transform(image).float() / 255
     data = torch.unsqueeze(data, dim=0)
@@ -98,26 +131,41 @@ def predict() -> None:
     file_names = os.listdir(args.data_path)
     model = train.init_model(args.model_path)
     model.to(device)
-    for file in tqdm(file_names, desc='predicting images', total=len(file_names), unit='files'):
+    for file in tqdm(
+        file_names, desc="predicting images", total=len(file_names), unit="files"
+    ):
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
         image = load_image(file)
 
         pred = np.squeeze(model(image.to(device)).detach().cpu().numpy())
         pred = process_prediction(pred, args.threshold)
-        draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + '.png')
+        draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
         if args.export:
             segmentations = prediction_to_polygons(pred)
             polygon_pred = draw_polygons(segmentations, pred.shape)
-            draw_prediction(polygon_pred, args.result_path + f"{os.path.splitext(file)[0]}_polygons" + '.png')
+            draw_prediction(
+                polygon_pred,
+                args.result_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
+            )
             if args.export:
-                with open(f"{args.data_path}page/{os.path.splitext(file)[0]}.xml", 'r', encoding="utf-8") as xml_file:
+                with open(
+                    f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                    "r",
+                    encoding="utf-8",
+                ) as xml_file:
                     xml_data = create_xml(xml_file.read(), segmentations)
-                with open(f"{args.data_path}page/{os.path.splitext(file)[0]}.xml", 'w', encoding="utf-8") as xml_file:
+                with open(
+                    f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                    "w",
+                    encoding="utf-8",
+                ) as xml_file:
                     xml_file.write(xml_data.prettify())
 
 
-def draw_polygons(segmentations: Dict[int, List[List[float]]], shape: Tuple[int, int]) -> ndarray:
+def draw_polygons(
+    segmentations: Dict[int, List[List[float]]], shape: Tuple[int, int]
+) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.
     :param shape: shape of original image
@@ -146,7 +194,7 @@ def process_prediction(pred: ndarray, threshold: float) -> ndarray:
     return argmax
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_args()
 
     predict()

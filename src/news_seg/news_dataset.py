@@ -115,7 +115,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-            self, ratio: Tuple[float, float, float]
+        self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio

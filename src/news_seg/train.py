@@ -6,13 +6,14 @@ import argparse
 import datetime
 import json
 import warnings
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import Adam
+from torch.utils import tensorboard
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
@@ -62,8 +63,12 @@ def init_model(load: Union[str, None]) -> DhSegment:
     :return: loaded model
     """
     # create model
-    model = DhSegment([3, 4, 6, 4], in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS,
-                      load_resnet_weights=True)
+    model = DhSegment(
+        [3, 4, 6, 4],
+        in_channels=IN_CHANNELS,
+        out_channel=OUT_CHANNELS,
+        load_resnet_weights=True,
+    )
     model = model.float()
     model.freeze_encoder()
     # load model if argument is None, it does nothing
@@ -185,9 +190,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                    total=(len(self.train_loader)),
-                    desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batche(s)",
+                total=(len(self.train_loader)),
+                desc=f"Epoch {self.epoch}/{epochs}",
+                unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -334,34 +339,34 @@ class Trainer:
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
-        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)  # type:ignore
+        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
-        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)  # type:ignore
-        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)  # type:ignore
+        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
+        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)
 
-        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)  # type:ignore
+        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)
 
         for i, acc in enumerate(class_accs):
             if not np.isnan(acc):
                 summary_writer.add_scalar(
                     f"multi-acc-{environment}/class {i}", acc, global_step=self.step
-                )  # type:ignore
+                )
 
         summary_writer.add_image(
             f"image/{environment}-input",
-            torch.squeeze(image.float().cpu()),
+            torch.permute(image.float().cpu(), (0, 2, 3, 1)),
             global_step=self.step,
-        )  # type:ignore
+        )
         summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
+            target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
             global_step=self.step,
-        )  # type:ignore
+        )
         summary_writer.add_image(
             f"image/{environment}-prediction",
-            pred.float().cpu() / OUT_CHANNELS,
+            pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
             global_step=self.step,
-        )  # type:ignore
+        )
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
@@ -389,6 +394,13 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         help="name of run in tensorboard",
+    )
+    parser.add_argument(
+        "--predict_image",
+        "-i",
+        type=str,
+        default=PREDICT_IMAGE,
+        help="path for full image prediction",
     )
     parser.add_argument(
         "--batch-size",
@@ -420,43 +432,22 @@ def get_args() -> argparse.Namespace:
         "--load",
         "-l",
         type=str,
+        dest="load",
         default=None,
-        help="Name of model to load (default is None)",
+        help="model to load (default is None)",
     )
     parser.add_argument(
-        "--data-path",
-        "-d",
-        type=str,
-        dest="data_path",
-        default=None,
-        help="path for folder with folders 'images' and 'targets'",
+        "--predict-scale",
+        "-p",
+        type=float,
+        default=PREDICT_SCALE,
+        help="Downscaling factor of the predict image",
     )
     parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="limit quantity of loaded images for testing purposes",
-    )
-    parser.add_argument('--crop_size', type=int, default=CROP_SIZE, help='Window size of image cropping')
-    parser.add_argument('--crop_factor', type=float, default=CROP_FACTOR, help='Scaling factor for cropping steps')
-    parser.add_argument('--dataset', type=str, default="transcribus",
-                        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
-                             "(europeaner newspaper project)")
-    parser.add_argument(
-        "--cuda-device", "-c", type=str, default="cuda", help="Cuda device string e.g. cuda:0,1 for multiple gpus"
+        "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
-    )
-    parser.add_argument(
-        "--load-score", "-ls", action='store_true',
-        help="Whether the score corresponding to the loaded model should be loaded as well."
-    )
-    parser.add_argument(
-        "--gpu-count", "-g", type=int, default=1, help="Number of gpu that should be used for training"
-    )
-    parser.add_argument(
-        "--num-workers", "-w", type=int, default=DATALOADER_WORKER, help="Number of workers for the Dataloader"
     )
 
     return parser.parse_args()
@@ -465,17 +456,18 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
     torch.manual_seed(args.torch_seed)
+    PREDICT_SCALE = args.predict_scale
+    PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
     summary_writer = SummaryWriter(train_log_dir)
 
-    load_model = f"models/model_{args.load}.pt" if args.load else None
+    load_model = f"Models/model_{args.load}.pt" if args.load else None
 
     trainer = Trainer(
         load=load_model,
-        save_model=f"models/model_{args.name}",
-        save_score=f"scores/model_{args.name}",
+        save_model=f"Models/model_{args.name}",
         batch_size=args.batch_size,
         learningrate=args.lr,
     )

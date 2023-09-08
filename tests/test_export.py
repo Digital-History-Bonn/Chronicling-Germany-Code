@@ -13,9 +13,16 @@ class TestClassExport:
         """Function for testing prediction argmax and threshold handling.
         Each tripple of data represents probabilities for 3 possible classes.
         If the maximum is above the threshold, the result should contain that class label.
-        Otherwise, it is always class 0. """
-        data = np.transpose(np.array([[[0.1, 0.5, 0.4], [0.1, 0.8, 0.1], [0.2, 0.7, 0.1]],
-                                      [[0.0, 0.6, 0.4], [0.05, 0.05, 0.9], [0.01, 0.59, 0.4]]]), (2, 0, 1))
+        Otherwise, it is always class 0."""
+        data = np.transpose(
+            np.array(
+                [
+                    [[0.1, 0.5, 0.4], [0.1, 0.8, 0.1], [0.2, 0.7, 0.1]],
+                    [[0.0, 0.6, 0.4], [0.05, 0.05, 0.9], [0.01, 0.59, 0.4]],
+                ]
+            ),
+            (2, 0, 1),
+        )
         ground_truth = np.array([[0, 1, 1], [1, 2, 0]])
 
         result = predict.process_prediction(data, 0.6)
@@ -31,6 +38,8 @@ class TestClassExport:
     def test_prediction_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
-        ground_truth = {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]],
-                        3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]}
+        ground_truth = {
+            1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]],
+            3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]],
+        }
         assert prediction_to_polygons(data) == ground_truth

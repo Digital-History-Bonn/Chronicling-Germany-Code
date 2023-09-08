@@ -2,15 +2,16 @@
 from typing import Dict, List
 
 import numpy as np
-from PIL import Image
 from numpy import ndarray
+from PIL import Image
 from shapely.geometry import Polygon
 from skimage import measure
 
 
 def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
-    """ Split prediction in to submasks.
-    From https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset"""
+    """Split prediction in to submasks.
+    From https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset
+    """
     width, height = mask_image.size
 
     # Initialize a dictionary of sub-masks indexed by RGB colors
@@ -29,7 +30,7 @@ def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
                     # Note: we add 1 pixel of padding in each direction
                     # because the contour module doesn't handle cases
                     # where pixels bleed to the edge of the image
-                    sub_masks[pixel] = Image.new('1', (width + 2, height + 2))
+                    sub_masks[pixel] = Image.new("1", (width + 2, height + 2))
 
                 # Set the pixel value to 1 (default is 0), accounting for padding
                 sub_masks[pixel].putpixel((pos_x + 1, pos_y + 1), 1)
@@ -38,11 +39,12 @@ def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
 
 
 def create_polygons(sub_mask: ndarray) -> List[List[float]]:
-    """ Find contours (boundary lines) around each sub-mask
+    """Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g., an elephant behind a tree)
-    # from https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset"""
-    contours = measure.find_contours(sub_mask, 0.5, positive_orientation='low')
+    # from https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset
+    """
+    contours = measure.find_contours(sub_mask, 0.5, positive_orientation="low")
     segmentations: List[List[float]] = []
     polygons = []
     for contour in contours:
