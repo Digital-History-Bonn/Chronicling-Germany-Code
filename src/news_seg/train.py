@@ -476,7 +476,7 @@ if __name__ == "__main__":
     train_log_dir = "logs/runs/" + args.name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
-    load_model = f"Models/model_{args.load}.pt" if args.load else None
+    load_model = f"models/model_{args.load}.pt" if args.load else None
 
     trainer = Trainer(
         load=load_model,
