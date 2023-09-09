@@ -429,7 +429,7 @@ def get_args() -> argparse.Namespace:
         help="model to load (default is None)",
     )
     parser.add_argument(
-        "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
+        "--cuda-device", "-c", type=str, default="cuda", help="Cuda device string"
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
