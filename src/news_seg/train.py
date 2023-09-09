@@ -353,19 +353,19 @@ class Trainer:
 
         summary_writer.add_image(
             f"image/{environment}-input",
-            torch.permute(image.float().cpu(), (0, 2, 3, 1)),
+            torch.squeeze(image.float().cpu()),
             global_step=self.step,
-        )
+        )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
             global_step=self.step,
-        )
+        )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-prediction",
-            pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
+            pred.float().cpu() / OUT_CHANNELS,
             global_step=self.step,
-        )
+        )  # type:ignore
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
@@ -429,17 +429,18 @@ def get_args() -> argparse.Namespace:
         help="model to load (default is None)",
     )
     parser.add_argument(
-        "--predict-scale",
-        "-p",
-        type=float,
-        default=PREDICT_SCALE,
-        help="Downscaling factor of the predict image",
-    )
-    parser.add_argument(
         "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
+    )
+    parser.add_argument(
+        "--data-path",
+        "-d",
+        type=str,
+        dest="data_path",
+        default=None,
+        help="path for folder with folders 'images' and 'targets'",
     )
     parser.add_argument(
         "--limit",
@@ -470,12 +471,10 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
     torch.manual_seed(args.torch_seed)
-    PREDICT_SCALE = args.predict_scale
-    PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = SummaryWriter(train_log_dir)
+    summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = f"Models/model_{args.load}.pt" if args.load else None
 
