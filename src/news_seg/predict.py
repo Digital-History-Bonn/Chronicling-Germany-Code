@@ -137,7 +137,7 @@ def predict() -> None:
     device = args.cuda_device if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
     file_names = os.listdir(args.data_path)
-    model = train.init_model(args.model_path)
+    model = train.init_model(args.model_path, device)
     model.to(device)
     for file in tqdm(
             file_names, desc="predicting images", total=len(file_names), unit="files"
