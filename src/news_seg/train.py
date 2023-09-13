@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
@@ -124,7 +124,7 @@ class Trainer:
         self.model = torch.nn.DataParallel(init_model(load))
 
         # set optimizer and loss_fn
-        self.optimizer = Adam(
+        self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=WEIGHT_DECAY
         )  # weight_decay=1e-4
 
