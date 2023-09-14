@@ -25,7 +25,7 @@ from src.news_seg import train
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
 
-FINAL_SIZE = 3200
+FINAL_SIZE = (3200, 3200)
 
 cmap = [
     (1.0, 0.0, 0.16),
@@ -111,8 +111,10 @@ def get_args() -> argparse.Namespace:
         "--final_size",
         "-s",
         type=int,
+        nargs='+',
         default=FINAL_SIZE,
-        help="Size to which the image will be quadratically padded to. Has to be grater or equal to actual image",
+        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
+             "Has to be grater or equal to actual image",
     )
     return parser.parse_args()
 
@@ -145,39 +147,49 @@ def predict() -> None:
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
         image = load_image(file)
-        assert args.final_size >= image.shape[2] and args.final_size >= image.shape[
-            3], f"Final size has to be greater than actual image size. Padding to {args.final_size} x {args.final_size}," \
-                f" bit image has shape of {image.shape[3]} x {image.shape[2]}"
+        assert args.final_size[1] >= image.shape[2] and args.final_size[0] >= image.shape[
+            3], (f"Final size has to be greater than actual image size. "
+                 f"Padding to {args.final_size} x {args.final_size} "
+                 f"but image has shape of {image.shape[3]} x {image.shape[2]}")
         assert image.shape[3] % 2 == 0 and image.shape[2] % 2 == 0, "Pixel count of image sides have to be even."
 
         print(image.shape)
-        transform = transforms.Pad(((args.final_size - image.shape[3]) // 2, (args.final_size - image.shape[2]) // 2))
+        transform = transforms.Pad(
+            ((args.final_size[0] - image.shape[3]) // 2, (args.final_size[1] - image.shape[2]) // 2))
         image = transform(image)
         print(image.shape)
 
         pred = np.squeeze(model(image.to(device)).detach().cpu().numpy())
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
-        if args.export:
-            segmentations = prediction_to_polygons(pred)
-            polygon_pred = draw_polygons(segmentations, pred.shape)
-            draw_prediction(
-                polygon_pred,
-                args.result_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
-            )
-#            if args.export:
-#                with open(
-#                        f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-#                        "r",
-#                        encoding="utf-8",
-#                ) as xml_file:
-#                    xml_data = create_xml(xml_file.read(), segmentations)
-#                with open(
-#                        f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-#                        "w",
-#                        encoding="utf-8",
-#                ) as xml_file:
-#                    xml_file.write(xml_data.prettify())
+        export_polygons(file, pred)
+
+
+def export_polygons(file: str, pred: ndarray) -> None:
+    """
+    Simplify prediction to polygons and export them to an image as well as transcribus xml
+    :param file: path
+    :param pred: prediction 2d ndarray
+    """
+    if args.export:
+        segmentations = prediction_to_polygons(pred)
+        polygon_pred = draw_polygons(segmentations, pred.shape)
+        draw_prediction(
+            polygon_pred,
+            args.result_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
+        )
+        with open(
+                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                "r",
+                encoding="utf-8",
+        ) as xml_file:
+            xml_data = create_xml(xml_file.read(), segmentations)
+        with open(
+                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                "w",
+                encoding="utf-8",
+        ) as xml_file:
+            xml_file.write(xml_data.prettify())
 
 
 def draw_polygons(
