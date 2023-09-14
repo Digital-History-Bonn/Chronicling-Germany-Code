@@ -155,7 +155,8 @@ def predict() -> None:
             3], (f"Final size has to be greater than actual image size. "
                  f"Padding to {args.final_size} x {args.final_size} "
                  f"but image has shape of {image.shape[3]} x {image.shape[2]}")
-        assert image.shape[3] % 2 == 0 and image.shape[2] % 2 == 0, "Pixel count of image sides have to be even."
+
+        image = correct_shape(image)
 
         print(image.shape)
         transform = transforms.Pad(
@@ -167,6 +168,20 @@ def predict() -> None:
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
         export_polygons(file, pred)
+
+
+def correct_shape(image: torch.Tensor) -> torch.Tensor:
+    """
+    If one of the dimension has an uneven number of pixels, the last row/ column is remove to achieve an
+    even pixel number.
+    :param image: input image
+    :return: corrected image
+    """
+    if image.shape[3] % 2 != 0:
+        image = image[:, :, :, : -1]
+    if image.shape[2] % 2 != 0:
+        image = image[:, :, : -1, :]
+    return image
 
 
 def export_polygons(file: str, pred: ndarray) -> None:
