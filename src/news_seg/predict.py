@@ -116,6 +116,9 @@ def get_args() -> argparse.Namespace:
         help="Size to which the image will be padded to. Has to be a tuple (W, H). "
              "Has to be grater or equal to actual image",
     )
+    parser.add_argument(
+        "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
+    )
     return parser.parse_args()
 
 
@@ -141,6 +144,7 @@ def predict() -> None:
     file_names = os.listdir(args.data_path)
     model = train.init_model(args.model_path, device)
     model.to(device)
+    model.eval()
     for file in tqdm(
             file_names, desc="predicting images", total=len(file_names), unit="files"
     ):
@@ -159,7 +163,7 @@ def predict() -> None:
         image = transform(image)
         print(image.shape)
 
-        pred = np.squeeze(model(image.to(device)).detach().cpu().numpy())
+        pred = torch.nn.functional.softmax(torch.squeeze(model(image.to(device)).detach().cpu()), dim=0).numpy()
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
         export_polygons(file, pred)
@@ -225,5 +229,5 @@ def process_prediction(pred: ndarray, threshold: float) -> ndarray:
 
 if __name__ == "__main__":
     args = get_args()
-
+    torch.manual_seed(args.torch_seed)
     predict()
