@@ -212,7 +212,7 @@ def export_polygons(file: str, pred: ndarray) -> None:
 
 
 def draw_polygons(
-        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, int]
+        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
 ) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.
