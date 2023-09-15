@@ -414,7 +414,7 @@ class DhSegment(nn.Module):
             return
         torch.save(self.state_dict(), path + ".pt")
 
-    def load(self, path: Union[str, None]) -> None:
+    def load(self, path: Union[str, None], device: str) -> None:
         """
         load the model weights
         :param path: path to savepoint
@@ -422,7 +422,7 @@ class DhSegment(nn.Module):
         """
         if path is None:
             return
-        self.load_state_dict(torch.load(path, map_location="cuda:0"))
+        self.load_state_dict(torch.load(path, map_location=device))
         self.eval()
 
     def predict(self, image: torch.Tensor) -> torch.Tensor:

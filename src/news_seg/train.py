@@ -55,7 +55,7 @@ LOSS_WEIGHTS: List[float] = [
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, None]) -> DhSegment:
+def init_model(load: Union[str, None], device: str) -> DhSegment:
     """
     Initialise model
     :param load: contains path to load the model from. If False, the model will be initialised randomly
@@ -71,7 +71,7 @@ def init_model(load: Union[str, None]) -> DhSegment:
     model = model.float()
     model.freeze_encoder()
     # load model if argument is None, it does nothing
-    model.load(load)
+    model.load(load, device)
 
     # set mean and std in a model for normalization
     model.means = torch.tensor((0.485, 0.456, 0.406))
@@ -121,7 +121,11 @@ class Trainer:
         self.batch_size: int = batch_size
         self.best_step = 0
 
-        self.model = torch.nn.DataParallel(init_model(load))
+        # check for cuda
+        self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
+        print(f"Using {self.device} device")
+
+        self.model = torch.nn.DataParallel(init_model(load, self.device))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -166,10 +170,6 @@ class Trainer:
 
         assert len(self.train_loader) > 0 and len(self.val_loader) > 0 and len(
             self.test_loader) > 0, "At least one Dataset is to small to assemble at least one batch"
-
-        # check for cuda
-        self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
-        print(f"Using {self.device} device")
 
         self.loss_fn = torch.nn.CrossEntropyLoss(
             weight=torch.tensor(LOSS_WEIGHTS).to(self.device)
