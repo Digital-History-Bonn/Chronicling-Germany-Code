@@ -22,25 +22,25 @@ INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
 
 
-def main(args) -> None:
+def main(parsed_args) -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
     read = (
         read_xml.read_transcribus
-        if args.dataset == "transcribus"
+        if parsed_args.dataset == "transcribus"
         else read_xml.read_hlna2013
     )
-    paths = [f[:-4] for f in os.listdir(args.annotations_path) if f.endswith(".xml")]
+    paths = [f[:-4] for f in os.listdir(parsed_args.annotations_path) if f.endswith(".xml")]
 
-    if not os.path.exists(args.output_path):
-        print(f'creating {args.output_path}.')
-        os.makedirs(args.output_path)
+    if not os.path.exists(parsed_args.output_path):
+        print(f'creating {parsed_args.output_path}.')
+        os.makedirs(parsed_args.output_path)
 
-    target_paths = [f[:-4] for f in os.listdir(args.output_path) if f.endswith(".npy")]
+    target_paths = [f[:-4] for f in os.listdir(parsed_args.output_path) if f.endswith(".npy")]
     for path in tqdm(paths):
         if path in target_paths:
             continue
-        annotation: dict = read(f"{args.annotations_path}{path}.xml")  # type: ignore
+        annotation: dict = read(f"{parsed_args.annotations_path}{path}.xml")  # type: ignore
         if len(annotation) < 1:
             continue
         img = draw_img.draw_img(annotation)
@@ -53,7 +53,7 @@ def main(args) -> None:
 
 
         # save ndarray
-        np_save(f"{args.output_path}{path}", img)
+        np_save(f"{parsed_args.output_path}{path}", img)
 
 
 def np_save(file: str, img: np.ndarray) -> None:
