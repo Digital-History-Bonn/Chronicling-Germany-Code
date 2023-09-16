@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
@@ -55,7 +55,7 @@ LOSS_WEIGHTS: List[float] = [
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, None]) -> DhSegment:
+def init_model(load: Union[str, None], device: str) -> DhSegment:
     """
     Initialise model
     :param load: contains path to load the model from. If False, the model will be initialised randomly
@@ -71,7 +71,7 @@ def init_model(load: Union[str, None]) -> DhSegment:
     model = model.float()
     model.freeze_encoder()
     # load model if argument is None, it does nothing
-    model.load(load)
+    model.load(load, device)
 
     # set mean and std in a model for normalization
     model.means = torch.tensor((0.485, 0.456, 0.406))
@@ -121,10 +121,14 @@ class Trainer:
         self.batch_size: int = batch_size
         self.best_step = 0
 
-        self.model = torch.nn.DataParallel(init_model(load))
+        # check for cuda
+        self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
+        print(f"Using {self.device} device")
+
+        self.model = torch.nn.DataParallel(init_model(load, self.device))
 
         # set optimizer and loss_fn
-        self.optimizer = Adam(
+        self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=WEIGHT_DECAY
         )  # weight_decay=1e-4
 
@@ -166,10 +170,6 @@ class Trainer:
 
         assert len(self.train_loader) > 0 and len(self.val_loader) > 0 and len(
             self.test_loader) > 0, "At least one Dataset is to small to assemble at least one batch"
-
-        # check for cuda
-        self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
-        print(f"Using {self.device} device")
 
         self.loss_fn = torch.nn.CrossEntropyLoss(
             weight=torch.tensor(LOSS_WEIGHTS).to(self.device)
@@ -353,19 +353,19 @@ class Trainer:
 
         summary_writer.add_image(
             f"image/{environment}-input",
-            torch.permute(image.float().cpu(), (0, 2, 3, 1)),
+            torch.squeeze(image.float().cpu()),
             global_step=self.step,
-        )
+        )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :, None] / OUT_CHANNELS,
+            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
             global_step=self.step,
-        )
+        )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-prediction",
-            pred.float().cpu()[:, :, :, None] / OUT_CHANNELS,
+            pred.float().cpu() / OUT_CHANNELS,
             global_step=self.step,
-        )
+        )  # type:ignore
 
         print(f"average loss: {loss}")
         print(f"average accuracy: {accuracy}")
@@ -429,17 +429,18 @@ def get_args() -> argparse.Namespace:
         help="model to load (default is None)",
     )
     parser.add_argument(
-        "--predict-scale",
-        "-p",
-        type=float,
-        default=PREDICT_SCALE,
-        help="Downscaling factor of the predict image",
-    )
-    parser.add_argument(
-        "--cuda-device", "-c", type=str, default="cuda:1", help="Cuda device string"
+        "--cuda-device", "-c", type=str, default="cuda", help="Cuda device string"
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
+    )
+    parser.add_argument(
+        "--data-path",
+        "-d",
+        type=str,
+        dest="data_path",
+        default=None,
+        help="path for folder with folders 'images' and 'targets'",
     )
     parser.add_argument(
         "--limit",
@@ -470,14 +471,12 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
     torch.manual_seed(args.torch_seed)
-    PREDICT_SCALE = args.predict_scale
-    PREDICT_IMAGE = args.predict_image
 
     # setup tensor board
     train_log_dir = "logs/runs/" + args.name
-    summary_writer = SummaryWriter(train_log_dir)
+    summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
-    load_model = f"Models/model_{args.load}.pt" if args.load else None
+    load_model = f"models/model_{args.load}.pt" if args.load else None
 
     trainer = Trainer(
         load=load_model,

@@ -149,8 +149,7 @@ class NewsDataset(Dataset):
 
         return train_dataset, test_dataset, valid_dataset
 
-    @staticmethod
-    def get_augmentations() -> Dict[str, transforms.Compose]:
+    def get_augmentations(self) -> Dict[str, transforms.Compose]:
         """Defines transformations"""
         return {
             "default": transforms.Compose(
@@ -158,6 +157,9 @@ class NewsDataset(Dataset):
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomVerticalFlip(),
                     transforms.RandomRotation(180),
+                    transforms.RandomApply(
+                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))]
+                    , p = 0.5)
                 ]
             ),
             "images": transforms.RandomApply(
