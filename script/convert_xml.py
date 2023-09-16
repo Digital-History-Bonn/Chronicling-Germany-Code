@@ -22,7 +22,7 @@ INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
 
 
-def main(parsed_args) -> None:
+def main(parsed_args: argparse.Namespace) -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
     read = (
