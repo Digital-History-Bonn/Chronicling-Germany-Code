@@ -24,9 +24,9 @@ or with magic commands in jupiter notebooks
 ````
 
 ## Preprocessing and Training
+Depending on your setup, you may require `PYTHONPATH=.` in front of the commands below.
 
 Before starting the training process all data has to be converted.
-Depending on your setup, you may require `PYTHONPATH=.` in front of the commands below.
 This command loads xml annotation data and converts it to .npy files.
 ````
 python script/convert_xml.py -a annotations/ -o targets/
