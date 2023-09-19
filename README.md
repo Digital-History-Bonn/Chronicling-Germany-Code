@@ -33,7 +33,7 @@ python script/convert_xml.py -a annotations/ -o targets/
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.
 ````
-python src/news_seg/train.py -e 100 -n your_name -b 64 -d data_folder/  -l model -g 4 -w 32
+python src/news_seg/train.py -e 100 -n your_name -b 64 -d data_folder/  -g 4 -w 32
 ````
 
 If the training process has to be intrrupted, training can be continued by executing this command.
