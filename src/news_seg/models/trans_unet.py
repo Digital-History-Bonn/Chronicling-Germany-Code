@@ -32,6 +32,8 @@ FC_1 = "MlpBlock_3/Dense_1"
 ATTENTION_NORM = "LayerNorm_0"
 MLP_NORM = "LayerNorm_2"
 
+VIT_BACKBONE = "ViT-B_16"
+
 
 def np2th(weights, conv=False):
     """Possibly convert HWIO to OIHW."""
@@ -225,7 +227,7 @@ class TransformerEncoder(nn.Module):
         :param config: config dict
         :param vis:
         """
-        super(Encoder, self).__init__()
+        super().__init__()
         self.layer = nn.ModuleList()
         self.encoder_norm = LayerNorm(config.hidden_size, eps=1e-6)
         for _ in range(config.transformer["num_layers"]):
@@ -233,7 +235,6 @@ class TransformerEncoder(nn.Module):
             self.layer.append(copy.deepcopy(layer))
 
     def forward(self, hidden_states):
-        attn_weights = []
         for layer_block in self.layer:
             hidden_states = layer_block(hidden_states)
         encoded = self.encoder_norm(hidden_states)
@@ -320,15 +321,20 @@ class Decoder(nn.Module):
         :param encoder_results: contains saved values for scip connections of unet
         :return: a decoder result
         """
-        x = self.up_block1(transformer_result, encoder_results["copy_3"])
-        x = self.up_block2(x, encoder_results["copy_2"])
-        x = self.up_block3(x, encoder_results["copy_1"])
-        x = self.up_block4(x, encoder_results["copy_0"])
-        x = self.up_block5(x, encoder_results["identity"])
+        B, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
+        h, w = int(np.sqrt(n_patch)), int(np.sqrt(n_patch))
+        tensor_x = transformer_result.permute(0, 2, 1)
+        tensor_x = tensor_x.contiguous().view(B, hidden, h, w)
 
-        x = self.conv2(x)
+        tensor_x = self.up_block1(tensor_x, encoder_results["copy_3"])
+        tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
+        tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
+        tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
+        tensor_x = self.up_block5(tensor_x, encoder_results["identity"])
 
-        return torch.Tensor(x)
+        tensor_x = self.conv2(tensor_x)
+
+        return torch.Tensor(tensor_x)
 
 
 class Transformer(nn.Module):
@@ -347,6 +353,7 @@ class Transformer(nn.Module):
         embedding_output, _ = self.embeddings(input_ids)
         encoded, _ = self.encoder(embedding_output)  # (B, n_patch, hidden)
         return encoded
+
 
 
 class Conv2dReLU(nn.Sequential):
@@ -464,7 +471,7 @@ class VisionTransformer(nn.Module):
     """Implements Trans-UNet vision transformer"""
 
     def __init__(self, img_size: Tuple[int, int], in_channels: int = 3, out_channel: int = 3,
-                 zero_head=False):
+                 load_backbone=False):
         """
 
         :param config:
@@ -477,9 +484,10 @@ class VisionTransformer(nn.Module):
         dhsegment = DhSegment([3, 4, 6, 1], in_channels=in_channels, out_channel=out_channel,
                               load_resnet_weights=True)
         self.encoder = Encoder(dhsegment, in_channels)
-        self.zero_head = zero_head
         self.config = get_b16_config()
         self.transformer = Transformer(self.config, img_size)
+        if load_backbone:
+            self.load_vit_backbone()
         self.decoder = Decoder(dhsegment)
 
     def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:
@@ -505,6 +513,7 @@ class VisionTransformer(nn.Module):
     def load(self, path: Union[str, None], device: str) -> None:
         """
         load the model weights
+        :param device: mapping device
         :param path: path to savepoint
         :return: None
         """
@@ -513,12 +522,64 @@ class VisionTransformer(nn.Module):
         self.load_state_dict(torch.load(path, map_location=device))
         self.eval()
 
+    def load_vit_backbone(self) -> None:
+        """
+        load vit backbone
+        """
+        self.load_from(np.load(f"models/{VIT_BACKBONE}.npz"))
+
+    def load_from(self, weights):
+        with torch.no_grad():
+
+            self.transformer.embeddings.patch_embeddings.weight.copy_(np2th(weights["embedding/kernel"], conv=True))
+            self.transformer.embeddings.patch_embeddings.bias.copy_(np2th(weights["embedding/bias"]))
+            self.transformer.encoder.encoder_norm.weight.copy_(np2th(weights["Transformer/encoder_norm/scale"]))
+            self.transformer.encoder.encoder_norm.bias.copy_(np2th(weights["Transformer/encoder_norm/bias"]))
+
+            posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
+            posemb_new = self.transformer.embeddings.position_embeddings
+            if posemb.size() == posemb_new.size():
+                self.transformer.embeddings.position_embeddings.copy_(posemb)
+            else:
+                logger.info("load_pretrained: resized variant: %s to %s" % (posemb.size(), posemb_new.size()))
+                ntok_new = posemb_new.size(1)
+
+                posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
+
+                gs_old = int(np.sqrt(len(posemb_grid)))
+                gs_new = int(np.sqrt(ntok_new))
+                print('load_pretrained: grid-size from %s to %s' % (gs_old, gs_new))
+                posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
+
+                zoom = (gs_new / gs_old, gs_new / gs_old, 1)
+                posemb_grid = ndimage.zoom(posemb_grid, zoom, order=1)
+                posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
+                posemb = np.concatenate([posemb_tok, posemb_grid], axis=1)
+                self.transformer.embeddings.position_embeddings.copy_(np2th(posemb))
+
+            for bname, block in self.transformer.encoder.named_children():
+                for uname, unit in block.named_children():
+                    unit.load_from(weights, n_block=uname)
+
+            if self.transformer.embeddings.hybrid:
+                self.transformer.embeddings.hybrid_model.root.conv.weight.copy_(
+                    np2th(weights["conv_root/kernel"], conv=True))
+                gn_weight = np2th(weights["gn_root/scale"]).view(-1)
+                gn_bias = np2th(weights["gn_root/bias"]).view(-1)
+                self.transformer.embeddings.hybrid_model.root.gn.weight.copy_(gn_weight)
+                self.transformer.embeddings.hybrid_model.root.gn.bias.copy_(gn_bias)
+
+                for bname, block in self.transformer.embeddings.hybrid_model.body.named_children():
+                    for uname, unit in block.named_children():
+                        unit.load_from(weights, n_block=bname, n_unit=uname)
 
 def get_b16_config() -> ConfigDict:
     """Returns the ViT-B/16 configuration."""
     config = ml_collections.ConfigDict()
-    config.patches = ml_collections.ConfigDict({'size': (8, 8)})
+    config.patches = ml_collections.ConfigDict({'size': (16,16)})
     config.hidden_size = 768
+    config.transformer = ml_collections.ConfigDict()
+    config.transformer.mlp_dim = 3072
     config.transformer.num_heads = 12
     config.transformer.num_layers = 12
     config.transformer.attention_dropout_rate = 0.0
@@ -527,5 +588,5 @@ def get_b16_config() -> ConfigDict:
     config.representation_size = None
     config.resnet_pretrained_path = None
     config.pretrained_path = '../model/vit_checkpoint/imagenet21k/ViT-B_16.npz'
-    config.patch_size = 8
+    config.patch_size = 16
     return config

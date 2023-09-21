@@ -49,9 +49,11 @@ class TestClassPreprocessing:
         assert result_data.dtype == np.uint8
 
         pytest.preprocessing.crop = False
+        pad_size = 128
+        pytest.preprocessing.pad = pad_size, pad_size
 
         result_data = pytest.preprocessing(image, target)
-        assert result_data.shape == (1, channels + 1, size, size)
+        assert result_data.shape == (1, channels + 1, pad_size, pad_size)
         assert result_data.dtype == np.uint8
 
     def test_scale(self):

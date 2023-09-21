@@ -74,7 +74,9 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
         model.stds = torch.tensor((0.229, 0.224, 0.225))
     elif args.model == "trans_unet":
         assert args.pad, "Trans_unet requires given padding size from parameters for initialization."
-        model = VisionTransformer(img_size=args.pad)
+
+        load_backbone = not load
+        model = VisionTransformer(img_size=args.pad, load_backbone = load_backbone)
 
         model = model.float()
         model.encoder.freeze_encoder()
