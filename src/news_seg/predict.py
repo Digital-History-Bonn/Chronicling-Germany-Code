@@ -19,6 +19,7 @@ from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons
 from src.news_seg import train
+from src.news_seg.utils import correct_shape
 
 # import train
 
@@ -168,20 +169,6 @@ def predict() -> None:
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
         export_polygons(file, pred)
-
-
-def correct_shape(image: torch.Tensor) -> torch.Tensor:
-    """
-    If one of the dimension has an uneven number of pixels, the last row/ column is remove to achieve an
-    even pixel number.
-    :param image: input image
-    :return: corrected image
-    """
-    if image.shape[3] % 2 != 0:
-        image = image[:, :, :, : -1]
-    if image.shape[2] % 2 != 0:
-        image = image[:, :, : -1, :]
-    return image
 
 
 def export_polygons(file: str, pred: ndarray) -> None:

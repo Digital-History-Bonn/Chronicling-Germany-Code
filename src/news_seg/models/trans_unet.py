@@ -1,3 +1,4 @@
+"""Module for trans_unet"""
 # coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
@@ -6,23 +7,19 @@ from __future__ import print_function
 import copy
 import logging
 import math
-from typing import Dict
+from os.path import join as pjoin
+from typing import Dict, Tuple, Iterator, Union
 
 import ml_collections
-
-from os.path import join as pjoin
-
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-
-from torch.nn import CrossEntropyLoss, Dropout, Softmax, Linear, Conv2d, LayerNorm
+from ml_collections.config_dict import ConfigDict
+from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
 from torch.nn.modules.utils import _pair
-from scipy import ndimage
+from torch.nn.parameter import Parameter
 
-from model import DhSegment
-from . import vit_seg_configs as configs
-from .vit_seg_modeling_resnet_skip import ResNetV2
+from src.news_seg.models.dh_segment import DhSegment
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +121,7 @@ class Embeddings(nn.Module):
     """Construct the embeddings from patch, position embeddings.
     """
 
-    def __init__(self, config: ConfigDict, img_size: Tuple[int], in_channels=3):
+    def __init__(self, config: ConfigDict, img_size: Tuple[int, int], in_channels=3):
         """
         :param config: config dict
         :param img_size: int tuple for image shape
@@ -159,13 +156,13 @@ class Embeddings(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, config, vis):
+    def __init__(self, config):
         super(Block, self).__init__()
         self.hidden_size = config.hidden_size
         self.attention_norm = LayerNorm(config.hidden_size, eps=1e-6)
         self.ffn_norm = LayerNorm(config.hidden_size, eps=1e-6)
         self.ffn = Mlp(config)
-        self.attn = Attention(config, vis)
+        self.attn = Attention(config)
 
     def forward(self, x):
         h = x
@@ -222,17 +219,17 @@ class Block(nn.Module):
 
 class TransformerEncoder(nn.Module):
     """Transformer Encoder"""
-    def __init__(self, config, vis):
+
+    def __init__(self, config):
         """
         :param config: config dict
         :param vis:
         """
         super(Encoder, self).__init__()
-        self.vis = vis
         self.layer = nn.ModuleList()
         self.encoder_norm = LayerNorm(config.hidden_size, eps=1e-6)
         for _ in range(config.transformer["num_layers"]):
-            layer = Block(config, vis)
+            layer = Block(config)
             self.layer.append(copy.deepcopy(layer))
 
     def forward(self, hidden_states):
@@ -248,7 +245,7 @@ class Encoder(nn.Module):
     CNN Encoder Class, corresponding to the first resnet50 layers.
     """
 
-    def __init__(self, dhsegment: DhSegment):
+    def __init__(self, dhsegment: DhSegment, in_channels: int):
         super(Encoder, self).__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
@@ -258,6 +255,11 @@ class Encoder(nn.Module):
         self.block1 = dhsegment.block1
         self.block2 = dhsegment.block2
         self.block3 = dhsegment.block3
+
+        # initialize normalization
+        self.register_buffer("means", torch.tensor([0] * in_channels))
+        self.register_buffer("stds", torch.tensor([1] * in_channels))
+        self.normalize = dhsegment.normalize
 
     def forward(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
         result = self.normalize(inputs, self.means, self.stds)
@@ -273,6 +275,26 @@ class Encoder(nn.Module):
 
         return {"result": result, "identity": identity, "copy_0": copy_0, "copy_1": copy_1, "copy_2": copy_2,
                 "copy_3": copy_3}
+
+    def freeze_encoder(self, requires_grad: bool = False) -> None:
+        """
+        Set requires grad of encoder to True or False. Freezes encoder weights
+        :param requires_grad: freezes encoder weights if false else unfreezes the weights
+        """
+
+        def freeze(params: Iterator[Parameter]) -> None:
+            for param in params:
+                param.requires_grad_(requires_grad)
+
+        freeze(self.conv1.parameters())
+        freeze(self.bn1.parameters())
+        freeze(self.block1.parameters())
+        freeze(self.block2.parameters())
+        freeze(self.block3.parameters())
+
+        # unfreeze weights, which are not loaded
+        requires_grad = True
+        freeze(self.block3.conv.parameters())  # type: ignore
 
 
 class Decoder(nn.Module):
@@ -306,12 +328,13 @@ class Decoder(nn.Module):
 
         x = self.conv2(x)
 
-        return x
+        return torch.Tensor(x)
 
 
 class Transformer(nn.Module):
     """Implements Transformer"""
-    def __init__(self, config: ConfigDict, img_size: int):
+
+    def __init__(self, config: ConfigDict, img_size: Tuple[int, int]):
         """
         :param config: config dict from get_b16_config()
         :param img_size: unniform size of all input images
@@ -439,7 +462,8 @@ class DecoderCup(nn.Module):
 
 class VisionTransformer(nn.Module):
     """Implements Trans-UNet vision transformer"""
-    def __init__(self, in_channels: int = 3, out_channel: int = 3, img_size: int,
+
+    def __init__(self, img_size: Tuple[int, int], in_channels: int = 3, out_channel: int = 3,
                  zero_head=False):
         """
 
@@ -452,12 +476,11 @@ class VisionTransformer(nn.Module):
         super().__init__()
         dhsegment = DhSegment([3, 4, 6, 1], in_channels=in_channels, out_channel=out_channel,
                               load_resnet_weights=True)
-        self.encoder = Encoder(dhsegment)
+        self.encoder = Encoder(dhsegment, in_channels)
         self.zero_head = zero_head
-        self.classifier = config.classifier
-        self.transformer = Transformer(config, img_size)
-        self.decoder = Decoder(dhsegment)
         self.config = get_b16_config()
+        self.transformer = Transformer(self.config, img_size)
+        self.decoder = Decoder(dhsegment)
 
     def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:
         """
@@ -469,67 +492,27 @@ class VisionTransformer(nn.Module):
         x_tensor = self.decoder(x_tensor, encoder_results)
         return x_tensor
 
-    # def load_from(self, weights):
-    #     with torch.no_grad():
-    #
-    #         res_weight = weights
-    #         self.transformer.embeddings.patch_embeddings.weight.copy_(np2th(weights["embedding/kernel"], conv=True))
-    #         self.transformer.embeddings.patch_embeddings.bias.copy_(np2th(weights["embedding/bias"]))
-    #
-    #         self.transformer.encoder.encoder_norm.weight.copy_(np2th(weights["Transformer/encoder_norm/scale"]))
-    #         self.transformer.encoder.encoder_norm.bias.copy_(np2th(weights["Transformer/encoder_norm/bias"]))
-    #
-    #         posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
-    #
-    #         posemb_new = self.transformer.embeddings.position_embeddings
-    #         if posemb.size() == posemb_new.size():
-    #             self.transformer.embeddings.position_embeddings.copy_(posemb)
-    #         elif posemb.size()[1] - 1 == posemb_new.size()[1]:
-    #             posemb = posemb[:, 1:]
-    #             self.transformer.embeddings.position_embeddings.copy_(posemb)
-    #         else:
-    #             logger.info("load_pretrained: resized variant: %s to %s" % (posemb.size(), posemb_new.size()))
-    #             ntok_new = posemb_new.size(1)
-    #             if self.classifier == "seg":
-    #                 _, posemb_grid = posemb[:, :1], posemb[0, 1:]
-    #             gs_old = int(np.sqrt(len(posemb_grid)))
-    #             gs_new = int(np.sqrt(ntok_new))
-    #             print('load_pretrained: grid-size from %s to %s' % (gs_old, gs_new))
-    #             posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
-    #             zoom = (gs_new / gs_old, gs_new / gs_old, 1)
-    #             posemb_grid = ndimage.zoom(posemb_grid, zoom, order=1)  # th2np
-    #             posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
-    #             posemb = posemb_grid
-    #             self.transformer.embeddings.position_embeddings.copy_(np2th(posemb))
-    #
-    #         # Encoder whole
-    #         for bname, block in self.transformer.encoder.named_children():
-    #             for uname, unit in block.named_children():
-    #                 unit.load_from(weights, n_block=uname)
-    #
-    #         if self.transformer.embeddings.hybrid:
-    #             self.transformer.embeddings.hybrid_model.root.conv.weight.copy_(
-    #                 np2th(res_weight["conv_root/kernel"], conv=True))
-    #             gn_weight = np2th(res_weight["gn_root/scale"]).view(-1)
-    #             gn_bias = np2th(res_weight["gn_root/bias"]).view(-1)
-    #             self.transformer.embeddings.hybrid_model.root.gn.weight.copy_(gn_weight)
-    #             self.transformer.embeddings.hybrid_model.root.gn.bias.copy_(gn_bias)
-    #
-    #             for bname, block in self.transformer.embeddings.hybrid_model.body.named_children():
-    #                 for uname, unit in block.named_children():
-    #                     unit.load_from(res_weight, n_block=bname, n_unit=uname)
+    def save(self, path: Union[str, None]) -> None:
+        """
+        saves the model weights
+        :param path: path to savepoint
+        :return: None
+        """
+        if path is None:
+            return
+        torch.save(self.state_dict(), path + ".pt")
 
+    def load(self, path: Union[str, None], device: str) -> None:
+        """
+        load the model weights
+        :param path: path to savepoint
+        :return: None
+        """
+        if path is None:
+            return
+        self.load_state_dict(torch.load(path, map_location=device))
+        self.eval()
 
-CONFIGS = {
-    'ViT-B_16': configs.get_b16_config(),
-    'ViT-B_32': configs.get_b32_config(),
-    'ViT-L_16': configs.get_l16_config(),
-    'ViT-L_32': configs.get_l32_config(),
-    'ViT-H_14': configs.get_h14_config(),
-    'R50-ViT-B_16': configs.get_r50_b16_config(),
-    'R50-ViT-L_16': configs.get_r50_l16_config(),
-    'testing': configs.get_testing(),
-}
 
 def get_b16_config() -> ConfigDict:
     """Returns the ViT-B/16 configuration."""

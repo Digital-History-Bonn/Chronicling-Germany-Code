@@ -17,13 +17,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-# from model import DhSegment
-# from news_dataset import NewsDataset
-# from preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
-# from preprocessing import SCALE
-# from utils import multi_class_csi
-
-from src.news_seg.model import DhSegment
+from src.news_seg.models.dh_segment import DhSegment
+from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.news_dataset import NewsDataset
 from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
 from src.news_seg.preprocessing import SCALE
@@ -61,21 +56,34 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :return: loaded model
     """
-    # create model
-    model = DhSegment(
-        [3, 4, 6, 4],
-        in_channels=IN_CHANNELS,
-        out_channel=OUT_CHANNELS,
-        load_resnet_weights=True,
-    )
-    model = model.float()
-    model.freeze_encoder()
-    # load model if argument is None, it does nothing
-    model.load(load, device)
+    if args.model == "dh_segment":
+        # create model
+        model = DhSegment(
+            [3, 4, 6, 4],
+            in_channels=IN_CHANNELS,
+            out_channel=OUT_CHANNELS,
+            load_resnet_weights=True,
+        )
+        model = model.float()
+        model.freeze_encoder()
+        # load model if argument is None, it does nothing
+        model.load(load, device)
 
-    # set mean and std in a model for normalization
-    model.means = torch.tensor((0.485, 0.456, 0.406))
-    model.stds = torch.tensor((0.229, 0.224, 0.225))
+        # set mean and std in a model for normalization
+        model.means = torch.tensor((0.485, 0.456, 0.406))
+        model.stds = torch.tensor((0.229, 0.224, 0.225))
+    elif args.model == "trans_unet":
+        assert args.pad, "Trans_unet requires given padding size from parameters for initialization."
+        model = VisionTransformer(img_size=args.pad)
+
+        model = model.float()
+        model.encoder.freeze_encoder()
+        # load model if argument is None, it does nothing
+        model.load(load, device)
+
+        model.encoder.means = torch.tensor((0.485, 0.456, 0.406))
+        model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
+    assert model, "No valid model string supplied in model parameter"
     return model
 
 
@@ -125,7 +133,7 @@ class Trainer:
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = torch.nn.DataParallel(init_model(load, self.device))
+        self.model = torch.nn.parallel.DistributedDataParallel(init_model(load, self.device))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -133,7 +141,10 @@ class Trainer:
         )  # weight_decay=1e-4
 
         # load data
-        preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size)
+        preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size,
+                                      pad=args.pad)
+        if model == "trans_unet":
+            preprocessing.crop = False
         dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images/",
                               target_path=f"{args.data_path}targets/",
                               limit=args.limit, dataset=args.dataset)
@@ -189,9 +200,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                total=(len(self.train_loader)),
-                desc=f"Epoch {self.epoch}/{epochs}",
-                unit="batche(s)",
+                    total=(len(self.train_loader)),
+                    desc=f"Epoch {self.epoch}/{epochs}",
+                    unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -237,7 +248,7 @@ class Trainer:
                                 f"saved model because of early stopping with value {loss + (1 - acc)}"
                             )
 
-                            self.model.module.save(self.save_model + "_best") # type: ignore
+                            self.model.module.save(self.save_model + "_best")  # type: ignore
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -246,7 +257,7 @@ class Trainer:
                     )  # type:ignore
 
             # save model at end of epoch
-            self.model.module.save(self.save_model) # type: ignore
+            self.model.module.save(self.save_model)  # type: ignore
             with open(f"{self.save_score}.json", "w", encoding="utf-8") as file:
                 json.dump((score, self.step, self.epoch + 1), file)
             summary_writer.flush()
@@ -463,7 +474,17 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--num-workers", "-w", type=int, default=DATALOADER_WORKER, help="Number of workers for the Dataloader"
     )
-
+    parser.add_argument('--model', "-m", type=str, default="dh_segment",
+                        help="which model to load options are 'dh_segment, trans_unet")
+    parser.add_argument(
+        "--pad",
+        "-p",
+        type=int,
+        nargs='+',
+        default=None,
+        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
+             "Has to be grater or equal to actual image after scaling",
+    )
 
     return parser.parse_args()
 

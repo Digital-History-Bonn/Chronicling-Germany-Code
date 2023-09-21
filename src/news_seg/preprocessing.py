@@ -2,14 +2,18 @@
     module for preprocessing newspaper images and targets
 """
 
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
+import torch
 from PIL import Image
 from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
 from numpy import ndarray
 from skimage.util.shape import view_as_windows
+from torchvision import transforms
+
+from src.news_seg.utils import correct_shape
 
 SCALE = 1
 EXPANSION = 5
@@ -30,6 +34,7 @@ class Preprocessing:
             crop_factor: float = CROP_FACTOR,
             crop_size: int = CROP_SIZE,
             crop: bool = True,
+            pad: Union[None, Tuple[int, int]] = None
     ):
         """
         :param scale: (default: 4)
@@ -40,6 +45,7 @@ class Preprocessing:
         self.crop_factor = crop_factor
         self.crop_size = crop_size
         self.crop = crop
+        self.pad = pad
 
     def __call__(
             self, image: Image.Image, target: npt.NDArray[np.uint8]
@@ -52,10 +58,13 @@ class Preprocessing:
         """
         # scale
         image, target = self.scale_img(image, target)
+        image, target = self.padding(image, target)
         data: npt.NDArray[np.uint8] = np.concatenate((np.array(image, dtype=np.uint8), target[np.newaxis, :, :]))
         if self.crop:
             data = self.crop_img(data)
-        return data
+            return data
+
+        return np.expand_dims(data, axis=0)
 
     def load(self, input_path: str, target_path: str, file: str, dataset: str) -> Tuple[Image.Image, ndarray]:
         """Load image and target
@@ -69,7 +78,6 @@ class Preprocessing:
 
         # load target
         target = np.load(f"{target_path}")
-
         if dataset == "HLNA2013":
             target = target.T
 
@@ -81,13 +89,34 @@ class Preprocessing:
 
         return image, target
 
+    def padding(self, image: ndarray, target: ndarray) -> Tuple[ndarray, ndarray]:
+        """
+        Pads border to be divisble by 2**5 to avoid errors during pooling
+        :param image:
+        :param target:
+        :return:
+        """
+        if self.pad:
+            assert self.pad[1] >= image.shape[2] and self.pad[0] >= image.shape[
+                3], (f"Final size has to be greater than actual image size. "
+                     f"Padding to {self.pad[0]} x {self.pad[1]} "
+                     f"but image has shape of {image.shape[3]} x {image.shape[2]}")
+
+            image = np.array(correct_shape(torch.Tensor(image)))
+
+            transform = transforms.Pad(
+                ((self.pad[0] - image.shape[3]) // 2, (self.pad[1] - image.shape[2]) // 2))
+            image = transform(image)
+            target = transform(target)
+        return image, target
+
     def scale_img(
             self, image: Image.Image, target: npt.NDArray[np.uint8]
     ) -> Tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
         """
         scales down all given images and target by scale
-        :param image (Image.Image): image
-        :param target (npt.NDArray[np.uint8]): target
+        :param image: image
+        :param target: target
         return: ndarray tuple containing scaled image and target
         """
         if self.scale == 1:

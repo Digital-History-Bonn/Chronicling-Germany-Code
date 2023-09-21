@@ -15,8 +15,6 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-# from preprocessing import Preprocessing
-
 from src.news_seg.preprocessing import Preprocessing
 
 
@@ -32,7 +30,7 @@ class NewsDataset(Dataset):
 
     def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
                  data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
-                 dataset: str = "transcribus", sort: bool = False):
+                 dataset: str = "transcribus", sort: bool = False, full_image = False):
         """
         load images and targets from folder
         :param preprocessing:
@@ -45,6 +43,8 @@ class NewsDataset(Dataset):
         """
 
         self.preprocessing = preprocessing
+        if self.full_image:
+            preprocessing.crop = False
         self.dataset = dataset
         self.image_path = image_path
         self.target_path = target_path
