@@ -15,7 +15,11 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
+# from preprocessing import Preprocessing
+
 from src.news_seg.preprocessing import Preprocessing
+
+
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -63,6 +67,9 @@ class NewsDataset(Dataset):
 
             # read all file names
             self.file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
+            assert len(
+                self.file_names) > 0, (f"No Images in {image_path} with extension{extension} found. Make sure the "
+                                       f"specified dataset and path are correct.")
             if sort:
                 self.file_names.sort()
 
@@ -73,7 +80,7 @@ class NewsDataset(Dataset):
             for file in tqdm(self.file_names, desc="cropping images", unit="image"):
                 image, target = self.preprocessing.load(
                     f"{image_path}{file}{extension}", f"{target_path}{get_file_name(file)}", file
-                )
+                    , dataset)
                 # preprocess / create crops
                 crops = list(torch.tensor(self.preprocessing(image, target)))
                 self.data += crops
@@ -108,7 +115,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-            self, ratio: Tuple[float, float, float]
+        self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -142,8 +149,7 @@ class NewsDataset(Dataset):
 
         return train_dataset, test_dataset, valid_dataset
 
-    @staticmethod
-    def get_augmentations() -> Dict[str, transforms.Compose]:
+    def get_augmentations(self) -> Dict[str, transforms.Compose]:
         """Defines transformations"""
         return {
             "default": transforms.Compose(
@@ -151,6 +157,9 @@ class NewsDataset(Dataset):
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomVerticalFlip(),
                     transforms.RandomRotation(180),
+                    transforms.RandomApply(
+                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))]
+                    , p = 0.5)
                 ]
             ),
             "images": transforms.RandomApply(

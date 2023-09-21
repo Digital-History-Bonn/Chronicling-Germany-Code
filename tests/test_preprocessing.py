@@ -15,6 +15,7 @@ class TestClassPreprocessing:
     @pytest.fixture(autouse=True)
     def setup(self):
         "will initiate NewsDataset for every test"
+        np.random.seed(314)
         pytest.preprocessing = Preprocessing()
 
     def test_load(self):
@@ -25,6 +26,7 @@ class TestClassPreprocessing:
             f"{DATA_PATH}input/test-image.jpg",
             f"{DATA_PATH}input/test-target.npy",
             "test",
+            dataset = "transcibus"
         )
         assert image.mode == "RGB"
         assert f"{target.dtype}" == "uint8"

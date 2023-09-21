@@ -40,6 +40,8 @@ def mypy(session):
         "--no-warn-return-any",
         "--explicit-package-bases",
         "--namespace-packages",
+        "--implicit-reexport",  # tensorboard is untyped
+        "--allow-untyped-calls",  # tensorboard is untyped
         "src",
     )
 

@@ -16,7 +16,7 @@ EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
 CROP_FACTOR = 1.5
-CROP_SIZE = 256
+CROP_SIZE = 512
 
 
 class Preprocessing:
@@ -57,7 +57,7 @@ class Preprocessing:
             data = self.crop_img(data)
         return data
 
-    def load(self, input_path: str, target_path: str, file: str) -> Tuple[Image.Image, ndarray]:
+    def load(self, input_path: str, target_path: str, file: str, dataset: str) -> Tuple[Image.Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
         :param target_path: path to target
@@ -69,6 +69,10 @@ class Preprocessing:
 
         # load target
         target = np.load(f"{target_path}")
+
+        if dataset == "HLNA2013":
+            target = target.T
+
         assert target.dtype == np.uint8
         assert (
                 image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
