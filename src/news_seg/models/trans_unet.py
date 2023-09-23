@@ -15,6 +15,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from ml_collections.config_dict import ConfigDict
+from scipy import ndimage
 from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
@@ -355,7 +356,6 @@ class Transformer(nn.Module):
         return encoded
 
 
-
 class Conv2dReLU(nn.Sequential):
     def __init__(
             self,
@@ -484,7 +484,8 @@ class VisionTransformer(nn.Module):
         dhsegment = DhSegment([3, 4, 6, 1], in_channels=in_channels, out_channel=out_channel,
                               load_resnet_weights=True)
         self.encoder = Encoder(dhsegment, in_channels)
-        self.config = get_b16_config()
+        self.config = get_r50_b16_config()
+        self.classifier = self.config.classifier
         self.transformer = Transformer(self.config, img_size)
         if load_backbone:
             self.load_vit_backbone()
@@ -544,7 +545,11 @@ class VisionTransformer(nn.Module):
                 logger.info("load_pretrained: resized variant: %s to %s" % (posemb.size(), posemb_new.size()))
                 ntok_new = posemb_new.size(1)
 
-                posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
+                if self.classifier == "token":
+                    posemb_tok, posemb_grid = posemb[:, :1], posemb[0, 1:]
+                    ntok_new -= 1
+                else:
+                    posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
 
                 gs_old = int(np.sqrt(len(posemb_grid)))
                 gs_new = int(np.sqrt(ntok_new))
@@ -561,22 +566,11 @@ class VisionTransformer(nn.Module):
                 for uname, unit in block.named_children():
                     unit.load_from(weights, n_block=uname)
 
-            if self.transformer.embeddings.hybrid:
-                self.transformer.embeddings.hybrid_model.root.conv.weight.copy_(
-                    np2th(weights["conv_root/kernel"], conv=True))
-                gn_weight = np2th(weights["gn_root/scale"]).view(-1)
-                gn_bias = np2th(weights["gn_root/bias"]).view(-1)
-                self.transformer.embeddings.hybrid_model.root.gn.weight.copy_(gn_weight)
-                self.transformer.embeddings.hybrid_model.root.gn.bias.copy_(gn_bias)
 
-                for bname, block in self.transformer.embeddings.hybrid_model.body.named_children():
-                    for uname, unit in block.named_children():
-                        unit.load_from(weights, n_block=bname, n_unit=uname)
-
-def get_b16_config() -> ConfigDict:
+def get_r50_b16_config() -> ConfigDict:
     """Returns the ViT-B/16 configuration."""
     config = ml_collections.ConfigDict()
-    config.patches = ml_collections.ConfigDict({'size': (16,16)})
+    config.patches = ml_collections.ConfigDict()
     config.hidden_size = 768
     config.transformer = ml_collections.ConfigDict()
     config.transformer.mlp_dim = 3072
@@ -584,9 +578,11 @@ def get_b16_config() -> ConfigDict:
     config.transformer.num_layers = 12
     config.transformer.attention_dropout_rate = 0.0
     config.transformer.dropout_rate = 0.1
-
+    config.classifier = 'token'
     config.representation_size = None
-    config.resnet_pretrained_path = None
-    config.pretrained_path = '../model/vit_checkpoint/imagenet21k/ViT-B_16.npz'
-    config.patch_size = 16
+
+    config.patches.grid = (14, 14)
+    config.resnet = ml_collections.ConfigDict()
+    config.resnet.num_layers = (3, 4, 9)
+    config.resnet.width_factor = 1
     return config
