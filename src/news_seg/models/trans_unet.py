@@ -284,6 +284,7 @@ class Encoder(nn.Module):
         :param requires_grad: freezes encoder weights if false else unfreezes the weights
         """
 
+        # noinspection DuplicatedCode
         def freeze(params: Iterator[Parameter]) -> None:
             for param in params:
                 param.requires_grad_(requires_grad)
@@ -304,9 +305,11 @@ class Decoder(nn.Module):
     CNN Decoder class, corresponding to DhSegment Decoder
     """
 
-    def __init__(self, dhsegment: DhSegment):
+    def __init__(self, dhsegment: DhSegment, hidden: int, patch_size: int):
         super(Decoder, self).__init__()
         # up-scaling
+        self.in_channels = 512
+        self.up_conv = nn.ConvTranspose2d(hidden, self.in_channels, patch_size, patch_size)
         self.up_block1 = dhsegment.up_block1
         self.up_block2 = dhsegment.up_block2
         self.up_block3 = dhsegment.up_block3
@@ -318,14 +321,16 @@ class Decoder(nn.Module):
     def forward(self, transformer_result: torch.Tensor, encoder_results: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
         forward path of cnn decoder
-        :param tranformer_result: transformer output, as matrix??
+        :param transformer_result: transformer output, as matrix??
         :param encoder_results: contains saved values for scip connections of unet
         :return: a decoder result
         """
         B, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
-        h, w = int(np.sqrt(n_patch)), int(np.sqrt(n_patch))
-        tensor_x = transformer_result.permute(0, 2, 1)
-        tensor_x = tensor_x.contiguous().view(B, hidden, h, w)
+        transformer_result.contiguous().view(B * n_patch, hidden, 1, 1)
+        tensor_x = self.up_conv(transformer_result)
+        tensor_x = tensor_x.contiguous().view(B, n_patch, self.in_channels, h * w)
+        tensor_x = tensor_x.permute(0, 2, 1, 3)
+        tensor_x = tensor_x.contiguous().view(B, self.in_channels, n_patch * h, n_patch * w)
 
         tensor_x = self.up_block1(tensor_x, encoder_results["copy_3"])
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
@@ -347,7 +352,7 @@ class Transformer(nn.Module):
         :param img_size: unniform size of all input images
         """
         super(Transformer, self).__init__()
-        self.embeddings = Embeddings(config, img_size=img_size)
+        self.embeddings = Embeddings(config, img_size=img_size, in_channels=1024)
         self.encoder = TransformerEncoder(config)
 
     def forward(self, input_ids):
@@ -532,37 +537,7 @@ class VisionTransformer(nn.Module):
     def load_from(self, weights):
         with torch.no_grad():
 
-            self.transformer.embeddings.patch_embeddings.weight.copy_(np2th(weights["embedding/kernel"], conv=True))
-            self.transformer.embeddings.patch_embeddings.bias.copy_(np2th(weights["embedding/bias"]))
-            self.transformer.encoder.encoder_norm.weight.copy_(np2th(weights["Transformer/encoder_norm/scale"]))
-            self.transformer.encoder.encoder_norm.bias.copy_(np2th(weights["Transformer/encoder_norm/bias"]))
-
-            posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
-            posemb_new = self.transformer.embeddings.position_embeddings
-            if posemb.size() == posemb_new.size():
-                self.transformer.embeddings.position_embeddings.copy_(posemb)
-            else:
-                logger.info("load_pretrained: resized variant: %s to %s" % (posemb.size(), posemb_new.size()))
-                ntok_new = posemb_new.size(1)
-
-                if self.classifier == "token":
-                    posemb_tok, posemb_grid = posemb[:, :1], posemb[0, 1:]
-                    ntok_new -= 1
-                else:
-                    posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
-
-                gs_old = int(np.sqrt(len(posemb_grid)))
-                gs_new = int(np.sqrt(ntok_new))
-                print('load_pretrained: grid-size from %s to %s' % (gs_old, gs_new))
-                posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
-
-                zoom = (gs_new / gs_old, gs_new / gs_old, 1)
-                posemb_grid = ndimage.zoom(posemb_grid, zoom, order=1)
-                posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
-                posemb = np.concatenate([posemb_tok, posemb_grid], axis=1)
-                self.transformer.embeddings.position_embeddings.copy_(np2th(posemb))
-
-            for bname, block in self.transformer.encoder.named_children():
+            for _, block in self.transformer.encoder.named_children():
                 for uname, unit in block.named_children():
                     unit.load_from(weights, n_block=uname)
 
@@ -580,9 +555,5 @@ def get_r50_b16_config() -> ConfigDict:
     config.transformer.dropout_rate = 0.1
     config.classifier = 'token'
     config.representation_size = None
-
-    config.patches.grid = (14, 14)
-    config.resnet = ml_collections.ConfigDict()
-    config.resnet.num_layers = (3, 4, 9)
-    config.resnet.width_factor = 1
+    config.patches.grid = (8, 8)
     return config

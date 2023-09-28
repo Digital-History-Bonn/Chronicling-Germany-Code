@@ -76,7 +76,7 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
         assert args.pad, "Trans_unet requires given padding size from parameters for initialization."
 
         load_backbone = not load
-        model = VisionTransformer(img_size=args.pad, load_backbone = load_backbone)
+        model = VisionTransformer(img_size=(args.crop_size, args.crop_size), load_backbone = load_backbone)
 
         model = model.float()
         model.encoder.freeze_encoder()
