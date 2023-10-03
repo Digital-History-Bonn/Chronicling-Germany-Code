@@ -12,6 +12,7 @@ import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
+from torch import nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
@@ -19,6 +20,7 @@ from torch.nn.parallel import DataParallel
 from tqdm import tqdm
 
 from src.news_seg.models.dh_segment import DhSegment
+from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.news_dataset import NewsDataset
 from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
@@ -51,7 +53,7 @@ LOSS_WEIGHTS: List[float] = [
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, None], device: str) -> DhSegment:
+def init_model(load: Union[str, None], device: str) -> nn.Module:
     """
     Initialise model
     :param load: contains path to load the model from. If False, the model will be initialised randomly
@@ -65,15 +67,7 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
             out_channel=OUT_CHANNELS,
             load_resnet_weights=True
         )
-        model = model.float()
-        if args.freeze:
-            model.freeze_encoder()
-        # load model if argument is None, it does nothing
-        model.load(load, device)
-
-        # set mean and std in a model for normalization
-        model.means = torch.tensor((0.485, 0.456, 0.406))
-        model.stds = torch.tensor((0.229, 0.224, 0.225))
+        model = setup_dh_segment(device, load, model)
     elif args.model == "trans_unet":
 
         load_backbone = not load
@@ -87,7 +81,33 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
 
         model.encoder.means = torch.tensor((0.485, 0.456, 0.406))
         model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
+    elif args.model == "dh_segment_cbam":
+        model = DhSegmentCBAM(
+            in_channels=IN_CHANNELS,
+            out_channel=OUT_CHANNELS,
+            load_resnet_weights=True
+        )
+        model = setup_dh_segment(device, load, model)
     assert model, "No valid model string supplied in model parameter"
+    return model
+
+
+def setup_dh_segment(device: str, load: Union[str, None], model: nn.Module) -> nn.Module:
+    """
+    Setup function for dh_segment and dh_segment_cbam
+    :param device:
+    :param load: contains path to load the model from. If False, the model will be initialised randomly
+    :param model:
+    :return:
+    """
+    model = model.float()
+    if args.freeze:
+        model.freeze_encoder()
+    # load model if argument is None, it does nothing
+    model.load(load, device)
+    # set mean and std in a model for normalization
+    model.means = torch.tensor((0.485, 0.456, 0.406))
+    model.stds = torch.tensor((0.229, 0.224, 0.225))
     return model
 
 
@@ -461,8 +481,8 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="limit quantity of loaded images for testing purposes",
     )
-    parser.add_argument('--crop_size', type=int, default=CROP_SIZE, help='Window size of image cropping')
-    parser.add_argument('--crop_factor', type=float, default=CROP_FACTOR, help='Scaling factor for cropping steps')
+    parser.add_argument('--crop-size', type=int, default=CROP_SIZE, help='Window size of image cropping')
+    parser.add_argument('--crop-factor', type=float, default=CROP_FACTOR, help='Scaling factor for cropping steps')
     parser.add_argument('--dataset', type=str, default="transcribus",
                         help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
                              "(europeaner newspaper project)")
