@@ -162,7 +162,7 @@ class NewsDataset(Dataset):
                     transforms.RandomErasing(),
                     transforms.RandomApply([
                     transforms.RandomChoice(
-                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))
+                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0)),
                          transforms.Compose([
                              transforms.Resize(self.preprocessing.crop_size // 2),
                              transforms.Pad(self.preprocessing.crop_size // 4)

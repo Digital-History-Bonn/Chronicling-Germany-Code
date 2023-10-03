@@ -10,6 +10,7 @@ import math
 from posixpath import join as pjoin
 from typing import Dict, Tuple, Iterator, Union
 
+from positional_encodings.torch_encodings import PositionalEncoding2D, Summer
 import ml_collections
 import numpy as np
 import torch
@@ -114,7 +115,7 @@ class Embeddings(nn.Module):
                                        out_channels=config.hidden_size,
                                        kernel_size=patch_size,
                                        stride=patch_size)
-        self.position_embeddings = nn.Parameter(torch.zeros(1, n_patches, config.hidden_size))
+        self.position_embeddings = PositionalEncoding2D(config.hidden_size)
 
         self.dropout = Dropout(config.transformer["dropout_rate"])
 
@@ -125,10 +126,11 @@ class Embeddings(nn.Module):
         """
         x_tensor = self.patch_embeddings(x_tensor)  # (B, hidden, n_patches_w, n_patches_h)
         patch_shape = x_tensor.shape[2:]
-        x_tensor = x_tensor.flatten(2)
-        x_tensor = x_tensor.transpose(-1, -2)  # (B, n_patches, hidden)
+        embedding = self.position_embeddings(torch.permute(x_tensor, (0, 2, 3, 1)))
+        embeddings = x_tensor + torch.permute(embedding, (0, 3, 1, 2))
+        embeddings = embeddings.flatten(2)
+        embeddings = embeddings.transpose(-1, -2)  # (B, n_patches, hidden)
 
-        embeddings = x_tensor + self.position_embeddings
         embeddings = self.dropout(embeddings)
         return embeddings, patch_shape
 
@@ -216,6 +218,7 @@ class TransformerEncoder(nn.Module):
         encoded = self.encoder_norm(hidden_states)
         return encoded
 
+
 class Mlp(nn.Module):
     def __init__(self, config):
         super(Mlp, self).__init__()
@@ -239,6 +242,7 @@ class Mlp(nn.Module):
         x = self.fc2(x)
         x = self.dropout(x)
         return x
+
 
 class Encoder(nn.Module):
     """
@@ -506,7 +510,7 @@ class VisionTransformer(nn.Module):
         x_tensor, patch_shape = self.transformer(encoder_results["result"])  # (B, n_patch, hidden)
         x_tensor = self.decoder(x_tensor, encoder_results, patch_shape)
         return x_tensor
-
+a
     def save(self, path: Union[str, None]) -> None:
         """
         saves the model weights
@@ -542,6 +546,7 @@ class VisionTransformer(nn.Module):
             for bname, block in self.transformer.encoder.named_children():
                 for uname, unit in block.named_children():
                     unit.load_from(weights, n_block=uname)
+
         def unfreeze(params: Iterator[Parameter]) -> None:
             for param in params:
                 param.requires_grad_(True)
