@@ -66,7 +66,8 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
             load_resnet_weights=True
         )
         model = model.float()
-        model.freeze_encoder()
+        if args.freeze:
+            model.freeze_encoder()
         # load model if argument is None, it does nothing
         model.load(load, device)
 
@@ -468,6 +469,10 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--load-score", "-ls", action='store_true',
         help="Whether the score corresponding to the loaded model should be loaded as well."
+    )
+    parser.add_argument(
+        "--no-freeze", dest="freeze", action='store_false',
+        help="Deactivate encoder freezing"
     )
     parser.add_argument(
         "--gpu-count", "-g", type=int, default=1, help="Number of gpu that should be used for training"

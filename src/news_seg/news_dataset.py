@@ -159,12 +159,19 @@ class NewsDataset(Dataset):
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomVerticalFlip(),
                     transforms.RandomRotation(180),
-                    transforms.RandomApply(
-                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))]
-                        , p=0.5)
+                    transforms.RandomErasing(),
+                    transforms.RandomApply([
+                    transforms.RandomChoice(
+                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))
+                         transforms.Compose([
+                             transforms.Resize(self.preprocessing.crop_size // 2),
+                             transforms.Pad(self.preprocessing.crop_size // 4)
+                         ])]
+                    )
+                    ], p = 0.75)
                 ]
             ),
             "images": transforms.RandomApply(
-                [transforms.Compose([transforms.GaussianBlur(5, (0.1, 1.5))])], p=0.5
+                [transforms.Compose([transforms.GaussianBlur(5, (0.1, 1.5)),])], p=0.75
             ),
         }  # originally 0.8
