@@ -510,7 +510,7 @@ class VisionTransformer(nn.Module):
         x_tensor, patch_shape = self.transformer(encoder_results["result"])  # (B, n_patch, hidden)
         x_tensor = self.decoder(x_tensor, encoder_results, patch_shape)
         return x_tensor
-a
+
     def save(self, path: Union[str, None]) -> None:
         """
         saves the model weights
