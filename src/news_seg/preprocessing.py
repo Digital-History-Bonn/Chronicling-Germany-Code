@@ -58,7 +58,14 @@ class Preprocessing:
         """
         # scale
         image, target = self.scale_img(image, target)
+
+        if image.shape[1] < self.crop_size or image.shape[2] < self.crop_size:
+            pad_y = self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
+            pad_x = self.crop_size if image.shape[2] < self.crop_size else image.shape[2]
+            self.pad = (pad_x, pad_y)
+
         image, target = self.padding(image, target)
+
         data: npt.NDArray[np.uint8] = np.concatenate((np.array(image, dtype=np.uint8), target[np.newaxis, :, :]))
         if self.crop:
             data = self.crop_img(data)
@@ -89,7 +96,7 @@ class Preprocessing:
 
         return image, target
 
-    def padding(self, image: ndarray, target: ndarray) -> Tuple[ndarray, ndarray]:
+    def padding(self, image: ndarray, target: ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Pads border to be divisble by 2**5 to avoid errors during pooling
         :param image:
@@ -97,18 +104,19 @@ class Preprocessing:
         :return:
         """
         if self.pad:
-            assert self.pad[1] >= image.shape[2] and self.pad[0] >= image.shape[
-                3], (f"Final size has to be greater than actual image size. "
+            assert self.pad[1] >= image.shape[1] and self.pad[0] >= image.shape[
+                2], (f"Final size has to be greater than actual image size. "
                      f"Padding to {self.pad[0]} x {self.pad[1]} "
-                     f"but image has shape of {image.shape[3]} x {image.shape[2]}")
+                     f"but image has shape of {image.shape[2]} x {image.shape[1]}")
 
-            image = np.array(correct_shape(torch.Tensor(image)))
+            image_t = correct_shape(torch.Tensor(image))
+            target_t = correct_shape(torch.Tensor(target)[None, :])
 
             transform = transforms.Pad(
-                ((self.pad[0] - image.shape[3]) // 2, (self.pad[1] - image.shape[2]) // 2))
-            image = transform(image)
-            target = transform(target)
-        return image, target
+                ((self.pad[0] - image_t.shape[2]) // 2, (self.pad[1] - image_t.shape[1]) // 2))
+            image_t = transform(image_t)
+            target_t = transform(target_t)
+        return image_t, torch.squeeze(target_t)
 
     def scale_img(
             self, image: Image.Image, target: npt.NDArray[np.uint8]

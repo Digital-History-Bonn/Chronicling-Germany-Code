@@ -73,8 +73,8 @@ def correct_shape(image: torch.Tensor) -> torch.Tensor:
     :param image: input image
     :return: corrected image
     """
-    if image.shape[3] % 2 != 0:
-        image = image[:, :, :, : -1]
     if image.shape[2] % 2 != 0:
-        image = image[:, :, : -1, :]
+        image = image[:, :, : -1]
+    if image.shape[1] % 2 != 0:
+        image = image[:, : -1, :]
     return image
