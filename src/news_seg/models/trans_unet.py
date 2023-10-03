@@ -7,7 +7,7 @@ from __future__ import print_function
 import copy
 import logging
 import math
-from os.path import join as pjoin
+from posixpath import join as pjoin
 from typing import Dict, Tuple, Iterator, Union
 
 import ml_collections
@@ -51,7 +51,7 @@ ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "s
 
 
 class Attention(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config: ConfigDict):
         super(Attention, self).__init__()
         self.num_attention_heads = config.transformer["num_heads"]
         self.attention_head_size = int(config.hidden_size / self.num_attention_heads)
@@ -95,46 +95,20 @@ class Attention(nn.Module):
         return attention_output
 
 
-class Mlp(nn.Module):
-    def __init__(self, config):
-        super(Mlp, self).__init__()
-        self.fc1 = Linear(config.hidden_size, config.transformer["mlp_dim"])
-        self.fc2 = Linear(config.transformer["mlp_dim"], config.hidden_size)
-        self.act_fn = ACT2FN["gelu"]
-        self.dropout = Dropout(config.transformer["dropout_rate"])
-
-        self._init_weights()
-
-    def _init_weights(self):
-        nn.init.xavier_uniform_(self.fc1.weight)
-        nn.init.xavier_uniform_(self.fc2.weight)
-        nn.init.normal_(self.fc1.bias, std=1e-6)
-        nn.init.normal_(self.fc2.bias, std=1e-6)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.act_fn(x)
-        x = self.dropout(x)
-        x = self.fc2(x)
-        x = self.dropout(x)
-        return x
-
-
 class Embeddings(nn.Module):
     """Construct the embeddings from patch, position embeddings.
     """
 
-    def __init__(self, config: ConfigDict, img_size: Tuple[int, int], in_channels=3):
+    def __init__(self, config: ConfigDict, in_channels=3):
         """
         :param config: config dict
-        :param img_size: int tuple for image shape
         :param in_channels: channel count
         """
         super(Embeddings, self).__init__()
         self.config = config
 
         patch_size = _pair(config.patches["size"])
-        n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
+        n_patches = 16
 
         self.patch_embeddings = Conv2d(in_channels=in_channels,
                                        out_channels=config.hidden_size,
@@ -144,22 +118,23 @@ class Embeddings(nn.Module):
 
         self.dropout = Dropout(config.transformer["dropout_rate"])
 
-    def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:
+    def forward(self, x_tensor: torch.Tensor) -> Tuple[torch.Tensor, Tuple[int, int]]:
         """
         :param x_tensor: input
         :return: return positional embedding
         """
-        x_tensor = self.patch_embeddings(x_tensor)  # (B, hidden. n_patches^(1/2), n_patches^(1/2))
+        x_tensor = self.patch_embeddings(x_tensor)  # (B, hidden, n_patches_w, n_patches_h)
+        patch_shape = x_tensor.shape[2:]
         x_tensor = x_tensor.flatten(2)
         x_tensor = x_tensor.transpose(-1, -2)  # (B, n_patches, hidden)
 
         embeddings = x_tensor + self.position_embeddings
         embeddings = self.dropout(embeddings)
-        return embeddings
+        return embeddings, patch_shape
 
 
 class Block(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config: ConfigDict):
         super(Block, self).__init__()
         self.hidden_size = config.hidden_size
         self.attention_norm = LayerNorm(config.hidden_size, eps=1e-6)
@@ -223,7 +198,7 @@ class Block(nn.Module):
 class TransformerEncoder(nn.Module):
     """Transformer Encoder"""
 
-    def __init__(self, config):
+    def __init__(self, config: ConfigDict):
         """
         :param config: config dict
         :param vis:
@@ -241,6 +216,29 @@ class TransformerEncoder(nn.Module):
         encoded = self.encoder_norm(hidden_states)
         return encoded
 
+class Mlp(nn.Module):
+    def __init__(self, config):
+        super(Mlp, self).__init__()
+        self.fc1 = Linear(config.hidden_size, config.transformer["mlp_dim"])
+        self.fc2 = Linear(config.transformer["mlp_dim"], config.hidden_size)
+        self.act_fn = ACT2FN["gelu"]
+        self.dropout = Dropout(config.transformer["dropout_rate"])
+
+        self._init_weights()
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self.fc1.weight)
+        nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.normal_(self.fc1.bias, std=1e-6)
+        nn.init.normal_(self.fc2.bias, std=1e-6)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act_fn(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.dropout(x)
+        return x
 
 class Encoder(nn.Module):
     """
@@ -258,6 +256,8 @@ class Encoder(nn.Module):
         self.block2 = dhsegment.block2
         self.block3 = dhsegment.block3
 
+        self.maxpool_2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
         # initialize normalization
         self.register_buffer("means", torch.tensor([0] * in_channels))
         self.register_buffer("stds", torch.tensor([1] * in_channels))
@@ -274,6 +274,7 @@ class Encoder(nn.Module):
         result, copy_1 = self.block1(result)
         result, copy_2 = self.block2(result)
         result, copy_3 = self.block3(result)
+        result = self.maxpool_2(result)
 
         return {"result": result, "identity": identity, "copy_0": copy_0, "copy_1": copy_1, "copy_2": copy_2,
                 "copy_3": copy_3}
@@ -305,11 +306,12 @@ class Decoder(nn.Module):
     CNN Decoder class, corresponding to DhSegment Decoder
     """
 
-    def __init__(self, dhsegment: DhSegment, hidden: int, patch_size: int):
+    def __init__(self, dhsegment: DhSegment, config: ConfigDict):
         super(Decoder, self).__init__()
-        # up-scaling
-        self.in_channels = 512
-        self.up_conv = nn.ConvTranspose2d(hidden, self.in_channels, patch_size, patch_size)
+
+        self.patch_size = _pair(config.patches["size"])
+        self.hidden_output = config.hidden_output
+        self.up_conv = nn.ConvTranspose2d(config.hidden_size, self.hidden_output, self.patch_size, self.patch_size)
         self.up_block1 = dhsegment.up_block1
         self.up_block2 = dhsegment.up_block2
         self.up_block3 = dhsegment.up_block3
@@ -318,19 +320,22 @@ class Decoder(nn.Module):
 
         self.conv2 = dhsegment.conv2
 
-    def forward(self, transformer_result: torch.Tensor, encoder_results: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, transformer_result: torch.Tensor, encoder_results: Dict[str, torch.Tensor],
+                patch_shape: Tuple[int, int]) -> torch.Tensor:
         """
         forward path of cnn decoder
         :param transformer_result: transformer output, as matrix??
         :param encoder_results: contains saved values for scip connections of unet
         :return: a decoder result
         """
+
         B, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
-        transformer_result.contiguous().view(B * n_patch, hidden, 1, 1)
+        transformer_result = transformer_result.contiguous().view(B * n_patch, hidden, 1, 1)
         tensor_x = self.up_conv(transformer_result)
-        tensor_x = tensor_x.contiguous().view(B, n_patch, self.in_channels, h * w)
+        tensor_x = tensor_x.contiguous().view(B, n_patch, self.hidden_output, self.patch_size[0] * self.patch_size[1])
         tensor_x = tensor_x.permute(0, 2, 1, 3)
-        tensor_x = tensor_x.contiguous().view(B, self.in_channels, n_patch * h, n_patch * w)
+        tensor_x = tensor_x.contiguous().view(B, self.hidden_output, patch_shape[0] * self.patch_size[0],
+                                              patch_shape[1] * self.patch_size[1])
 
         tensor_x = self.up_block1(tensor_x, encoder_results["copy_3"])
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
@@ -340,25 +345,24 @@ class Decoder(nn.Module):
 
         tensor_x = self.conv2(tensor_x)
 
-        return torch.Tensor(tensor_x)
+        return tensor_x
 
 
 class Transformer(nn.Module):
     """Implements Transformer"""
 
-    def __init__(self, config: ConfigDict, img_size: Tuple[int, int]):
+    def __init__(self, config: ConfigDict):
         """
         :param config: config dict from get_b16_config()
-        :param img_size: unniform size of all input images
         """
         super(Transformer, self).__init__()
-        self.embeddings = Embeddings(config, img_size=img_size, in_channels=1024)
+        self.embeddings = Embeddings(config, in_channels=1024)
         self.encoder = TransformerEncoder(config)
 
     def forward(self, input_ids):
-        embedding_output, _ = self.embeddings(input_ids)
-        encoded, _ = self.encoder(embedding_output)  # (B, n_patch, hidden)
-        return encoded
+        embedding_output, patch_shape = self.embeddings(input_ids)
+        encoded = self.encoder(embedding_output)  # (B, n_patch, hidden)
+        return encoded, patch_shape
 
 
 class Conv2dReLU(nn.Sequential):
@@ -475,26 +479,23 @@ class DecoderCup(nn.Module):
 class VisionTransformer(nn.Module):
     """Implements Trans-UNet vision transformer"""
 
-    def __init__(self, img_size: Tuple[int, int], in_channels: int = 3, out_channel: int = 3,
-                 load_backbone=False):
+    def __init__(self, in_channels: int = 3, out_channel: int = 3,
+                 load_backbone=False, load_resnet_weights=True):
         """
-
         :param config:
         :param in_channels:
         :param out_channel:
-        :param img_size:
         :param zero_head:
         """
         super().__init__()
         dhsegment = DhSegment([3, 4, 6, 1], in_channels=in_channels, out_channel=out_channel,
-                              load_resnet_weights=True)
+                              load_resnet_weights=load_resnet_weights)
         self.encoder = Encoder(dhsegment, in_channels)
         self.config = get_r50_b16_config()
-        self.classifier = self.config.classifier
-        self.transformer = Transformer(self.config, img_size)
+        self.transformer = Transformer(self.config)
         if load_backbone:
             self.load_vit_backbone()
-        self.decoder = Decoder(dhsegment)
+        self.decoder = Decoder(dhsegment, self.config)
 
     def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:
         """
@@ -502,8 +503,8 @@ class VisionTransformer(nn.Module):
         :return: unet result
         """
         encoder_results = self.encoder(x_tensor)
-        x_tensor = self.transformer(encoder_results["results"])  # (B, n_patch, hidden)
-        x_tensor = self.decoder(x_tensor, encoder_results)
+        x_tensor, patch_shape = self.transformer(encoder_results["result"])  # (B, n_patch, hidden)
+        x_tensor = self.decoder(x_tensor, encoder_results, patch_shape)
         return x_tensor
 
     def save(self, path: Union[str, None]) -> None:
@@ -537,15 +538,21 @@ class VisionTransformer(nn.Module):
     def load_from(self, weights):
         with torch.no_grad():
 
-            for _, block in self.transformer.encoder.named_children():
+            # Encoder whole
+            for bname, block in self.transformer.encoder.named_children():
                 for uname, unit in block.named_children():
                     unit.load_from(weights, n_block=uname)
+        def unfreeze(params: Iterator[Parameter]) -> None:
+            for param in params:
+                param.requires_grad_(True)
+
+        unfreeze(self.transformer.encoder.parameters())
 
 
 def get_r50_b16_config() -> ConfigDict:
     """Returns the ViT-B/16 configuration."""
     config = ml_collections.ConfigDict()
-    config.patches = ml_collections.ConfigDict()
+    config.patches = ml_collections.ConfigDict({'size': (8, 8)})
     config.hidden_size = 768
     config.transformer = ml_collections.ConfigDict()
     config.transformer.mlp_dim = 3072
@@ -556,4 +563,6 @@ def get_r50_b16_config() -> ConfigDict:
     config.classifier = 'token'
     config.representation_size = None
     config.patches.grid = (8, 8)
+    config.hidden_input = 1024
+    config.hidden_output = 512
     return config

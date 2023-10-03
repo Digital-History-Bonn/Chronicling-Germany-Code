@@ -17,8 +17,6 @@ from tqdm import tqdm
 
 from src.news_seg.preprocessing import Preprocessing
 
-
-
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
 
@@ -30,7 +28,7 @@ class NewsDataset(Dataset):
 
     def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
                  data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
-                 dataset: str = "transcribus", sort: bool = False, full_image = False):
+                 dataset: str = "transcribus", sort: bool = False, full_image=False):
         """
         load images and targets from folder
         :param preprocessing:
@@ -43,7 +41,7 @@ class NewsDataset(Dataset):
         """
 
         self.preprocessing = preprocessing
-        if self.full_image:
+        if full_image:
             preprocessing.crop = False
         self.dataset = dataset
         self.image_path = image_path
@@ -115,7 +113,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-        self, ratio: Tuple[float, float, float]
+            self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -124,6 +122,10 @@ class NewsDataset(Dataset):
         """
         assert sum(ratio) == 1, "ratio does not sum up to 1."
         assert len(ratio) == 3, "ratio does not have length 3"
+        assert int(ratio[0] * len(self)) > 0 and int(ratio[1] * len(self)) > 0 and int(
+            ratio[2] * len(
+                self)) > 0, ("Dataset is to small for given split ratios for test and validation dataset. "
+                             "Test or validation dataset have size of zero.")
 
         splits = int(ratio[0] * len(self)), int(ratio[0] * len(self)) + int(
             ratio[1] * len(self)
@@ -159,7 +161,7 @@ class NewsDataset(Dataset):
                     transforms.RandomRotation(180),
                     transforms.RandomApply(
                         [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))]
-                    , p = 0.5)
+                        , p=0.5)
                 ]
             ),
             "images": transforms.RandomApply(

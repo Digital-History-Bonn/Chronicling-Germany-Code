@@ -15,6 +15,7 @@ from sklearn.metrics import accuracy_score, jaccard_score
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
+from torch.nn.parallel import DataParallel
 from tqdm import tqdm
 
 from src.news_seg.models.dh_segment import DhSegment
@@ -62,7 +63,7 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
             [3, 4, 6, 4],
             in_channels=IN_CHANNELS,
             out_channel=OUT_CHANNELS,
-            load_resnet_weights=True,
+            load_resnet_weights=True
         )
         model = model.float()
         model.freeze_encoder()
@@ -73,10 +74,10 @@ def init_model(load: Union[str, None], device: str) -> DhSegment:
         model.means = torch.tensor((0.485, 0.456, 0.406))
         model.stds = torch.tensor((0.229, 0.224, 0.225))
     elif args.model == "trans_unet":
-        assert args.pad, "Trans_unet requires given padding size from parameters for initialization."
 
         load_backbone = not load
-        model = VisionTransformer(img_size=(args.crop_size, args.crop_size), load_backbone = load_backbone)
+        model = VisionTransformer(load_backbone = load_backbone, in_channels=IN_CHANNELS,
+            out_channel=OUT_CHANNELS, load_resnet_weights=True)
 
         model = model.float()
         model.encoder.freeze_encoder()
@@ -135,7 +136,7 @@ class Trainer:
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = torch.nn.parallel.DistributedDataParallel(init_model(load, self.device))
+        self.model = DataParallel(init_model(load, self.device))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -145,8 +146,6 @@ class Trainer:
         # load data
         preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size,
                                       pad=args.pad)
-        if model == "trans_unet":
-            preprocessing.crop = False
         dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images/",
                               target_path=f"{args.data_path}targets/",
                               limit=args.limit, dataset=args.dataset)
