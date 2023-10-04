@@ -123,27 +123,27 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_image(file: str) -> torch.Tensor:
+def load_image(file: str, data_path: str) -> torch.Tensor:
     """
     Loads image and applies necessary transformation for prdiction.
     :param file: path to image
     :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
     """
-    image = Image.open(args.data_path + file).convert("RGB")
+    image = Image.open(data_path + file).convert("RGB")
     transform = transforms.PILToTensor()
     data: torch.Tensor = transform(image).float() / 255
     data = torch.unsqueeze(data, dim=0)
     return data
 
 
-def predict() -> None:
+def predict(args) -> None:
     """
     Loads all images from the data folder and predicts segmentation.
     """
     device = args.cuda_device if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
     file_names = os.listdir(args.data_path)
-    model = train.init_model(args.model_path, device)
+    model = train.init_model(args.model_path, device, "dh_segment")
     model.to(device)
     model.eval()
     for file in tqdm(
@@ -151,7 +151,7 @@ def predict() -> None:
     ):
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
-        image = load_image(file)
+        image = load_image(file, args.data_path)
         assert (
             args.final_size[1] >= image.shape[2]
             and args.final_size[0] >= image.shape[3]
@@ -240,6 +240,6 @@ def process_prediction(pred: ndarray, threshold: float) -> ndarray:
 
 
 if __name__ == "__main__":
-    args = get_args()
-    torch.manual_seed(args.torch_seed)
-    predict()
+    parameter_args = get_args()
+    torch.manual_seed(parameter_args.torch_seed)
+    predict(parameter_args)

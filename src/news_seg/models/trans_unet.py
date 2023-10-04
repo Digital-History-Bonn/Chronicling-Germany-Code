@@ -1,4 +1,4 @@
-"""Module for trans_unet"""
+"""Module for trans_unet largly from https://github.com/Beckschen/TransUNet"""
 # coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
@@ -10,13 +10,12 @@ import math
 from posixpath import join as pjoin
 from typing import Dict, Tuple, Iterator, Union, Any
 
-from positional_encodings.torch_encodings import PositionalEncoding2D, Summer
 import ml_collections
 import numpy as np
 import torch
-import torch.nn as nn
 from ml_collections.config_dict import ConfigDict
-from scipy import ndimage
+from positional_encodings.torch_encodings import PositionalEncoding2D
+from torch import nn
 from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
@@ -44,7 +43,11 @@ def np2th(weights, conv=False):
     return torch.from_numpy(weights)
 
 
-def swish(x):
+def swish(x: Any) -> Any:
+    """
+    :param x: 
+    :return: 
+    """
     return x * torch.sigmoid(x)
 
 
@@ -52,8 +55,9 @@ ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "s
 
 
 class Attention(nn.Module):
+    """Attention Class"""
     def __init__(self, config: ConfigDict):
-        super(Attention, self).__init__()
+        super().__init__()
         self.num_attention_heads = config.transformer["num_heads"]
         self.attention_head_size = int(config.hidden_size / self.num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
@@ -68,12 +72,21 @@ class Attention(nn.Module):
 
         self.softmax = Softmax(dim=-1)
 
-    def transpose_for_scores(self, x):
+    def transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        :param x:
+        :return:
+        """
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
-    def forward(self, hidden_states):
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        """
+        Attention forward
+        :param hidden_states:
+        :return:
+        """
         mixed_query_layer = self.query(hidden_states)
         mixed_key_layer = self.key(hidden_states)
         mixed_value_layer = self.value(hidden_states)
@@ -105,7 +118,7 @@ class Embeddings(nn.Module):
         :param config: config dict
         :param in_channels: channel count
         """
-        super(Embeddings, self).__init__()
+        super().__init__()
         self.config = config
 
         patch_size = _pair(config.patches["size"])
@@ -136,27 +149,38 @@ class Embeddings(nn.Module):
 
 
 class Block(nn.Module):
+    """Attention Block class"""
     def __init__(self, config: ConfigDict):
-        super(Block, self).__init__()
+        super().__init__()
         self.hidden_size = config.hidden_size
         self.attention_norm = LayerNorm(config.hidden_size, eps=1e-6)
         self.ffn_norm = LayerNorm(config.hidden_size, eps=1e-6)
         self.ffn = Mlp(config)
         self.attn = Attention(config)
 
-    def forward(self, x):
-        h = x
-        x = self.attention_norm(x)
-        x = self.attn(x)
-        x = x + h
+    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
+        """
+        Attention Block forward
+        :param tensor_x: 
+        :return: 
+        """
+        h = tensor_x
+        tensor_x = self.attention_norm(tensor_x)
+        tensor_x = self.attn(tensor_x)
+        tensor_x = tensor_x + h
 
-        h = x
-        x = self.ffn_norm(x)
-        x = self.ffn(x)
-        x = x + h
-        return x
+        h = tensor_x
+        tensor_x = self.ffn_norm(tensor_x)
+        tensor_x = self.ffn(tensor_x)
+        tensor_x = tensor_x + h
+        return tensor_x
 
-    def load_from(self, weights, n_block):
+    def load_from(self, weights: Any, n_block: Any) -> Any:
+        """
+        For initial loading of vit backbone
+        :param weights:
+        :param n_block:
+        """
         ROOT = f"Transformer/encoderblock_{n_block}"
         with torch.no_grad():
             query_weight = np2th(weights[pjoin(ROOT, ATTENTION_Q, "kernel")]).view(self.hidden_size,
@@ -220,8 +244,9 @@ class TransformerEncoder(nn.Module):
 
 
 class Mlp(nn.Module):
-    def __init__(self, config):
-        super(Mlp, self).__init__()
+    """Mlp Module"""
+    def __init__(self, config: ConfigDict):
+        super().__init__()
         self.fc1 = Linear(config.hidden_size, config.transformer["mlp_dim"])
         self.fc2 = Linear(config.transformer["mlp_dim"], config.hidden_size)
         self.act_fn = ACT2FN["gelu"]
@@ -229,13 +254,19 @@ class Mlp(nn.Module):
 
         self._init_weights()
 
-    def _init_weights(self):
+    def _init_weights(self) -> None:
+        """
+        """
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.xavier_uniform_(self.fc2.weight)
         nn.init.normal_(self.fc1.bias, std=1e-6)
         nn.init.normal_(self.fc2.bias, std=1e-6)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        :param x:
+        :return:
+        """
         x = self.fc1(x)
         x = self.act_fn(x)
         x = self.dropout(x)
@@ -269,6 +300,10 @@ class Encoder(nn.Module):
         self.normalize = dhsegment.normalize
 
     def forward(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        :param inputs:
+        :return: dictionary with result and scip connections
+        """
         result = self.normalize(inputs, self.means, self.stds)
         identity = result
         result = self.conv1(result)
@@ -312,7 +347,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, dhsegment: DhSegment, config: ConfigDict):
-        super(Decoder, self).__init__()
+        super().__init__()
 
         self.patch_size = _pair(config.patches["size"])
         self.hidden_output = config.hidden_output
@@ -331,7 +366,7 @@ class Decoder(nn.Module):
                 patch_shape: Tuple[int, int]) -> torch.Tensor:
         """
         forward path of cnn decoder
-        :param transformer_result: transformer output, as matrix??
+        :param transformer_result: transformer output, as matrix
         :param encoder_results: contains saved values for scip connections of unet
         :return: a decoder result
         """

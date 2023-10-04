@@ -12,7 +12,7 @@ from src.news_seg.preprocessing import Preprocessing
 # from preprocessing import Preprocessing
 
 
-def main():
+def main(args):
     """Load image and target data and saves single crops as torch tensor. Tensor contains 4 dimension, 3 for RGB image
     and target"""
     preprocessing = Preprocessing()
@@ -90,5 +90,5 @@ def get_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    args = get_args()
-    main()
+    parameter_args = get_args()
+    main(parameter_args)

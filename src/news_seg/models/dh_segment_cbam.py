@@ -3,10 +3,10 @@
 from __future__ import absolute_import, division, print_function
 
 import logging
-from typing import Dict, Iterator, Tuple, Union
+from typing import Dict, Iterator, Union
 
 import torch
-import torch.nn as nn
+from torch import nn as nn
 from torch.nn.parameter import Parameter
 
 from src.news_seg.models.cbam import CBAM
@@ -21,7 +21,7 @@ class Encoder(nn.Module):
     """
 
     def __init__(self, dhsegment: DhSegment, in_channels: int):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
         self.relu = dhsegment.relu
@@ -102,7 +102,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, dhsegment: DhSegment):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.up_block1 = dhsegment.up_block1
         self.up_block2 = dhsegment.up_block2
         self.up_block3 = dhsegment.up_block3

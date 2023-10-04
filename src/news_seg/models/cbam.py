@@ -1,7 +1,7 @@
 """CBAM module from https://github.com/Peachypie98/CBAM"""
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+from torch import nn as nn
+from torch.nn import functional as F
 
 
 class SAM(nn.Module):
@@ -10,7 +10,7 @@ class SAM(nn.Module):
     """
 
     def __init__(self, bias=False):
-        super(SAM, self).__init__()
+        super().__init__()
         self.bias = bias
         self.conv = nn.Conv2d(
             in_channels=2,
@@ -28,9 +28,9 @@ class SAM(nn.Module):
         :param tensor_x: input
         :return: SAM result
         """
-        max = torch.max(tensor_x, 1)[0].unsqueeze(1)
+        max_value = torch.max(tensor_x, 1)[0].unsqueeze(1)
         avg = torch.mean(tensor_x, 1).unsqueeze(1)
-        concat = torch.cat((max, avg), dim=1)
+        concat = torch.cat((max_value, avg), dim=1)
         output = self.conv(concat)
         output = output * tensor_x
         return output
@@ -46,7 +46,7 @@ class CAM(nn.Module):
         :param channels: number of channels
         :param r: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
         """
-        super(CAM, self).__init__()
+        super().__init__()
         self.channels = channels
         self.r = r
         self.linear_max = nn.Sequential(

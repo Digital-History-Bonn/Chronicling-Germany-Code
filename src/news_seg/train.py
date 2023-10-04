@@ -52,13 +52,14 @@ LOSS_WEIGHTS: List[float] = [
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, None], device: str) -> nn.Module:
+def init_model(load: Union[str, None], device: str, model_str: str) -> nn.Module:
     """
     Initialise model
+    :param args:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :return: loaded model
     """
-    if args.model == "dh_segment":
+    if model_str == "dh_segment":
         # create model
         model = DhSegment(
             [3, 4, 6, 4],
@@ -67,7 +68,7 @@ def init_model(load: Union[str, None], device: str) -> nn.Module:
             load_resnet_weights=True,
         )
         model = setup_dh_segment(device, load, model)
-    elif args.model == "trans_unet":
+    elif model_str == "trans_unet":
         load_backbone = not load
         model = VisionTransformer(
             load_backbone=load_backbone,
@@ -83,7 +84,7 @@ def init_model(load: Union[str, None], device: str) -> nn.Module:
 
         model.encoder.means = torch.tensor((0.485, 0.456, 0.406))
         model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
-    elif args.model == "dh_segment_cbam":
+    elif model_str == "dh_segment_cbam":
         model = DhSegmentCBAM(
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
@@ -93,7 +94,7 @@ def init_model(load: Union[str, None], device: str) -> nn.Module:
 
 
 def setup_dh_segment(
-    device: str, load: Union[str, None], model: nn.Module
+        device: str, load: Union[str, None], model: nn.Module
 ) -> nn.Module:
     """
     Setup function for dh_segment and dh_segment_cbam
@@ -130,12 +131,13 @@ class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
-        self,
-        save_model: str,
-        save_score: str,
-        load: Union[str, None] = None,
-        batch_size: int = BATCH_SIZE,
-        learningrate: float = LEARNING_RATE,
+            self,
+            save_model: str,
+            save_score: str,
+            summary: SummaryWriter,
+            load: Union[str, None] = None,
+            batch_size: int = BATCH_SIZE,
+            learningrate: float = LEARNING_RATE
     ):
         """
         Trainer-class to train DhSegment Model
@@ -147,6 +149,7 @@ class Trainer:
         """
 
         # init params
+        self.summary_writer = summary
         batch_size = args.gpu_count * batch_size
         self.best_score, self.step, self.epoch = load_score(load)
         self.save_model = save_model
@@ -159,7 +162,7 @@ class Trainer:
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = DataParallel(init_model(load, self.device))
+        self.model = DataParallel(init_model(load, self.device, args.model))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -212,9 +215,9 @@ class Trainer:
         )
 
         assert (
-            len(self.train_loader) > 0
-            and len(self.val_loader) > 0
-            and len(self.test_loader) > 0
+                len(self.train_loader) > 0
+                and len(self.val_loader) > 0
+                and len(self.test_loader) > 0
         ), "At least one Dataset is to small to assemble at least one batch"
 
         self.loss_fn = torch.nn.CrossEntropyLoss(
@@ -235,9 +238,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                total=(len(self.train_loader)),
-                desc=f"Epoch {self.epoch}/{epochs}",
-                unit="batche(s)",
+                    total=(len(self.train_loader)),
+                    desc=f"Epoch {self.epoch}/{epochs}",
+                    unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -252,16 +255,16 @@ class Trainer:
                     self.step += 1
                     # pylint: disable-next=not-context-manager
 
-                    summary_writer.add_scalar(
+                    self.summary_writer.add_scalar(
                         "train loss", loss.item(), global_step=self.step
                     )  # type:ignore
-                    # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(),
+                    # self.summary_writer.add_scalar('batch mean', images.detach().cpu().mean(),
                     # global_step=self.step) #type:ignore
-                    # summary_writer.add_scalar('batch std', images.detach().cpu().std(),
+                    # self.summary_writer.add_scalar('batch std', images.detach().cpu().std(),
                     # global_step=self.step) #type:ignore
-                    # summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
+                    # self.summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
                     # global_step=self.step) #type:ignore
-                    # summary_writer.add_scalar('target batch std', targets.detach().cpu().float().std(),
+                    # self.summary_writer.add_scalar('target batch std', targets.detach().cpu().float().std(),
                     # global_step=self.step) #type:ignore
 
                     # update description
@@ -289,7 +292,7 @@ class Trainer:
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
-                    summary_writer.add_scalar(
+                    self.summary_writer.add_scalar(
                         "current best", self.best_step, global_step=self.step
                     )  # type:ignore
 
@@ -297,7 +300,7 @@ class Trainer:
             self.model.module.save(self.save_model)  # type: ignore
             with open(f"{self.save_score}.json", "w", encoding="utf-8") as file:
                 json.dump((score, self.step, self.epoch + 1), file)
-            summary_writer.flush()
+            self.summary_writer.flush()
 
         self.validation(test_validation=True)
 
@@ -322,7 +325,7 @@ class Trainer:
         )
 
         for images, targets in tqdm(
-            loader, desc="validation_round", total=size, unit="batch(es)"
+                loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
@@ -361,12 +364,12 @@ class Trainer:
         return loss / size, accuracy / size
 
     def val_logging(
-        self,
-        loss: float,
-        jaccard: float,
-        accuracy: float,
-        class_accs: ndarray,
-        test_validation: bool,
+            self,
+            loss: float,
+            jaccard: float,
+            accuracy: float,
+            class_accs: ndarray,
+            test_validation: bool,
     ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
@@ -392,39 +395,39 @@ class Trainer:
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
-        summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
+        self.summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
-        summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
-        summary_writer.add_scalar(
+        self.summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
+        self.summary_writer.add_scalar(
             f"{environment}/accuracy", accuracy, global_step=self.step
         )
 
-        summary_writer.add_scalar(
+        self.summary_writer.add_scalar(
             f"{environment}/jaccard score", jaccard, global_step=self.step
         )
 
         for i, acc in enumerate(class_accs):
             if not np.isnan(acc):
-                summary_writer.add_scalar(
+                self.summary_writer.add_scalar(
                     f"multi-acc-{environment}/class {i}", acc, global_step=self.step
                 )
 
-        summary_writer.add_image(
+        self.summary_writer.add_image(
             f"image/{environment}-input",
             torch.squeeze(image.float().cpu()),
             global_step=self.step,
         )  # type:ignore
-        summary_writer.add_image(
+        self.summary_writer.add_image(
             f"image/{environment}-target",
             target.float().cpu()[
-                None,
-                :,
-                :,
+            None,
+            :,
+            :,
             ]
             / OUT_CHANNELS,
             global_step=self.step,
         )  # type:ignore
-        summary_writer.add_image(
+        self.summary_writer.add_image(
             f"image/{environment}-prediction",
             pred.float().cpu() / OUT_CHANNELS,
             global_step=self.step,
@@ -525,7 +528,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="transcribus",
         help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
-        "(europeaner newspaper project)",
+             "(europeaner newspaper project)",
     )
     parser.add_argument(
         "--load-score",
@@ -567,28 +570,29 @@ def get_args() -> argparse.Namespace:
         nargs="+",
         default=None,
         help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-        "Has to be grater or equal to actual image after scaling",
+             "Has to be grater or equal to actual image after scaling",
     )
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    args = get_args()
-    torch.manual_seed(args.torch_seed)
+    parameter_args = get_args()
+    torch.manual_seed(parameter_args.torch_seed)
 
     # setup tensor board
-    train_log_dir = "logs/runs/" + args.name
+    train_log_dir = "logs/runs/" + parameter_args.name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
-    load_model = f"models/model_{args.load}.pt" if args.load else None
+    load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
 
     trainer = Trainer(
         load=load_model,
-        save_model=f"models/model_{args.name}",
-        save_score=f"scores/model_{args.name}",
-        batch_size=args.batch_size,
-        learningrate=args.lr,
+        save_model=f"models/model_{parameter_args.name}",
+        save_score=f"scores/model_{parameter_args.name}",
+        batch_size=parameter_args.batch_size,
+        learningrate=parameter_args.lr,
+        summary=summary_writer
     )
 
-    trainer.train(epochs=args.epochs)
+    trainer.train(epochs=parameter_args.epochs)

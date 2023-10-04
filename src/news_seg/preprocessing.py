@@ -124,8 +124,8 @@ class Preprocessing:
                 f"but image has shape of {image.shape[2]} x {image.shape[1]}"
             )
 
-            image = correct_shape(torch.Tensor(image))
-            target = correct_shape(torch.Tensor(target)[None, :])
+            image = correct_shape(image)
+            target = correct_shape(target[None, :])
 
             transform = transforms.Pad(
                 (
