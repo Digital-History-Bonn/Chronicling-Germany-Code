@@ -122,7 +122,6 @@ class Embeddings(nn.Module):
         self.config = config
 
         patch_size = _pair(config.patches["size"])
-        n_patches = 16
 
         self.patch_embeddings = Conv2d(in_channels=in_channels,
                                        out_channels=config.hidden_size,
@@ -181,20 +180,20 @@ class Block(nn.Module):
         :param weights:
         :param n_block:
         """
-        ROOT = f"Transformer/encoderblock_{n_block}"
+        root = f"Transformer/encoderblock_{n_block}"
         with torch.no_grad():
-            query_weight = np2th(weights[pjoin(ROOT, ATTENTION_Q, "kernel")]).view(self.hidden_size,
+            query_weight = np2th(weights[pjoin(root, ATTENTION_Q, "kernel")]).view(self.hidden_size,
                                                                                    self.hidden_size).t()
-            key_weight = np2th(weights[pjoin(ROOT, ATTENTION_K, "kernel")]).view(self.hidden_size, self.hidden_size).t()
-            value_weight = np2th(weights[pjoin(ROOT, ATTENTION_V, "kernel")]).view(self.hidden_size,
+            key_weight = np2th(weights[pjoin(root, ATTENTION_K, "kernel")]).view(self.hidden_size, self.hidden_size).t()
+            value_weight = np2th(weights[pjoin(root, ATTENTION_V, "kernel")]).view(self.hidden_size,
                                                                                    self.hidden_size).t()
-            out_weight = np2th(weights[pjoin(ROOT, ATTENTION_OUT, "kernel")]).view(self.hidden_size,
+            out_weight = np2th(weights[pjoin(root, ATTENTION_OUT, "kernel")]).view(self.hidden_size,
                                                                                    self.hidden_size).t()
 
-            query_bias = np2th(weights[pjoin(ROOT, ATTENTION_Q, "bias")]).view(-1)
-            key_bias = np2th(weights[pjoin(ROOT, ATTENTION_K, "bias")]).view(-1)
-            value_bias = np2th(weights[pjoin(ROOT, ATTENTION_V, "bias")]).view(-1)
-            out_bias = np2th(weights[pjoin(ROOT, ATTENTION_OUT, "bias")]).view(-1)
+            query_bias = np2th(weights[pjoin(root, ATTENTION_Q, "bias")]).view(-1)
+            key_bias = np2th(weights[pjoin(root, ATTENTION_K, "bias")]).view(-1)
+            value_bias = np2th(weights[pjoin(root, ATTENTION_V, "bias")]).view(-1)
+            out_bias = np2th(weights[pjoin(root, ATTENTION_OUT, "bias")]).view(-1)
 
             self.attn.query.weight.copy_(query_weight)
             self.attn.key.weight.copy_(key_weight)
@@ -205,20 +204,20 @@ class Block(nn.Module):
             self.attn.value.bias.copy_(value_bias)
             self.attn.out.bias.copy_(out_bias)
 
-            mlp_weight_0 = np2th(weights[pjoin(ROOT, FC_0, "kernel")]).t()
-            mlp_weight_1 = np2th(weights[pjoin(ROOT, FC_1, "kernel")]).t()
-            mlp_bias_0 = np2th(weights[pjoin(ROOT, FC_0, "bias")]).t()
-            mlp_bias_1 = np2th(weights[pjoin(ROOT, FC_1, "bias")]).t()
+            mlp_weight_0 = np2th(weights[pjoin(root, FC_0, "kernel")]).t()
+            mlp_weight_1 = np2th(weights[pjoin(root, FC_1, "kernel")]).t()
+            mlp_bias_0 = np2th(weights[pjoin(root, FC_0, "bias")]).t()
+            mlp_bias_1 = np2th(weights[pjoin(root, FC_1, "bias")]).t()
 
             self.ffn.fc1.weight.copy_(mlp_weight_0)
             self.ffn.fc2.weight.copy_(mlp_weight_1)
             self.ffn.fc1.bias.copy_(mlp_bias_0)
             self.ffn.fc2.bias.copy_(mlp_bias_1)
 
-            self.attention_norm.weight.copy_(np2th(weights[pjoin(ROOT, ATTENTION_NORM, "scale")]))
-            self.attention_norm.bias.copy_(np2th(weights[pjoin(ROOT, ATTENTION_NORM, "bias")]))
-            self.ffn_norm.weight.copy_(np2th(weights[pjoin(ROOT, MLP_NORM, "scale")]))
-            self.ffn_norm.bias.copy_(np2th(weights[pjoin(ROOT, MLP_NORM, "bias")]))
+            self.attention_norm.weight.copy_(np2th(weights[pjoin(root, ATTENTION_NORM, "scale")]))
+            self.attention_norm.bias.copy_(np2th(weights[pjoin(root, ATTENTION_NORM, "bias")]))
+            self.ffn_norm.weight.copy_(np2th(weights[pjoin(root, MLP_NORM, "scale")]))
+            self.ffn_norm.bias.copy_(np2th(weights[pjoin(root, MLP_NORM, "bias")]))
 
 
 class TransformerEncoder(nn.Module):
@@ -236,7 +235,12 @@ class TransformerEncoder(nn.Module):
             layer = Block(config)
             self.layer.append(copy.deepcopy(layer))
 
-    def forward(self, hidden_states):
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        """
+        forward
+        :param hidden_states:
+        :return:
+        """
         for layer_block in self.layer:
             hidden_states = layer_block(hidden_states)
         encoded = self.encoder_norm(hidden_states)
@@ -262,17 +266,18 @@ class Mlp(nn.Module):
         nn.init.normal_(self.fc1.bias, std=1e-6)
         nn.init.normal_(self.fc2.bias, std=1e-6)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
-        :param x:
+        :param tensor_x:
         :return:
         """
-        x = self.fc1(x)
-        x = self.act_fn(x)
-        x = self.dropout(x)
-        x = self.fc2(x)
-        x = self.dropout(x)
-        return x
+        tensor_x = self.fc1(tensor_x)
+        # pylint: disable-next=not-callable
+        tensor_x = self.act_fn(tensor_x)
+        tensor_x = self.dropout(tensor_x)
+        tensor_x = self.fc2(tensor_x)
+        tensor_x = self.dropout(tensor_x)
+        return tensor_x
 
 
 # pylint: disable=duplicate-code
@@ -282,7 +287,7 @@ class Encoder(nn.Module):
     """
 
     def __init__(self, dhsegment: DhSegment, in_channels: int):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
         self.relu = dhsegment.relu
@@ -371,12 +376,12 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
 
-        B, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
-        transformer_result = transformer_result.contiguous().view(B * n_patch, hidden, 1, 1)
+        batch, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
+        transformer_result = transformer_result.contiguous().view(batch * n_patch, hidden, 1, 1)
         tensor_x = self.up_conv(transformer_result)
-        tensor_x = tensor_x.contiguous().view(B, n_patch, self.hidden_output, self.patch_size[0] * self.patch_size[1])
+        tensor_x = tensor_x.contiguous().view(batch, n_patch, self.hidden_output, self.patch_size[0] * self.patch_size[1])
         tensor_x = tensor_x.permute(0, 2, 1, 3)
-        tensor_x = tensor_x.contiguous().view(B, self.hidden_output, patch_shape[0] * self.patch_size[0],
+        tensor_x = tensor_x.contiguous().view(batch, self.hidden_output, patch_shape[0] * self.patch_size[0],
                                               patch_shape[1] * self.patch_size[1])
 
         tensor_x = self.up_block1(tensor_x, encoder_results["copy_3"])
@@ -397,7 +402,7 @@ class Transformer(nn.Module):
         """
         :param config: config dict from get_b16_config()
         """
-        super(Transformer, self).__init__()
+        super().__init__()
         self.embeddings = Embeddings(config, in_channels=1024)
         self.encoder = TransformerEncoder(config)
 
@@ -435,7 +440,7 @@ class Conv2dReLU(nn.Sequential):
 
         bn = nn.BatchNorm2d(out_channels)
 
-        super(Conv2dReLU, self).__init__(conv, bn, relu)
+        super().__init__(conv, bn, relu)
 
 
 class VisionTransformer(nn.Module):
@@ -505,7 +510,7 @@ class VisionTransformer(nn.Module):
         with torch.no_grad():
 
             # Encoder whole
-            for bname, block in self.transformer.encoder.named_children():
+            for _, block in self.transformer.encoder.named_children():
                 for uname, unit in block.named_children():
                     unit.load_from(weights, n_block=uname)
 

@@ -1,21 +1,17 @@
+"""module for validating dataset. Can be used to testwise load the entire Dataset"""
 import argparse
 import os
-from time import time  # type: ignore
 from typing import List
 
 import torch
-from torch.utils.data import DataLoader  # type: ignore
 from tqdm import tqdm
 
-from src.news_seg.news_dataset import NewsDataset  # type: ignore
 from src.news_seg.preprocessing import (
-    CROP_FACTOR,
-    CROP_SIZE,  # type: ignore
     Preprocessing,
 )
 
 
-def validate():
+def validate(args):
     """Load data to validate shape"""
     # read all file names
     preprocessing = Preprocessing()
@@ -24,21 +20,19 @@ def validate():
     target_path = f"{args.data_path}targets/"
 
     data: List[torch.Tensor] = []
-    if data:
-        data = data
+
+    # load data
+    if dataset == "transcribus":
+        extension = ".jpg"
+
+        def get_file_name(name: str) -> str:
+            return f"{name}.npy"
+
     else:
-        # load data
-        if dataset == "transcribus":
-            extension = ".jpg"
+        extension = ".tif"
 
-            def get_file_name(name: str) -> str:
-                return f"{name}.npy"
-
-        else:
-            extension = ".tif"
-
-            def get_file_name(name: str) -> str:
-                return f"pc-{name}.npy"
+        def get_file_name(name: str) -> str:
+            return f"pc-{name}.npy"
 
     file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
     assert len(file_names) > 0, (
@@ -49,6 +43,7 @@ def validate():
 
     # iterate over files
     for file in tqdm(file_names, desc="cropping images", unit="image"):
+        # pylint: disable-next=bare-except
         try:
             image, target = preprocessing.load(
                 f"{image_path}{file}{extension}",
@@ -60,7 +55,8 @@ def validate():
                 image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
             ):
                 print(
-                    f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, but target has shape w:{target.shape[1]}, "
+                    f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, "
+                    f"but target has shape w:{target.shape[1]}, "
                     f"h: {target.shape[0]}"
                 )
         except:
@@ -91,5 +87,5 @@ def get_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    args = get_args()
-    validate()
+    parameter_args = get_args()
+    validate(parameter_args)

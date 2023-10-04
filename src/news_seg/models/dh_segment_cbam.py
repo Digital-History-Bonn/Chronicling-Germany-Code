@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Iterator, Union
 
 import torch
-from torch import nn as nn
+from torch import nn
 from torch.nn.parameter import Parameter
 
 from src.news_seg.models.cbam import CBAM

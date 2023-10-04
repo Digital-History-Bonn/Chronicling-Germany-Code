@@ -178,10 +178,10 @@ def predict(args) -> None:
         ).numpy()
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
-        export_polygons(file, pred)
+        export_polygons(file, pred, args)
 
 
-def export_polygons(file: str, pred: ndarray) -> None:
+def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
     """
     Simplify prediction to polygons and export them to an image as well as transcribus xml
     :param file: path

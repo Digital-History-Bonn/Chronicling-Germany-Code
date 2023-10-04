@@ -52,7 +52,7 @@ LOSS_WEIGHTS: List[float] = [
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, None], device: str, model_str: str) -> nn.Module:
+def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool) -> nn.Module:
     """
     Initialise model
     :param args:
@@ -67,7 +67,7 @@ def init_model(load: Union[str, None], device: str, model_str: str) -> nn.Module
             out_channel=OUT_CHANNELS,
             load_resnet_weights=True,
         )
-        model = setup_dh_segment(device, load, model)
+        model = setup_dh_segment(device, load, model, freeze)
     elif model_str == "trans_unet":
         load_backbone = not load
         model = VisionTransformer(
@@ -88,13 +88,13 @@ def init_model(load: Union[str, None], device: str, model_str: str) -> nn.Module
         model = DhSegmentCBAM(
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
-        model = setup_dh_segment(device, load, model)
+        model = setup_dh_segment(device, load, model, freeze)
     assert model, "No valid model string supplied in model parameter"
     return model
 
 
 def setup_dh_segment(
-        device: str, load: Union[str, None], model: nn.Module
+        device: str, load: Union[str, None], model: nn.Module, freeze: bool
 ) -> nn.Module:
     """
     Setup function for dh_segment and dh_segment_cbam
@@ -104,7 +104,7 @@ def setup_dh_segment(
     :return:
     """
     model = model.float()
-    if args.freeze:
+    if freeze:
         model.freeze_encoder()
     # load model if argument is None, it does nothing
     model.load(load, device)
@@ -132,6 +132,7 @@ class Trainer:
 
     def __init__(
             self,
+            args: argparse.Namespace,
             save_model: str,
             save_score: str,
             summary: SummaryWriter,
@@ -162,7 +163,7 @@ class Trainer:
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = DataParallel(init_model(load, self.device, args.model))
+        self.model = DataParallel(init_model(load, self.device, args.model, args.freeze))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -592,7 +593,8 @@ if __name__ == "__main__":
         save_score=f"scores/model_{parameter_args.name}",
         batch_size=parameter_args.batch_size,
         learningrate=parameter_args.lr,
-        summary=summary_writer
+        summary=summary_writer,
+        args= parameter_args
     )
 
     trainer.train(epochs=parameter_args.epochs)
