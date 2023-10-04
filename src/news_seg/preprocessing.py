@@ -48,7 +48,7 @@ class Preprocessing:
         self.pad = pad
 
     def __call__(
-            self, image: Image.Image, target: npt.NDArray[np.uint8]
+            self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
     ) -> npt.NDArray[np.uint8]:
         """
         preprocess for image with annotations
@@ -57,16 +57,19 @@ class Preprocessing:
         :return: image, target
         """
         # scale
-        image, target = self.scale_img(image, target)
+        image, target = self.scale_img(input_image, input_target)
 
         if image.shape[1] < self.crop_size or image.shape[2] < self.crop_size:
             pad_y = self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
             pad_x = self.crop_size if image.shape[2] < self.crop_size else image.shape[2]
             self.pad = (pad_x, pad_y)
+            print(
+                f"Image padding because of crop size {self.crop_size} and image shape {image.shape[2]} x "
+                f"{image.shape[1]}")
 
         image, target = self.padding(image, target)
 
-        data: npt.NDArray[np.uint8] = np.concatenate((np.array(image, dtype=np.uint8), target[np.newaxis, :, :]))
+        data: npt.NDArray[np.uint8] = np.concatenate((np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :]))
         if self.crop:
             data = self.crop_img(data)
             return data
@@ -96,7 +99,7 @@ class Preprocessing:
 
         return image, target
 
-    def padding(self, image: ndarray, target: ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
+    def padding(self, image: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Pads border to be divisble by 2**5 to avoid errors during pooling
         :param image:
@@ -109,18 +112,19 @@ class Preprocessing:
                      f"Padding to {self.pad[0]} x {self.pad[1]} "
                      f"but image has shape of {image.shape[2]} x {image.shape[1]}")
 
-            image_t = correct_shape(torch.Tensor(image))
-            target_t = correct_shape(torch.Tensor(target)[None, :])
+            image = correct_shape(torch.Tensor(image))
+            target = correct_shape(torch.Tensor(target)[None, :])
 
             transform = transforms.Pad(
-                ((self.pad[0] - image_t.shape[2]) // 2, (self.pad[1] - image_t.shape[1]) // 2))
-            image_t = transform(image_t)
-            target_t = transform(target_t)
-        return image_t, torch.squeeze(target_t)
+                ((self.pad[0] - image.shape[2]) // 2, (self.pad[1] - image.shape[1]) // 2))
+            image = transform(image)
+            target = transform(target)
+            self.pad = None
+        return image, torch.squeeze(target)
 
     def scale_img(
             self, image: Image.Image, target: npt.NDArray[np.uint8]
-    ) -> Tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         scales down all given images and target by scale
         :param image: image
@@ -129,7 +133,7 @@ class Preprocessing:
         """
         if self.scale == 1:
             image = np.array(image, dtype=np.uint8)
-            return np.transpose(image, (2, 0, 1)), target
+            return torch.tensor(np.transpose(image, (2, 0, 1))), torch.tensor(target)
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
@@ -140,7 +144,7 @@ class Preprocessing:
 
         image, target = np.array(image, dtype=np.uint8), np.array(target_img, dtype=np.uint8)
 
-        return np.transpose(image, (2, 0, 1)), target
+        return torch.tensor(np.transpose(image, (2, 0, 1))), torch.tensor(target)
 
     def crop_img(self, data: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
         """
