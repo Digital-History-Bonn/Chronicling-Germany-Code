@@ -19,8 +19,6 @@ def validate(args):
     image_path = f"{args.data_path}images/"
     target_path = f"{args.data_path}targets/"
 
-    data: List[torch.Tensor] = []
-
     # load data
     if dataset == "transcribus":
         extension = ".jpg"
@@ -52,13 +50,14 @@ def validate(args):
                 dataset,
             )
             if not (
-                image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
+                    image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
             ):
                 print(
                     f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, "
                     f"but target has shape w:{target.shape[1]}, "
                     f"h: {target.shape[0]}"
                 )
+        # pylint: disable-next=bare-except
         except:
             print(f"{file}")
 
@@ -80,7 +79,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="transcribus",
         help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
-        "(europeaner newspaper project)",
+             "(europeaner newspaper project)",
     )
 
     return parser.parse_args()

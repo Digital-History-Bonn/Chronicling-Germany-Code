@@ -36,11 +36,11 @@ MLP_NORM = "LayerNorm_2"
 VIT_BACKBONE = "ViT-B_16"
 
 
-def np2th(weights, conv=False):
+def np2th(weights: Any, conv: bool = False) -> torch.Tensor:
     """Possibly convert HWIO to OIHW."""
     if conv:
         weights = weights.transpose([3, 2, 0, 1])
-    return torch.from_numpy(weights)
+    return torch.from_numpy(weights) #type: ignore
 
 
 def swish(x: Any) -> Any:
@@ -56,6 +56,7 @@ ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "s
 
 class Attention(nn.Module):
     """Attention Class"""
+
     def __init__(self, config: ConfigDict):
         super().__init__()
         self.num_attention_heads = config.transformer["num_heads"]
@@ -79,7 +80,7 @@ class Attention(nn.Module):
         """
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
         x = x.view(*new_x_shape)
-        return x.permute(0, 2, 1, 3)
+        return x.permute(0, 2, 1, 3) #type: ignore
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         """
@@ -104,7 +105,7 @@ class Attention(nn.Module):
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
-        attention_output = self.out(context_layer)
+        attention_output: torch.Tensor = self.out(context_layer)
         attention_output = self.proj_dropout(attention_output)
         return attention_output
 
@@ -137,7 +138,7 @@ class Embeddings(nn.Module):
         :return: return positional embedding
         """
         x_tensor = self.patch_embeddings(x_tensor)  # (B, hidden, n_patches_w, n_patches_h)
-        patch_shape = x_tensor.shape[2:]
+        patch_shape = (int(x_tensor.shape[2]), int(x_tensor.shape[3]))
         embedding = self.position_embeddings(torch.permute(x_tensor, (0, 2, 3, 1)))
         embeddings = x_tensor + torch.permute(embedding, (0, 3, 1, 2))
         embeddings = embeddings.flatten(2)
@@ -149,6 +150,7 @@ class Embeddings(nn.Module):
 
 class Block(nn.Module):
     """Attention Block class"""
+
     def __init__(self, config: ConfigDict):
         super().__init__()
         self.hidden_size = config.hidden_size
@@ -243,12 +245,13 @@ class TransformerEncoder(nn.Module):
         """
         for layer_block in self.layer:
             hidden_states = layer_block(hidden_states)
-        encoded = self.encoder_norm(hidden_states)
+        encoded: torch.Tensor = self.encoder_norm(hidden_states)
         return encoded
 
 
 class Mlp(nn.Module):
     """Mlp Module"""
+
     def __init__(self, config: ConfigDict):
         super().__init__()
         self.fc1 = Linear(config.hidden_size, config.transformer["mlp_dim"])
@@ -378,8 +381,9 @@ class Decoder(nn.Module):
 
         batch, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
         transformer_result = transformer_result.contiguous().view(batch * n_patch, hidden, 1, 1)
-        tensor_x = self.up_conv(transformer_result)
-        tensor_x = tensor_x.contiguous().view(batch, n_patch, self.hidden_output, self.patch_size[0] * self.patch_size[1])
+        tensor_x: torch.Tensor = self.up_conv(transformer_result)
+        tensor_x = tensor_x.contiguous().view(batch, n_patch, self.hidden_output,
+                                              self.patch_size[0] * self.patch_size[1])
         tensor_x = tensor_x.permute(0, 2, 1, 3)
         tensor_x = tensor_x.contiguous().view(batch, self.hidden_output, patch_shape[0] * self.patch_size[0],
                                               patch_shape[1] * self.patch_size[1])
@@ -419,15 +423,16 @@ class Transformer(nn.Module):
 
 class Conv2dReLU(nn.Sequential):
     """Conv2drelu class"""
+
     def __init__(
             self,
             in_channels: int,
-            out_channels : int,
-            kernel_size : int,
+            out_channels: int,
+            kernel_size: int,
             padding: int = 0,
             stride: int = 1,
             use_batchnorm: bool = True,
-    ):
+    ) -> None:
         conv = nn.Conv2d(
             in_channels,
             out_channels,
@@ -447,7 +452,7 @@ class VisionTransformer(nn.Module):
     """Implements Trans-UNet vision transformer"""
 
     def __init__(self, in_channels: int = 3, out_channel: int = 3,
-                 load_backbone=False, load_resnet_weights=True):
+                 load_backbone: bool =False, load_resnet_weights: bool =True) -> None:
         """
         :param config:
         :param in_channels:

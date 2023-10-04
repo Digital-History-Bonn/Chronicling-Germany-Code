@@ -36,7 +36,7 @@ class NewsDataset(Dataset):
         dataset: str = "transcribus",
         sort: bool = False,
         full_image=False,
-    ):
+    ) -> None:
         """
         load images and targets from folder
         :param preprocessing:

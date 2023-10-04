@@ -119,7 +119,7 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
         # pylint: disable=duplicate-code
-        tensor_x = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
+        tensor_x: torch.Tensor = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
         tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
@@ -134,8 +134,8 @@ class DhSegmentCBAM(nn.Module):
     """Implements DhSegment combined with CBAM modules after encoder layers"""
 
     def __init__(
-        self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights=True
-    ):
+        self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool =True
+    ) -> None:
         """
         :param config:
         :param in_channels:

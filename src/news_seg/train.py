@@ -6,13 +6,12 @@ import argparse
 import datetime
 import json
 import warnings
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Any
 
 import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
-from torch import nn
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -52,7 +51,7 @@ LOSS_WEIGHTS: List[float] = [
 # torch.manual_seed(42)
 
 
-def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool) -> nn.Module:
+def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True) -> Any:
     """
     Initialise model
     :param args:
@@ -61,7 +60,7 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
     """
     if model_str == "dh_segment":
         # create model
-        model = DhSegment(
+        model: Any = DhSegment(
             [3, 4, 6, 4],
             in_channels=IN_CHANNELS,
             out_channel=OUT_CHANNELS,
@@ -94,8 +93,8 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
 
 
 def setup_dh_segment(
-        device: str, load: Union[str, None], model: nn.Module, freeze: bool
-) -> nn.Module:
+        device: str, load: Union[str, None], model: Any, freeze: bool
+) -> Any:
     """
     Setup function for dh_segment and dh_segment_cbam
     :param device:
@@ -114,7 +113,7 @@ def setup_dh_segment(
     return model
 
 
-def load_score(load: Union[str, None]) -> Tuple[float, int, int]:
+def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float, int, int]:
     """
     Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
     """
@@ -152,7 +151,7 @@ class Trainer:
         # init params
         self.summary_writer = summary
         batch_size = args.gpu_count * batch_size
-        self.best_score, self.step, self.epoch = load_score(load)
+        self.best_score, self.step, self.epoch = load_score(load, args)
         self.save_model = save_model
         self.save_score = save_score
         self.learningrate: float = learningrate

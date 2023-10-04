@@ -52,7 +52,7 @@ def get_file(file: str, scale: float = 0.25) -> torch.Tensor:
         np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), "constant", constant_values=0
     )
     img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
-    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)
+    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0) #type: ignore
 
 
 def replace_substrings(string: str, replacements: Dict[str, str]) -> str:

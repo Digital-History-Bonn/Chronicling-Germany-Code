@@ -136,7 +136,7 @@ def load_image(file: str, data_path: str) -> torch.Tensor:
     return data
 
 
-def predict(args) -> None:
+def predict(args: argparse.Namespace) -> None:
     """
     Loads all images from the data folder and predicts segmentation.
     """

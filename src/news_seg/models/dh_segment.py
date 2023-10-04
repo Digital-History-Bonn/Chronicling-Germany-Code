@@ -434,7 +434,7 @@ class DhSegment(nn.Module):
         """
         pred = self(image).argmax(dim=1).float().cpu()
         prediction = torch.squeeze(pred / self.out_channel)
-        return prediction
+        return prediction #type: ignore
 
     def _load_resnet(self) -> None:
         """

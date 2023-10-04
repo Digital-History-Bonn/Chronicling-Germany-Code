@@ -1,6 +1,6 @@
 """CBAM module from https://github.com/Peachypie98/CBAM"""
 import torch
-from torch import nn as nn
+from torch import nn
 from torch.nn import functional
 
 
@@ -9,7 +9,7 @@ class SAM(nn.Module):
     SAM module
     """
 
-    def __init__(self, bias=False):
+    def __init__(self, bias: bool =False) -> None:
         super().__init__()
         self.bias = bias
         self.conv = nn.Conv2d(
@@ -31,7 +31,7 @@ class SAM(nn.Module):
         max_value = torch.max(tensor_x, 1)[0].unsqueeze(1)
         avg = torch.mean(tensor_x, 1).unsqueeze(1)
         concat = torch.cat((max_value, avg), dim=1)
-        output = self.conv(concat)
+        output: torch.Tensor = self.conv(concat)
         output = output * tensor_x
         return output
 
@@ -87,7 +87,7 @@ class CAM(nn.Module):
         b, c, _, _ = x.size()
         linear_max = self.linear_max(max_value.view(b, c)).view(b, c, 1, 1)
         linear_avg = self.linear_avg(avg.view(b, c)).view(b, c, 1, 1)
-        output = linear_max + linear_avg
+        output: torch.Tensor = linear_max + linear_avg
         output = torch.sigmoid(output) * x
         return output
 
@@ -97,7 +97,7 @@ class CBAM(nn.Module):
     CBAM module
     """
 
-    def __init__(self, channels, r):
+    def __init__(self, channels: int , r: int) -> None:
         """
         :param channels: number of channels
         :param r: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
@@ -108,12 +108,12 @@ class CBAM(nn.Module):
         self.sam = SAM(bias=False)
         self.cam = CAM(channels=self.channels, r=self.r)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
         CBAM forward module
         :param tensor_x: input
         :return: CBAM result
         """
-        output = self.cam(x)
+        output: torch.Tensor = self.cam(tensor_x)
         output = self.sam(output)
-        return output + x
+        return output + tensor_x  # type: ignore
