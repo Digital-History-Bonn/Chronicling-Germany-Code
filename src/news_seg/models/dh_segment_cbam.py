@@ -4,21 +4,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import copy
 import logging
-import math
-from posixpath import join as pjoin
 from typing import Dict, Tuple, Iterator, Union
 
-from positional_encodings.torch_encodings import PositionalEncoding2D, Summer
-import ml_collections
-import numpy as np
 import torch
 import torch.nn as nn
-from ml_collections.config_dict import ConfigDict
-from scipy import ndimage
-from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
-from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
 from src.news_seg.models.dh_segment import DhSegment
@@ -54,6 +44,11 @@ class Encoder(nn.Module):
         self.normalize = dhsegment.normalize
 
     def forward(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Encoder forward
+        :param inputs: input tensor
+        :return: dictionary with result and scip-connections
+        """
         result = self.normalize(inputs, self.means, self.stds)
         identity = result
         result = self.conv1(result)
@@ -117,7 +112,7 @@ class Decoder(nn.Module):
         :param encoder_results: contains saved values for scip connections of unet
         :return: a decoder result
         """
-
+        # pylint: disable=duplicate-code
         tensor_x = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
@@ -127,6 +122,7 @@ class Decoder(nn.Module):
         tensor_x = self.conv2(tensor_x)
 
         return tensor_x
+
 
 class DhSegmentCBAM(nn.Module):
     """Implements DhSegment combined with CBAM modules after encoder layers"""

@@ -1,13 +1,16 @@
 import argparse
-import multiprocessing as mp
 from time import time  # type: ignore
 import os
+from typing import List
+
+import torch
 from tqdm import tqdm
 
 from torch.utils.data import DataLoader  # type: ignore
 
 from src.news_seg.news_dataset import NewsDataset  # type: ignore
 from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR  # type: ignore
+
 
 def validate():
     """Load data to validate shape"""
@@ -36,7 +39,7 @@ def validate():
     file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
     assert len(
         file_names) > 0, (f"No Images in {image_path} with extension{extension} found. Make sure the "
-                               f"specified dataset and path are correct.")
+                          f"specified dataset and path are correct.")
     file_names.sort()
 
     # iterate over files
@@ -46,10 +49,12 @@ def validate():
                 f"{image_path}{file}{extension}", f"{target_path}{get_file_name(file)}", file
                 , dataset)
             if not (image.size[1] == target.shape[0] and image.size[0] == target.shape[1]):
-                print(f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, but target has shape w:{target.shape[1]}, "
+                print(
+                    f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, but target has shape w:{target.shape[1]}, "
                     f"h: {target.shape[0]}")
         except:
             print(f"{file}")
+
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
@@ -67,6 +72,7 @@ def get_args() -> argparse.Namespace:
                              "(europeaner newspaper project)")
 
     return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = get_args()
