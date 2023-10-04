@@ -9,8 +9,7 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.news_seg.models.cbam import CBAM
-from src.news_seg.models.dh_segment import DhSegment
+from src.news_seg.models.dh_segment import DhSegment, conv1x1
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +27,8 @@ class Encoder(nn.Module):
         self.maxpool = dhsegment.maxpool
 
         self.block1 = dhsegment.block1
-        self.cbam1 = CBAM(256, 2)
         self.block2 = dhsegment.block2
-        self.cbam2 = CBAM(512, 2)
-        self.block3 = dhsegment.block3
-        self.cbam3 = CBAM(512, 2)
-        self.block4 = dhsegment.block4
-        self.cbam4 = CBAM(512, 2)
+        self.conv_out = conv1x1(512, 256)
 
         # initialize normalization
         # pylint: disable=duplicate-code
@@ -56,21 +50,14 @@ class Encoder(nn.Module):
         result = self.maxpool(copy_0)
 
         result, copy_1 = self.block1(result)
-        copy_1 = self.cbam1(copy_1)
-        result, copy_2 = self.block2(result)
-        copy_2 = self.cbam2(copy_2)
-        result, copy_3 = self.block3(result)
-        copy_3 = self.cbam3(copy_3)
-        _, copy_4 = self.block4(result)
-        copy_4 = self.cbam4(copy_4)
+        _, copy_2 = self.block2(result)
+        copy_2 = self.conv_out(copy_2)
 
         return {
             "identity": identity,
             "copy_0": copy_0,
             "copy_1": copy_1,
-            "copy_2": copy_2,
-            "copy_3": copy_3,
-            "copy_4": copy_4,
+            "copy_2": copy_2
         }
 
     def freeze_encoder(self, requires_grad: bool = False) -> None:
@@ -89,13 +76,6 @@ class Encoder(nn.Module):
         freeze(self.bn1.parameters())
         freeze(self.block1.parameters())
         freeze(self.block2.parameters())
-        freeze(self.block3.parameters())
-        freeze(self.block4.parameters())
-
-        # unfreeze weights, which are not loaded
-        requires_grad = True
-        freeze(self.block3.conv.parameters())  # type: ignore
-        freeze(self.block4.conv.parameters())  # type: ignore
 
 
 class Decoder(nn.Module):
@@ -105,8 +85,6 @@ class Decoder(nn.Module):
 
     def __init__(self, dhsegment: DhSegment):
         super().__init__()
-        self.up_block1 = dhsegment.up_block1
-        self.up_block2 = dhsegment.up_block2
         self.up_block3 = dhsegment.up_block3
         self.up_block4 = dhsegment.up_block4
         self.up_block5 = dhsegment.up_block5
@@ -121,9 +99,7 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
         # pylint: disable=duplicate-code
-        tensor_x: torch.Tensor = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
-        tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
-        tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
+        tensor_x: torch.Tensor = self.up_block3(encoder_results["copy_2"], encoder_results["copy_1"])
         tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
         tensor_x = self.up_block5(tensor_x, encoder_results["identity"])
 
@@ -132,7 +108,7 @@ class Decoder(nn.Module):
         return tensor_x
 
 
-class DhSegmentCBAM(nn.Module):
+class DhSegmentSmall(nn.Module):
     """Implements DhSegment combined with CBAM modules after encoder layers"""
 
     def __init__(

@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
+from news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.trans_unet import VisionTransformer
@@ -85,6 +86,11 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
     elif model_str == "dh_segment_cbam":
         model = DhSegmentCBAM(
+            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
+        )
+        model = setup_dh_segment(device, load, model, freeze)
+    elif model_str == "dh_segment_small":
+        model = DhSegmentSmall(
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
         model = setup_dh_segment(device, load, model, freeze)
