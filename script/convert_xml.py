@@ -11,12 +11,12 @@ from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
+from script import draw_img, read_xml
+from script.draw_img import LABEL_NAMES
 
 # import draw_img, read_xml
 # from draw_img import LABEL_NAMES
 
-from script import draw_img, read_xml
-from script.draw_img import LABEL_NAMES
 
 INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
@@ -30,13 +30,17 @@ def main(parsed_args: argparse.Namespace) -> None:
         if parsed_args.dataset == "transcribus"
         else read_xml.read_hlna2013
     )
-    paths = [f[:-4] for f in os.listdir(parsed_args.annotations_path) if f.endswith(".xml")]
+    paths = [
+        f[:-4] for f in os.listdir(parsed_args.annotations_path) if f.endswith(".xml")
+    ]
 
     if not os.path.exists(parsed_args.output_path):
-        print(f'creating {parsed_args.output_path}.')
+        print(f"creating {parsed_args.output_path}.")
         os.makedirs(parsed_args.output_path)
 
-    target_paths = [f[:-4] for f in os.listdir(parsed_args.output_path) if f.endswith(".npy")]
+    target_paths = [
+        f[:-4] for f in os.listdir(parsed_args.output_path) if f.endswith(".npy")
+    ]
     for path in tqdm(paths):
         if path in target_paths:
             continue
@@ -50,7 +54,6 @@ def main(parsed_args: argparse.Namespace) -> None:
         #
         # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
         #     json.dump(annotation, file)
-
 
         # save ndarray
         np_save(f"{parsed_args.output_path}{path}", img)

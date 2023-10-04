@@ -20,8 +20,17 @@ LABEL_ASSIGNMENTS = {
     "separator_horizontal": 9,
 }
 
-LABEL_NAMES = ["UnknownRegion", "caption", "table", "article", "heading",
-               "header", "separator_vertical", "separator_short", "separator_horizontal"]
+LABEL_NAMES = [
+    "UnknownRegion",
+    "caption",
+    "table",
+    "article",
+    "heading",
+    "header",
+    "separator_vertical",
+    "separator_short",
+    "separator_horizontal",
+]
 
 
 def draw_img(annotation: dict) -> ndarray:
@@ -52,7 +61,7 @@ def draw_img(annotation: dict) -> ndarray:
 
 
 def draw_polygon(
-        img: ndarray, polygon: List[Tuple[int]], label: int = 1, shift: int = 0
+    img: ndarray, polygon: List[Tuple[int]], label: int = 1, shift: int = 0
 ) -> ndarray:
     """Takes corner coordinates and fills entire polygon with label values"""
     polygon_np = np.array(polygon, dtype=int).T

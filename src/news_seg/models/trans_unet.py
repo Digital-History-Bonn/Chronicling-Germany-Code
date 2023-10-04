@@ -244,6 +244,7 @@ class Mlp(nn.Module):
         return x
 
 
+# pylint: disable=duplicate-code
 class Encoder(nn.Module):
     """
     CNN Encoder Class, corresponding to the first resnet50 layers.

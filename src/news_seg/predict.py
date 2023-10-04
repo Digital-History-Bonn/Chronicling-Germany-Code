@@ -8,8 +8,8 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image
 from numpy import ndarray
+from PIL import Image
 from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
@@ -59,7 +59,7 @@ def draw_prediction(img: ndarray, path: str) -> None:
     # create a patch (proxy artist) for every color
     patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
     # put those patched as legend-handles into the legend
-    plt.legend(handles=patches, bbox_to_anchor = (1.3,-0.10), loc='lower right')
+    plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
     plt.autoscale(tight=True)
     plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
     # plt.show()
@@ -74,7 +74,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=DATA_PATH,
         help="path for folder with images to be segmented. Images need to be png or jpg. Otherwise they"
-             " will be skipped",
+        " will be skipped",
     )
     parser.add_argument(
         "--result-path",
@@ -96,7 +96,7 @@ def get_args() -> argparse.Namespace:
         dest="export",
         action="store_true",
         help="If True, annotation data ist added to xml files inside the page folder. The page folder "
-             "needs to be inside the image folder.",
+        "needs to be inside the image folder.",
     )
     parser.add_argument(
         "--cuda-device", "-c", type=str, default="cuda:0", help="Cuda device string"
@@ -112,10 +112,10 @@ def get_args() -> argparse.Namespace:
         "--final_size",
         "-s",
         type=int,
-        nargs='+',
+        nargs="+",
         default=FINAL_SIZE,
         help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-             "Has to be grater or equal to actual image",
+        "Has to be grater or equal to actual image",
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
@@ -147,25 +147,35 @@ def predict() -> None:
     model.to(device)
     model.eval()
     for file in tqdm(
-            file_names, desc="predicting images", total=len(file_names), unit="files"
+        file_names, desc="predicting images", total=len(file_names), unit="files"
     ):
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
         image = load_image(file)
-        assert args.final_size[1] >= image.shape[2] and args.final_size[0] >= image.shape[
-            3], (f"Final size has to be greater than actual image size. "
-                 f"Padding to {args.final_size} x {args.final_size} "
-                 f"but image has shape of {image.shape[3]} x {image.shape[2]}")
+        assert (
+            args.final_size[1] >= image.shape[2]
+            and args.final_size[0] >= image.shape[3]
+        ), (
+            f"Final size has to be greater than actual image size. "
+            f"Padding to {args.final_size} x {args.final_size} "
+            f"but image has shape of {image.shape[3]} x {image.shape[2]}"
+        )
 
         image = correct_shape(image)
 
         print(image.shape)
         transform = transforms.Pad(
-            ((args.final_size[0] - image.shape[3]) // 2, (args.final_size[1] - image.shape[2]) // 2))
+            (
+                (args.final_size[0] - image.shape[3]) // 2,
+                (args.final_size[1] - image.shape[2]) // 2,
+            )
+        )
         image = transform(image)
         print(image.shape)
 
-        pred = torch.nn.functional.softmax(torch.squeeze(model(image.to(device)).detach().cpu()), dim=0).numpy()
+        pred = torch.nn.functional.softmax(
+            torch.squeeze(model(image.to(device)).detach().cpu()), dim=0
+        ).numpy()
         pred = process_prediction(pred, args.threshold)
         draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
         export_polygons(file, pred)
@@ -185,21 +195,21 @@ def export_polygons(file: str, pred: ndarray) -> None:
             args.result_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
         )
         with open(
-                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-                "r",
-                encoding="utf-8",
+            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+            "r",
+            encoding="utf-8",
         ) as xml_file:
             xml_data = create_xml(xml_file.read(), segmentations)
         with open(
-                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-                "w",
-                encoding="utf-8",
+            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+            "w",
+            encoding="utf-8",
         ) as xml_file:
             xml_file.write(xml_data.prettify())
 
 
 def draw_polygons(
-        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
+    segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
 ) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.

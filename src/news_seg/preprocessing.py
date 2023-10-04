@@ -7,9 +7,9 @@ from typing import Tuple, Union
 import numpy as np
 import numpy.typing as npt
 import torch
+from numpy import ndarray
 from PIL import Image
 from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
-from numpy import ndarray
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
@@ -29,12 +29,12 @@ class Preprocessing:
     """
 
     def __init__(
-            self,
-            scale: float = SCALE,
-            crop_factor: float = CROP_FACTOR,
-            crop_size: int = CROP_SIZE,
-            crop: bool = True,
-            pad: Union[None, Tuple[int, int]] = None
+        self,
+        scale: float = SCALE,
+        crop_factor: float = CROP_FACTOR,
+        crop_size: int = CROP_SIZE,
+        crop: bool = True,
+        pad: Union[None, Tuple[int, int]] = None,
     ):
         """
         :param scale: (default: 4)
@@ -48,7 +48,7 @@ class Preprocessing:
         self.pad = pad
 
     def __call__(
-            self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
+        self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
     ) -> npt.NDArray[np.uint8]:
         """
         preprocess for image with annotations
@@ -60,23 +60,32 @@ class Preprocessing:
         image, target = self.scale_img(input_image, input_target)
 
         if image.shape[1] < self.crop_size or image.shape[2] < self.crop_size:
-            pad_y = self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
-            pad_x = self.crop_size if image.shape[2] < self.crop_size else image.shape[2]
+            pad_y = (
+                self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
+            )
+            pad_x = (
+                self.crop_size if image.shape[2] < self.crop_size else image.shape[2]
+            )
             self.pad = (pad_x, pad_y)
             print(
                 f"Image padding because of crop size {self.crop_size} and image shape {image.shape[2]} x "
-                f"{image.shape[1]}")
+                f"{image.shape[1]}"
+            )
 
         image, target = self.padding(image, target)
 
-        data: npt.NDArray[np.uint8] = np.concatenate((np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :]))
+        data: npt.NDArray[np.uint8] = np.concatenate(
+            (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
+        )
         if self.crop:
             data = self.crop_img(data)
             return data
 
         return np.expand_dims(data, axis=0)
 
-    def load(self, input_path: str, target_path: str, file: str, dataset: str) -> Tuple[Image.Image, ndarray]:
+    def load(
+        self, input_path: str, target_path: str, file: str, dataset: str
+    ) -> Tuple[Image.Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
         :param target_path: path to target
@@ -92,14 +101,16 @@ class Preprocessing:
             target = target.T
 
         assert target.dtype == np.uint8
-        assert (
-                image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
-        ), (f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, but target has shape w:{target.shape[1]}, "
-            f"h: {target.shape[0]}")
+        assert image.size[1] == target.shape[0] and image.size[0] == target.shape[1], (
+            f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, but target has shape w:{target.shape[1]}, "
+            f"h: {target.shape[0]}"
+        )
 
         return image, target
 
-    def padding(self, image: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def padding(
+        self, image: torch.Tensor, target: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Pads border to be divisble by 2**5 to avoid errors during pooling
         :param image:
@@ -107,23 +118,28 @@ class Preprocessing:
         :return:
         """
         if self.pad:
-            assert self.pad[1] >= image.shape[1] and self.pad[0] >= image.shape[
-                2], (f"Final size has to be greater than actual image size. "
-                     f"Padding to {self.pad[0]} x {self.pad[1]} "
-                     f"but image has shape of {image.shape[2]} x {image.shape[1]}")
+            assert self.pad[1] >= image.shape[1] and self.pad[0] >= image.shape[2], (
+                f"Final size has to be greater than actual image size. "
+                f"Padding to {self.pad[0]} x {self.pad[1]} "
+                f"but image has shape of {image.shape[2]} x {image.shape[1]}"
+            )
 
             image = correct_shape(torch.Tensor(image))
             target = correct_shape(torch.Tensor(target)[None, :])
 
             transform = transforms.Pad(
-                ((self.pad[0] - image.shape[2]) // 2, (self.pad[1] - image.shape[1]) // 2))
+                (
+                    (self.pad[0] - image.shape[2]) // 2,
+                    (self.pad[1] - image.shape[1]) // 2,
+                )
+            )
             image = transform(image)
             target = transform(target)
             self.pad = None
         return image, torch.squeeze(target)
 
     def scale_img(
-            self, image: Image.Image, target: npt.NDArray[np.uint8]
+        self, image: Image.Image, target: npt.NDArray[np.uint8]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         scales down all given images and target by scale
@@ -142,7 +158,9 @@ class Preprocessing:
         target_img = Image.fromarray(np.array(target.astype(np.uint8)))
         target_img = target_img.resize(shape, resample=NEAREST)
 
-        image, target = np.array(image, dtype=np.uint8), np.array(target_img, dtype=np.uint8)
+        image, target = np.array(image, dtype=np.uint8), np.array(
+            target_img, dtype=np.uint8
+        )
 
         return torch.tensor(np.transpose(image, (2, 0, 1))), torch.tensor(target)
 
@@ -157,8 +175,9 @@ class Preprocessing:
                 data,
                 (data.shape[0], self.crop_size, self.crop_size),
                 step=int(self.crop_size // self.crop_factor),
-            )
-            , dtype=np.uint8)
+            ),
+            dtype=np.uint8,
+        )
         windows = np.reshape(
             windows,
             (

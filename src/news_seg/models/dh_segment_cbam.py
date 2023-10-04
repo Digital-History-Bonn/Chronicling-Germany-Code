@@ -1,18 +1,16 @@
 """Module for trans_unet"""
 # coding=utf-8
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import logging
-from typing import Dict, Tuple, Iterator, Union
+from typing import Dict, Iterator, Tuple, Union
 
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
 
-from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.cbam import CBAM
+from src.news_seg.models.dh_segment import DhSegment
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +37,7 @@ class Encoder(nn.Module):
         self.cbam4 = CBAM(512, 2)
 
         # initialize normalization
+        # pylint: disable=duplicate-code
         self.register_buffer("means", torch.tensor([0] * in_channels))
         self.register_buffer("stds", torch.tensor([1] * in_channels))
         self.normalize = dhsegment.normalize
@@ -65,8 +64,14 @@ class Encoder(nn.Module):
         _, copy_4 = self.block4(result)
         copy_4 = self.cbam4(copy_4)
 
-        return {"identity": identity, "copy_0": copy_0, "copy_1": copy_1, "copy_2": copy_2,
-                "copy_3": copy_3, "copy_4": copy_4}
+        return {
+            "identity": identity,
+            "copy_0": copy_0,
+            "copy_1": copy_1,
+            "copy_2": copy_2,
+            "copy_3": copy_3,
+            "copy_4": copy_4,
+        }
 
     def freeze_encoder(self, requires_grad: bool = False) -> None:
         """
@@ -75,6 +80,7 @@ class Encoder(nn.Module):
         """
 
         # noinspection DuplicatedCode
+        # pylint: disable=duplicate-code
         def freeze(params: Iterator[Parameter]) -> None:
             for param in params:
                 param.requires_grad_(requires_grad)
@@ -127,8 +133,9 @@ class Decoder(nn.Module):
 class DhSegmentCBAM(nn.Module):
     """Implements DhSegment combined with CBAM modules after encoder layers"""
 
-    def __init__(self, in_channels: int = 3, out_channel: int = 3,
-                 load_resnet_weights=True):
+    def __init__(
+        self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights=True
+    ):
         """
         :param config:
         :param in_channels:
@@ -136,8 +143,12 @@ class DhSegmentCBAM(nn.Module):
         :param zero_head:
         """
         super().__init__()
-        dhsegment = DhSegment([3, 4, 6, 1], in_channels=in_channels, out_channel=out_channel,
-                              load_resnet_weights=load_resnet_weights)
+        dhsegment = DhSegment(
+            [3, 4, 6, 1],
+            in_channels=in_channels,
+            out_channel=out_channel,
+            load_resnet_weights=load_resnet_weights,
+        )
         self.encoder = Encoder(dhsegment, in_channels)
         self.decoder = Decoder(dhsegment)
 
@@ -164,6 +175,7 @@ class DhSegmentCBAM(nn.Module):
         :param path: path to savepoint
         :return: None
         """
+        # pylint: disable=duplicate-code
         if path is None:
             return
         torch.save(self.state_dict(), path + ".pt")

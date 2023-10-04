@@ -13,18 +13,17 @@ import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
 from torch import nn
+from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from torch.nn.parallel import DataParallel
 from tqdm import tqdm
 
 from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.news_dataset import NewsDataset
-from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR
-from src.news_seg.preprocessing import SCALE
+from src.news_seg.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
 from src.news_seg.utils import multi_class_csi
 
 EPOCHS = 1
@@ -65,14 +64,17 @@ def init_model(load: Union[str, None], device: str) -> nn.Module:
             [3, 4, 6, 4],
             in_channels=IN_CHANNELS,
             out_channel=OUT_CHANNELS,
-            load_resnet_weights=True
+            load_resnet_weights=True,
         )
         model = setup_dh_segment(device, load, model)
     elif args.model == "trans_unet":
-
         load_backbone = not load
-        model = VisionTransformer(load_backbone = load_backbone, in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS, load_resnet_weights=True)
+        model = VisionTransformer(
+            load_backbone=load_backbone,
+            in_channels=IN_CHANNELS,
+            out_channel=OUT_CHANNELS,
+            load_resnet_weights=True,
+        )
 
         model = model.float()
         model.encoder.freeze_encoder()
@@ -83,16 +85,16 @@ def init_model(load: Union[str, None], device: str) -> nn.Module:
         model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
     elif args.model == "dh_segment_cbam":
         model = DhSegmentCBAM(
-            in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
-            load_resnet_weights=True
+            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
         model = setup_dh_segment(device, load, model)
     assert model, "No valid model string supplied in model parameter"
     return model
 
 
-def setup_dh_segment(device: str, load: Union[str, None], model: nn.Module) -> nn.Module:
+def setup_dh_segment(
+    device: str, load: Union[str, None], model: nn.Module
+) -> nn.Module:
     """
     Setup function for dh_segment and dh_segment_cbam
     :param device:
@@ -128,12 +130,12 @@ class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
-            self,
-            save_model: str,
-            save_score: str,
-            load: Union[str, None] = None,
-            batch_size: int = BATCH_SIZE,
-            learningrate: float = LEARNING_RATE,
+        self,
+        save_model: str,
+        save_score: str,
+        load: Union[str, None] = None,
+        batch_size: int = BATCH_SIZE,
+        learningrate: float = LEARNING_RATE,
     ):
         """
         Trainer-class to train DhSegment Model
@@ -165,11 +167,19 @@ class Trainer:
         )  # weight_decay=1e-4
 
         # load data
-        preprocessing = Preprocessing(scale=args.scale, crop_factor=args.crop_factor, crop_size=args.crop_size,
-                                      pad=args.pad)
-        dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images/",
-                              target_path=f"{args.data_path}targets/",
-                              limit=args.limit, dataset=args.dataset)
+        preprocessing = Preprocessing(
+            scale=args.scale,
+            crop_factor=args.crop_factor,
+            crop_size=args.crop_size,
+            pad=args.pad,
+        )
+        dataset = NewsDataset(
+            preprocessing,
+            image_path=f"{args.data_path}images/",
+            target_path=f"{args.data_path}targets/",
+            limit=args.limit,
+            dataset=args.dataset,
+        )
 
         train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
         print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
@@ -201,8 +211,11 @@ class Trainer:
             drop_last=True,
         )
 
-        assert len(self.train_loader) > 0 and len(self.val_loader) > 0 and len(
-            self.test_loader) > 0, "At least one Dataset is to small to assemble at least one batch"
+        assert (
+            len(self.train_loader) > 0
+            and len(self.val_loader) > 0
+            and len(self.test_loader) > 0
+        ), "At least one Dataset is to small to assemble at least one batch"
 
         self.loss_fn = torch.nn.CrossEntropyLoss(
             weight=torch.tensor(LOSS_WEIGHTS).to(self.device)
@@ -222,9 +235,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                    total=(len(self.train_loader)),
-                    desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batche(s)",
+                total=(len(self.train_loader)),
+                desc=f"Epoch {self.epoch}/{epochs}",
+                unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
@@ -239,7 +252,9 @@ class Trainer:
                     self.step += 1
                     # pylint: disable-next=not-context-manager
 
-                    summary_writer.add_scalar("train loss", loss.item(), global_step=self.step)  # type:ignore
+                    summary_writer.add_scalar(
+                        "train loss", loss.item(), global_step=self.step
+                    )  # type:ignore
                     # summary_writer.add_scalar('batch mean', images.detach().cpu().mean(),
                     # global_step=self.step) #type:ignore
                     # summary_writer.add_scalar('batch std', images.detach().cpu().std(),
@@ -307,7 +322,7 @@ class Trainer:
         )
 
         for images, targets in tqdm(
-                loader, desc="validation_round", total=size, unit="batch(es)"
+            loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
             batch_loss = self.loss_fn(pred, targets.to(self.device))
@@ -345,8 +360,14 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def val_logging(self, loss: float, jaccard: float, accuracy: float, class_accs: ndarray,
-                    test_validation: bool) -> None:
+    def val_logging(
+        self,
+        loss: float,
+        jaccard: float,
+        accuracy: float,
+        class_accs: ndarray,
+        test_validation: bool,
+    ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
         :param test_validation: if true the test dataset will be used for validation
@@ -374,9 +395,13 @@ class Trainer:
         summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
         summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
-        summary_writer.add_scalar(f"{environment}/accuracy", accuracy, global_step=self.step)
+        summary_writer.add_scalar(
+            f"{environment}/accuracy", accuracy, global_step=self.step
+        )
 
-        summary_writer.add_scalar(f"{environment}/jaccard score", jaccard, global_step=self.step)
+        summary_writer.add_scalar(
+            f"{environment}/jaccard score", jaccard, global_step=self.step
+        )
 
         for i, acc in enumerate(class_accs):
             if not np.isnan(acc):
@@ -391,7 +416,12 @@ class Trainer:
         )  # type:ignore
         summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
+            target.float().cpu()[
+                None,
+                :,
+                :,
+            ]
+            / OUT_CHANNELS,
             global_step=self.step,
         )  # type:ignore
         summary_writer.add_image(
@@ -481,35 +511,63 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="limit quantity of loaded images for testing purposes",
     )
-    parser.add_argument('--crop-size', type=int, default=CROP_SIZE, help='Window size of image cropping')
-    parser.add_argument('--crop-factor', type=float, default=CROP_FACTOR, help='Scaling factor for cropping steps')
-    parser.add_argument('--dataset', type=str, default="transcribus",
-                        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
-                             "(europeaner newspaper project)")
     parser.add_argument(
-        "--load-score", "-ls", action='store_true',
-        help="Whether the score corresponding to the loaded model should be loaded as well."
+        "--crop-size", type=int, default=CROP_SIZE, help="Window size of image cropping"
     )
     parser.add_argument(
-        "--no-freeze", dest="freeze", action='store_false',
-        help="Deactivate encoder freezing"
+        "--crop-factor",
+        type=float,
+        default=CROP_FACTOR,
+        help="Scaling factor for cropping steps",
     )
     parser.add_argument(
-        "--gpu-count", "-g", type=int, default=1, help="Number of gpu that should be used for training"
+        "--dataset",
+        type=str,
+        default="transcribus",
+        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
+        "(europeaner newspaper project)",
     )
     parser.add_argument(
-        "--num-workers", "-w", type=int, default=DATALOADER_WORKER, help="Number of workers for the Dataloader"
+        "--load-score",
+        "-ls",
+        action="store_true",
+        help="Whether the score corresponding to the loaded model should be loaded as well.",
     )
-    parser.add_argument('--model', "-m", type=str, default="dh_segment",
-                        help="which model to load options are 'dh_segment, trans_unet")
+    parser.add_argument(
+        "--no-freeze",
+        dest="freeze",
+        action="store_false",
+        help="Deactivate encoder freezing",
+    )
+    parser.add_argument(
+        "--gpu-count",
+        "-g",
+        type=int,
+        default=1,
+        help="Number of gpu that should be used for training",
+    )
+    parser.add_argument(
+        "--num-workers",
+        "-w",
+        type=int,
+        default=DATALOADER_WORKER,
+        help="Number of workers for the Dataloader",
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default="dh_segment",
+        help="which model to load options are 'dh_segment, trans_unet",
+    )
     parser.add_argument(
         "--pad",
         "-p",
         type=int,
-        nargs='+',
+        nargs="+",
         default=None,
         help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-             "Has to be grater or equal to actual image after scaling",
+        "Has to be grater or equal to actual image after scaling",
     )
 
     return parser.parse_args()

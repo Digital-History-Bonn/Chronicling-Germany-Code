@@ -12,10 +12,11 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-# from utils import replace_substrings
+from src.news_seg.utils import replace_substrings
 
 # pylint: disable=locally-disabled, import-error
-from src.news_seg.utils import replace_substrings
+# from utils import replace_substrings
+
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -151,7 +152,7 @@ class Block(nn.Module):
         out_x = self.layers(in_x)
 
         if self.conv:
-            copy = self.conv(out_x) # type: ignore # pylint: disable=locally-disabled, not-callable
+            copy = self.conv(out_x)  # type: ignore # pylint: disable=locally-disabled, not-callable
         else:
             copy = out_x
 

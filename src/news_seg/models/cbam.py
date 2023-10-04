@@ -8,11 +8,19 @@ class SAM(nn.Module):
     """
     SAM module
     """
+
     def __init__(self, bias=False):
         super(SAM, self).__init__()
         self.bias = bias
-        self.conv = nn.Conv2d(in_channels=2, out_channels=1, kernel_size=7, stride=1, padding=3, dilation=1,
-                              bias=self.bias)
+        self.conv = nn.Conv2d(
+            in_channels=2,
+            out_channels=1,
+            kernel_size=7,
+            stride=1,
+            padding=3,
+            dilation=1,
+            bias=self.bias,
+        )
 
     def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
@@ -32,6 +40,7 @@ class CAM(nn.Module):
     """
     CAM module
     """
+
     def __init__(self, channels: int, r: int) -> None:
         """
         :param channels: number of channels
@@ -41,13 +50,31 @@ class CAM(nn.Module):
         self.channels = channels
         self.r = r
         self.linear_max = nn.Sequential(
-            nn.Linear(in_features=self.channels, out_features=self.channels // self.r, bias=True),
+            nn.Linear(
+                in_features=self.channels,
+                out_features=self.channels // self.r,
+                bias=True,
+            ),
             nn.ReLU(inplace=True),
-            nn.Linear(in_features=self.channels // self.r, out_features=self.channels, bias=True))
+            nn.Linear(
+                in_features=self.channels // self.r,
+                out_features=self.channels,
+                bias=True,
+            ),
+        )
         self.linear_avg = nn.Sequential(
-            nn.Linear(in_features=self.channels, out_features=self.channels // self.r, bias=True),
+            nn.Linear(
+                in_features=self.channels,
+                out_features=self.channels // self.r,
+                bias=True,
+            ),
             nn.ReLU(inplace=True),
-            nn.Linear(in_features=self.channels // self.r, out_features=self.channels, bias=True))
+            nn.Linear(
+                in_features=self.channels // self.r,
+                out_features=self.channels,
+                bias=True,
+            ),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -69,6 +96,7 @@ class CBAM(nn.Module):
     """
     CBAM module
     """
+
     def __init__(self, channels, r):
         """
         :param channels: number of channels
