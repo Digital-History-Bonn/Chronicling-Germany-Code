@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-from news_seg.models.dh_segment_small import DhSegmentSmall
+from src.news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.trans_unet import VisionTransformer
@@ -181,6 +181,7 @@ class Trainer:
             crop_factor=args.crop_factor,
             crop_size=args.crop_size,
             pad=args.pad,
+            reduce_classes=args.reduce_classes
         )
         dataset = NewsDataset(
             preprocessing,
@@ -578,6 +579,13 @@ def get_args() -> argparse.Namespace:
         help="Size to which the image will be padded to. Has to be a tuple (W, H). "
              "Has to be grater or equal to actual image after scaling",
     )
+    parser.add_argument(
+        "--reduce-classes",
+        "-r",
+        action="store_true",
+        help="If activated, classes are merged into 3 categories. Those being Text, normal "
+             "separators and big separators.",
+    )
 
     return parser.parse_args()
 
@@ -599,7 +607,7 @@ if __name__ == "__main__":
         batch_size=parameter_args.batch_size,
         learningrate=parameter_args.lr,
         summary=summary_writer,
-        args= parameter_args
+        args=parameter_args
     )
 
     trainer.train(epochs=parameter_args.epochs)

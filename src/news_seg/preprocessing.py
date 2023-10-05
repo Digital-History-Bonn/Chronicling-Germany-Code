@@ -22,6 +22,12 @@ THICKEN_UNDER = 0
 CROP_FACTOR = 1.5
 CROP_SIZE = 512
 
+REDUCE_CLASSES = {
+    0: [1],
+    4: [2, 3, 5, 6],
+    7: [8]
+}
+
 
 class Preprocessing:
     """
@@ -35,6 +41,7 @@ class Preprocessing:
         crop_size: int = CROP_SIZE,
         crop: bool = True,
         pad: Union[None, Tuple[int, int]] = None,
+        reduce_classes: bool = False
     ):
         """
         :param scale: (default: 4)
@@ -46,6 +53,7 @@ class Preprocessing:
         self.crop_size = crop_size
         self.crop = crop
         self.pad = pad
+        self.reduce_classes = reduce_classes
 
     def __call__(
         self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
@@ -59,6 +67,25 @@ class Preprocessing:
         # scale
         image, target = self.scale_img(input_image, input_target)
 
+        self.set_padding(image)
+
+        image, target = self.padding(image, target)
+        target = self.replace_labels(target)
+
+        data: npt.NDArray[np.uint8] = np.concatenate(
+            (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
+        )
+        if self.crop:
+            data = self.crop_img(data)
+            return data
+
+        return np.expand_dims(data, axis=0)
+
+    def set_padding(self, image: torch.Tensor) -> None:
+        """
+        Set Padding accordingly, if image size is smaller than crop size
+        :param image:
+        """
         if image.shape[1] < self.crop_size or image.shape[2] < self.crop_size:
             pad_y = (
                 self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
@@ -72,16 +99,16 @@ class Preprocessing:
                 f"{image.shape[1]}"
             )
 
-        image, target = self.padding(image, target)
-
-        data: npt.NDArray[np.uint8] = np.concatenate(
-            (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
-        )
-        if self.crop:
-            data = self.crop_img(data)
-            return data
-
-        return np.expand_dims(data, axis=0)
+    def replace_labels(self, target: torch.Tensor) -> torch.Tensor:
+        """
+        Replace labels to reduce classes
+        :param target:
+        """
+        if self.reduce_classes:
+            for replace_label, label_list in REDUCE_CLASSES.items():
+                for label in label_list:
+                    target[target == label] = replace_label
+        return target
 
     def load(
         self, input_path: str, target_path: str, file: str, dataset: str
