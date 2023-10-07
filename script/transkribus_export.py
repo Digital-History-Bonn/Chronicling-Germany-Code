@@ -2,6 +2,7 @@
 from typing import Dict, List
 
 import numpy as np
+import torch
 from numpy import ndarray
 from PIL import Image
 from shapely.geometry import Polygon
@@ -46,6 +47,7 @@ def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float]) -> Li
     """
     contours = measure.find_contours(sub_mask, 0.5, positive_orientation="low")
     segmentations: List[List[float]] = []
+    bbox_list = []
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
@@ -63,10 +65,10 @@ def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float]) -> Li
         else:
             append_polygons(poly, segmentations)
 
-    return segmentations
+    return segmentations, bbox_list
 
 
-def append_polygons(poly: Polygon, segmentations: List[List[float]]) -> None:
+def append_polygons(poly: Polygon, bbox_list: List[Tuple[int, ...]], segmentations: List[List[float]]) -> None:
     """
     Append polygon if it has at least 3 corners
     :param poly: polygon
@@ -75,6 +77,7 @@ def append_polygons(poly: Polygon, segmentations: List[List[float]]) -> None:
     segmentation = np.array(poly.exterior.coords).ravel().tolist()
     if len(segmentation) > 2:
         segmentations.append(segmentation)
+        bbox_list.append(poly.bounds)
 
 
 def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Dict[int, List[List[float]]]:
@@ -84,6 +87,51 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Dict[int, L
     """
     masks = create_sub_masks(Image.fromarray(pred.astype(np.uint8)))
     segmentations = {}
+    bbox_dict = {}
     for label, mask in masks.items():
-        segmentations[label] = create_polygons(np.array(mask), label, tolerance)
-    return segmentations
+        segmentations[label], bbox_dict[label] = create_polygons(np.array(mask), label, tolerance)
+    return segmentations, bbox_dict
+
+
+def get_reading_order(bbox_list: ndarray) -> List[int]:
+    """
+    Calculate reading order by first seperating regions by big seperators. Regions without big seperators are
+    forwarded to calculate_reading_order. Big seperators are being handelt seperately.
+    :param bbox_list: 2d n x 5 ndarray with id, label and bbox corners.
+    :return: list of indices in reading order
+    """
+    result = np.array([])
+    big_seperator_indices = np.where(bbox_list[bbox_list[:, 1] == 9])
+    if big_seperator_indices:
+        region_bool = bbox_list[:, 3] > bbox_list[big_seperator_indices[0], 3]
+
+        calculate_reading_order(np.delete(bbox_list[region_bool.invert()], big_seperator_indices[0]), result)
+        result.append(bbox_list[big_seperator_indices[0]])
+
+        get_reading_order(bbox_list[region_bool])
+    else:
+        calculate_reading_order(bbox_list, result)
+    return result[:, 0].tolist()
+
+
+def calculate_reading_order(bbox_list: ndarray, result: ndarray) -> None:
+    """
+    Receives regions without big sperators.
+    Bboxes are sorted by the sum of the upper left corner to identify the upper left most element.
+    Then, all elements, which begin below of the first element are considered one column and sorted verticly.
+    This is repeated until all regions are concatenated.
+    :param bbox_list:
+    :param result:
+    """
+    sorted_by_sum = bbox_list[:, np.argsort(bbox_list[:, 3: 5].sum(axis=0))[::-1]]
+    while True:
+        level_bool = np.where(sorted_by_sum[:, 2] <= sorted_by_sum[0, 4])
+        current_level = sorted_by_sum[level_bool]
+        current_level = current_level[:, np.argsort(bbox_list[:, 3])[::-1]]
+
+        result = np.concatenate((result, current_level), axis=0)
+
+        next_level = sorted_by_sum[level_bool.invert()]
+        current_level = next_level
+        if not next_level:
+            break
