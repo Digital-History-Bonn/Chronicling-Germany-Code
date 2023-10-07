@@ -86,7 +86,7 @@ class Preprocessing:
         Set Padding accordingly, if image size is smaller than crop size
         :param image:
         """
-        if image.shape[1] < self.crop_size or image.shape[2] < self.crop_size:
+        if (image.shape[1] < self.crop_size or image.shape[2] < self.crop_size) and self.crop:
             pad_y = (
                 self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
             )
