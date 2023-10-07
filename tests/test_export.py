@@ -2,7 +2,7 @@
 import numpy as np
 
 from script.convert_xml import polygon_to_string
-from script.transkribus_export import prediction_to_polygons
+from script.transkribus_export import prediction_to_polygons, get_reading_order
 from script.convert_xml import get_label_name
 from src.news_seg import predict
 
@@ -61,3 +61,16 @@ class TestClassExport:
         assert get_label_name(1) == "UnknownRegion"
         assert get_label_name(4) == "article"
         assert get_label_name(9) == "separator_horizontal"
+
+    def test_get_reading_order(self):
+        """Tests reading order calculation based on bboxes. Elements contain id, label and bbox top left and
+        bottom right corner"""
+        bbox_data = np.array([[1, 4, 1, 1, 10, 10], [2, 9, 1, 100, 100, 105], [3, 3, 1, 11, 10, 21],
+                              [4, 6, 15, 1, 25, 10], [5, 6, 15, 11, 25, 21], [6, 4, 1, 120, 10, 130],
+                              [7, 4, 11, 120, 25, 130]])
+
+        ground_truth = np.array([1, 3, 4, 5, 2, 6, 7])
+
+        result = []
+        get_reading_order(bbox_data, result)
+        assert all(result == ground_truth)
