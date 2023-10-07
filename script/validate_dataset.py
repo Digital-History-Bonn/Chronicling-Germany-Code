@@ -1,9 +1,7 @@
 """module for validating dataset. Can be used to testwise load the entire Dataset"""
 import argparse
 import os
-from typing import List
 
-import torch
 from tqdm import tqdm
 
 from src.news_seg.preprocessing import (
