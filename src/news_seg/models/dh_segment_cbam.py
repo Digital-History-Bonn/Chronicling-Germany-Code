@@ -12,6 +12,7 @@ from torch.nn.parameter import Parameter
 from src.news_seg.models.cbam import CBAM
 from src.news_seg.models.dh_segment import DhSegment
 
+# pylint: disable=duplicate-code
 logger = logging.getLogger(__name__)
 
 
@@ -144,6 +145,7 @@ class DhSegmentCBAM(nn.Module):
         :param out_channel:
         :param zero_head:
         """
+        # pylint: disable=duplicate-code
         super().__init__()
         dhsegment = DhSegment(
             [3, 4, 6, 1],

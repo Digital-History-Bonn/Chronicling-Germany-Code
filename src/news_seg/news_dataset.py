@@ -35,7 +35,7 @@ class NewsDataset(Dataset):
         limit: Union[int, None] = None,
         dataset: str = "transcribus",
         sort: bool = False,
-        full_image=False,
+        full_image: bool =False,
     ) -> None:
         """
         load images and targets from folder
