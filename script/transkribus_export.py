@@ -38,7 +38,7 @@ def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
     return sub_masks
 
 
-def create_polygons(sub_mask: ndarray) -> List[List[float]]:
+def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float]) -> List[List[float]]:
     """Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g., an elephant behind a tree)
@@ -46,7 +46,6 @@ def create_polygons(sub_mask: ndarray) -> List[List[float]]:
     """
     contours = measure.find_contours(sub_mask, 0.5, positive_orientation="low")
     segmentations: List[List[float]] = []
-    polygons = []
     for contour in contours:
         # Flip from (row, col) representation to (x, y)
         # and subtract the padding pixel
@@ -56,16 +55,29 @@ def create_polygons(sub_mask: ndarray) -> List[List[float]]:
 
         # Make a polygon and simplify it
         poly = Polygon(contour)
-        poly = poly.simplify(1.0, preserve_topology=False)
-        polygons.append(poly)
-        segmentation = np.array(poly.exterior.coords).ravel().tolist()
-        if len(segmentation) > 2:
-            segmentations.append(segmentation)
+        poly = poly.simplify(tolerance[label - 1], preserve_topology=False)
+        if poly.geom_type == 'MultiPolygon':
+            multi_polygons = list(poly.geoms)
+            for polygon in multi_polygons:
+                append_polygons(polygon, segmentations)
+        else:
+            append_polygons(poly, segmentations)
 
     return segmentations
 
 
-def prediction_to_polygons(pred: ndarray) -> Dict[int, List[List[float]]]:
+def append_polygons(poly: Polygon, segmentations: List[List[float]]) -> None:
+    """
+    Append polygon if it has at least 3 corners
+    :param poly: polygon
+    :param segmentations: list to append
+    """
+    segmentation = np.array(poly.exterior.coords).ravel().tolist()
+    if len(segmentation) > 2:
+        segmentations.append(segmentation)
+
+
+def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Dict[int, List[List[float]]]:
     """
     Converts prediction int ndarray to a dictionary of polygons
     :param pred:
@@ -73,5 +85,5 @@ def prediction_to_polygons(pred: ndarray) -> Dict[int, List[List[float]]]:
     masks = create_sub_masks(Image.fromarray(pred.astype(np.uint8)))
     segmentations = {}
     for label, mask in masks.items():
-        segmentations[label] = create_polygons(np.array(mask))
+        segmentations[label] = create_polygons(np.array(mask), label, tolerance)
     return segmentations

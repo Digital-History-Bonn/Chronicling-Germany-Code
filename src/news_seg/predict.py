@@ -28,6 +28,19 @@ RESULT_PATH = "../../data/output/"
 
 FINAL_SIZE = (3200, 3200)
 
+# Tolerance pixel for polygon simplification. All points in the simplified object will be within
+# the tolerance distance of the original geometry.
+TOLERANCE = [
+    10.0,  # "UnknownRegion"
+    10.0,  # "caption"
+    10.0,  # "table"
+    10.0,  # "article"
+    5.0,  # "heading"
+    10.0,  # "header"
+    2.0,  # "separator_vertical"
+    2.0,  # "separator_short"
+    5.0]  # "separator_horizontal"
+
 cmap = [
     (1.0, 0.0, 0.16),
     (1.0, 0.43843843843843844, 0.0),
@@ -161,7 +174,7 @@ def predict(args: argparse.Namespace) -> None:
             f"but image has shape of {image.shape[3]} x {image.shape[2]}"
         )
 
-        image = correct_shape(image)
+        image = correct_shape(torch.squeeze(image))[None, :]
 
         print(image.shape)
         transform = transforms.Pad(
@@ -188,7 +201,7 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
     :param pred: prediction 2d ndarray
     """
     if args.export:
-        segmentations = prediction_to_polygons(pred)
+        segmentations = prediction_to_polygons(pred, TOLERANCE)
         polygon_pred = draw_polygons(segmentations, pred.shape)
         draw_prediction(
             polygon_pred,

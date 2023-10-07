@@ -3,6 +3,7 @@ import numpy as np
 
 from script.convert_xml import polygon_to_string
 from script.transkribus_export import prediction_to_polygons
+from script.convert_xml import get_label_name
 from src.news_seg import predict
 
 
@@ -37,9 +38,26 @@ class TestClassExport:
 
     def test_prediction_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
+        tolerance = [
+            1.0,  # "UnknownRegion"
+            1.0,  # "caption"
+            1.0,  # "table"
+            1.0,  # "article"
+            1.0,  # "heading"
+            1.0,  # "header"
+            1.0,  # "separator_vertical"
+            1.0,  # "separator_short"
+            1.0]  # "separator_horizontal"
+
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
         ground_truth = {
             1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]],
             3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]],
         }
-        assert prediction_to_polygons(data) == ground_truth
+        assert prediction_to_polygons(data, tolerance) == ground_truth
+
+    def test_get_label_names(self):
+        """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
+        assert get_label_name(1) == "UnknownRegion"
+        assert get_label_name(4) == "article"
+        assert get_label_name(9) == "separator_horizontal"

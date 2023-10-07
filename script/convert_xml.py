@@ -136,7 +136,7 @@ def create_xml(
                 "TextRegion",
                 attrs={
                     "id": str(index),
-                    "custom": f"readingOrder {{index:{index};}} structure {{type:{LABEL_NAMES[label]};}}",
+                    "custom": f"readingOrder {{index:{index};}} structure {{type:{get_label_name(label)};}}",
                 },
             )
             region.append(
@@ -147,6 +147,15 @@ def create_xml(
     order.append(order_group)
     page.insert(1, order)
     return xml_data
+
+
+def get_label_name(label: int) -> str:
+    """
+    Get label name from LABEL_NAMES list
+    :param label: int label value
+    :return: label name
+    """
+    return LABEL_NAMES[label - 1]
 
 
 def polygon_to_string(input_list: List[float]) -> str:
