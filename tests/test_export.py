@@ -1,8 +1,7 @@
 """Class for testing prediction and export scripts"""
 import numpy as np
 
-# pylint: disable=import-error
-from bbox_test_data import bbox
+from tests.bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from script.convert_xml import get_label_name
