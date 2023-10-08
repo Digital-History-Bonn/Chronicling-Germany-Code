@@ -71,13 +71,14 @@ def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float]) -> Tu
 def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: List[List[float]]) -> None:
     """
     Append polygon if it has at least 3 corners
+    :param bbox_list: List containing bbox List with uppper left and lower right corner.
     :param poly: polygon
-    :param segmentations: list to append
+    :param segmentations: List containing polygons
     """
     segmentation = np.array(poly.exterior.coords).ravel().tolist()
     if len(segmentation) > 2:
         segmentations.append(segmentation)
-        bbox_list.append(poly.bounds)
+        bbox_list.append(list(poly.bounds))
 
 
 def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Tuple[
@@ -91,6 +92,8 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Tuple[
     segmentations = {}
     bbox_dict = {}
     for label, mask in masks.items():
+        # debug masks
+        # mask.save(f"data/output/{label}.png")
         segment, bbox = create_polygons(np.array(mask), label, tolerance)
         segmentations[label], bbox_dict[label] = segment, bbox
     return segmentations, bbox_dict
@@ -121,14 +124,16 @@ def calculate_reading_order(bbox_list: ndarray, result: List[int]) -> None:
     """
     Receives regions without big sperators.
     Bboxes are sorted by the sum of the upper left corner to identify the upper left most element.
-    Then, all elements, which begin below of the first element are considered one column and sorted verticly.
+    Then, all elements, which begin below of that pivot element are considered one column and sorted verticly.
     This is repeated until all regions are concatenated.
     :param bbox_list:
     :param result:
     """
-    sorted_by_sum = bbox_list[np.argsort(bbox_list[:, 3: 5].sum(axis=1))]
+    sorted_by_sum = bbox_list[np.argsort(bbox_list[:, 2: 4].sum(axis=1))]
     while True:
         level_bool = sorted_by_sum[:, 2] <= sorted_by_sum[0, 4]
+        # debug pivot elments
+        # print(f"Pivot Element {len(result) + 1} with bbox {sorted_by_sum[0]}")
         current_level = sorted_by_sum[level_bool]
         current_level = current_level[np.argsort(current_level[:, 3])]
 

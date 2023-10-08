@@ -1,6 +1,6 @@
 """Utility Module"""
 import warnings
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import sklearn
@@ -78,3 +78,27 @@ def correct_shape(image: torch.Tensor) -> torch.Tensor:
     if image.shape[1] % 2 != 0:
         image = image[:, :-1, :]
     return image
+
+def create_bbox_ndarray(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
+    """
+    Takes Dict with label keys and bbox List and converts it to bbox ndarray.
+    :param bbox_dict: Label keys and bbox Lists
+    :return: 2d ndarray with n x 7 values. Containing id, label, 2 bbox corners and x-axis center.
+    """
+    index = 0
+    result = []
+    for label, bbox_list in bbox_dict.items():
+        for bbox in bbox_list:
+            result.append([index, label] + bbox)
+            # result.append([id, label] + bbox + calculate_x_axis_center(bbox))
+            index += 1
+    return np.array(result, dtype=int)
+
+
+def calculate_x_axis_center(bbox: List[float]) -> float:
+    """
+    Calculate x-axis center from 2 1d points.
+    :param bbox: bbox list containing x,y,max_x,max_y
+    :return: center
+    """
+    return bbox[0] + abs(bbox[2] - bbox[0]) / 2

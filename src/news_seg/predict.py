@@ -2,7 +2,7 @@
 
 import argparse
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -17,9 +17,9 @@ from tqdm import tqdm
 
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
-from script.transkribus_export import prediction_to_polygons
+from script.transkribus_export import prediction_to_polygons, get_reading_order
 from src.news_seg import train
-from src.news_seg.utils import correct_shape
+from src.news_seg.utils import correct_shape, create_bbox_ndarray
 
 # import train
 
@@ -174,24 +174,47 @@ def predict(args: argparse.Namespace) -> None:
             f"but image has shape of {image.shape[3]} x {image.shape[2]}"
         )
 
-        image = correct_shape(torch.squeeze(image))[None, :]
+        image = pad_image(args, image)
 
-        print(image.shape)
-        transform = transforms.Pad(
-            (
-                (args.final_size[0] - image.shape[3]) // 2,
-                (args.final_size[1] - image.shape[2]) // 2,
-            )
+        execute_prediction(args, device, file, image, model)
+
+
+def execute_prediction(args: argparse.Namespace, device: str, file: str, image: torch.Tensor, model: Any) -> None:
+    """
+    Run model to create prediction and call export methods.
+    :param args:
+    :param device:
+    :param file:
+    :param image:
+    :param model:
+    """
+    pred = torch.nn.functional.softmax(
+        torch.squeeze(model(image.to(device)).detach().cpu()), dim=0
+    ).numpy()
+    pred = process_prediction(pred, args.threshold)
+    draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
+    export_polygons(file, pred, args)
+
+
+def pad_image(args: argparse.Namespace, image: torch.Tensor) -> torch.Tensor:
+    """
+    Pad image to given size.
+    :param args: arguments
+    :param image: image tensor
+    :return: padded image
+    """
+    image = correct_shape(torch.squeeze(image))[None, :]
+    print(image.shape)
+    transform = transforms.Pad(
+        (
+            (args.final_size[0] - image.shape[3]) // 2,
+            (args.final_size[1] - image.shape[2]) // 2,
         )
-        image = transform(image)
-        print(image.shape)
-
-        pred = torch.nn.functional.softmax(
-            torch.squeeze(model(image.to(device)).detach().cpu()), dim=0
-        ).numpy()
-        pred = process_prediction(pred, args.threshold)
-        draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
-        export_polygons(file, pred, args)
+    )
+    image = transform(image)
+    # debug shape
+    # print(image.shape)
+    return image
 
 
 def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
@@ -201,24 +224,45 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
     :param pred: prediction 2d ndarray
     """
     if args.export:
-        segmentations = prediction_to_polygons(pred, TOLERANCE)
-        polygon_pred = draw_polygons(segmentations, pred.shape)
+        polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred)
+
         draw_prediction(
             polygon_pred,
             args.result_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
         )
+
         with open(
             f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
             "r",
             encoding="utf-8",
         ) as xml_file:
-            xml_data = create_xml(xml_file.read(), segmentations)
+            xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict)
         with open(
             f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
             "w",
             encoding="utf-8",
         ) as xml_file:
             xml_file.write(xml_data.prettify())
+
+
+def get_polygon_prediction(pred: ndarray) -> Tuple[ndarray, Dict[int, int], Dict[int, List[List[float]]]]:
+    """
+    Calls polyong conversion twice. Original segmentation is first converted to polygons, then those polygons are
+    drawen into an ndarray image. This smothed prediction is again converted to polygons which are used to
+    determine reading order.
+    :param pred: Original prediction ndarray image
+    :return: smothed prediction ndarray image, reading order and segmentation dictionary
+    """
+    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE)
+    polygon_pred = draw_polygons(segmentations, pred.shape)
+    segmentations, bbox_list = prediction_to_polygons(polygon_pred, TOLERANCE)
+
+    bbox_ndarray = create_bbox_ndarray(bbox_list)
+    reading_order: List[int] = []
+    get_reading_order(bbox_ndarray, reading_order)
+    reading_order_dict = {k: v for v, k in enumerate(reading_order)}
+
+    return polygon_pred, reading_order_dict, segmentations
 
 
 def draw_polygons(

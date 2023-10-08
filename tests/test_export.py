@@ -1,10 +1,13 @@
 """Class for testing prediction and export scripts"""
 import numpy as np
 
+# pylint: disable=import-error
+from bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from script.convert_xml import get_label_name
 from src.news_seg import predict
+from src.news_seg import utils
 
 
 class TestClassExport:
@@ -50,10 +53,9 @@ class TestClassExport:
             1.0]  # "separator_horizontal"
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
-        ground_truth = {
-            1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]],
-            3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]],
-        }
+        ground_truth = (
+        {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
+        {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
         assert prediction_to_polygons(data, tolerance) == ground_truth
 
     def test_get_label_names(self):
@@ -74,3 +76,21 @@ class TestClassExport:
         result = []
         get_reading_order(bbox_data, result)
         assert all(result == ground_truth)
+
+        bbox_data = bbox
+        ground_truth = np.array(
+            [0, 11, 12, 1, 20, 2, 31, 3, 32, 22, 23, 25, 4, 5, 13, 6, 14, 24, 26, 28, 27, 21, 15, 29, 30, 7, 8, 9, 10,
+             16, 17, 18, 19])
+
+        result = []
+        get_reading_order(bbox_data, result)
+        assert all(result == ground_truth)
+
+    def test_center(self):
+        """
+        Test x-axis center calculation from bbox list.
+        """
+        data = [10.0, 10.0, 20.0, 20.0]
+        ground_thruth = 15.0
+
+        assert utils.calculate_x_axis_center(data) == ground_thruth

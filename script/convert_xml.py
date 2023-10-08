@@ -107,7 +107,7 @@ def get_args() -> argparse.Namespace:
 
 
 def create_xml(
-    xml_file: str, segmentations: Dict[int, List[List[float]]]
+        xml_file: str, segmentations: Dict[int, List[List[float]]], reading_order: Dict[int, int]
 ) -> BeautifulSoup:
     """
     Creates a soup object containing Page Tag and Regions
@@ -123,20 +123,37 @@ def create_xml(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
     )
 
+    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data)
+    order.append(order_group)
+    page.insert(1, order)
+    return xml_data
+
+
+def add_regions_to_xml(order_group: BeautifulSoup, page: BeautifulSoup, reading_order: Dict[int, int],
+                       segmentations: Dict[int, List[List[float]]], xml_data: BeautifulSoup) -> None:
+    """
+    Add ReadingOrder XML and Text Region List to Page
+    :param order_group: BeautifulSOup Object for ReadingOrder
+    :param page: Page BeautifulSOup Object
+    :param reading_order: dict
+    :param segmentations: dictionary assigning labels to polygon lists
+    :param xml_data: final BeautifulSOup object
+    """
     index = 0
     for label, segmentation in segmentations.items():
         for polygon in segmentation:
             order_group.append(
                 xml_data.new_tag(
                     "RegionRefIndexed",
-                    attrs={"index": str(index), "regionRef": str(index)},
+                    attrs={"index": str(reading_order[index]), "regionRef": str(index)},
                 )
             )
             region = xml_data.new_tag(
                 "TextRegion",
                 attrs={
                     "id": str(index),
-                    "custom": f"readingOrder {{index:{index};}} structure {{type:{get_label_name(label)};}}",
+                    "custom": f"readingOrder {{index:{reading_order[index]};}} structure "
+                              f"{{type:{get_label_name(label)};}}",
                 },
             )
             region.append(
@@ -144,9 +161,6 @@ def create_xml(
             )
             page.append(region)
             index += 1
-    order.append(order_group)
-    page.insert(1, order)
-    return xml_data
 
 
 def get_label_name(label: int) -> str:

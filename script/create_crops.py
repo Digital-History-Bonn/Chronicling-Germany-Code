@@ -9,8 +9,6 @@ from tqdm import tqdm
 
 from src.news_seg.preprocessing import Preprocessing
 
-# from preprocessing import Preprocessing
-
 
 def main(args):
     """Load image and target data and saves single crops as torch tensor. Tensor contains 4 dimension, 3 for RGB image
