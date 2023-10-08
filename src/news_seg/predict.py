@@ -204,7 +204,8 @@ def pad_image(args: argparse.Namespace, image: torch.Tensor) -> torch.Tensor:
     :return: padded image
     """
     image = correct_shape(torch.squeeze(image))[None, :]
-    print(image.shape)
+    # debug shape
+    # print(image.shape)
     transform = transforms.Pad(
         (
             (args.final_size[0] - image.shape[3]) // 2,
