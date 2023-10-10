@@ -36,7 +36,11 @@ class TestClassExport:
         data = [19.0, 20.0, 1.0, 4.0, 5.5, 10.5, 20.0, 30.0]
         ground_truth = "19,20 1,4 5,10 20,30"
 
-        assert polygon_to_string(data) == ground_truth
+        assert polygon_to_string(data, 1.0) == ground_truth
+
+        ground_truth = "38,40 2,8 11,21 40,60"
+
+        assert polygon_to_string(data, 0.5) == ground_truth
 
     def test_prediction_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
@@ -68,9 +72,9 @@ class TestClassExport:
         bottom right corner"""
         bbox_data = np.array([[1, 4, 1, 1, 10, 10], [2, 9, 1, 100, 100, 105], [3, 3, 1, 11, 10, 21],
                               [4, 6, 15, 1, 25, 10], [5, 6, 15, 11, 25, 21], [6, 4, 1, 120, 10, 130],
-                              [7, 4, 11, 120, 25, 130]])
+                              [7, 4, 11, 120, 25, 130], [8, 9, 1, 200, 100, 205], [9, 9, 1, 210, 100, 215]])
 
-        ground_truth = np.array([1, 3, 4, 5, 2, 6, 7])
+        ground_truth = np.array([1, 3, 4, 5, 2, 6, 7, 8, 9])
 
         result = []
         get_reading_order(bbox_data, result)

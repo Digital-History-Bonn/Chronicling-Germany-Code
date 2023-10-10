@@ -8,8 +8,9 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from numpy import ndarray
 from PIL import Image
+from PIL.Image import BICUBIC # pylint: disable=no-name-in-module
+from numpy import ndarray
 from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
@@ -140,16 +141,25 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
     )
+    parser.add_argument(
+        "--scale",
+        type=float,
+        dest="scale",
+        default=1,
+        help="Downscaling factor of the images. Polygon data will be upscaled accordingly",
+    )
     return parser.parse_args()
 
 
-def load_image(file: str, data_path: str) -> torch.Tensor:
+def load_image(file: str, args: argparse.Namespace) -> torch.Tensor:
     """
     Loads image and applies necessary transformation for prdiction.
     :param file: path to image
     :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
     """
-    image = Image.open(data_path + file).convert("RGB")
+    image = Image.open(args.data_path + file).convert("RGB")
+    shape = int(image.size[0] * args.scale), int(image.size[1] * args.scale)
+    image = image.resize(shape, resample=BICUBIC)
     transform = transforms.PILToTensor()
     data: torch.Tensor = transform(image).float() / 255
     data = torch.unsqueeze(data, dim=0)
@@ -171,7 +181,9 @@ def predict(args: argparse.Namespace) -> None:
     ):
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
-        image = load_image(file, args.data_path)
+        image = load_image(file, args)
+        args.final_size[1] = int(args.final_size[1] * args.scale)
+        args.final_size[0] = int(args.final_size[0] * args.scale)
         assert (
             args.final_size[1] >= image.shape[2]
             and args.final_size[0] >= image.shape[3]
@@ -244,7 +256,7 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
             "r",
             encoding="utf-8",
         ) as xml_file:
-            xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict)
+            xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict, args.scale)
         with open(
             f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
             "w",

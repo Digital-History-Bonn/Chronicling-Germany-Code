@@ -44,7 +44,7 @@ LOSS_WEIGHTS: List[float] = [
     10.0,
     10.0,
     10.0,
-    10.0,
+    20.0,
 ]  # 1 and 5 seems to work well
 
 

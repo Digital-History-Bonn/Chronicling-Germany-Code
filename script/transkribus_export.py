@@ -108,12 +108,14 @@ def get_reading_order(bbox_list: ndarray, result: List[int]) -> None:
     :return: list of indices in reading order
     """
     big_seperator_index = np.where(bbox_list[:, 1] == 9)[0]
-    if big_seperator_index:
+    if len(big_seperator_index) > 0:
         big_seperator_index = big_seperator_index[0]
-        region_bool = bbox_list[:, 3] > bbox_list[big_seperator_index, 3]
+        big_seperator_entry = bbox_list[big_seperator_index]
+        bbox_list = np.delete(bbox_list, big_seperator_index, axis=0)
 
-        calculate_reading_order(np.delete(bbox_list[np.invert(region_bool)], big_seperator_index, axis=0), result)
-        result.append(bbox_list[big_seperator_index][0])
+        region_bool = bbox_list[:, 3] > big_seperator_entry[3]
+        calculate_reading_order(bbox_list[np.invert(region_bool)], result)
+        result.append(big_seperator_entry[0])
 
         get_reading_order(bbox_list[region_bool], result)
     else:
@@ -129,6 +131,8 @@ def calculate_reading_order(bbox_list: ndarray, result: List[int]) -> None:
     :param bbox_list:
     :param result:
     """
+    if bbox_list.size == 0:
+        return
     sorted_by_sum = bbox_list[np.argsort(bbox_list[:, 2: 4].sum(axis=1))]
     while True:
         level_bool = sorted_by_sum[:, 2] <= sorted_by_sum[0, 4]
