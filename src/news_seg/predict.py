@@ -122,6 +122,13 @@ def get_args() -> argparse.Namespace:
         help="Confidence threshold for assigning a label to a pixel.",
     )
     parser.add_argument(
+        "--model-architecture",
+        "-a",
+        type=str,
+        default="dh_segment",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
+    )
+    parser.add_argument(
         "--final_size",
         "-s",
         type=int,
@@ -156,7 +163,7 @@ def predict(args: argparse.Namespace) -> None:
     device = args.cuda_device if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
     file_names = os.listdir(args.data_path)
-    model = train.init_model(args.model_path, device, "dh_segment")
+    model = train.init_model(args.model_path, device, args.model_architecture)
     model.to(device)
     model.eval()
     for file in tqdm(

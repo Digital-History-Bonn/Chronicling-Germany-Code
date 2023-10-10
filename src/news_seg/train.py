@@ -568,7 +568,7 @@ def get_args() -> argparse.Namespace:
         "-m",
         type=str,
         default="dh_segment",
-        help="which model to load options are 'dh_segment, trans_unet",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
     )
     parser.add_argument(
         "--pad",
