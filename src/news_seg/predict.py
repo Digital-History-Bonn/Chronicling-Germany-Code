@@ -189,7 +189,7 @@ def predict(args: argparse.Namespace) -> None:
             and args.final_size[0] >= image.shape[3]
         ), (
             f"Final size has to be greater than actual image size. "
-            f"Padding to {args.final_size} x {args.final_size} "
+            f"Padding to {args.final_size[0]} x {args.final_size[1]} "
             f"but image has shape of {image.shape[3]} x {image.shape[2]}"
         )
 
