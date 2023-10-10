@@ -182,18 +182,17 @@ def predict(args: argparse.Namespace) -> None:
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
         image = load_image(file, args)
-        args.final_size[1] = int(args.final_size[1] * args.scale)
-        args.final_size[0] = int(args.final_size[0] * args.scale)
+        final_size = (int(args.final_size[1] * args.scale), int(args.final_size[0] * args.scale))
         assert (
-            args.final_size[1] >= image.shape[2]
-            and args.final_size[0] >= image.shape[3]
+            final_size[1] >= image.shape[2]
+            and final_size[0] >= image.shape[3]
         ), (
             f"Final size has to be greater than actual image size. "
-            f"Padding to {args.final_size[0]} x {args.final_size[1]} "
+            f"Padding to {final_size[0]} x {final_size[1]} "
             f"but image has shape of {image.shape[3]} x {image.shape[2]}"
         )
 
-        image = pad_image(args, image)
+        image = pad_image(final_size, image)
 
         execute_prediction(args, device, file, image, model)
 
@@ -215,7 +214,7 @@ def execute_prediction(args: argparse.Namespace, device: str, file: str, image: 
     export_polygons(file, pred, args)
 
 
-def pad_image(args: argparse.Namespace, image: torch.Tensor) -> torch.Tensor:
+def pad_image(final_size: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     """
     Pad image to given size.
     :param args: arguments
@@ -227,8 +226,8 @@ def pad_image(args: argparse.Namespace, image: torch.Tensor) -> torch.Tensor:
     # print(image.shape)
     transform = transforms.Pad(
         (
-            (args.final_size[0] - image.shape[3]) // 2,
-            (args.final_size[1] - image.shape[2]) // 2,
+            (final_size[0] - image.shape[3]) // 2,
+            (final_size[1] - image.shape[2]) // 2,
         )
     )
     image = transform(image)
