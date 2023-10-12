@@ -9,25 +9,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from PIL import Image
-from PIL.Image import BICUBIC # pylint: disable=no-name-in-module
+from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
 from numpy import ndarray
 from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from src.news_seg import train
-from src.news_seg.utils import correct_shape, create_bbox_ndarray
+from src.news_seg.utils import create_bbox_ndarray
+from src.news_seg.preprocessing import Preprocessing
+from src.news_seg.train import OUT_CHANNELS
 
 # import train
 
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
 
-FINAL_SIZE = (3200, 3200)
+CROP_SIZE = 1024
 
 # Tolerance pixel for polygon simplification. All points in the simplified object will be within
 # the tolerance distance of the original geometry.
@@ -81,18 +84,18 @@ def draw_prediction(img: ndarray, path: str) -> None:
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="train")
+    parser = argparse.ArgumentParser(description="predict")
     parser.add_argument(
         "--data-path",
-        "-p",
+        "-d",
         type=str,
         default=DATA_PATH,
         help="path for folder with images to be segmented. Images need to be png or jpg. Otherwise they"
-        " will be skipped",
+             " will be skipped",
     )
     parser.add_argument(
-        "--result-path",
-        "-r",
+        "--output-path",
+        "-o",
         type=str,
         default=RESULT_PATH,
         help="path for folder where prediction images are to be saved",
@@ -110,10 +113,10 @@ def get_args() -> argparse.Namespace:
         dest="export",
         action="store_true",
         help="If True, annotation data ist added to xml files inside the page folder. The page folder "
-        "needs to be inside the image folder.",
+             "needs to be inside the image folder.",
     )
     parser.add_argument(
-        "--cuda-device", "-c", type=str, default="cuda:0", help="Cuda device string"
+        "--cuda", type=str, default="cuda:0", help="Cuda device string"
     )
     parser.add_argument(
         "--threshold",
@@ -130,19 +133,27 @@ def get_args() -> argparse.Namespace:
         help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
     )
     parser.add_argument(
-        "--final_size",
-        "-s",
+        "--crop-size",
+        "-c",
         type=int,
-        nargs="+",
-        default=FINAL_SIZE,
-        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-        "Has to be grater or equal to actual image",
+        default=CROP_SIZE,
+        help="Size for crops that will be predicted seperatly to prevent a cuda memory overflow",
+    )
+    parser.add_argument(
+        "--batch-size",
+        "-b",
+        dest="batch_size",
+        metavar="B",
+        type=int,
+        default=1,
+        help="Batch size",
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
     )
     parser.add_argument(
         "--scale",
+        "-s",
         type=float,
         dest="scale",
         default=1,
@@ -162,7 +173,6 @@ def load_image(file: str, args: argparse.Namespace) -> torch.Tensor:
     image = image.resize(shape, resample=BICUBIC)
     transform = transforms.PILToTensor()
     data: torch.Tensor = transform(image).float() / 255
-    data = torch.unsqueeze(data, dim=0)
     return data
 
 
@@ -170,31 +180,35 @@ def predict(args: argparse.Namespace) -> None:
     """
     Loads all images from the data folder and predicts segmentation.
     """
-    device = args.cuda_device if torch.cuda.is_available() else "cpu"
+    device = args.cuda if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
     file_names = os.listdir(args.data_path)
     model = train.init_model(args.model_path, device, args.model_architecture)
     model.to(device)
     model.eval()
     for file in tqdm(
-        file_names, desc="predicting images", total=len(file_names), unit="files"
+            file_names, desc="predicting images", total=len(file_names), unit="files"
     ):
         if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
             continue
         image = load_image(file, args)
-        final_size = (int(args.final_size[1] * args.scale), int(args.final_size[0] * args.scale))
-        assert (
-            final_size[1] >= image.shape[2]
-            and final_size[0] >= image.shape[3]
-        ), (
-            f"Final size has to be greater than actual image size. "
-            f"Padding to {final_size[0]} x {final_size[1]} "
-            f"but image has shape of {image.shape[3]} x {image.shape[2]}"
-        )
 
-        image = pad_image(final_size, image)
+        pad = calculate_padding(args.crop_size, image)
+        image = pad_image(pad, image)
 
         execute_prediction(args, device, file, image, model)
+
+
+def calculate_padding(crop_size: int, image: torch.Tensor) -> Tuple[int, int]:
+    """
+    Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
+    padded image is divisible by crop size.
+    :param image: tensor image
+    :return: padding tuple for right and bottom
+    """
+    pad = ((crop_size - (image.shape[1] % crop_size)) % crop_size,
+           (crop_size - (image.shape[2] % crop_size)) % crop_size)
+    return pad
 
 
 def execute_prediction(args: argparse.Namespace, device: str, file: str, image: torch.Tensor, model: Any) -> None:
@@ -206,28 +220,41 @@ def execute_prediction(args: argparse.Namespace, device: str, file: str, image: 
     :param image:
     :param model:
     """
-    pred = torch.nn.functional.softmax(
-        torch.squeeze(model(image.to(device)).detach().cpu()), dim=0
-    ).numpy()
-    pred = process_prediction(pred, args.threshold)
+    shape = (image.shape[1] // args.crop_size, image.shape[2] // args.crop_size)
+    crops = torch.tensor(Preprocessing.crop_img(args.crop_size, 1, np.array(image)))
+    predictions = []
+    dataloader = DataLoader(crops, batch_size=args.batch_size, shuffle=False)
+    for crop in dataloader:
+        pred = torch.nn.functional.softmax(
+            torch.squeeze(model(crop.to(device)).detach().cpu()), dim=0
+        )
+        predictions.append(pred)
+
+    crops = torch.stack(predictions, dim=0)
+    crops = crops.permute(0, 2, 3, 1)
+    pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
+    pred = pred.permute(2, 0, 1)
+
+    pred = process_prediction(np.array(pred), args.threshold)
     draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
     export_polygons(file, pred, args)
 
 
-def pad_image(final_size: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
+def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     """
     Pad image to given size.
-    :param args: arguments
+    :param pad: values to be added on the right and bottom.
     :param image: image tensor
     :return: padded image
     """
-    image = correct_shape(torch.squeeze(image))[None, :]
     # debug shape
     # print(image.shape)
     transform = transforms.Pad(
         (
-            (final_size[0] - image.shape[3]) // 2,
-            (final_size[1] - image.shape[2]) // 2,
+            0,
+            (pad[0]),
+            0,
+            (pad[1]),
         )
     )
     image = transform(image)
@@ -251,15 +278,15 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
         )
 
         with open(
-            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-            "r",
-            encoding="utf-8",
+                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                "r",
+                encoding="utf-8",
         ) as xml_file:
             xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict, args.scale)
         with open(
-            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-            "w",
-            encoding="utf-8",
+                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                "w",
+                encoding="utf-8",
         ) as xml_file:
             xml_file.write(xml_data.prettify())
 
@@ -285,7 +312,7 @@ def get_polygon_prediction(pred: ndarray) -> Tuple[ndarray, Dict[int, int], Dict
 
 
 def draw_polygons(
-    segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
+        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
 ) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.
