@@ -277,8 +277,8 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
         (
             0,
             0,
-            (pad[0]),
             (pad[1]),
+            (pad[0]),
         )
     )
     image = transform(image)
