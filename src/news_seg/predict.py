@@ -15,15 +15,15 @@ from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 from tqdm import tqdm
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from src.news_seg import train
 from src.news_seg.utils import create_bbox_ndarray
-from src.news_seg.preprocessing import Preprocessing
-from src.news_seg.train import OUT_CHANNELS
+# from src.news_seg.preprocessing import Preprocessing
+# from src.news_seg.train import OUT_CHANNELS
 
 # import train
 
@@ -31,6 +31,7 @@ DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
 
 CROP_SIZE = 1024
+FINAL_SIZE = (1024, 1024)
 
 # Tolerance pixel for polygon simplification. All points in the simplified object will be within
 # the tolerance distance of the original geometry.
@@ -97,8 +98,8 @@ def get_args() -> argparse.Namespace:
         "--output-path",
         "-o",
         type=str,
-        default=RESULT_PATH,
-        help="path for folder where prediction images are to be saved",
+        default=None,
+        help="path for folder where prediction images are to be saved. If none is given, no images will drawn",
     )
     parser.add_argument(
         "--model-path",
@@ -159,6 +160,16 @@ def get_args() -> argparse.Namespace:
         default=1,
         help="Downscaling factor of the images. Polygon data will be upscaled accordingly",
     )
+    parser.add_argument(
+        "--padding",
+        "-p",
+        dest="pad",
+        type=int,
+        nargs="+",
+        default=FINAL_SIZE,
+        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
+             "Has to be grater or equal to actual image",
+    )
     return parser.parse_args()
 
 
@@ -193,50 +204,63 @@ def predict(args: argparse.Namespace) -> None:
             continue
         image = load_image(file, args)
 
-        pad = calculate_padding(args.crop_size, image)
+        pad = calculate_padding(args.pad, image.shape, args.scale)
         image = pad_image(pad, image)
 
         execute_prediction(args, device, file, image, model)
 
 
-def calculate_padding(crop_size: int, image: torch.Tensor) -> Tuple[int, int]:
+def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, int], scale: float) -> Tuple[int, int]:
     """
     Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
     padded image is divisible by crop size.
     :param image: tensor image
     :return: padding tuple for right and bottom
     """
-    pad = ((crop_size - (image.shape[1] % crop_size)) % crop_size,
-           (crop_size - (image.shape[2] % crop_size)) % crop_size)
+    # pad = ((crop_size - (image.shape[1] % crop_size)) % crop_size,
+    #        (crop_size - (image.shape[2] % crop_size)) % crop_size)
+    pad = (int(pad[0] * scale), int(pad[1] * scale))
+
+    assert (
+            pad[1] >= shape[1]
+            and pad[0] >= shape[2]
+    ), (
+        f"Final size has to be greater than actual image size. "
+        f"Padding to {pad[0]} x {pad[1]} "
+        f"but image has shape of {shape[2]} x {shape[1]}"
+    )
+
+    pad = (pad[1] - shape[1], pad[0] - shape[2])
     return pad
 
 
 def execute_prediction(args: argparse.Namespace, device: str, file: str, image: torch.Tensor, model: Any) -> None:
     """
-    Run model to create prediction and call export methods.
+    Run model to create prediction and call export methods. Todo: add switch for prediction with and cropping
     :param args:
     :param device:
     :param file:
     :param image:
     :param model:
     """
-    shape = (image.shape[1] // args.crop_size, image.shape[2] // args.crop_size)
-    crops = torch.tensor(Preprocessing.crop_img(args.crop_size, 1, np.array(image)))
-    predictions = []
-    dataloader = DataLoader(crops, batch_size=args.batch_size, shuffle=False)
-    for crop in dataloader:
-        pred = torch.nn.functional.softmax(
-            torch.squeeze(model(crop.to(device)).detach().cpu()), dim=0
-        )
-        predictions.append(pred)
+    # shape = (image.shape[1] // args.crop_size, image.shape[2] // args.crop_size)
+    # crops = torch.tensor(Preprocessing.crop_img(args.crop_size, 1, np.array(image)))
+    # predictions = []
+    # dataloader = DataLoader(crops, batch_size=args.batch_size, shuffle=False)
+    # for crop in dataloader:
+    pred = torch.nn.functional.softmax(
+        torch.squeeze(model(image[None, :].to(device)).detach().cpu()), dim=0
+    )
+    # predictions.append(pred)
 
-    crops = torch.stack(predictions, dim=0)
-    crops = crops.permute(0, 2, 3, 1)
-    pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
-    pred = pred.permute(2, 0, 1)
+    # crops = torch.stack(predictions, dim=0)
+    # crops = crops.permute(0, 2, 3, 1)
+    # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
+    # pred = pred.permute(2, 0, 1)
 
     pred = process_prediction(np.array(pred), args.threshold)
-    draw_prediction(pred, args.result_path + os.path.splitext(file)[0] + ".png")
+    if args.output_path:
+        draw_prediction(pred, args.output_path + os.path.splitext(file)[0] + ".png")
     export_polygons(file, pred, args)
 
 
@@ -252,8 +276,8 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     transform = transforms.Pad(
         (
             0,
-            (pad[0]),
             0,
+            (pad[0]),
             (pad[1]),
         )
     )
@@ -272,10 +296,11 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
     if args.export:
         polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred)
 
-        draw_prediction(
-            polygon_pred,
-            args.result_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
-        )
+        if args.output_path:
+            draw_prediction(
+                polygon_pred,
+                args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
+            )
 
         with open(
                 f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
