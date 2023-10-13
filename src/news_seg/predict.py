@@ -210,7 +210,7 @@ def predict(args: argparse.Namespace) -> None:
         execute_prediction(args, device, file, image, model)
 
 
-def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, int], scale: float) -> Tuple[int, int]:
+def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
     """
     Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
     padded image is divisible by crop size.
@@ -250,7 +250,7 @@ def execute_prediction(args: argparse.Namespace, device: str, file: str, image: 
     # for crop in dataloader:
     pred = torch.nn.functional.softmax(
         torch.squeeze(model(image[None, :].to(device)).detach().cpu()), dim=0
-    )
+    ).numpy()
     # predictions.append(pred)
 
     # crops = torch.stack(predictions, dim=0)

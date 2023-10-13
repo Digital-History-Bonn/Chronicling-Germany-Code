@@ -467,6 +467,7 @@ def get_args() -> argparse.Namespace:
         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         help="name of run in tensorboard",
     )
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--batch-size",
         "-b",
@@ -485,6 +486,7 @@ def get_args() -> argparse.Namespace:
         help="Learning rate",
         dest="lr",
     )
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--scale",
         "-s",
