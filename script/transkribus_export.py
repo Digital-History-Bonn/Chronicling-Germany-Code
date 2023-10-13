@@ -103,7 +103,7 @@ def get_reading_order(bbox_list: ndarray, result: List[int]) -> None:
     """
     Calculate reading order by first seperating regions by big seperators. Regions without big seperators are
     forwarded to calculate_reading_order. Big seperators are being handelt seperately.
-    :param bbox_list: 2d n x 5 ndarray with id, label and bbox corners.
+    :param bbox_list: 2d n x 6 ndarray with id, label and bbox corners.
     :param result: Result List, is being filled over recursive calls.
     :return: list of indices in reading order
     """
@@ -113,7 +113,7 @@ def get_reading_order(bbox_list: ndarray, result: List[int]) -> None:
         big_seperator_entry = bbox_list[big_seperator_index]
         bbox_list = np.delete(bbox_list, big_seperator_index, axis=0)
 
-        region_bool = bbox_list[:, 3] > big_seperator_entry[3]
+        region_bool = bbox_list[:, 5] > big_seperator_entry[3]
         calculate_reading_order(bbox_list[np.invert(region_bool)], result)
         result.append(big_seperator_entry[0])
 
