@@ -78,7 +78,8 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         )
 
         model = model.float()
-        model.encoder.freeze_encoder()
+        if freeze:
+            model.encoder.freeze_encoder()
         # load model if argument is None, it does nothing
         model.load(load, device)
 
