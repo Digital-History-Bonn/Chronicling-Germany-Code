@@ -3,7 +3,7 @@ import numpy as np
 
 from tests.bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
-from script.transkribus_export import prediction_to_polygons, get_reading_order, bbox_sufficient
+from script.transkribus_export import prediction_to_polygons, get_reading_order, bbox_sufficient, get_splitting_regions
 from script.convert_xml import get_label_name
 from src.news_seg import predict
 from src.news_seg import utils
@@ -57,10 +57,10 @@ class TestClassExport:
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
         ground_truth = (
-        {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
-        {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
+            {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
+            {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
         assert prediction_to_polygons(data, tolerance, 1) == ground_truth
-        ground_truth = ({1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []},{1: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
+        ground_truth = ({1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []}, {1: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
         assert prediction_to_polygons(data, tolerance, 5) == ground_truth
 
     def test_get_label_names(self):
@@ -79,7 +79,7 @@ class TestClassExport:
         ground_truth = np.array([1, 3, 4, 5, 2, 6, 7, 8, 9])
 
         result = []
-        get_reading_order(bbox_data, result)
+        get_reading_order(bbox_data, result, 0)
         assert all(result == ground_truth)
 
         bbox_data = bbox
@@ -88,7 +88,21 @@ class TestClassExport:
              16, 17, 18, 19])
 
         result = []
-        get_reading_order(bbox_data, result)
+        get_reading_order(bbox_data, result, 0)
+        assert all(result == ground_truth)
+
+    def test_get_splitting_regions(self):
+        """Test spliting regions deection with threshold"""
+        bbox_data = np.array([[1, 4, 1, 1, 10, 10], [2, 9, 1, 100, 100, 105], [3, 3, 1, 11, 10, 21],
+                              [4, 6, 15, 1, 25, 10], [5, 6, 15, 11, 25, 21], [6, 4, 1, 120, 10, 130],
+                              [7, 4, 11, 120, 25, 130], [8, 9, 1, 200, 100, 205], [9, 9, 1, 210, 101, 215]])
+        ground_truth = np.array([1, 7, 8])  # actual indices are 2,8,9 but list begins with 0
+
+        result = get_splitting_regions(bbox_data, 0)
+        assert all(result == ground_truth)
+
+        ground_truth = np.array([8])
+        result = get_splitting_regions(bbox_data, 99)
         assert all(result == ground_truth)
 
     def test_center(self):
@@ -105,3 +119,4 @@ class TestClassExport:
         data = [10.0, 10.0, 20.0, 20.0]
         assert bbox_sufficient(data, 19)
         assert not bbox_sufficient(data, 20)
+        assert data == [10.0, 10.0, 20.0, 20.0]

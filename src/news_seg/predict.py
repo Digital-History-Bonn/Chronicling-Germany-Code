@@ -172,7 +172,7 @@ def get_args() -> argparse.Namespace:
              "Has to be grater or equal to actual image",
     )
     parser.add_argument(
-        "--bbox_threshold",
+        "--bbox-threshold",
         "-bt",
         dest="bbox_size",
         type=int,
@@ -180,12 +180,22 @@ def get_args() -> argparse.Namespace:
         help="Threshold for bboxes. Polygons, whose bboxes do not meet the requirement will be ignored. "
              "This will be adjusted depending on the scaling of the image.",
     )
+    parser.add_argument(
+        "--separator-threshold",
+        "-st",
+        dest="separator_size",
+        type=int,
+        default=1000,
+        help="Threshold for big separators. Only big separators that meet the requirement are valid to "
+             "split reading order. This will be adjusted depending on the scaling of the image.",
+    )
     return parser.parse_args()
 
 
 def load_image(file: str, args: argparse.Namespace) -> torch.Tensor:
     """
     Loads image and applies necessary transformation for prdiction.
+    :param args: arguments
     :param file: path to image
     :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
     """
@@ -305,7 +315,8 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
     :param pred: prediction 2d ndarray
     """
     if args.export:
-        polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred, int(args.bbox_size * args.scale))
+        polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred, int(args.bbox_size * args.scale),
+                                                                                 args.separator_size)
 
         if args.output_path:
             draw_prediction(
@@ -327,7 +338,7 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
             xml_file.write(xml_data.prettify())
 
 
-def get_polygon_prediction(pred: ndarray, bbox_size: int) -> Tuple[
+def get_polygon_prediction(pred: ndarray, bbox_size: int, big_separator_size: int) -> Tuple[
     ndarray, Dict[int, int], Dict[int, List[List[float]]]]:
     """
     Calls polyong conversion twice. Original segmentation is first converted to polygons, then those polygons are
@@ -342,7 +353,7 @@ def get_polygon_prediction(pred: ndarray, bbox_size: int) -> Tuple[
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order)
+    get_reading_order(bbox_ndarray, reading_order, big_separator_size)
     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
     return polygon_pred, reading_order_dict, segmentations

@@ -84,14 +84,17 @@ def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: 
             bbox_list.append(list(bbox))
 
 
-def bbox_sufficient(bbox: List[float], size: int) -> bool:
+def bbox_sufficient(bbox: List[float], size: int, x_axis = False) -> bool:
     """
     Calcaulates wether the edges of the bounding box are larger than parameter size. x and y edge are being summed
     up for this calculation. Eg if size = 100 x and y edges have to sum up to at least 100 Pixel.
     :param bbox: bbox list, minx, miny, maxx, maxy
     :param size: size to which the edges must at least sum to
+    :x_axis: if true, only check for x axis value.
     :return: bool value wether bbox is large enough
     """
+    if x_axis:
+        return (bbox[2] - bbox[0]) > size
     return (bbox[2] - bbox[0]) + (bbox[3] - bbox[1]) > size
 
 
@@ -113,7 +116,22 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
     return segmentations, bbox_dict
 
 
-def get_reading_order(bbox_list: ndarray, result: List[int]) -> None:
+def get_splitting_regions(bbox_list: ndarray, big_separator_size:int) -> List[int]:
+    """
+    Extract big separators if they meet the threshold
+    :param bbox_list: 2d n x 6 ndarray with id, label and bbox corners.
+    :param big_separator_size: big separator threshold. If this requirement isnt met, the separator is too short
+    :return: list of big separators
+    """
+    index_list = np.where(bbox_list[:, 1] == 9)[0]
+    result_list = []
+    for index in index_list:
+        if bbox_sufficient(bbox_list[index][2:], big_separator_size, True):
+            result_list.append(index)
+    return result_list
+
+
+def get_reading_order(bbox_list: ndarray, result: List[int], big_separator_size: int) -> None:
     """
     Calculate reading order by first seperating regions by big seperators. Regions without big seperators are
     forwarded to calculate_reading_order. Big seperators are being handelt seperately.
@@ -121,17 +139,18 @@ def get_reading_order(bbox_list: ndarray, result: List[int]) -> None:
     :param result: Result List, is being filled over recursive calls.
     :return: list of indices in reading order
     """
-    big_seperator_index = np.where(bbox_list[:, 1] == 9)[0]
-    if len(big_seperator_index) > 0:
-        big_seperator_index = big_seperator_index[0]
-        big_seperator_entry = bbox_list[big_seperator_index]
-        bbox_list = np.delete(bbox_list, big_seperator_index, axis=0)
+
+    splitting_index = get_splitting_regions(bbox_list, big_separator_size)
+    if len(splitting_index) > 0:
+        splitting_index = splitting_index[0]
+        big_seperator_entry = bbox_list[splitting_index]
+        bbox_list = np.delete(bbox_list, splitting_index, axis=0)
 
         region_bool = bbox_list[:, 5] > big_seperator_entry[3]
         calculate_reading_order(bbox_list[np.invert(region_bool)], result)
         result.append(big_seperator_entry[0])
 
-        get_reading_order(bbox_list[region_bool], result)
+        get_reading_order(bbox_list[region_bool], result, big_separator_size)
     else:
         calculate_reading_order(bbox_list, result)
 
