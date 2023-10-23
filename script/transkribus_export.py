@@ -38,7 +38,7 @@ def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
     return sub_masks
 
 
-def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float]) -> Tuple[
+def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float], bbox_size: int) -> Tuple[
     List[List[float]], List[List[float]]]:
     """Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
@@ -61,14 +61,15 @@ def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float]) -> Tu
         if poly.geom_type == 'MultiPolygon':
             multi_polygons = list(poly.geoms)
             for polygon in multi_polygons:
-                append_polygons(polygon, bbox_list, segmentations)
+                append_polygons(polygon, bbox_list, segmentations, bbox_size)
         else:
-            append_polygons(poly, bbox_list, segmentations)
+            append_polygons(poly, bbox_list, segmentations, bbox_size)
 
     return segmentations, bbox_list
 
 
-def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: List[List[float]]) -> None:
+def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: List[List[float]],
+                    bbox_size: int) -> None:
     """
     Append polygon if it has at least 3 corners
     :param bbox_list: List containing bbox List with uppper left and lower right corner.
@@ -77,11 +78,24 @@ def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: 
     """
     segmentation = np.array(poly.exterior.coords).ravel().tolist()
     if len(segmentation) > 2:
-        segmentations.append(segmentation)
-        bbox_list.append(list(poly.bounds))
+        bbox = poly.bounds
+        if bbox_sufficient(bbox, bbox_size):
+            segmentations.append(segmentation)
+            bbox_list.append(list(bbox))
 
 
-def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Tuple[
+def bbox_sufficient(bbox: List[float], size: int) -> bool:
+    """
+    Calcaulates wether the edges of the bounding box are larger than parameter size. x and y edge are being summed
+    up for this calculation. Eg if size = 100 x and y edges have to sum up to at least 100 Pixel.
+    :param bbox: bbox list, minx, miny, maxx, maxy
+    :param size: size to which the edges must at least sum to
+    :return: bool value wether bbox is large enough
+    """
+    return (bbox[2] - bbox[0]) + (bbox[3] - bbox[1]) > size
+
+
+def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int) -> Tuple[
     Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Converts prediction int ndarray to a dictionary of polygons
@@ -94,7 +108,7 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float]) -> Tuple[
     for label, mask in masks.items():
         # debug masks
         # mask.save(f"data/output/{label}.png")
-        segment, bbox = create_polygons(np.array(mask), label, tolerance)
+        segment, bbox = create_polygons(np.array(mask), label, tolerance, bbox_size)
         segmentations[label], bbox_dict[label] = segment, bbox
     return segmentations, bbox_dict
 

@@ -3,7 +3,7 @@ import numpy as np
 
 from tests.bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
-from script.transkribus_export import prediction_to_polygons, get_reading_order
+from script.transkribus_export import prediction_to_polygons, get_reading_order, bbox_sufficient
 from script.convert_xml import get_label_name
 from src.news_seg import predict
 from src.news_seg import utils
@@ -59,7 +59,9 @@ class TestClassExport:
         ground_truth = (
         {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
         {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
-        assert prediction_to_polygons(data, tolerance) == ground_truth
+        assert prediction_to_polygons(data, tolerance, 1) == ground_truth
+        ground_truth = ({1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []},{1: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
+        assert prediction_to_polygons(data, tolerance, 5) == ground_truth
 
     def test_get_label_names(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
@@ -97,3 +99,9 @@ class TestClassExport:
         ground_thruth = 15.0
 
         assert utils.calculate_x_axis_center(data) == ground_thruth
+
+    def test_bbox_sufficient(self):
+        """Test bbox threshold"""
+        data = [10.0, 10.0, 20.0, 20.0]
+        assert bbox_sufficient(data, 19)
+        assert not bbox_sufficient(data, 20)

@@ -22,6 +22,7 @@ from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from src.news_seg import train
 from src.news_seg.utils import create_bbox_ndarray
+
 # from src.news_seg.preprocessing import Preprocessing
 # from src.news_seg.train import OUT_CHANNELS
 
@@ -170,6 +171,15 @@ def get_args() -> argparse.Namespace:
         help="Size to which the image will be padded to. Has to be a tuple (W, H). "
              "Has to be grater or equal to actual image",
     )
+    parser.add_argument(
+        "--bbox_threshold",
+        "-bt",
+        dest="bbox_size",
+        type=int,
+        default=500,
+        help="Threshold for bboxes. Polygons, whose bboxes do not meet the requirement will be ignored. "
+             "This will be adjusted depending on the scaling of the image.",
+    )
     return parser.parse_args()
 
 
@@ -290,11 +300,12 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
 def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
     """
     Simplify prediction to polygons and export them to an image as well as transcribus xml
+    :param args: arguments
     :param file: path
     :param pred: prediction 2d ndarray
     """
     if args.export:
-        polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred)
+        polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred, int(args.bbox_size * args.scale))
 
         if args.output_path:
             draw_prediction(
@@ -316,7 +327,8 @@ def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
             xml_file.write(xml_data.prettify())
 
 
-def get_polygon_prediction(pred: ndarray) -> Tuple[ndarray, Dict[int, int], Dict[int, List[List[float]]]]:
+def get_polygon_prediction(pred: ndarray, bbox_size: int) -> Tuple[
+    ndarray, Dict[int, int], Dict[int, List[List[float]]]]:
     """
     Calls polyong conversion twice. Original segmentation is first converted to polygons, then those polygons are
     drawen into an ndarray image. This smothed prediction is again converted to polygons which are used to
@@ -324,9 +336,9 @@ def get_polygon_prediction(pred: ndarray) -> Tuple[ndarray, Dict[int, int], Dict
     :param pred: Original prediction ndarray image
     :return: smothed prediction ndarray image, reading order and segmentation dictionary
     """
-    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE)
+    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, bbox_size)
     polygon_pred = draw_polygons(segmentations, pred.shape)
-    segmentations, bbox_list = prediction_to_polygons(polygon_pred, TOLERANCE)
+    # segmentations, bbox_list = prediction_to_polygons(polygon_pred, TOLERANCE)
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []

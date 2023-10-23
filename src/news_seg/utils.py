@@ -90,7 +90,6 @@ def create_bbox_ndarray(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
     for label, bbox_list in bbox_dict.items():
         for bbox in bbox_list:
             result.append([index, label] + bbox)
-            # result.append([id, label] + bbox + calculate_x_axis_center(bbox))
             index += 1
     return np.array(result, dtype=int)
 
