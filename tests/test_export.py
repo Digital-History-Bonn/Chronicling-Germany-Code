@@ -120,3 +120,10 @@ class TestClassExport:
         assert bbox_sufficient(data, 19)
         assert not bbox_sufficient(data, 20)
         assert data == [10.0, 10.0, 20.0, 20.0]
+
+    def test_area_sufficient(self):
+        """Test bbox threshold"""
+        data = [10.0, 10.0, 20.0, 20.0]
+        assert predict.area_sufficient(data, 99)
+        assert not predict.area_sufficient(data, 100)
+        assert data == [10.0, 10.0, 20.0, 20.0]

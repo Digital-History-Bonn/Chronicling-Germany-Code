@@ -38,9 +38,9 @@ FINAL_SIZE = (1024, 1024)
 # the tolerance distance of the original geometry.
 TOLERANCE = [
     10.0,  # "UnknownRegion"
-    10.0,  # "caption"
-    10.0,  # "table"
-    10.0,  # "article"
+    5.0,  # "caption"
+    5.0,  # "table"
+    5.0,  # "article"
     5.0,  # "heading"
     10.0,  # "header"
     2.0,  # "separator_vertical"
@@ -101,6 +101,13 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="path for folder where prediction images are to be saved. If none is given, no images will drawn",
+    )
+    parser.add_argument(
+        "--slices-path",
+        "-sp",
+        type=str,
+        default=None,
+        help="path for folder where sclices are to be saved. If none is given, no slices will created",
     )
     parser.add_argument(
         "--model-path",
@@ -189,6 +196,15 @@ def get_args() -> argparse.Namespace:
         help="Threshold for big separators. Only big separators that meet the requirement are valid to "
              "split reading order. This will be adjusted depending on the scaling of the image.",
     )
+    parser.add_argument(
+        "--area-threshold",
+        "-at",
+        dest="area_size",
+        type=int,
+        default=800000,
+        help="Threshold for Regions that are large enough to contain a lot of text and will be cut out "
+             "for further processing",
+    )
     return parser.parse_args()
 
 
@@ -256,7 +272,7 @@ def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float
 
 def execute_prediction(args: argparse.Namespace, device: str, file: str, image: torch.Tensor, model: Any) -> None:
     """
-    Run model to create prediction and call export methods. Todo: add switch for prediction with and cropping
+    Run model to create prediction and call export methods. Todo: add switch for prediction with and without cropping
     :param args:
     :param device:
     :param file:
@@ -281,7 +297,7 @@ def execute_prediction(args: argparse.Namespace, device: str, file: str, image: 
     pred = process_prediction(np.array(pred), args.threshold)
     if args.output_path:
         draw_prediction(pred, args.output_path + os.path.splitext(file)[0] + ".png")
-    export_polygons(file, pred, args)
+    export_polygons(file, pred, image.numpy(), args)
 
 
 def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
@@ -307,59 +323,101 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     return image
 
 
-def export_polygons(file: str, pred: ndarray, args: argparse.Namespace) -> None:
+def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Namespace) -> None:
     """
     Simplify prediction to polygons and export them to an image as well as transcribus xml
     :param args: arguments
     :param file: path
     :param pred: prediction 2d ndarray
     """
-    if args.export:
-        polygon_pred, reading_order_dict, segmentations = get_polygon_prediction(pred, int(args.bbox_size * args.scale),
-                                                                                 args.separator_size)
+    if args.export or args.slices_path:
+        polygon_pred, reading_order_dict, segmentations, bbox_list = polygon_prediction(pred, args)
+
+        if args.slices_path:
+            export_slices(args, file, image, pred.shape, reading_order_dict, segmentations, bbox_list)
 
         if args.output_path:
             draw_prediction(
                 polygon_pred,
                 args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
             )
-
-        with open(
-                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-                "r",
-                encoding="utf-8",
-        ) as xml_file:
-            xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict, args.scale)
-        with open(
-                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-                "w",
-                encoding="utf-8",
-        ) as xml_file:
-            xml_file.write(xml_data.prettify())
+        if args.export:
+            export_xml(args, file, reading_order_dict, segmentations)
 
 
-def get_polygon_prediction(pred: ndarray, bbox_size: int, big_separator_size: int) -> Tuple[
-    ndarray, Dict[int, int], Dict[int, List[List[float]]]]:
+def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tuple[int, ...],
+                  reading_order_dict: Dict[int, int], segmentations: Dict[int, List[List[float]]],
+                  bbox_list: List[List[float]]) -> None:
     """
-    Calls polyong conversion twice. Original segmentation is first converted to polygons, then those polygons are
-    drawen into an ndarray image. This smothed prediction is again converted to polygons which are used to
-    determine reading order.
+    Cuts slices out of the input image and applies mask. Those are being saved, sorted by input
+    image and reading order on that nespaper page
+    :param args: arguments
+    :param file: file name
+    :param image: input image
+    :param pred: prediction
+    :param reading_order_dict: Dictionary for looking up reading order
+    :param segmentations: polygons
+    """
+    mask_list, reading_order_list, mask_bbox_list = draw_polygons(segmentations, shape, bbox_list,
+                                                                  reading_order_dict,
+                                                                  args.area_size)
+    reading_order_dict = {k: v for v, k in enumerate(np.argsort(np.array(reading_order_list)))}
+    for index, mask in enumerate(mask_list):
+        bbox = mask_bbox_list[index]
+        slice_image = image[:, int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2]), ] * mask
+        slice_image = np.transpose(slice_image, (1, 2, 0))
+
+        if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
+            os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
+
+        Image.fromarray((slice_image * 255).astype(np.uint8)).save(
+            f"{args.slices_path}{os.path.splitext(file)[0]}/{reading_order_dict[index]}.png")
+
+
+def export_xml(args, file, reading_order_dict, segmentations):
+    """
+    Open pre created transkribus xml files and save polygon xml data.
+    :param args: args
+    :param file: xml path
+    :param reading_order_dict: reading order value for each index
+    :param segmentations: polygon dictionary sorted by labels
+    """
+    with open(
+            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+            "r",
+            encoding="utf-8",
+    ) as xml_file:
+        xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict, args.scale)
+    with open(
+            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+            "w",
+            encoding="utf-8",
+    ) as xml_file:
+        xml_file.write(xml_data.prettify())
+
+
+def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
+    ndarray, Dict[int, int], Dict[int, List[List[float]]], List[List[float]]]:
+    """
+    Calls polyong conversion. Original segmentation is first converted to polygons, then those polygons are
+    drawen into an ndarray image. Furthermore, regions of sufficient size will be cut out and saved separately if
+    required.
+    :param args: args
     :param pred: Original prediction ndarray image
     :return: smothed prediction ndarray image, reading order and segmentation dictionary
     """
-    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, bbox_size)
-    polygon_pred = draw_polygons(segmentations, pred.shape)
-    # segmentations, bbox_list = prediction_to_polygons(polygon_pred, TOLERANCE)
+    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale))
+    polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order, big_separator_size)
+    get_reading_order(bbox_ndarray, reading_order, args.separator_size)
     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
-    return polygon_pred, reading_order_dict, segmentations
+    return polygon_pred, reading_order_dict, segmentations, bbox_list
 
 
-def draw_polygons(
+def draw_polygons_into_image(
         segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
 ) -> ndarray:
     """
@@ -378,6 +436,69 @@ def draw_polygons(
     return polygon_pred
 
 
+def area_sufficient(bbox: List[float], size: int) -> bool:
+    """
+    Calcaulates wether the area of the region is larger than parameter size.
+    :param bbox: bbox list, minx, miny, maxx, maxy
+    :param size: size to which the edges must at least sum to
+    :return: bool value wether area is large enough
+    """
+    return (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) > size
+
+
+def draw_polygons(
+        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...], bbox_list: Dict[int, List[List[float]]],
+        reading_order: Dict[int, int], area_size: int
+) -> Tuple[List[ndarray], List[int], List[List[float]]]:
+    """
+    Takes segmentation dictionary and draws polygons with assigned labels into a new image.
+    :param reading_order: assings reading order position to each polygon index
+    :param bbox_list: Dictionaray of bboxes sorted after label
+    :param shape: shape of original image
+    :param segmentations: dictionary assigning labels to polygon lists
+    :return: result image as ndarray, reading order list and bbox list which correspond to the chosen regions
+    """
+    index = 0
+    masks = []
+    reading_order_list = []
+    mask_bbox_list = []
+    for label, segmentation in segmentations.items():
+        for key, polygon in enumerate(segmentation):
+            polygon_ndarray = np.reshape(polygon, (-1, 2)).T
+            x_coords, y_coords = draw.polygon(polygon_ndarray[1], polygon_ndarray[0])
+
+            bbox = bbox_list[label][key]
+            if area_sufficient(bbox, area_size):
+                create_mask(bbox, index, mask_bbox_list, masks, reading_order, reading_order_list, shape, x_coords,
+                            y_coords)
+            index += 1
+    return masks, reading_order_list, mask_bbox_list
+
+
+def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]], masks: List[ndarray],
+                reading_order: Dict[int, int], reading_order_list: List[int], shape: Tuple[int, ...], x_coords: ndarray,
+                y_coords: object) -> ndarray:
+    """
+    Draw mask into empyt image and cut out the bbox area. Masks, as well as reading order and bboxes are appended to
+    their respective lists for further processing
+    :param bbox:
+    :param index:
+    :param mask_bbox_list:
+    :param masks:
+    :param reading_order:
+    :param reading_order_list:
+    :param shape:
+    :param x_coords:
+    :param y_coords:
+    """
+    temp_image = np.zeros(shape, dtype="uint8")
+    temp_image[x_coords, y_coords] = 1
+    mask = temp_image[int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2])]
+    masks.append(mask)
+    reading_order_list.append(reading_order[index])
+    mask_bbox_list.append(bbox)
+
+
 def process_prediction(pred: ndarray, threshold: float) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
@@ -392,5 +513,10 @@ def process_prediction(pred: ndarray, threshold: float) -> ndarray:
 
 if __name__ == "__main__":
     parameter_args = get_args()
+    if not os.path.exists(f"{parameter_args.output_path}"):
+        os.makedirs(f"{parameter_args.output_path}")
+    if not os.path.exists(f"{parameter_args.slices_path}"):
+        os.makedirs(f"{parameter_args.slices_path}")
+
     torch.manual_seed(parameter_args.torch_seed)
     predict(parameter_args)
