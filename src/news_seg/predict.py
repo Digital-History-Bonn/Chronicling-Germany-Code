@@ -347,7 +347,7 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
 
 def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tuple[int, ...],
                   reading_order_dict: Dict[int, int], segmentations: Dict[int, List[List[float]]],
-                  bbox_list: List[List[float]]) -> None:
+                  bbox_list: Dict[int, List[List[float]]]) -> None:
     """
     Cuts slices out of the input image and applies mask. Those are being saved, sorted by input
     image and reading order on that nespaper page
@@ -360,7 +360,7 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     """
     mask_list, reading_order_list, mask_bbox_list = draw_polygons(segmentations, shape, bbox_list,
                                                                   reading_order_dict,
-                                                                  args.area_size)
+                                                                  int(args.area_size * args.scale))
     reading_order_dict = {k: v for v, k in enumerate(np.argsort(np.array(reading_order_list)))}
     for index, mask in enumerate(mask_list):
         bbox = mask_bbox_list[index]
@@ -397,7 +397,7 @@ def export_xml(args, file, reading_order_dict, segmentations):
 
 
 def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
-    ndarray, Dict[int, int], Dict[int, List[List[float]]], List[List[float]]]:
+    ndarray, Dict[int, int], Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Calls polyong conversion. Original segmentation is first converted to polygons, then those polygons are
     drawen into an ndarray image. Furthermore, regions of sufficient size will be cut out and saved separately if
@@ -411,7 +411,7 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order, args.separator_size)
+    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
     return polygon_pred, reading_order_dict, segmentations, bbox_list
@@ -459,9 +459,9 @@ def draw_polygons(
     :return: result image as ndarray, reading order list and bbox list which correspond to the chosen regions
     """
     index = 0
-    masks = []
-    reading_order_list = []
-    mask_bbox_list = []
+    masks: List[ndarray] = []
+    reading_order_list: List[int] = []
+    mask_bbox_list: List[List[float]] = []
     for label, segmentation in segmentations.items():
         for key, polygon in enumerate(segmentation):
             polygon_ndarray = np.reshape(polygon, (-1, 2)).T
@@ -477,7 +477,7 @@ def draw_polygons(
 
 def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]], masks: List[ndarray],
                 reading_order: Dict[int, int], reading_order_list: List[int], shape: Tuple[int, ...], x_coords: ndarray,
-                y_coords: object) -> ndarray:
+                y_coords: object) -> None:
     """
     Draw mask into empyt image and cut out the bbox area. Masks, as well as reading order and bboxes are appended to
     their respective lists for further processing
