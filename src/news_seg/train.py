@@ -12,15 +12,17 @@ import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
+from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
+from torchvision.ops import sigmoid_focal_loss
 from tqdm import tqdm
 
-from src.news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
+from src.news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.news_dataset import NewsDataset
 from src.news_seg.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
@@ -50,7 +52,6 @@ LOSS_WEIGHTS: List[float] = [
 
 # set random seed for reproducibility
 # torch.manual_seed(42)
-
 
 def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True) -> Any:
     """
@@ -228,9 +229,7 @@ class Trainer:
                 and len(self.test_loader) > 0
         ), "At least one Dataset is to small to assemble at least one batch"
 
-        self.loss_fn = torch.nn.CrossEntropyLoss(
-            weight=torch.tensor(LOSS_WEIGHTS).to(self.device)
-        )
+        self.loss_fn = sigmoid_focal_loss
 
     def train(self, epochs: int = 1) -> None:
         """
@@ -240,7 +239,7 @@ class Trainer:
         """
 
         self.model.to(self.device)
-        self.loss_fn.to(self.device)
+        # self.loss_fn.to(self.device)
 
         for self.epoch in range(self.epoch, epochs + 1):
             self.model.train()
@@ -252,7 +251,7 @@ class Trainer:
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
-                    loss = self.loss_fn(preds, targets.to(self.device))
+                    loss = self.loss_fn(preds, self.one_hot_encoding(targets).float()).sum()
 
                     # Backpropagation
                     self.optimizer.zero_grad(set_to_none=True)
@@ -312,6 +311,15 @@ class Trainer:
 
         self.validation(test_validation=True)
 
+    def one_hot_encoding(self, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Handels one hot encoding of target to be usable for loss function.s
+        :param targets: 2d target with label values
+        :return: 3d target with one channel for each class
+        """
+        return torch.permute(one_hot(targets.to(self.device), num_classes=OUT_CHANNELS),
+                               (0, 3, 1, 2))
+
     def validation(self, test_validation: bool = False) -> Tuple[float, float]:
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
@@ -336,10 +344,10 @@ class Trainer:
                 loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
-            batch_loss = self.loss_fn(pred, targets.to(self.device))
+            batch_loss = self.loss_fn(pred, self.one_hot_encoding(targets).float()).sum()
 
             # detach results
-            pred = pred.detach().cpu().numpy()
+            pred = torch.nn.functional.softmax(pred).detach().cpu().numpy()
             targets = targets.detach().cpu().numpy()
             loss += batch_loss.item()
 
@@ -397,7 +405,7 @@ class Trainer:
         image = image[None, :]
 
         # predict image
-        pred = self.model(image.to(self.device)).argmax(dim=1).float()
+        pred = torch.nn.functional.softmax(self.model(image.to(self.device))).argmax(dim=1).float()
 
         environment = "test" if test_validation else "val"
 
