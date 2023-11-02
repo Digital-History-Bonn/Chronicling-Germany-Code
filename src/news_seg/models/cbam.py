@@ -6,10 +6,12 @@ from torch.nn import functional
 
 class SAM(nn.Module):
     """
-    SAM module
-    """
+    SAM module applies separate max and avg pooling along the channel dimension. The 2 resulting feature maps contain
+    either for each pixel the maximum value of all channels or the average value.
+    These 2 channels are then combined into one by a convolution.
+    from https://github.com/Peachypie98/CBAM"""
 
-    def __init__(self, bias: bool =False) -> None:
+    def __init__(self, bias: bool = False) -> None:
         super().__init__()
         self.bias = bias
         self.conv = nn.Conv2d(
@@ -24,7 +26,8 @@ class SAM(nn.Module):
 
     def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
-        SAM forward module
+        SAM forward, calculate max and avg over all channels, concat the 2 feature maps, combine through convolution and
+        apply to input.
         :param tensor_x: input
         :return: SAM result
         """
@@ -38,82 +41,74 @@ class SAM(nn.Module):
 
 class CAM(nn.Module):
     """
-    CAM module
+    CAM module, applies max and avg pooling to each channel. This results in 2 vectors each containing either max or avg
+    values for each channel. These vectors are then processed through a mlp with one hidden layer. The same mlp
+    processes both the max and avg vector. The vectors are added upon each other and applied to the input.
+    Removed second mlp. In the original paper they use one mlp, which precesses both vectors.
+    Rest from https://github.com/Peachypie98/CBAM
     """
 
-    def __init__(self, channels: int, r: int) -> None:
+    def __init__(self, channels: int, down_scaling: int) -> None:
         """
         :param channels: number of channels
-        :param r: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
+        :param down_scaling: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
         """
         super().__init__()
         self.channels = channels
-        self.r = r
-        self.linear_max = nn.Sequential(
+        self.down_scaling = down_scaling
+        self.linear = nn.Sequential(
             nn.Linear(
                 in_features=self.channels,
-                out_features=self.channels // self.r,
+                out_features=self.channels // self.down_scaling,
                 bias=True,
             ),
             nn.ReLU(inplace=True),
             nn.Linear(
-                in_features=self.channels // self.r,
-                out_features=self.channels,
-                bias=True,
-            ),
-        )
-        self.linear_avg = nn.Sequential(
-            nn.Linear(
-                in_features=self.channels,
-                out_features=self.channels // self.r,
-                bias=True,
-            ),
-            nn.ReLU(inplace=True),
-            nn.Linear(
-                in_features=self.channels // self.r,
+                in_features=self.channels // self.down_scaling,
                 out_features=self.channels,
                 bias=True,
             ),
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
-        CAM forward module
+        CAM forward, calculate max and avg pooling, apply mlp to both vectors, add them and apply to input.
         :param tensor_x: input
         :return: CAM result
         """
-        max_value = functional.adaptive_max_pool2d(x, output_size=1)
-        avg = functional.adaptive_avg_pool2d(x, output_size=1)
-        b, c, _, _ = x.size()
-        linear_max = self.linear_max(max_value.view(b, c)).view(b, c, 1, 1)
-        linear_avg = self.linear_avg(avg.view(b, c)).view(b, c, 1, 1)
+        max_value = functional.adaptive_max_pool2d(inputs, output_size=1)
+        avg = functional.adaptive_avg_pool2d(inputs, output_size=1)
+        batches, channels, _, _ = inputs.size()
+        linear_max = self.linear(max_value.view(batches, channels)).view(batches, channels, 1, 1)
+        linear_avg = self.linear(avg.view(batches, channels)).view(batches, channels, 1, 1)
         output: torch.Tensor = linear_max + linear_avg
-        output = torch.sigmoid(output) * x
+        output = torch.sigmoid(output) * inputs
         return output
 
 
 class CBAM(nn.Module):
     """
-    CBAM module
-    """
+    CBAM module consists out of 2 attention mechanisms. One for spatial attention of regions in the image(sam)
+    and one for channel attention (cam). Those to modules calculate and apply weights for pixels or channels.
+    Removed addition from output and input at the end. Rest from https://github.com/Peachypie98/CBAM"""
 
-    def __init__(self, channels: int , r: int) -> None:
+    def __init__(self, channels: int, down_scaling: int) -> None:
         """
         :param channels: number of channels
-        :param r: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
+        :param down_scaling: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
         """
         super().__init__()
         self.channels = channels
-        self.r = r
+        self.down_scaling = down_scaling
         self.sam = SAM(bias=False)
-        self.cam = CAM(channels=self.channels, r=self.r)
+        self.cam = CAM(channels=self.channels, down_scaling=self.down_scaling)
 
     def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
-        CBAM forward module
+        CBAM forward. Applies first channel attention, then spatial attention.
         :param tensor_x: input
         :return: CBAM result
         """
         output: torch.Tensor = self.cam(tensor_x)
         output = self.sam(output)
-        return output + tensor_x  # type: ignore
+        return output

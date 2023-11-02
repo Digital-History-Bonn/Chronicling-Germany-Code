@@ -1,4 +1,4 @@
-"""Module for trans_unet"""
+"""Module for small dhsegment https://arxiv.org/abs/1804.10371"""
 # coding=utf-8
 from __future__ import absolute_import, division, print_function
 
@@ -109,7 +109,7 @@ class Decoder(nn.Module):
 
 
 class DhSegmentSmall(nn.Module):
-    """Implements DhSegment combined with CBAM modules after encoder layers"""
+    """Implements small DhSegment by removing the last 2 layers."""
 
     def __init__(
         self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool =True
