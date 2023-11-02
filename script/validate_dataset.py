@@ -72,7 +72,7 @@ def count_classes(args: argparse.Namespace):
     dataset.augmentations = False
 
     loader = DataLoader(dataset, shuffle=False, num_workers=args.num_workers, batch_size=args.batch_size)
-    class_counts = torch.empty((10), dtype=torch.long)
+    class_counts = torch.zeros((10), dtype=torch.long)
     for _, targets in tqdm(loader, desc="counting classes", unit="batches"):
         class_counts += torch.bincount(targets.flatten(), minlength=10)
     print(class_counts)
