@@ -28,7 +28,10 @@ def read_transcribus(
     page = bs_data.find("Page")
 
     if page:
-        return {"size": [int(page['imageWidth']), int(page['imageHeight'])], 'tags': tags_dict}
+        return {
+            "size": [int(page["imageWidth"]), int(page["imageHeight"])],
+            "tags": tags_dict,
+        }
     return {}
 
 

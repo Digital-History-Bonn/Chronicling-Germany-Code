@@ -14,3 +14,5 @@ torchvision
 nox
 lxml
 shapely
+ml_collections
+positional-encodings
