@@ -84,7 +84,7 @@ def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: 
             bbox_list.append(list(bbox))
 
 
-def bbox_sufficient(bbox: List[float], size: int, x_axis = False) -> bool:
+def bbox_sufficient(bbox: List[float], size: int, x_axis: bool = False) -> bool:
     """
     Calcaulates wether the edges of the bounding box are larger than parameter size. x and y edge are being summed
     up for this calculation. Eg if size = 100 x and y edges have to sum up to at least 100 Pixel.

@@ -374,7 +374,8 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
             f"{args.slices_path}{os.path.splitext(file)[0]}/{reading_order_dict[index]}.png")
 
 
-def export_xml(args, file, reading_order_dict, segmentations):
+def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
+               segmentations: Dict[int, List[List[float]]]) -> None:
     """
     Open pre created transkribus xml files and save polygon xml data.
     :param args: args
@@ -411,7 +412,7 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * (args.scale**2)))
+    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * (args.scale ** 2)))
     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
     return polygon_pred, reading_order_dict, segmentations, bbox_list
