@@ -11,7 +11,7 @@ from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
 
 
 def multi_class_csi(
-    pred: torch.Tensor, true: torch.Tensor, classes: int = 10
+        pred: torch.Tensor, true: torch.Tensor, classes: int = 10
 ) -> ndarray:
     """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
     Csi score is used as substitute for accuracy, calculated separately for each class.
@@ -52,7 +52,7 @@ def get_file(file: str, scale: float = 0.25) -> torch.Tensor:
         np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), "constant", constant_values=0
     )
     img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
-    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0) #type: ignore
+    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)  # type: ignore
 
 
 def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
@@ -79,17 +79,18 @@ def correct_shape(image: torch.Tensor) -> torch.Tensor:
         image = image[:, :-1, :]
     return image
 
+
 def create_bbox_ndarray(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
     """
     Takes Dict with label keys and bbox List and converts it to bbox ndarray.
     :param bbox_dict: Label keys and bbox Lists
-    :return: 2d ndarray with n x 7 values. Containing id, label, 2 bbox corners and x-axis center.
+    :return: 2d ndarray with n x 8 values. Containing id, label, 2 bbox corners and y-axis center.
     """
     index = 0
     result = []
     for label, bbox_list in bbox_dict.items():
         for bbox in bbox_list:
-            result.append([index, label] + bbox)
+            result.append([index, label] + bbox + [bbox[3] - bbox[1]])
             index += 1
     return np.array(result, dtype=int)
 

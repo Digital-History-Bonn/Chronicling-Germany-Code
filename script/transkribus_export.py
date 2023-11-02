@@ -133,20 +133,21 @@ def get_splitting_regions(bbox_list: ndarray, big_separator_size:int) -> List[in
 
 def get_reading_order(bbox_list: ndarray, result: List[int], big_separator_size: int) -> None:
     """
-    Calculate reading order by first seperating regions by big seperators. Regions without big seperators are
-    forwarded to calculate_reading_order. Big seperators are being handelt seperately.
-    :param bbox_list: 2d n x 6 ndarray with id, label and bbox corners.
+    Calculate reading order by first separating the page by big seperators. Regions without big seperators are
+    forwarded to calculate_reading_order. Big seperators are being handled separately.
+    :param big_separator_size: Big separators are only considered to split the page if they exceed a certain size
+    :param bbox_list: 2d n x 7 ndarray with id, label, bbox corners and y-axis center.
     :param result: Result List, is being filled over recursive calls.
     :return: list of indices in reading order
     """
 
-    splitting_index = get_splitting_regions(bbox_list, big_separator_size)
-    if len(splitting_index) > 0:
-        splitting_index = splitting_index[0]
+    splitting_indices = get_splitting_regions(bbox_list, big_separator_size)
+    if len(splitting_indices) > 0:
+        splitting_index = splitting_indices[0]
         big_seperator_entry = bbox_list[splitting_index]
         bbox_list = np.delete(bbox_list, splitting_index, axis=0)
 
-        region_bool = bbox_list[:, 5] > big_seperator_entry[3]
+        region_bool = bbox_list[:, 6] > big_seperator_entry[3]
         calculate_reading_order(bbox_list[np.invert(region_bool)], result)
         result.append(big_seperator_entry[0])
 
@@ -161,8 +162,8 @@ def calculate_reading_order(bbox_list: ndarray, result: List[int]) -> None:
     Bboxes are sorted by the sum of the upper left corner to identify the upper left most element.
     Then, all elements, which begin below of that pivot element are considered one column and sorted verticly.
     This is repeated until all regions are concatenated.
-    :param bbox_list:
-    :param result:
+    :param bbox_list:2d n x 7 ndarray with id, label, bbox corners and y-axis center.
+    :param result: reading order list to append indices to
     """
     if bbox_list.size == 0:
         return

@@ -411,7 +411,7 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
+    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * (args.scale**2)))
     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
     return polygon_pred, reading_order_dict, segmentations, bbox_list
