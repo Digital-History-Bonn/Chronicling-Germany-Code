@@ -84,13 +84,13 @@ def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: 
             bbox_list.append(list(bbox))
 
 
-def bbox_sufficient(bbox: List[float], size: int, x_axis = False) -> bool:
+def bbox_sufficient(bbox: List[float], size: int, x_axis: bool = False) -> bool:
     """
     Calcaulates wether the edges of the bounding box are larger than parameter size. x and y edge are being summed
     up for this calculation. Eg if size = 100 x and y edges have to sum up to at least 100 Pixel.
+    :param x_axis: if true, only check for x axis value.
     :param bbox: bbox list, minx, miny, maxx, maxy
     :param size: size to which the edges must at least sum to
-    :x_axis: if true, only check for x axis value.
     :return: bool value wether bbox is large enough
     """
     if x_axis:
@@ -140,9 +140,9 @@ def get_reading_order(bbox_list: ndarray, result: List[int], big_separator_size:
     :return: list of indices in reading order
     """
 
-    splitting_index = get_splitting_regions(bbox_list, big_separator_size)
-    if len(splitting_index) > 0:
-        splitting_index = splitting_index[0]
+    splitting_indices= get_splitting_regions(bbox_list, big_separator_size)
+    if len(splitting_indices) > 0:
+        splitting_index = splitting_indices[0]
         big_seperator_entry = bbox_list[splitting_index]
         bbox_list = np.delete(bbox_list, splitting_index, axis=0)
 

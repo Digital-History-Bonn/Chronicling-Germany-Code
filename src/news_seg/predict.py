@@ -374,7 +374,8 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
             f"{args.slices_path}{os.path.splitext(file)[0]}/{reading_order_dict[index]}.png")
 
 
-def export_xml(args, file, reading_order_dict, segmentations):
+def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
+               segmentations: Dict[int, List[List[float]]]) -> None:
     """
     Open pre created transkribus xml files and save polygon xml data.
     :param args: args

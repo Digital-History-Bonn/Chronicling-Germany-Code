@@ -317,6 +317,7 @@ class Trainer:
         :param targets: 2d target with label values
         :return: 3d target with one channel for each class
         """
+        # pylint: disable-next=not-callable
         return torch.permute(one_hot(targets.to(self.device), num_classes=OUT_CHANNELS),
                                (0, 3, 1, 2))
 
