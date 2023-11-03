@@ -353,7 +353,7 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     image and reading order on that nespaper page
     :param args: arguments
     :param file: file name
-    :param image: input image
+    :param image: input image (c, w, h)
     :param pred: prediction
     :param reading_order_dict: Dictionary for looking up reading order
     :param segmentations: polygons
@@ -364,8 +364,12 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     reading_order_dict = {k: v for v, k in enumerate(np.argsort(np.array(reading_order_list)))}
     for index, mask in enumerate(mask_list):
         bbox = mask_bbox_list[index]
-        slice_image = image[:, int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2]), ] * mask
+        slice_image = image[:, int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2]), ]
+        mean = np.mean(slice_image, where = (mask == 0))
+        slice_image = slice_image * mask
         slice_image = np.transpose(slice_image, (1, 2, 0))
+        slice_image[slice_image[:,:,] == (0, 0, 0)] = mean
+
 
         if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
             os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
