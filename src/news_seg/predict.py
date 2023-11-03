@@ -365,7 +365,7 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     for index, mask in enumerate(mask_list):
         bbox = mask_bbox_list[index]
         slice_image = image[:, int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2]), ]
-        mean = np.mean(slice_image, where = (mask == 0))
+        mean = np.mean(slice_image, where = mask == 0)
         slice_image = slice_image * mask
         slice_image = np.transpose(slice_image, (1, 2, 0))
         slice_image[slice_image[:,:,] == (0, 0, 0)] = mean
