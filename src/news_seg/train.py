@@ -134,6 +134,15 @@ def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float,
     return best_score, step, epoch
 
 
+def focal_loss(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    alpha: torch.Tensor,
+    gamma: float = 2.0):
+    focus = torch.pow(-torch.nn.functional.softmax(logits, axis=1) + 1.0, gamma)
+    loss = -labels * alpha * focus * torch.nn.functional.softmax(logits, axis=1)
+    return torch.sum(loss, axis=1)
+
 class Trainer:
     """Training class containing functions for training and validation."""
 
