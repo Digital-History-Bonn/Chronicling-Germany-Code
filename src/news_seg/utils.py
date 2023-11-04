@@ -1,6 +1,7 @@
 """Utility Module"""
 import warnings
-from typing import Dict, List
+from statistics import mean
+from typing import Dict, List, Union
 
 import numpy as np
 import sklearn
@@ -84,15 +85,26 @@ def create_bbox_ndarray(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
     """
     Takes Dict with label keys and bbox List and converts it to bbox ndarray.
     :param bbox_dict: Label keys and bbox Lists
-    :return: 2d ndarray with n x 8 values. Containing id, label, 2 bbox corners and y-axis center.
+    :return: 2d ndarray with n x 7 values. Containing id, label, 2 bbox corners and y-axis center.
     """
     index = 0
     result = []
     for label, bbox_list in bbox_dict.items():
         for bbox in bbox_list:
-            result.append([index, label] + bbox + [bbox[3] - bbox[1]])
+            result.append(enrich_bbox(bbox, index, label))
             index += 1
     return np.array(result, dtype=int)
+
+
+def enrich_bbox(bbox: List[float], index: int, label: int) -> List[Union[float, int]]:
+    """
+    Add index, label and y-axis center to bbox entry.
+    :param bbox: bbox list with minx, miny, maxx, maxy
+    :param index: current index
+    :param label: current class label
+    :return: List with 7 values. Containing id, label, 2 bbox corners and y-axis center.
+    """
+    return [index, label] + bbox + [mean((bbox[3], bbox[1]))]
 
 
 def calculate_x_axis_center(bbox: List[float]) -> float:

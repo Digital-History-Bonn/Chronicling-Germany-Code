@@ -128,3 +128,11 @@ class TestClassExport:
         assert predict.area_sufficient(data, 99)
         assert not predict.area_sufficient(data, 100)
         assert data == [10.0, 10.0, 20.0, 20.0]
+
+    def test_enrich_bbox(self):
+        """Test bbox enrichment with index, label and y-axis center"""
+        data = [10.0, 20.0, 20.0, 30.0]
+        ground_truth = [0, 1, 10.0, 20.0, 20.0, 30.0, 25.0]
+
+        result = utils.enrich_bbox(data, 0, 1)
+        assert result == ground_truth
