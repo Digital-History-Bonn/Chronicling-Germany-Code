@@ -6,18 +6,18 @@ import argparse
 import datetime
 import json
 import warnings
-from typing import List, Tuple, Union, Any
+from typing import Tuple, Union, Any
 
 import numpy as np
 import torch
 from numpy import ndarray
 from sklearn.metrics import accuracy_score, jaccard_score
+from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from torchvision.ops import sigmoid_focal_loss
 from tqdm import tqdm
 
 from src.news_seg.models.dh_segment import DhSegment
@@ -36,18 +36,18 @@ VAL_NUMBER = 5
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
 WEIGHT_DECAY = 1e-6  # 1e-6 from Paper
-LOSS_WEIGHTS: List[float] = [
+LOSS_WEIGHTS: torch.Tensor = torch.tensor([
     2.0,
     10.0,
     10.0,
     10.0,
     4.0,
-    10.0,
+    20.0,
     10.0,
     10.0,
     10.0,
     20.0,
-]  # 1 and 5 seems to work well
+])
 
 
 # set random seed for reproducibility
@@ -135,13 +135,22 @@ def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float,
 
 
 def focal_loss(
-    logits: torch.Tensor,
-    labels: torch.Tensor,
-    alpha: torch.Tensor,
-    gamma: float = 2.0):
-    focus = torch.pow(-torch.nn.functional.softmax(logits, axis=1) + 1.0, gamma)
-    loss = -labels * alpha * focus * torch.nn.functional.softmax(logits, axis=1)
-    return torch.sum(loss, axis=1)
+        prediction: torch.Tensor,
+        target: torch.Tensor,
+        gamma: float = 2.0) -> torch.Tensor:
+    """
+    Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
+    :param prediction: Unnormalized log probabilities, with shape `[batch, num_classes, ...]`.
+    :param target: Valid probability distributions (non-negative, sum to 1), e.g a
+      one hot encoding specifying the correct class for each input
+    :param gamma: Focusing parameter `>=0`. It controls the contribution of higher confidence predictions.
+      Defaults to 2.
+    :return: loss tensor [batches, ...]"""
+    probalbilites = torch.nn.functional.softmax(prediction, dim=1)
+    focus = torch.pow(1 - probalbilites, gamma)
+    loss = 1 - target * focus * probalbilites
+    return torch.sum(loss, dim=1)  # type: ignore
+
 
 class Trainer:
     """Training class containing functions for training and validation."""
@@ -174,6 +183,7 @@ class Trainer:
         self.learningrate: float = learningrate
         self.batch_size: int = batch_size
         self.best_step = 0
+        self.loss = args.loss
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -238,7 +248,7 @@ class Trainer:
                 and len(self.test_loader) > 0
         ), "At least one Dataset is to small to assemble at least one batch"
 
-        self.loss_fn = sigmoid_focal_loss
+        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
     def train(self, epochs: int = 1) -> None:
         """
@@ -248,7 +258,7 @@ class Trainer:
         """
 
         self.model.to(self.device)
-        # self.loss_fn.to(self.device)
+        self.cross_entropy.to(self.device)
 
         for self.epoch in range(self.epoch, epochs + 1):
             self.model.train()
@@ -260,7 +270,7 @@ class Trainer:
             ) as pbar:
                 for images, targets in self.train_loader:
                     preds = self.model(images.to(self.device))
-                    loss = self.loss_fn(preds, self.one_hot_encoding(targets).float()).sum()
+                    loss = self.apply_loss(preds, targets.to(self.device))
 
                     # Backpropagation
                     self.optimizer.zero_grad(set_to_none=True)
@@ -320,6 +330,18 @@ class Trainer:
 
         self.validation(test_validation=True)
 
+    def apply_loss(self, preds: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Applies configured loss function
+        :param preds: prdictions tensor with shape[B,C,H,W]
+        :param targets: target tensor with shape [H,W]
+        :return: loss scalar
+        """
+        if self.loss == "focal_loss":
+            return focal_loss(preds, self.one_hot_encoding(targets).float()).mean()
+
+        return self.cross_entropy(preds, targets)  # type: ignore
+
     def one_hot_encoding(self, targets: torch.Tensor) -> torch.Tensor:
         """
         Handels one hot encoding of target to be usable for loss function.s
@@ -328,7 +350,7 @@ class Trainer:
         """
         # pylint: disable-next=not-callable
         return torch.permute(one_hot(targets.to(self.device), num_classes=OUT_CHANNELS),
-                               (0, 3, 1, 2))
+                             (0, 3, 1, 2))
 
     def validation(self, test_validation: bool = False) -> Tuple[float, float]:
         """
@@ -343,9 +365,9 @@ class Trainer:
         size = len(loader)
 
         loss, jaccard, accuracy, class_acc, class_sum = (
-            0,
-            0,
-            0,
+            0.0,
+            0.0,
+            0.0,
             np.zeros(OUT_CHANNELS),
             np.zeros(OUT_CHANNELS),
         )
@@ -354,7 +376,7 @@ class Trainer:
                 loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             pred = self.model(images.to(self.device))
-            batch_loss = self.loss_fn(pred, self.one_hot_encoding(targets).float()).sum()
+            batch_loss = self.apply_loss(pred, targets.to(self.device))
 
             # detach results
             pred = torch.nn.functional.softmax(pred).detach().cpu().numpy()
@@ -590,6 +612,12 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="dh_segment",
         help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
+    )
+    parser.add_argument(
+        "--loss",
+        type=str,
+        default="cross_entropy",
+        help="Which loss function to use. Available are [cross_entropy, focal_loss]",
     )
     parser.add_argument(
         "--pad",
