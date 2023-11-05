@@ -5,6 +5,7 @@ module for training the hdSegment Model
 import argparse
 import datetime
 import json
+import os
 import warnings
 from time import time
 from typing import Tuple, Union, Any
@@ -18,7 +19,7 @@ from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from torchmetrics import JaccardIndex, Metric
+from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 from tqdm import tqdm
 
@@ -263,7 +264,7 @@ class Trainer:
 
     @staticmethod
     def compute_scores(pred: torch.Tensor, targets: torch.Tensor, confusion_metric: MulticlassConfusionMatrix,
-                       jaccard_fun: Metric, accuracy_fun: MulticlassAccuracy) -> \
+                       jaccard_fun: JaccardIndex, accuracy_fun: MulticlassAccuracy) -> \
             Tuple[float, float, torch.Tensor]:
         """
         Applies argmax on the channel dimension of the prediction to obtain int class values.
@@ -286,13 +287,13 @@ class Trainer:
 
         return jaccard, accuracy, batch_class_acc
 
-    def train(self, epochs: int = 1) -> None:
+    def train(self, epochs: int = 1) -> float:
         """
         executes all training epochs. After each epoch a validation round is performed.
         :param epochs: number of epochs that will be executed
         :return: None
         """
-
+        training_start = time()
         self.model.to(self.device)
         self.cross_entropy.to(self.device)
         end = time()
@@ -353,7 +354,7 @@ class Trainer:
                         val_loss, acc = self.validation()
 
                         # early stopping
-                        score = val_loss + (1 - acc.item())
+                        score = val_loss + (1 - acc)
                         if score < self.best_score:
                             # update cur_best value
                             self.best_score = val_loss + (1 - acc)
@@ -377,6 +378,8 @@ class Trainer:
             self.summary_writer.flush()
 
         self.validation(test_validation=True)
+        training_end = time()
+        return round(training_end - training_start, ndigits=2)
 
     def apply_loss(self, preds: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -491,7 +494,7 @@ class Trainer:
                 loss / size,
                 jaccard / (size * self.num_processes),
                 accuracy / (size * self.num_processes),
-                class_acc / (class_sum),
+                np.array(class_acc / class_sum),
                 test_validation,
             )
 
@@ -598,6 +601,13 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         help="name of run in tensorboard",
+    )
+    parser.add_argument(
+        "--id",
+        metavar="ID",
+        type=str,
+        default="default",
+        help="Id for experiment runs. Dictates the filename of custom log files.",
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
@@ -753,8 +763,18 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main method creates directories if not already present, sets up Trainer and handels top level logging.
+    """
     parameter_args = get_args()
+
+    if not os.path.exists("models"):
+        os.makedirs("models")
+    if not os.path.exists("scores"):
+        os.makedirs("scores")
+    if not os.path.exists("logs/worker-experiment"):
+        os.makedirs("logs/worker-experiment")
+
     torch.manual_seed(parameter_args.torch_seed)
 
     # setup tensor board
@@ -783,4 +803,11 @@ if __name__ == "__main__":
     print(f"num-workers {parameter_args.num_workers}")
     print(f"prefetch factor {parameter_args.prefetch_factor}")
     print(f"gpu-count {parameter_args.gpu_count}")
-    trainer.train(epochs=parameter_args.epochs)
+
+    duration = trainer.train(epochs=parameter_args.epochs)
+    with open(f"logs/worker-experiment/{parameter_args.id}.json", "w", encoding="utf-8") as file:
+        json.dump((parameter_args.num_workers, parameter_args.prefetch_factor, duration), file)
+
+
+if __name__ == "__main__":
+    main()
