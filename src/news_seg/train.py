@@ -6,18 +6,20 @@ import argparse
 import datetime
 import json
 import warnings
+from time import time
 from typing import Tuple, Union, Any
 
 import numpy as np
 import torch
 from numpy import ndarray
-from sklearn.metrics import accuracy_score, jaccard_score
 from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
+from torchmetrics import JaccardIndex, Metric
+from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 from tqdm import tqdm
 
 from src.news_seg.models.dh_segment import DhSegment
@@ -163,7 +165,8 @@ class Trainer:
             summary: SummaryWriter,
             load: Union[str, None] = None,
             batch_size: int = BATCH_SIZE,
-            learningrate: float = LEARNING_RATE
+            learningrate: float = LEARNING_RATE,
+            weight_decay: float = WEIGHT_DECAY
     ):
         """
         Trainer-class to train DhSegment Model
@@ -184,6 +187,7 @@ class Trainer:
         self.batch_size: int = batch_size
         self.best_step = 0
         self.loss = args.loss
+        self.num_processes = args.num_processes
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -193,7 +197,7 @@ class Trainer:
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
-            self.model.parameters(), lr=learningrate, weight_decay=WEIGHT_DECAY
+            self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
 
         # load data
@@ -226,6 +230,10 @@ class Trainer:
             shuffle=True,
             num_workers=args.num_workers,
             drop_last=True,
+            prefetch_factor=args.prefetch_factor,
+            persistent_workers=True,
+            pin_memory=True,
+
         )
         self.val_loader = DataLoader(
             validation_set,
@@ -233,6 +241,9 @@ class Trainer:
             shuffle=False,
             num_workers=args.num_workers,
             drop_last=True,
+            prefetch_factor=args.prefetch_factor,
+            persistent_workers=True,
+            pin_memory=True,
         )
         self.test_loader = DataLoader(
             test_set,
@@ -250,6 +261,31 @@ class Trainer:
 
         self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
+    @staticmethod
+    def compute_scores(pred: torch.Tensor, targets: torch.Tensor, confusion_metric: MulticlassConfusionMatrix,
+                       jaccard_fun: Metric, accuracy_fun: MulticlassAccuracy) -> \
+            Tuple[float, float, torch.Tensor]:
+        """
+        Applies argmax on the channel dimension of the prediction to obtain int class values.
+        Then computes jaccard, accuracy and multi class csi score (critical sucess index)
+        :param confusion_metric:
+        :param jaccard_fun:
+        :param accuracy_fun:
+        :param pred: predicition [B,C,H,W]
+        :param targets: target [B,H,W]
+        """
+        pred = torch.argmax(pred, dim=1).type(torch.uint8)
+
+        print("argmax")
+        jaccard = jaccard_fun(pred.flatten(), targets.flatten())
+        print("jaccard")
+        accuracy = accuracy_fun(pred.flatten(), targets.flatten())
+        print("acc")
+        batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
+        print("acc2")
+
+        return jaccard, accuracy, batch_class_acc
+
     def train(self, epochs: int = 1) -> None:
         """
         executes all training epochs. After each epoch a validation round is performed.
@@ -259,6 +295,7 @@ class Trainer:
 
         self.model.to(self.device)
         self.cross_entropy.to(self.device)
+        end = time()
 
         for self.epoch in range(self.epoch, epochs + 1):
             self.model.train()
@@ -269,13 +306,24 @@ class Trainer:
                     unit="batche(s)",
             ) as pbar:
                 for images, targets in self.train_loader:
-                    preds = self.model(images.to(self.device))
-                    loss = self.apply_loss(preds, targets.to(self.device))
+                    start = time()
+                    print(f"Batch Start takes:{start - end}")
+
+                    with torch.autocast(self.device):
+                        preds = self.model(images.to(self.device))
+                        pred = time()
+                        print(f"prediction takes:{pred - start}")
+                        loss = self.apply_loss(preds, targets.to(self.device))
+                    loss_time = time()
+                    print(f"prediction + loss take:{loss_time - pred}")
 
                     # Backpropagation
                     self.optimizer.zero_grad(set_to_none=True)
                     loss.backward()
                     self.optimizer.step()
+
+                    end = time()
+                    print(f"backwards step takes:{end - pred}")
 
                     # update tensor board logs
                     self.step += 1
@@ -298,20 +346,20 @@ class Trainer:
                     pbar.set_postfix(**{"loss (batch)": loss.item()})
 
                     # delete data from gpu cache
-                    del images, targets, loss, preds
+                    del images, loss, targets, preds
                     torch.cuda.empty_cache()
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        loss, acc = self.validation()
+                        val_loss, acc = self.validation()
 
                         # early stopping
-                        score = loss + (1 - acc)
+                        score = val_loss + (1 - acc.item())
                         if score < self.best_score:
                             # update cur_best value
-                            self.best_score = loss + (1 - acc)
+                            self.best_score = val_loss + (1 - acc)
                             self.best_step = self.step
                             print(
-                                f"saved model because of early stopping with value {loss + (1 - acc)}"
+                                f"saved model because of early stopping with value {val_loss + (1 - acc)}"
                             )
 
                             self.model.module.save(self.save_model + "_best")  # type: ignore
@@ -360,6 +408,9 @@ class Trainer:
         Is also being used for test-evaluation at the end of training with another dataset.
         :return: None
         """
+        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS)
+        accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted")
+        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS)
         loader = self.test_loader if test_validation else self.val_loader
         self.model.eval()
         size = len(loader)
@@ -368,31 +419,68 @@ class Trainer:
             0.0,
             0.0,
             0.0,
-            np.zeros(OUT_CHANNELS),
-            np.zeros(OUT_CHANNELS),
+            torch.zeros(OUT_CHANNELS),
+            torch.zeros(OUT_CHANNELS),
         )
+        end = time()
 
         for images, targets in tqdm(
                 loader, desc="validation_round", total=size, unit="batch(es)"
         ):
-            pred = self.model(images.to(self.device))
-            batch_loss = self.apply_loss(pred, targets.to(self.device))
+            start = time()
+            print(f"Val Start takes:{start - end}")
+            with torch.autocast(self.device):
+                pred = self.model(images.to(self.device))
+                end = time()
+                print(f"Val prediction takes:{end - start}")
+                batch_loss = self.apply_loss(pred, targets.to(self.device))
+            loss_time = time()
+            print(f"Val loss takes:{loss_time - end}")
 
             # detach results
-            pred = torch.nn.functional.softmax(pred).detach().cpu().numpy()
-            targets = targets.detach().cpu().numpy()
+            pred = torch.nn.functional.softmax(pred, dim=1).detach().cpu()
+            targets = targets.detach().cpu()
             loss += batch_loss.item()
 
-            pred = np.argmax(pred, axis=1)
-            jaccard += jaccard_score(targets.flatten(), pred.flatten(), average="macro")
-            accuracy += accuracy_score(targets.flatten(), pred.flatten())
-            batch_class_acc = multi_class_csi(
-                torch.tensor(pred).flatten(), torch.tensor(targets).flatten()
-            )
-            class_acc += np.nan_to_num(batch_class_acc)
-            class_sum += ~np.isnan(
-                batch_class_acc
-            )  # ignore pylint error. This comparison detects nan values
+            # pred_batches = torch.split(pred, pred.shape[0] // self.num_processes)
+            # target_batches = torch.split(targets, targets.shape[0] // self.num_processes)
+
+            batch_class_acc = torch.zeros(OUT_CHANNELS)
+            batch_class_sum = torch.zeros(OUT_CHANNELS)
+
+            # with Pool(processes=self.num_processes) as pool:
+            #     processes = []
+            #     for i in range(self.num_processes):
+            #         processes.append(pool.apply_async(func=self.compute_scores,
+            #                                           args=(pred_batches[i].clone(), target_batches[i].clone(),
+            #                                                 confusion_metric, jaccard_fun, accuracy_fun)))
+            #     pool.close()
+            #     pool.join()
+            #
+            # for process in processes:
+            #     print(process.ready())
+            #     result = process.get()
+            #     jaccard += result[0]
+            #     accuracy += result[1]
+            #     batch_class_acc += torch.nan_to_num(result[2])
+            #     batch_class_sum += 1 - torch.isnan(
+            #         batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
+
+
+            result = self.compute_scores(pred, targets, confusion_metric, jaccard_fun,
+                                         accuracy_fun)
+
+            jaccard += result[0]
+            accuracy += result[1]
+            batch_class_acc += torch.nan_to_num(result[2])
+            batch_class_sum += 1 - torch.isnan(
+                batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
+
+            class_acc += batch_class_acc
+            class_sum += batch_class_sum
+
+            scores = time()
+            print(f"Val scores take:{scores - loss_time}")
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
@@ -401,13 +489,16 @@ class Trainer:
             warnings.simplefilter("ignore")
             self.val_logging(
                 loss / size,
-                jaccard / size,
-                accuracy / size,
-                class_acc / class_sum,
+                jaccard / (size * self.num_processes),
+                accuracy / (size * self.num_processes),
+                class_acc / (class_sum),
                 test_validation,
             )
 
         self.model.train()
+        logging = time()
+        print(f"Val logging takes:{logging - scores}")
+        end = time()
 
         return loss / size, accuracy / size
 
@@ -527,6 +618,15 @@ def get_args() -> argparse.Namespace:
         help="Learning rate",
         dest="lr",
     )
+    parser.add_argument(
+        "--weight-decay",
+        "-wd",
+        metavar="WD",
+        type=float,
+        default=WEIGHT_DECAY,
+        help="Weight decay L2 regularization",
+        dest="wd",
+    )
     # pylint: disable=duplicate-code
     parser.add_argument(
         "--scale",
@@ -607,6 +707,20 @@ def get_args() -> argparse.Namespace:
         help="Number of workers for the Dataloader",
     )
     parser.add_argument(
+        "--num-processes",
+        "-np",
+        type=int,
+        default=4,
+        help="Number of processes for the multi process sections within training",
+    )
+    parser.add_argument(
+        "--prefetch-factor",
+        "-pf",
+        type=int,
+        default=2,
+        help="Number of batches that will be loaded by each worker in advance.",
+    )
+    parser.add_argument(
         "--model",
         "-m",
         type=str,
@@ -655,8 +769,18 @@ if __name__ == "__main__":
         save_score=f"scores/model_{parameter_args.name}",
         batch_size=parameter_args.batch_size,
         learningrate=parameter_args.lr,
+        weight_decay=parameter_args.wd,
         summary=summary_writer,
         args=parameter_args
     )
 
+    print(f"Training run {parameter_args.name}")
+    print(f"Batchsize {parameter_args.batch_size}")
+    print(f"LR {parameter_args.lr}")
+    print(f"Weight Decay {parameter_args.wd}")
+    print(f"crop-size {parameter_args.crop_size}")
+    print(f"model {parameter_args.model}")
+    print(f"num-workers {parameter_args.num_workers}")
+    print(f"prefetch factor {parameter_args.prefetch_factor}")
+    print(f"gpu-count {parameter_args.gpu_count}")
     trainer.train(epochs=parameter_args.epochs)
