@@ -278,9 +278,9 @@ class Trainer:
         pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
         print("argmax")
-        jaccard = jaccard_fun(pred.flatten(), targets.flatten())
+        jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
         print("jaccard")
-        accuracy = accuracy_fun(pred.flatten(), targets.flatten())
+        accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
         print("acc")
         batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
         print("acc2")
@@ -316,7 +316,7 @@ class Trainer:
                         print(f"prediction takes:{pred - start}")
                         loss = self.apply_loss(preds, targets.to(self.device))
                     loss_time = time()
-                    print(f"prediction + loss take:{loss_time - pred}")
+                    print(f"loss takes:{loss_time - pred}")
 
                     # Backpropagation
                     self.optimizer.zero_grad(set_to_none=True)
@@ -445,30 +445,8 @@ class Trainer:
             targets = targets.detach().cpu()
             loss += batch_loss.item()
 
-            # pred_batches = torch.split(pred, pred.shape[0] // self.num_processes)
-            # target_batches = torch.split(targets, targets.shape[0] // self.num_processes)
-
             batch_class_acc = torch.zeros(OUT_CHANNELS)
             batch_class_sum = torch.zeros(OUT_CHANNELS)
-
-            # with Pool(processes=self.num_processes) as pool:
-            #     processes = []
-            #     for i in range(self.num_processes):
-            #         processes.append(pool.apply_async(func=self.compute_scores,
-            #                                           args=(pred_batches[i].clone(), target_batches[i].clone(),
-            #                                                 confusion_metric, jaccard_fun, accuracy_fun)))
-            #     pool.close()
-            #     pool.join()
-            #
-            # for process in processes:
-            #     print(process.ready())
-            #     result = process.get()
-            #     jaccard += result[0]
-            #     accuracy += result[1]
-            #     batch_class_acc += torch.nan_to_num(result[2])
-            #     batch_class_sum += 1 - torch.isnan(
-            #         batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
-
 
             result = self.compute_scores(pred, targets, confusion_metric, jaccard_fun,
                                          accuracy_fun)
@@ -501,7 +479,6 @@ class Trainer:
         self.model.train()
         logging = time()
         print(f"Val logging takes:{logging - scores}")
-        end = time()
 
         return loss / size, accuracy / size
 
