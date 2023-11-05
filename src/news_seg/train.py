@@ -277,13 +277,9 @@ class Trainer:
         """
         pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
-        print("argmax")
         jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
-        print("jaccard")
         accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
-        print("acc")
         batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
-        print("acc2")
 
         return jaccard, accuracy, batch_class_acc
 
