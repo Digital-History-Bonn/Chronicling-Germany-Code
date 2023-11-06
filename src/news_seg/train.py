@@ -7,6 +7,7 @@ import datetime
 import json
 import os
 import warnings
+from multiprocessing import Queue, Process
 from time import time
 from typing import Tuple, Union, Any
 
@@ -468,12 +469,9 @@ class Trainer:
             loss += batch_loss.item()
 
             accuracy, batch_class_acc, batch_class_sum, jaccard = self.calculate_scores(accuracy, jaccard,
-                                                                                                  loss_time, pred,
-                                                                                                  targets, inputs,
-                                                                                                  results)
-
-
-
+                                                                                        loss_time, pred,
+                                                                                        targets, inputs,
+                                                                                        results)
 
             scores = time()
             print(f"Val scores take:{scores - loss_time}")
@@ -557,7 +555,7 @@ class Trainer:
         :return: ndarray version of result
         """
         tensor = torch.permute(tensor, permutation).flatten(0, 2)
-        return torch.stack(torch.split(tensor, tensor.shape[0] // self.num_scores_splits)).numpy() # type: ignore
+        return torch.stack(torch.split(tensor, tensor.shape[0] // self.num_scores_splits)).numpy()  # type: ignore
 
     def val_logging(
             self,
