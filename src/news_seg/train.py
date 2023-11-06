@@ -6,7 +6,6 @@ import argparse
 import datetime
 import json
 import os
-import queue  # imported for using queue.Empty exception
 import warnings
 from multiprocessing import Process, Queue
 from time import time
@@ -166,35 +165,24 @@ def compute_scores(inputs: Queue, results: Queue) -> bool:
     :param pred: predicition [B,C,H,W]
     :param targets: target [B,H,W]
     """
-    print("argmaxwhile")
     while True:
-        try:
-            print("get data")
-            data = inputs.get_nowait()
-            print("done data")
-        except queue.Empty:
-            print("queue empty")
-            break
-        else:
-            print("argmax0")
-            pred = torch.tensor(data[0])
-            targets = torch.tensor(data[1])
+        data = inputs.get()
+        pred = torch.tensor(data[0])
+        targets = torch.tensor(data[1])
+        del data
 
-            jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS)
-            accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted")
-            confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS)
+        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS)
+        accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted")
+        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS)
 
-            print("argmax0")
-            pred = torch.argmax(pred, dim=1).type(torch.uint8)
+        pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
-            jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
-            accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
-            batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
+        jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
+        accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
+        batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
 
-            # results.put(jaccard, accuracy, batch_class_acc.tolist()])
-            results.put(jaccard)
-    print("argmax end")
-    return True
+        del pred, targets
+        results.put([jaccard, accuracy, batch_class_acc.tolist()])
 
 
 class Trainer:
@@ -231,6 +219,8 @@ class Trainer:
         self.best_step = 0
         self.loss = args.loss
         self.num_processes = args.num_processes
+        self.num_scores_splits = args.num_scores_splits
+        self.queue_size = args.queue_size
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -314,8 +304,6 @@ class Trainer:
         self.model.to(self.device)
         self.cross_entropy.to(self.device)
         end = time()
-
-        self.validation()
 
         for self.epoch in range(self.epoch, epochs + 1):
             self.model.train()
@@ -444,6 +432,24 @@ class Trainer:
         )
         end = time()
 
+        inputs: Queue = Queue(self.queue_size)
+        results: Queue = Queue()
+        processes = []
+        print("process start")
+        # creating processes
+        for i in range(self.num_processes):
+            # print(f"{i} for loop 1")
+            process = Process(target=compute_scores,
+                              args=(inputs, results))
+            # print(f"{i} for loop 2")
+            processes.append(process)
+            # print(f"{i} for loop 3")
+            processes[i].start()
+            # print(f"{i} for loop 4")
+
+        pstart_time = time()
+        print(f"process start take:{pstart_time - end}")
+
         for images, targets in tqdm(
                 loader, desc="validation_round", total=size, unit="batch(es)"
         ):
@@ -462,52 +468,16 @@ class Trainer:
             targets = targets.detach().cpu()
             loss += batch_loss.item()
 
-            pred_batches = torch.stack(torch.split(pred, pred.shape[0] // self.num_processes)).numpy()
-            target_batches = torch.stack(torch.split(targets, targets.shape[0] // self.num_processes)).numpy()
-            print(pred_batches.shape)
+            accuracy, batch_class_acc, batch_class_sum, jaccard = self.calculate_scores(accuracy, jaccard,
+                                                                                                  loss_time, pred,
+                                                                                                  targets, inputs,
+                                                                                                  results)
 
-            batch_class_acc = torch.zeros(OUT_CHANNELS)
-            batch_class_sum = torch.zeros(OUT_CHANNELS)
 
-            inputs = Queue()
-            results = Queue()
-            processes = []
 
-            for index in range(self.num_processes):
-                inputs.put([pred_batches[index], target_batches[index]])
 
-            print("process start")
-            # creating processes
-            for _ in range(self.num_processes):
-                process = Process(target=compute_scores,
-                                  args=(inputs, results))
-                processes.append(process)
-                process.start()
-
-            print("process run")
-            # completing process
-            for process in processes:
-                process.join()
-            print("process end")
-
-            for _ in range(self.num_processes):
-                result = results.get()
-                jaccard = result
-                accuracy = 0.0
-                # jaccard += result[0]
-                # accuracy += result[1]
-                # batch_class_acc += torch.nan_to_num(torch.tensor(result[2]))
-                # batch_class_sum += 1 - torch.isnan(
-                #     batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
-
-            # result = self.compute_scores(pred, targets, confusion_metric, jaccard_fun,
-            #                              accuracy_fun)
-            #
-            # jaccard += result[0]
-            # accuracy += result[1]
-            # batch_class_acc += torch.nan_to_num(result[2])
-            # batch_class_sum += 1 - torch.isnan(
-            #     batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
+            scores = time()
+            print(f"Val scores take:{scores - loss_time}")
 
             class_acc += batch_class_acc
             class_sum += batch_class_sum
@@ -517,6 +487,9 @@ class Trainer:
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
+
+        for process in processes:
+            process.terminate()
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -531,9 +504,61 @@ class Trainer:
         self.model.train()
         logging = time()
         print(f"Val logging takes:{logging - scores}")
-        end = time()
 
         return loss / size, accuracy / size
+
+    def calculate_scores(self, accuracy: float, jaccard: float, loss_time: float, pred: torch.Tensor,
+                         targets: torch.Tensor, inputs: Queue, results: Queue) -> Tuple[
+        float, torch.Tensor, torch.Tensor, float]:
+        """
+        Calculates jaccard, accuracy and mutliclass csi score in parallel on multiple processes. Because of the volume
+        of data that has to be processed the queue ist being filled gradually and has a max size. Only after a process
+        has taken an element out of the queue, a new one will be put in. When every result has been taken out of the
+        result queue, all processes are terminated.
+        :param results: result Queue that will be acessed to receive results from processes
+        :param inputs: inputs Queue that will be filled for processes to take from
+        :param accuracy: accuracy sum that will be added to
+        :param jaccard: jaccard sum that will be added to
+        :param loss_time: debug time value
+        :param pred: pred tensor [B, C, H, W]
+        :param targets: traget tensor [B, H, W]
+        :return: score values including multi class sum
+        """
+
+        pred_batches = self.split_batches(pred, (0, 2, 3, 1))
+        target_batches = self.split_batches(targets, (0, 1, 2))
+        print(pred_batches.shape)
+        batch_class_acc = torch.zeros(OUT_CHANNELS)
+        batch_class_sum = torch.zeros(OUT_CHANNELS)
+
+        for index in range(self.num_scores_splits):
+            inputs.put([pred_batches[index], target_batches[index]])
+        put_time = time()
+        print(f"queue put take:{put_time - loss_time}")
+
+        for _ in range(self.num_scores_splits):
+            result = results.get()
+            jaccard += result[0]
+            accuracy += result[1]
+            batch_class_acc += torch.nan_to_num(torch.tensor(result[2]))
+            batch_class_sum += 1 - torch.isnan(
+                batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
+
+        get_time = time()
+        print(f"queue get take:{get_time - put_time}")
+
+        return accuracy, batch_class_acc, batch_class_sum, jaccard
+
+    def split_batches(self, tensor: torch.Tensor, permutation: Tuple[int, ...]) -> ndarray:
+        """
+        Splits tensor into self.num_scores_splits chunks. This is necessary to not overload the multiprocessing Queue.
+        :param permutation: permutation for this tensor. On a tensor with feature dimensions,
+        the feature dimension should be transferred to the end. Everything else has to stay in the same order.
+        :param tensor: [B,C,H,W]
+        :return: ndarray version of result
+        """
+        tensor = torch.permute(tensor, permutation).flatten(0, 2)
+        return torch.stack(torch.split(tensor, tensor.shape[0] // self.num_scores_splits)).numpy() # type: ignore
 
     def val_logging(
             self,
@@ -747,11 +772,27 @@ def get_args() -> argparse.Namespace:
         help="Number of workers for the Dataloader",
     )
     parser.add_argument(
+        "--queue-size",
+        "-qs",
+        type=int,
+        default=32,
+        help="Max number of elements that are allowed to be in a Queue at the same time. This is necessary to prevent a"
+             "python specific deadlock issue if the amount of data ist too large in a multiprocessing context. "
+             "If training stops in the validation phase without error, use a smaller number for this.",
+    )
+    parser.add_argument(
         "--num-processes",
         "-np",
         type=int,
         default=4,
         help="Number of processes for the multi process sections within training",
+    )
+    parser.add_argument(
+        "--num-scores-splits",
+        "-nss",
+        type=int,
+        default=128,
+        help="Number of chunks that prediction data in validation is split to be processed in parallel",
     )
     parser.add_argument(
         "--prefetch-factor",
@@ -833,6 +874,9 @@ def main() -> None:
     print(f"num-workers {parameter_args.num_workers}")
     print(f"prefetch factor {parameter_args.prefetch_factor}")
     print(f"gpu-count {parameter_args.gpu_count}")
+    print(f"num-processes {parameter_args.num_processes}")
+    print(f"num-scores-splits {parameter_args.num_scores_splits}")
+    print(f"queue-size {parameter_args.queue_size}")
 
     duration = trainer.train(epochs=parameter_args.epochs)
     with open(f"logs/worker-experiment/{parameter_args.id}.json", "w", encoding="utf-8") as file:
