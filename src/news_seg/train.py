@@ -360,7 +360,7 @@ class Trainer:
                         val_loss, acc, jac = self.validation()
 
                         # early stopping
-                        score: float = val_loss + (1 - acc) + (1 - jac) # type: ignore
+                        score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
                         if score < self.best_score:
                             # update cur_best value
                             self.best_score = score
@@ -448,7 +448,7 @@ class Trainer:
             print(f"Val loss takes:{loss_time - end}")
 
             accuracy, class_acc, class_sum, jaccard = self.evaluate_batch(accuracy, class_acc,
-                                                                                class_sum, jaccard, pred, targets)
+                                                                          class_sum, jaccard, pred, targets)
             loss += batch_loss
             scores = time()
             print(f"Val scores take:{scores - loss_time}")
@@ -630,7 +630,7 @@ def get_args() -> argparse.Namespace:
         "--id",
         metavar="ID",
         type=str,
-        default="default",
+        default=None,
         help="Id for experiment runs. Dictates the filename of custom log files.",
     )
     # pylint: disable=duplicate-code
@@ -839,7 +839,8 @@ def main() -> None:
     print(f"num-scores-splits {parameter_args.num_scores_splits}")
 
     duration = trainer.train(epochs=parameter_args.epochs)
-    with open(f"logs/worker-experiment/{parameter_args.id}.json", "w", encoding="utf-8") as file:
+    with open(f"logs/worker-experiment/{parameter_args.num_workers}_{parameter_args.prefetch_factor}.json", "w",
+              encoding="utf-8") as file:
         json.dump((parameter_args.num_workers, parameter_args.prefetch_factor, duration), file)
 
 
