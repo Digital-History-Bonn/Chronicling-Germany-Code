@@ -60,7 +60,7 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 
 class Bottleneck(nn.Module):
     """
-    Bottleneck Layer from ResNet
+    Bottleneck Layer from ResNet https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     expansion = 4
@@ -128,7 +128,7 @@ class Bottleneck(nn.Module):
 
 class Block(nn.Module):
     """
-    Encoder Block
+    Encoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     def __init__(self, layers: List[Bottleneck], planes: int, conv_out: bool = False):
@@ -171,7 +171,7 @@ class Block(nn.Module):
 
 class UpScaleBlock(nn.Module):
     """
-    Decoder Block
+    Decoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     def __init__(self, in_up: int, in_copy: int, out_channels: int):
@@ -203,7 +203,7 @@ class UpScaleBlock(nn.Module):
 
 class DhSegment(nn.Module):
     """
-    DhSegment Model
+    DhSegment Model architecture is from https://arxiv.org/abs/1804.10371
     """
 
     def __init__(
@@ -471,7 +471,7 @@ def _dh_segment(
     arch: str, layers: List[int], pretrained: bool, progress: bool, **kwargs: Any
 ) -> nn.Module:
     """
-    create a dhSegment Model
+    create a dhSegment Model from https://arxiv.org/abs/1804.10371
     :param arch: Spring name of the ResNet-architecture for loading pretrained weights
     :param layers: List of Numbers of Bottleneck Blocks in ResNet-Blocks
     :param pretrained: bool if pretrained ResNet-weights should be load

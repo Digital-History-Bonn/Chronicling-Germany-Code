@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 class Encoder(nn.Module):
     """
-    CNN Encoder Class, corresponding to the first resnet50 layers.
+    CNN Encoder Class, expanding the first resnet50 layers, by appending cbam modules at the end of the last 4 layers.
+    (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py and https://github.com/Peachypie98/CBAM)
     """
 
     def __init__(self, dhsegment: DhSegment, in_channels: int):
@@ -101,7 +102,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     """
-    CNN Decoder class, corresponding to DhSegment Decoder
+    CNN Decoder class, corresponding to DhSegment Decoder from https://arxiv.org/abs/1804.10371
     """
 
     def __init__(self, dhsegment: DhSegment):
@@ -134,13 +135,13 @@ class Decoder(nn.Module):
 
 
 class DhSegmentCBAM(nn.Module):
-    """Implements DhSegment combined with CBAM modules after encoder layers"""
+    """Implements DhSegment combined with CBAM modules after encoder layers. https://arxiv.org/abs/1804.10371 and
+    https://github.com/Peachypie98/CBAM"""
 
     def __init__(
         self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool =True
     ) -> None:
         """
-        :param config:
         :param in_channels:
         :param out_channel:
         :param zero_head:

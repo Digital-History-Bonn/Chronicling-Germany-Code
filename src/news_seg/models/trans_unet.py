@@ -37,25 +37,26 @@ VIT_BACKBONE = "ViT-B_16"
 
 
 def np2th(weights: Any, conv: bool = False) -> torch.Tensor:
-    """Possibly convert HWIO to OIHW."""
+    """Possibly convert HWIO to OIHW. from https://github.com/Beckschen/TransUNet"""
     if conv:
         weights = weights.transpose([3, 2, 0, 1])
     return torch.from_numpy(weights) #type: ignore
 
 
-def swish(x: Any) -> Any:
+def swish(inputs: Any) -> Any:
     """
-    :param x: 
-    :return: 
+    from https://github.com/Beckschen/TransUNet
+    :param inputs:
+    :return:
     """
-    return x * torch.sigmoid(x)
+    return inputs * torch.sigmoid(inputs)
 
 
 ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "swish": swish}
 
 
 class Attention(nn.Module):
-    """Attention Class"""
+    """Attention Class from https://github.com/Beckschen/TransUNet"""
 
     def __init__(self, config: ConfigDict):
         super().__init__()
@@ -73,14 +74,14 @@ class Attention(nn.Module):
 
         self.softmax = Softmax(dim=-1)
 
-    def transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
+    def transpose_for_scores(self, inputs: torch.Tensor) -> torch.Tensor:
         """
-        :param x:
+        :param inputs:
         :return:
         """
-        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
-        x = x.view(*new_x_shape)
-        return x.permute(0, 2, 1, 3) #type: ignore
+        new_x_shape = inputs.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        inputs = inputs.view(*new_x_shape)
+        return inputs.permute(0, 2, 1, 3) #type: ignore
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         """
@@ -112,6 +113,9 @@ class Attention(nn.Module):
 
 class Embeddings(nn.Module):
     """Construct the embeddings from patch, position embeddings.
+    Removed fixed size embeddings and added sigmoid embeddings
+    from https://github.com/tatp22/multidim-positional-encoding.
+    The rest is from https://github.com/Beckschen/TransUNet
     """
 
     def __init__(self, config: ConfigDict, in_channels: int = 3):
@@ -149,7 +153,7 @@ class Embeddings(nn.Module):
 
 
 class Block(nn.Module):
-    """Attention Block class"""
+    """Attention Block class from https://github.com/Beckschen/TransUNet"""
 
     def __init__(self, config: ConfigDict):
         super().__init__()
@@ -162,18 +166,18 @@ class Block(nn.Module):
     def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
         Attention Block forward
-        :param tensor_x: 
-        :return: 
+        :param tensor_x:
+        :return:
         """
-        h = tensor_x
+        hidden = tensor_x
         tensor_x = self.attention_norm(tensor_x)
         tensor_x = self.attn(tensor_x)
-        tensor_x = tensor_x + h
+        tensor_x = tensor_x + hidden
 
-        h = tensor_x
+        hidden = tensor_x
         tensor_x = self.ffn_norm(tensor_x)
         tensor_x = self.ffn(tensor_x)
-        tensor_x = tensor_x + h
+        tensor_x = tensor_x + hidden
         return tensor_x
 
     def load_from(self, weights: Any, n_block: Any) -> Any:
@@ -223,7 +227,7 @@ class Block(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    """Transformer Encoder"""
+    """Transformer Encoder from https://github.com/Beckschen/TransUNet"""
 
     def __init__(self, config: ConfigDict):
         """
@@ -250,7 +254,7 @@ class TransformerEncoder(nn.Module):
 
 
 class Mlp(nn.Module):
-    """Mlp Module"""
+    """Mlp Module from https://github.com/Beckschen/TransUNet"""
 
     def __init__(self, config: ConfigDict):
         super().__init__()
@@ -286,7 +290,8 @@ class Mlp(nn.Module):
 # pylint: disable=duplicate-code
 class Encoder(nn.Module):
     """
-    CNN Encoder Class, corresponding to the first resnet50 layers.
+    CNN Encoder Class, corresponding to the first resnet50 layers
+     from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     def __init__(self, dhsegment: DhSegment, in_channels: int):
@@ -351,7 +356,8 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     """
-    CNN Decoder class, corresponding to DhSegment Decoder
+    CNN Decoder class, expanding the DhSegment Decoder (https://arxiv.org/abs/1804.10371) to handle transformer
+    tokens, which are being converted back to 2d data in the first step of this Decoder.
     """
 
     def __init__(self, dhsegment: DhSegment, config: ConfigDict):
@@ -373,12 +379,14 @@ class Decoder(nn.Module):
     def forward(self, transformer_result: torch.Tensor, encoder_results: Dict[str, torch.Tensor],
                 patch_shape: Tuple[int, int]) -> torch.Tensor:
         """
-        forward path of cnn decoder
+        forward path of cnn decoder. First converting transformer tokens to 2d Data. Then applying decoder
+        upsampling layers.
         :param transformer_result: transformer output, as matrix
         :param encoder_results: contains saved values for scip connections of unet
         :return: a decoder result
         """
 
+        # Convert transformer tokens
         batch, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
         transformer_result = transformer_result.contiguous().view(batch * n_patch, hidden, 1, 1)
         tensor_x: torch.Tensor = self.up_conv(transformer_result)
@@ -388,6 +396,7 @@ class Decoder(nn.Module):
         tensor_x = tensor_x.contiguous().view(batch, self.hidden_output, patch_shape[0] * self.patch_size[0],
                                               patch_shape[1] * self.patch_size[1])
 
+        #actual decoder
         tensor_x = self.up_block1(tensor_x, encoder_results["copy_3"])
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
@@ -400,7 +409,7 @@ class Decoder(nn.Module):
 
 
 class Transformer(nn.Module):
-    """Implements Transformer"""
+    """Implements Transformer from https://github.com/Beckschen/TransUNet"""
 
     def __init__(self, config: ConfigDict):
         """
@@ -422,7 +431,7 @@ class Transformer(nn.Module):
 
 
 class Conv2dReLU(nn.Sequential):
-    """Conv2drelu class"""
+    """Conv2drelu class from https://github.com/Beckschen/TransUNet"""
 
     def __init__(
             self,
@@ -443,13 +452,14 @@ class Conv2dReLU(nn.Sequential):
         )
         relu = nn.ReLU(inplace=True)
 
-        bn = nn.BatchNorm2d(out_channels)
+        batch_norm = nn.BatchNorm2d(out_channels)
 
-        super().__init__(conv, bn, relu)
+        super().__init__(conv, batch_norm, relu)
 
 
 class VisionTransformer(nn.Module):
-    """Implements Trans-UNet vision transformer"""
+    """Implements Trans-UNet vision transformer.
+    Most layers are from https://github.com/Beckschen/TransUNet"""
 
     def __init__(self, in_channels: int = 3, out_channel: int = 3,
                  load_backbone: bool =False, load_resnet_weights: bool =True) -> None:
