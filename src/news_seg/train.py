@@ -217,7 +217,6 @@ class Trainer:
         self.loss = args.loss
         self.num_processes = args.num_processes
         self.num_scores_splits = args.num_scores_splits
-        self.queue_size = args.queue_size
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -458,8 +457,8 @@ class Trainer:
             warnings.simplefilter("ignore")
             self.val_logging(
                 loss / size,
-                jaccard / (size * self.num_processes),
-                accuracy / (size * self.num_processes),
+                jaccard / (size * self.num_scores_splits),
+                accuracy / (size * self.num_scores_splits),
                 (class_acc / class_sum).detach().cpu().numpy(),
                 test_validation,
             )
@@ -737,15 +736,6 @@ def get_args() -> argparse.Namespace:
         help="Number of workers for the Dataloader",
     )
     parser.add_argument(
-        "--queue-size",
-        "-qs",
-        type=int,
-        default=32,
-        help="Max number of elements that are allowed to be in a Queue at the same time. This is necessary to prevent a"
-             "python specific deadlock issue if the amount of data ist too large in a multiprocessing context. "
-             "If training stops in the validation phase without error, use a smaller number for this.",
-    )
-    parser.add_argument(
         "--num-processes",
         "-np",
         type=int,
@@ -841,7 +831,6 @@ def main() -> None:
     print(f"gpu-count {parameter_args.gpu_count}")
     print(f"num-processes {parameter_args.num_processes}")
     print(f"num-scores-splits {parameter_args.num_scores_splits}")
-    print(f"queue-size {parameter_args.queue_size}")
 
     duration = trainer.train(epochs=parameter_args.epochs)
     with open(f"logs/worker-experiment/{parameter_args.id}.json", "w", encoding="utf-8") as file:
