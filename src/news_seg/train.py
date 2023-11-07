@@ -7,13 +7,14 @@ import datetime
 import json
 import os
 import warnings
-from multiprocessing import Queue, Process
+from multiprocessing.pool import ThreadPool
 from time import time
 from typing import Tuple, Union, Any
 
 import numpy as np
 import torch
 from numpy import ndarray
+from torch import Tensor
 from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
@@ -35,7 +36,7 @@ from src.news_seg.utils import multi_class_csi
 EPOCHS = 1
 DATALOADER_WORKER = 1
 IN_CHANNELS, OUT_CHANNELS = 3, 10
-VAL_NUMBER = 5
+VAL_NUMBER = 3
 
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
@@ -156,33 +157,29 @@ def focal_loss(
     return torch.sum(loss, dim=1)  # type: ignore
 
 
-def compute_scores(inputs: Queue, results: Queue) -> bool:
+def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     """
     Applies argmax on the channel dimension of the prediction to obtain int class values.
     Then computes jaccard, accuracy and multi class csi score (critical sucess index)
-    :param inputs: inputs Queue containing pred and target
-    :param results: results Queue stores result lists containing 10 values each
-    :param pred: predicition [B,C,H,W]
-    :param targets: target [B,H,W]
+    :param data: Combined and flattened prediction and Target with shape [P, C] P being number of pixels.
+    The last Channel contains target data.
     """
     while True:
-        data = inputs.get()
-        pred = torch.tensor(data[0])
-        targets = torch.tensor(data[1])
-        del data
+        pred = data[:, : -1]
+        targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
-        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS)
-        accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted")
-        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS)
+        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS).to(pred.get_device())
+        accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
+        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
 
         pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
+        # pylint: disable=not-callable
         jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
         accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
         batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
 
-        del pred, targets
-        results.put([jaccard, accuracy, batch_class_acc.tolist()])
+        return jaccard, accuracy, batch_class_acc
 
 
 class Trainer:
@@ -432,21 +429,6 @@ class Trainer:
         )
         end = time()
 
-        inputs: Queue = Queue(self.queue_size)
-        results: Queue = Queue()
-        processes = []
-        print("process start")
-        # creating processes
-        for i in range(self.num_processes):
-            # print(f"{i} for loop 1")
-            process = Process(target=compute_scores,
-                              args=(inputs, results))
-            # print(f"{i} for loop 2")
-            processes.append(process)
-            # print(f"{i} for loop 3")
-            processes[i].start()
-            # print(f"{i} for loop 4")
-
         pstart_time = time()
         print(f"process start take:{pstart_time - end}")
 
@@ -459,25 +441,12 @@ class Trainer:
                 pred = self.model(images.to(self.device))
                 end = time()
                 print(f"Val prediction takes:{end - start}")
-                batch_loss = self.apply_loss(pred, targets.to(self.device))
+                batch_loss = self.apply_loss(pred, targets.to(self.device)).item()
             loss_time = time()
             print(f"Val loss takes:{loss_time - end}")
 
-            # detach results
-            pred = torch.nn.functional.softmax(pred, dim=1).detach().cpu()
-            targets = targets.detach().cpu()
-            loss += batch_loss.item()
-
-            accuracy, batch_class_acc, batch_class_sum, jaccard = self.calculate_scores(accuracy, jaccard,
-                                                                                        loss_time, pred,
-                                                                                        targets, inputs,
-                                                                                        results)
-
-            scores = time()
-            print(f"Val scores take:{scores - loss_time}")
-
-            class_acc += batch_class_acc
-            class_sum += batch_class_sum
+            accuracy, class_acc, class_sum, jaccard, loss = self.evaluate_batch(accuracy, batch_loss, class_acc,
+                                                                                class_sum, jaccard, loss, pred, targets)
 
             scores = time()
             print(f"Val scores take:{scores - loss_time}")
@@ -485,16 +454,13 @@ class Trainer:
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
-        for process in processes:
-            process.terminate()
-
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.val_logging(
                 loss / size,
                 jaccard / (size * self.num_processes),
                 accuracy / (size * self.num_processes),
-                np.array(class_acc / class_sum),
+                (class_acc / class_sum).detach().cpu().numpy(),
                 test_validation,
             )
 
@@ -504,49 +470,51 @@ class Trainer:
 
         return loss / size, accuracy / size
 
-    def calculate_scores(self, accuracy: float, jaccard: float, loss_time: float, pred: torch.Tensor,
-                         targets: torch.Tensor, inputs: Queue, results: Queue) -> Tuple[
-        float, torch.Tensor, torch.Tensor, float]:
+    def evaluate_batch(self, accuracy: float, batch_loss: float, class_acc: Tensor, class_sum: Tensor,
+                       jaccard: float, loss: float, pred: Tensor, targets: Tensor) -> Tuple[
+        float, Tensor, Tensor, float, float]:
         """
-        Calculates jaccard, accuracy and mutliclass csi score in parallel on multiple processes. Because of the volume
-        of data that has to be processed the queue ist being filled gradually and has a max size. Only after a process
-        has taken an element out of the queue, a new one will be put in. When every result has been taken out of the
-        result queue, all processes are terminated.
-        :param results: result Queue that will be acessed to receive results from processes
-        :param inputs: inputs Queue that will be filled for processes to take from
-        :param accuracy: accuracy sum that will be added to
-        :param jaccard: jaccard sum that will be added to
-        :param loss_time: debug time value
-        :param pred: pred tensor [B, C, H, W]
-        :param targets: traget tensor [B, H, W]
-        :return: score values including multi class sum
+        Evaluates prediction results of one validation(or test) batch. Updates running score variables. Uses Multi
+        Threading to speed up score calculation. Despite threading inside python not being able to run on more than
+        one process, in this case that works. The reason being, that all scores are calculated using torch functions,
+        which bypass GIL by running C in the background. Using python or torch multiprocessing will not work if the
+        data being handled is too large.
+        :param accuracy: running score variable
+        :param batch_loss: running score variable
+        :param class_acc: running score variable
+        :param class_sum: running score variable
+        :param jaccard: running score variable
+        :param loss: running score variable
+        :param pred: prediction tensor [B,C,H,W]
+        :param targets: target tensor [B,H,W]
+        :return: Updated result score values
         """
-
-        pred_batches = self.split_batches(pred, (0, 2, 3, 1))
-        target_batches = self.split_batches(targets, (0, 1, 2))
-        print(pred_batches.shape)
         batch_class_acc = torch.zeros(OUT_CHANNELS)
         batch_class_sum = torch.zeros(OUT_CHANNELS)
 
-        for index in range(self.num_scores_splits):
-            inputs.put([pred_batches[index], target_batches[index]])
-        put_time = time()
-        print(f"queue put take:{put_time - loss_time}")
+        pred = torch.nn.functional.softmax(pred, dim=1)
+        targets = targets.to(self.device)
+        loss += batch_loss
 
-        for _ in range(self.num_scores_splits):
-            result = results.get()
+        pred_batches = self.split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1))
+
+        with ThreadPool(self.num_processes) as pool:
+            results = pool.map(calculate_scores, pred_batches)
+
+        for i in range(self.num_scores_splits):
+            result = results[i]
             jaccard += result[0]
             accuracy += result[1]
-            batch_class_acc += torch.nan_to_num(torch.tensor(result[2]))
+            batch_class_acc += torch.nan_to_num(result[2].detach().cpu())
             batch_class_sum += 1 - torch.isnan(
                 batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
 
-        get_time = time()
-        print(f"queue get take:{get_time - put_time}")
+        class_acc += batch_class_acc
+        class_sum += batch_class_sum
 
-        return accuracy, batch_class_acc, batch_class_sum, jaccard
+        return accuracy, class_acc, class_sum, jaccard, loss
 
-    def split_batches(self, tensor: torch.Tensor, permutation: Tuple[int, ...]) -> ndarray:
+    def split_batches(self, tensor: torch.Tensor, permutation: Tuple[int, ...]) -> torch.Tensor:
         """
         Splits tensor into self.num_scores_splits chunks. This is necessary to not overload the multiprocessing Queue.
         :param permutation: permutation for this tensor. On a tensor with feature dimensions,
@@ -555,7 +523,7 @@ class Trainer:
         :return: ndarray version of result
         """
         tensor = torch.permute(tensor, permutation).flatten(0, 2)
-        return torch.stack(torch.split(tensor, tensor.shape[0] // self.num_scores_splits)).numpy()  # type: ignore
+        return torch.stack(torch.split(tensor, tensor.shape[0] // self.num_scores_splits))  # type: ignore
 
     def val_logging(
             self,
