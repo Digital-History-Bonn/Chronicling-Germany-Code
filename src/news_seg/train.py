@@ -360,7 +360,7 @@ class Trainer:
                         val_loss, acc, jac = self.validation()
 
                         # early stopping
-                        score = val_loss + (1 - acc) + (1 - jac)
+                        score: float = val_loss + (1 - acc) + (1 - jac) # type: ignore
                         if score < self.best_score:
                             # update cur_best value
                             self.best_score = score
@@ -409,7 +409,7 @@ class Trainer:
         return torch.permute(one_hot(targets.to(self.device), num_classes=OUT_CHANNELS),
                              (0, 3, 1, 2))
 
-    def validation(self, test_validation: bool = False) -> Tuple[float, float]:
+    def validation(self, test_validation: bool = False) -> Tuple[float, float, float]:
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
         jaccard score, accuracy and multiclass accuracy are calculated over the validation set. Multiclass accuracy
@@ -473,11 +473,11 @@ class Trainer:
         logging = time()
         print(f"Val logging takes:{logging - scores}")
 
-        return loss , accuracy, jaccard
+        return loss, accuracy, jaccard
 
     def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
                        jaccard: float, pred: Tensor, targets: Tensor) -> Tuple[
-        float, Tensor, Tensor, float, float]:
+        float, Tensor, Tensor, float]:
         """
         Evaluates prediction results of one validation(or test) batch. Updates running score variables. Uses Multi
         Threading to speed up score calculation. Despite threading inside python not being able to run on more than

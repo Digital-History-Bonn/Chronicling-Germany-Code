@@ -24,10 +24,10 @@ def multi_class_csi(
     pred = pred.flatten()
     target = target.flatten()
 
-    matrix = metric(pred, target)
+    matrix: torch.Tensor = metric(pred, target)
     true_positive = torch.diagonal(matrix)
-    false_positive = torch.sum(matrix, axis=1) - true_positive
-    false_negative = torch.sum(matrix, axis=0) - true_positive
+    false_positive = torch.sum(matrix, dim=1) - true_positive
+    false_negative = torch.sum(matrix, dim=0) - true_positive
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         csi = torch.tensor(
