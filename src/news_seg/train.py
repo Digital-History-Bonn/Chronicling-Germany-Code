@@ -154,7 +154,7 @@ def focal_loss(
     probalbilites = torch.nn.functional.softmax(prediction, dim=1)
     focus = torch.pow(1 - probalbilites, gamma)
     loss = 1 - target * focus * probalbilites
-    return torch.sum(loss, dim=1)  # type: ignore
+    return torch.sum(loss, dim=1) / OUT_CHANNELS  # type: ignore
 
 
 def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
@@ -228,6 +228,7 @@ class Trainer:
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
+        self.scaler = torch.cuda.amp.GradScaler()
 
         # load data
         preprocessing = Preprocessing(
@@ -313,6 +314,8 @@ class Trainer:
                     start = time()
                     print(f"Batch Start takes:{start - end}")
 
+                    self.optimizer.zero_grad(set_to_none=True)
+
                     with torch.autocast(self.device):
                         preds = self.model(images.to(self.device))
                         pred = time()
@@ -322,9 +325,9 @@ class Trainer:
                     print(f"loss takes:{loss_time - pred}")
 
                     # Backpropagation
-                    self.optimizer.zero_grad(set_to_none=True)
-                    loss.backward()
-                    self.optimizer.step()
+                    self.scaler.scale(loss).backward()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
 
                     end = time()
                     print(f"backwards step takes:{end - pred}")
@@ -354,16 +357,16 @@ class Trainer:
                     torch.cuda.empty_cache()
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        val_loss, acc = self.validation()
+                        val_loss, acc, jac = self.validation()
 
                         # early stopping
-                        score = val_loss + (1 - acc)
+                        score = val_loss + (1 - acc) + (1 - jac)
                         if score < self.best_score:
                             # update cur_best value
-                            self.best_score = val_loss + (1 - acc)
+                            self.best_score = score
                             self.best_step = self.step
                             print(
-                                f"saved model because of early stopping with value {val_loss + (1 - acc)}"
+                                f"saved model because of early stopping with value {score}"
                             )
 
                             self.model.module.save(self.save_model + "_best")  # type: ignore
@@ -444,21 +447,24 @@ class Trainer:
             loss_time = time()
             print(f"Val loss takes:{loss_time - end}")
 
-            accuracy, class_acc, class_sum, jaccard, loss = self.evaluate_batch(accuracy, batch_loss, class_acc,
-                                                                                class_sum, jaccard, loss, pred, targets)
-
+            accuracy, class_acc, class_sum, jaccard = self.evaluate_batch(accuracy, class_acc,
+                                                                                class_sum, jaccard, pred, targets)
+            loss += batch_loss
             scores = time()
             print(f"Val scores take:{scores - loss_time}")
 
             del images, targets, pred, batch_loss
             torch.cuda.empty_cache()
 
+        loss = loss / size
+        accuracy = accuracy / (size * self.num_scores_splits)
+        jaccard = jaccard / (size * self.num_scores_splits)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.val_logging(
-                loss / size,
-                jaccard / (size * self.num_scores_splits),
-                accuracy / (size * self.num_scores_splits),
+                loss,
+                accuracy,
+                jaccard,
                 (class_acc / class_sum).detach().cpu().numpy(),
                 test_validation,
             )
@@ -467,10 +473,10 @@ class Trainer:
         logging = time()
         print(f"Val logging takes:{logging - scores}")
 
-        return loss / size, accuracy / size
+        return loss , accuracy, jaccard
 
-    def evaluate_batch(self, accuracy: float, batch_loss: float, class_acc: Tensor, class_sum: Tensor,
-                       jaccard: float, loss: float, pred: Tensor, targets: Tensor) -> Tuple[
+    def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
+                       jaccard: float, pred: Tensor, targets: Tensor) -> Tuple[
         float, Tensor, Tensor, float, float]:
         """
         Evaluates prediction results of one validation(or test) batch. Updates running score variables. Uses Multi
@@ -493,7 +499,6 @@ class Trainer:
 
         pred = torch.nn.functional.softmax(pred, dim=1)
         targets = targets.to(self.device)
-        loss += batch_loss
 
         pred_batches = self.split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1))
 
@@ -511,7 +516,7 @@ class Trainer:
         class_acc += batch_class_acc
         class_sum += batch_class_sum
 
-        return accuracy, class_acc, class_sum, jaccard, loss
+        return accuracy, class_acc, class_sum, jaccard
 
     def split_batches(self, tensor: torch.Tensor, permutation: Tuple[int, ...]) -> torch.Tensor:
         """
@@ -823,6 +828,7 @@ def main() -> None:
     print(f"Training run {parameter_args.name}")
     print(f"Batchsize {parameter_args.batch_size}")
     print(f"LR {parameter_args.lr}")
+    print(f"Loss Function {parameter_args.loss}")
     print(f"Weight Decay {parameter_args.wd}")
     print(f"crop-size {parameter_args.crop_size}")
     print(f"model {parameter_args.model}")
