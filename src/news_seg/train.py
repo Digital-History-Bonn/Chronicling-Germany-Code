@@ -52,7 +52,7 @@ LOSS_WEIGHTS: torch.Tensor = torch.tensor([
     10.0,
     10.0,
     20.0,
-])
+]) / 20
 
 
 # set random seed for reproducibility
@@ -142,9 +142,12 @@ def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float,
 def focal_loss(
         prediction: torch.Tensor,
         target: torch.Tensor,
-        gamma: float = 2.0) -> torch.Tensor:
+        weights: torch.Tensor,
+        gamma: float = 2.0
+        ) -> torch.Tensor:
     """
     Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
+    :param weights: tensor of size num_classes with weights between 0 and 1
     :param prediction: Unnormalized log probabilities, with shape `[batch, num_classes, ...]`.
     :param target: Valid probability distributions (non-negative, sum to 1), e.g a
       one hot encoding specifying the correct class for each input
@@ -153,7 +156,7 @@ def focal_loss(
     :return: loss tensor [batches, ...]"""
     probalbilites = torch.nn.functional.softmax(prediction, dim=1)
     focus = torch.pow(1 - probalbilites, gamma)
-    loss = 1 - target * focus * probalbilites
+    loss = 1 - target * weights[None, :, None, None] * focus * probalbilites
     return torch.sum(loss, dim=1) / OUT_CHANNELS  # type: ignore
 
 
@@ -170,7 +173,7 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
 
         jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS).to(pred.get_device())
         accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
-        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
+        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
 
         pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
@@ -395,7 +398,7 @@ class Trainer:
         :return: loss scalar
         """
         if self.loss == "focal_loss":
-            return focal_loss(preds, self.one_hot_encoding(targets).float()).mean()
+            return focal_loss(preds, self.one_hot_encoding(targets).float(), LOSS_WEIGHTS.to(self.device)).mean()
 
         return self.cross_entropy(preds, targets)  # type: ignore
 
