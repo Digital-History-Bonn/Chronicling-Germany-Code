@@ -700,6 +700,12 @@ def get_args() -> argparse.Namespace:
         help="path for folder with folders 'images' and 'targets'",
     )
     parser.add_argument(
+        "--duration-path",
+        type=str,
+        default=None,
+        help="path to folder in which duration log files should be written",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -821,8 +827,8 @@ def main() -> None:
         os.makedirs("models")
     if not os.path.exists("scores"):
         os.makedirs("scores")
-    if not os.path.exists("logs/worker-experiment"):
-        os.makedirs("logs/worker-experiment")
+    if not os.path.exists(f"logs/{parameter_args.duration_path}"):
+        os.makedirs(f"logs/{parameter_args.duration_path}")
 
     torch.manual_seed(parameter_args.torch_seed)
 
@@ -857,7 +863,8 @@ def main() -> None:
     print(f"num-scores-splits {parameter_args.num_scores_splits}")
 
     duration = trainer.train(epochs=parameter_args.epochs)
-    with open(f"logs/worker-experiment/{parameter_args.num_workers}_{parameter_args.prefetch_factor}.json", "w",
+    with open(f"logs/{parameter_args.duration_path}{parameter_args.num_workers}_{parameter_args.prefetch_factor}.json",
+              "w",
               encoding="utf-8") as file:
         json.dump((parameter_args.num_workers, parameter_args.prefetch_factor, duration), file)
 

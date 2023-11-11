@@ -147,7 +147,7 @@ def get_reading_order(bbox_list: ndarray, result: List[int], big_separator_size:
         bbox_list = np.delete(bbox_list, splitting_index, axis=0)
 
         region_bool = bbox_list[:, 5] > big_seperator_entry[3]
-        calculate_reading_order(bbox_list[np.invert(region_bool)], result)
+        get_reading_order(bbox_list[np.invert(region_bool)], result, big_separator_size)
         result.append(big_seperator_entry[0])
 
         get_reading_order(bbox_list[region_bool], result, big_separator_size)
