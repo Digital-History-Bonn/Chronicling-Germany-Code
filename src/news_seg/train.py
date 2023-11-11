@@ -144,7 +144,7 @@ def focal_loss(
         target: torch.Tensor,
         weights: torch.Tensor,
         gamma: float = 2.0
-        ) -> torch.Tensor:
+) -> torch.Tensor:
     """
     Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
     :param weights: tensor of size num_classes with weights between 0 and 1
@@ -171,9 +171,10 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
         pred = data[:, : -1]
         targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
-        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS).to(pred.get_device())
+        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
+            pred.get_device())
         accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
-        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
+        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
 
         pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
@@ -220,6 +221,8 @@ class Trainer:
         self.loss = args.loss
         self.num_processes = args.num_processes
         self.num_scores_splits = args.num_scores_splits
+        self.amp = args.amp
+        self.clip = args.clip
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -231,7 +234,7 @@ class Trainer:
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
-        self.scaler = torch.cuda.amp.GradScaler()
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
 
         # load data
         preprocessing = Preprocessing(
@@ -319,7 +322,7 @@ class Trainer:
 
                     self.optimizer.zero_grad(set_to_none=True)
 
-                    with torch.autocast(self.device):
+                    with torch.autocast(self.device, enabled=self.amp):
                         preds = self.model(images.to(self.device))
                         pred = time()
                         print(f"prediction takes:{pred - start}")
@@ -329,6 +332,7 @@ class Trainer:
 
                     # Backpropagation
                     self.scaler.scale(loss).backward()
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
 
@@ -442,7 +446,7 @@ class Trainer:
         ):
             start = time()
             print(f"Val Start takes:{start - end}")
-            with torch.autocast(self.device):
+            with torch.autocast(self.device, enabled=self.amp):
                 pred = self.model(images.to(self.device))
                 end = time()
                 print(f"Val prediction takes:{end - start}")
@@ -724,6 +728,11 @@ def get_args() -> argparse.Namespace:
         help="Whether the score corresponding to the loaded model should be loaded as well.",
     )
     parser.add_argument(
+        "--amp",
+        action="store_true",
+        help="Activates automated mixed precision",
+    )
+    parser.add_argument(
         "--no-freeze",
         dest="freeze",
         action="store_false",
@@ -763,6 +772,12 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=2,
         help="Number of batches that will be loaded by each worker in advance.",
+    )
+    parser.add_argument(
+        "--clip",
+        type=int,
+        default=10,
+        help="Max norm for gradient clipping",
     )
     parser.add_argument(
         "--model",
