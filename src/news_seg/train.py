@@ -861,12 +861,13 @@ def main() -> None:
     print(f"gpu-count {parameter_args.gpu_count}")
     print(f"num-processes {parameter_args.num_processes}")
     print(f"num-scores-splits {parameter_args.num_scores_splits}")
+    print(f"amp:  {parameter_args.amp}")
 
     duration = trainer.train(epochs=parameter_args.epochs)
-    with open(f"logs/{parameter_args.duration_path}{parameter_args.num_workers}_{parameter_args.prefetch_factor}.json",
+    with open(f"logs/{parameter_args.duration_path}{parameter_args.id}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.num_workers, parameter_args.prefetch_factor, duration), file)
+        json.dump((parameter_args.loss, parameter_args.amp, duration), file)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from typing import Tuple
 
@@ -30,8 +31,10 @@ def load_json(path: str, shape: Tuple[int, ...], num_batches: int) -> ndarray:
     data = np.zeros(shape)
     for file in tqdm(file_names, desc="loading data", unit="files"):
         with open(f"{path}{file}", "r", encoding="utf-8") as file:
-            worker, prefetch, duration = json.load(file)
-            data[worker - 1][prefetch - 1] = num_batches / duration
+            threads, splits, duration = json.load(file)
+            index = int(math.log(threads, 2))
+            factor = 1 if math.log(splits, 2) == index else 2
+            data[index][factor-1] = num_batches / duration
     return data
 
 
@@ -58,9 +61,8 @@ def plot_3d(data: ndarray) -> None:
     # axplt.zlabel("Batches pro Sekunde")
     axplt.bar3d(xmesh, ymesh, zmesh, width, depth, data.ravel(), shade=True, alpha=0.8)
 
-    axplt.set_title("Batch Verarbeitung")
-    axplt.set_xlabel('Prefetch Faktor')
-    axplt.set_ylabel('Anzahl Worker')
+    axplt.set_xlabel('Split Faktor')
+    axplt.set_ylabel('Threads')
     axplt.set_zlabel('Batches pro Sekunde')
     axplt.view_init(elev=20., azim=135)
 
@@ -68,7 +70,7 @@ def plot_3d(data: ndarray) -> None:
     # fig = tikzplotlib_fix_ncols(fig)
     # tikzplotlib.save('test.tex')
 
-    plt.savefig('worker-3d.pdf')
+    plt.savefig('threads.pdf')
 
     plt.show()
 
@@ -90,14 +92,14 @@ def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str) -> None:
     plt.show()
 
 
-data = load_json("logs/worker-data-11-11/", (40, 10), 79 * 5)
+data = load_json("logs/split-data/", (11, 2), 79 * 5)
 print(np.argmax(data))
 plot_3d(data)
-data_2d = np.mean(data, axis=0)
-stds = np.std(data, axis=0)
-plot_2d(data_2d, stds, "prefetch-2d.pdf", "Prefetch Faktor")
-
-data_2d = np.mean(data, axis=1)
-stds = np.std(data, axis=1)
-plot_2d(data_2d, stds, "worker-2d.pdf", "Anzahl Worker")
+# data_2d = np.mean(data, axis=0)
+# stds = np.std(data, axis=0)
+# plot_2d(data_2d, stds, "prefetch-2d.pdf", "Prefetch Faktor")
+#
+# data_2d = np.mean(data, axis=1)
+# stds = np.std(data, axis=1)
+# plot_2d(data_2d, stds, "worker-2d.pdf", "Anzahl Worker")
 
