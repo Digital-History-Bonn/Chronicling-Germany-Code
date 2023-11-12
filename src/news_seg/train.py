@@ -25,6 +25,7 @@ from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 from tqdm import tqdm
 
+from news_seg.utils import split_batches
 from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.dh_segment_small import DhSegmentSmall
@@ -507,7 +508,8 @@ class Trainer:
         pred = torch.nn.functional.softmax(pred, dim=1)
         targets = targets.to(self.device)
 
-        pred_batches = self.split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1))
+        pred_batches = split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1),
+                                     self.num_scores_splits)
 
         with ThreadPool(self.num_processes) as pool:
             results = pool.map(calculate_scores, pred_batches)
@@ -524,17 +526,6 @@ class Trainer:
         class_sum += batch_class_sum
 
         return accuracy, class_acc, class_sum, jaccard
-
-    def split_batches(self, tensor: torch.Tensor, permutation: Tuple[int, ...]) -> torch.Tensor:
-        """
-        Splits tensor into self.num_scores_splits chunks. This is necessary to not overload the multiprocessing Queue.
-        :param permutation: permutation for this tensor. On a tensor with feature dimensions,
-        the feature dimension should be transferred to the end. Everything else has to stay in the same order.
-        :param tensor: [B,C,H,W]
-        :return: ndarray version of result
-        """
-        tensor = torch.permute(tensor, permutation).flatten(0, 2)
-        return torch.stack(torch.split(tensor, tensor.shape[0] // self.num_scores_splits))  # type: ignore
 
     def val_logging(
             self,

@@ -1,6 +1,6 @@
 """Utility Module"""
 import warnings
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -102,3 +102,15 @@ def calculate_x_axis_center(bbox: List[float]) -> float:
     :return: center
     """
     return bbox[0] + abs(bbox[2] - bbox[0]) / 2
+
+
+def split_batches(tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores_splits: int) -> torch.Tensor:
+    """
+    Splits tensor into self.num_scores_splits chunks. This is necessary to not overload the multiprocessing Queue.
+    :param permutation: permutation for this tensor. On a tensor with feature dimensions,
+    the feature dimension should be transferred to the end. Everything else has to stay in the same order.
+    :param tensor: [B,C,H,W]
+    :return: ndarray version of result
+    """
+    tensor = torch.permute(tensor, permutation).flatten(0, 2)
+    return torch.stack(torch.split(tensor, tensor.shape[0] // num_scores_splits))  # type: ignore

@@ -2,6 +2,8 @@
 
 import argparse
 import os
+from threading import Thread
+from time import time
 from typing import Dict, List, Tuple, Any
 
 import matplotlib.patches as mpatches
@@ -9,19 +11,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from PIL import Image
-from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
 from numpy import ndarray
 from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
+from torch.nn import DataParallel
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
+
+from news_seg.predict_dataset import PredictDataset
 # from torch.utils.data import DataLoader
 
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from src.news_seg import train
-from src.news_seg.utils import create_bbox_ndarray
+from src.news_seg.utils import create_bbox_ndarray, split_batches
 
 # from src.news_seg.preprocessing import Preprocessing
 # from src.news_seg.train import OUT_CHANNELS
@@ -68,8 +73,8 @@ def draw_prediction(img: ndarray, path: str) -> None:
     :param path: path for the prediction to be saved.
     """
 
-    unique, counts = np.unique(img, return_counts=True)
-    print(dict(zip(unique, counts)))
+    # unique, counts = np.unique(img, return_counts=True)
+    # print(dict(zip(unique, counts)))
     values = LABEL_NAMES
     for i in range(len(values)):
         img[-1][-(i + 1)] = i + 1
@@ -125,7 +130,7 @@ def get_args() -> argparse.Namespace:
              "needs to be inside the image folder.",
     )
     parser.add_argument(
-        "--cuda", type=str, default="cuda:0", help="Cuda device string"
+        "--cuda", type=str, default="cuda", help="Cuda device string"
     )
     parser.add_argument(
         "--threshold",
@@ -156,6 +161,13 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Batch size",
+    )
+    parser.add_argument(
+        "--worker-factor",
+        "-wf",
+        type=int,
+        default=2,
+        help="Factor for number of workers. There will be gpu_count * worker_factor many Factor.",
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
@@ -205,22 +217,12 @@ def get_args() -> argparse.Namespace:
         help="Threshold for Regions that are large enough to contain a lot of text and will be cut out "
              "for further processing",
     )
+    parser.add_argument(
+        "--amp",
+        action="store_true",
+        help="Activates automated mixed precision",
+    )
     return parser.parse_args()
-
-
-def load_image(file: str, args: argparse.Namespace) -> torch.Tensor:
-    """
-    Loads image and applies necessary transformation for prdiction.
-    :param args: arguments
-    :param file: path to image
-    :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
-    """
-    image = Image.open(args.data_path + file).convert("RGB")
-    shape = int(image.size[0] * args.scale), int(image.size[1] * args.scale)
-    image = image.resize(shape, resample=BICUBIC)
-    transform = transforms.PILToTensor()
-    data: torch.Tensor = transform(image).float() / 255
-    return data
 
 
 def predict(args: argparse.Namespace) -> None:
@@ -228,23 +230,44 @@ def predict(args: argparse.Namespace) -> None:
     Loads all images from the data folder and predicts segmentation.
     """
     device = args.cuda if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
-    file_names = os.listdir(args.data_path)
-    model = train.init_model(args.model_path, device, args.model_architecture)
+    cuda_count = torch.cuda.device_count()
+    print(f"Using {device} device with {cuda_count} gpus")
+
+    dataset = PredictDataset(args.data_path, args.scale)
+
+    pred_loader = DataLoader(
+        dataset,
+        batch_size=cuda_count,
+        shuffle=False,
+        num_workers=args.worker_factor * cuda_count,
+        prefetch_factor=2,
+        persistent_workers=True,
+        pin_memory=True,
+    )
+
+    model = DataParallel(train.init_model(args.model_path, device, args.model_architecture))
     model.to(device)
     model.eval()
-    for file in tqdm(
-            file_names, desc="predicting images", total=len(file_names), unit="files"
+    threads = []
+    end = time()
+    for image, path in tqdm(
+            pred_loader, desc="predicting images", total=len(dataset), unit="files"
     ):
-        if os.path.splitext(file)[1] != ".png" and os.path.splitext(file)[1] != ".jpg":
-            continue
-        image = load_image(file, args)
-
+        start = time()
+        print(f"Batch Loading takes:{start - end}")
         pad = calculate_padding(args.pad, image.shape, args.scale)
         image = pad_image(pad, image)
 
-        execute_prediction(args, device, file, image, model)
+        threads += execute_prediction(args, device, path, image, model)
 
+        end = time()
+        print(f"Prediction takes:{end - start}")
+
+    start = time()
+    for thread in threads:
+        thread.join()
+    end = time()
+    print(f"Thread stop takes:{end - start}")
 
 def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
     """
@@ -258,35 +281,35 @@ def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float
     pad = (int(pad[0] * scale), int(pad[1] * scale))
 
     assert (
-            pad[1] >= shape[1]
-            and pad[0] >= shape[2]
+            pad[1] >= shape[-2]
+            and pad[0] >= shape[-1]
     ), (
         f"Final size has to be greater than actual image size. "
         f"Padding to {pad[0]} x {pad[1]} "
-        f"but image has shape of {shape[2]} x {shape[1]}"
+        f"but image has shape of {shape[-1]} x {shape[-2]}"
     )
 
-    pad = (pad[1] - shape[1], pad[0] - shape[2])
+    pad = (pad[1] - shape[-2], pad[0] - shape[-1])
     return pad
 
 
-def execute_prediction(args: argparse.Namespace, device: str, file: str, image: torch.Tensor, model: Any) -> None:
+def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], image: torch.Tensor,
+                       model: Any) -> List[Thread]:
     """
     Run model to create prediction and call export methods. Todo: add switch for prediction with and without cropping
-    :param args:
-    :param device:
-    :param file:
-    :param image:
-    :param model:
+    :param args: arguments
+    :param device: device, cuda or cpu
+    :param paths: image file names
+    :param image: image tensor [3, H, W]
+    :param model: model to run prediction on
     """
     # shape = (image.shape[1] // args.crop_size, image.shape[2] // args.crop_size)
     # crops = torch.tensor(Preprocessing.crop_img(args.crop_size, 1, np.array(image)))
     # predictions = []
     # dataloader = DataLoader(crops, batch_size=args.batch_size, shuffle=False)
     # for crop in dataloader:
-    pred = torch.nn.functional.softmax(
-        torch.squeeze(model(image[None, :].to(device)).detach().cpu()), dim=0
-    ).numpy()
+    with torch.autocast(device, enabled=args.amp):
+        pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
     # predictions.append(pred)
 
     # crops = torch.stack(predictions, dim=0)
@@ -294,10 +317,17 @@ def execute_prediction(args: argparse.Namespace, device: str, file: str, image: 
     # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
     # pred = pred.permute(2, 0, 1)
 
-    pred = process_prediction(np.array(pred), args.threshold)
-    if args.output_path:
-        draw_prediction(pred, args.output_path + os.path.splitext(file)[0] + ".png")
-    export_polygons(file, pred, image.numpy(), args)
+    pred = process_prediction(pred, args.threshold)
+    image_ndarray = image.numpy()
+
+    threads = []
+    for i in range(pred.shape[0]):
+        threads.append(Thread(target=export_polygons, args=(paths[i], pred[i], image_ndarray[i], args)))
+        if args.output_path:
+            draw_prediction(pred[i], args.output_path + os.path.splitext(paths[i])[0] + ".png")
+        threads[i].start()
+
+    return threads
 
 
 def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
@@ -365,11 +395,10 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     for index, mask in enumerate(mask_list):
         bbox = mask_bbox_list[index]
         slice_image = image[:, int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2]), ]
-        mean = np.mean(slice_image, where = mask == 0)
+        mean = np.mean(slice_image, where=mask == 0)
         slice_image = slice_image * mask
         slice_image = np.transpose(slice_image, (1, 2, 0))
-        slice_image[slice_image[:,:,] == (0, 0, 0)] = mean
-
+        slice_image[slice_image[:, :, ] == (0, 0, 0)] = mean
 
         if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
             os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
@@ -504,16 +533,16 @@ def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]]
     mask_bbox_list.append(bbox)
 
 
-def process_prediction(pred: ndarray, threshold: float) -> ndarray:
+def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
     :param threshold: confidence threshold for prediction
     :param pred: prediction
-    :return:
+    :return: prediction ndarray [H, W]
     """
-    argmax: ndarray = np.argmax(pred, axis=0)
-    argmax[np.max(pred, axis=0) < threshold] = 0
-    return argmax
+    max, argmax = torch.max(pred, dim=1)
+    argmax[max < threshold] = 0
+    return argmax.detach().cpu().numpy() # type: ignore
 
 
 if __name__ == "__main__":
