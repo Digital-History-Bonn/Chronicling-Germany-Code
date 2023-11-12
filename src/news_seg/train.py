@@ -702,7 +702,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--duration-path",
         type=str,
-        default=None,
+        default="default",
         help="path to folder in which duration log files should be written",
     )
     parser.add_argument(
