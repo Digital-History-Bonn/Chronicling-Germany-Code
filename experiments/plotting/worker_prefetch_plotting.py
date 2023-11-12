@@ -1,10 +1,10 @@
 import json
 import os
-from typing import Tuple
+from typing import Tuple, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
-# import tikzplotlib
+import tikzplotlib
 from numpy import ndarray
 from tqdm import tqdm
 
@@ -62,6 +62,8 @@ def plot_3d(data: ndarray) -> None:
     axplt.set_xlabel('Prefetch Faktor')
     axplt.set_ylabel('Anzahl Worker')
     axplt.set_zlabel('Batches pro Sekunde')
+    axplt.set_xticks(np.arange(6) * 2 - 0.6, np.arange(6) * 2)
+    axplt.set_yticks(np.arange(5) * 10 - 2, np.arange(5) * 10)
     axplt.view_init(elev=20., azim=135)
 
     # fig = plt.gcf()
@@ -72,7 +74,8 @@ def plot_3d(data: ndarray) -> None:
 
     plt.show()
 
-def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str) -> None:
+
+def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str, ticks: Any) -> None:
     """
     Plot 2d data, which has been summarized from 3d Data along one axis.
     :param data: ndarray 2d data
@@ -85,19 +88,23 @@ def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str) -> None:
     axplt.set_xlabel(xlabel)
     axplt.set_ylabel('Batches pro Sekunde')
     axplt.bar(xdata, data, align="center", yerr=stds)
+    axplt.set_xticks(ticks[0], ticks[1])
 
-    plt.savefig(name)
+    plt.savefig(f"{name}.pdf")
+
+    fig = plt.gcf()
+    fig = tikzplotlib_fix_ncols(fig)
+    tikzplotlib.save(f"{name}.tex")
     plt.show()
 
 
-data = load_json("logs/worker-data-11-11/", (40, 10), 79 * 5)
+data = load_json("logs/worker-experiment/", (40, 10), 79 * 5)
 print(np.argmax(data))
 plot_3d(data)
 data_2d = np.mean(data, axis=0)
 stds = np.std(data, axis=0)
-plot_2d(data_2d, stds, "prefetch-2d.pdf", "Prefetch Faktor")
+plot_2d(data_2d, stds, "prefetch-2d", "Prefetch Faktor", (np.arange(6) * 2 - 1, np.arange(6) * 2))
 
 data_2d = np.mean(data, axis=1)
 stds = np.std(data, axis=1)
-plot_2d(data_2d, stds, "worker-2d.pdf", "Anzahl Worker")
-
+plot_2d(data_2d, stds, "worker-2d", "Anzahl Worker", (np.arange(5) * 10 - 1, np.arange(5) * 10))

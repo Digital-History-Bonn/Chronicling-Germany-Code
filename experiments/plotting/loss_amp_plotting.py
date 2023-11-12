@@ -5,7 +5,7 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-# import tikzplotlib
+import tikzplotlib
 from numpy import ndarray
 from tqdm import tqdm
 
@@ -75,6 +75,17 @@ def plot_3d(data: ndarray) -> None:
 
     plt.show()
 
+
+def tikzplotlib_fix_ncols(obj):
+    """
+    workaround for matplotlib 3.6 renamed legend's _ncol to _ncols, which breaks tikzplotlib
+    """
+    if hasattr(obj, "_ncols"):
+        obj._ncol = obj._ncols
+    for child in obj.get_children():
+        tikzplotlib_fix_ncols(child)
+
+
 def plot_2d(data: ndarray, stds: ndarray, name: str) -> None:
     """
     Plot 2d data, which has been summarized from 3d Data along one axis.
@@ -84,15 +95,18 @@ def plot_2d(data: ndarray, stds: ndarray, name: str) -> None:
     :param xlabel: name for x-axis label
     """
     labels = ["no amp", "amp"]
-    xdata = np.arange(data.shape[0]) -0.125
+    xdata = np.arange(data.shape[0]) - 0.125
     fig, axplt = plt.subplots()
     axplt.set_ylabel('Batches pro Sekunde')
     for i in range(2):
-        axplt.bar(xdata + i/4, data[:, i], 0.25, align="center", yerr=stds[:, i],label = labels[i])
+        axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", yerr=stds[:, i], label=labels[i])
 
-    axplt.legend(loc='upper right', ncols=2)
+    axplt.legend(loc='upper right')
     axplt.set_xticks([0, 1], ["cross entropy", "focal loss"])
-    plt.savefig(name)
+    plt.savefig(f"{name}.pdf")
+    fig = plt.gcf()
+    fig = tikzplotlib_fix_ncols(fig)
+    tikzplotlib.save(f"{name}.tex")
     plt.show()
 
 
@@ -100,11 +114,10 @@ data = load_json("logs/amp-loss-data-11-11/", (2, 2, 3), 79 * 5)
 print(np.argmax(data))
 data_2d = np.mean(data, axis=2)
 stds = np.std(data, axis=2)
-plot_2d(data_2d, stds, "loss-amp.pdf")
+plot_2d(data_2d, stds, "loss-amp")
 
 # plot_2d(data_2d, stds, "prefetch-2d.pdf", "Prefetch Faktor")
 #
 # data_2d = np.mean(data, axis=1)
 # stds = np.std(data, axis=1)
 # plot_2d(data_2d, stds, "worker-2d.pdf", "Anzahl Worker")
-

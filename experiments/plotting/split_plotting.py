@@ -5,7 +5,7 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-# import tikzplotlib
+import tikzplotlib
 from numpy import ndarray
 from tqdm import tqdm
 
@@ -64,11 +64,13 @@ def plot_3d(data: ndarray) -> None:
     axplt.set_xlabel('Split Faktor')
     axplt.set_ylabel('Threads')
     axplt.set_zlabel('Batches pro Sekunde')
+    axplt.set_xticks([0.2, 1.2], [1, 2])
+    axplt.set_yticks(np.arange(6) * 2, 2**(np.arange(6) * 2))
     axplt.view_init(elev=20., azim=135)
 
-    # fig = plt.gcf()
-    # fig = tikzplotlib_fix_ncols(fig)
-    # tikzplotlib.save('test.tex')
+    fig = plt.gcf()
+    fig = tikzplotlib_fix_ncols(fig)
+    tikzplotlib.save("threads.tex")
 
     plt.savefig('threads.pdf')
 
