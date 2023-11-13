@@ -1,6 +1,5 @@
 """Module contains polygon conversion and export functions."""
 from typing import Dict, List, Tuple
-from time import time
 
 import numpy as np
 from numpy import ndarray

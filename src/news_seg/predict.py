@@ -3,7 +3,6 @@
 import argparse
 import os
 from threading import Thread
-from time import time
 from typing import Dict, List, Tuple, Any
 
 import matplotlib.patches as mpatches
@@ -223,15 +222,19 @@ def get_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def collate_fn(batch):
-  return (
-      torch.stack([x[0] for x in batch]),
-      [x[1] for x in batch]
-  )
+
+def collate_fn(batch: Any) -> Any:
+    """dataloader collate function"""
+    return (
+        torch.stack([x[0] for x in batch]),
+        [x[1] for x in batch]
+    )
+
 
 def predict(args: argparse.Namespace) -> None:
     """
     Loads all images from the data folder and predicts segmentation.
+    Loading is handled through a Dataloader and Dataset. Threads are joined every 10 batches.
     """
     device = args.cuda if torch.cuda.is_available() else "cpu"
     cuda_count = torch.cuda.device_count()
@@ -254,22 +257,30 @@ def predict(args: argparse.Namespace) -> None:
     model.to(device)
     model.eval()
     threads = []
-    end = time()
+
+    batch = 0
     for image, path in tqdm(
             pred_loader, desc="predicting images", total=len(pred_loader), unit="batches"
     ):
+        batch += 1
         threads += execute_prediction(args, device, path, image, model)
+
+        if batch % 10 == 0:
+            for thread in threads:
+                thread.join()
+            threads = []
 
     print("Prediction done, waiting for post processing to end")
     for thread in threads:
         thread.join()
-    print("Prediction done, waiting for post processing to end")
+    print("Done")
 
 
 def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], image: torch.Tensor,
                        model: Any) -> List[Thread]:
     """
-    Run model to create prediction and call export methods. Todo: add switch for prediction with and without cropping
+    Run model to create prediction and start thrads for export.
+    Todo: add switch for prediction with and without cropping
     :param args: arguments
     :param device: device, cuda or cpu
     :param paths: image file names
@@ -289,15 +300,14 @@ def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], 
     # crops = crops.permute(0, 2, 3, 1)
     # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
     # pred = pred.permute(2, 0, 1)
-    start = time()
-    pred = process_prediction(pred, args.threshold)
+    pred_ndarray = process_prediction(pred, args.threshold)
     image_ndarray = image.numpy()
 
     threads = []
-    for i in range(pred.shape[0]):
-        threads.append(Thread(target=export_polygons, args=(paths[i], pred[i], image_ndarray[i], args)))
+    for i in range(pred_ndarray.shape[0]):
+        threads.append(Thread(target=export_polygons, args=(paths[i], pred_ndarray[i], image_ndarray[i], args)))
         if args.output_path:
-            draw_prediction(pred[i], args.output_path + os.path.splitext(paths[i])[0] + ".png")
+            draw_prediction(pred_ndarray[i], args.output_path + os.path.splitext(paths[i])[0] + ".png")
         threads[i].start()
 
     return threads
@@ -314,7 +324,7 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
         reading_order_dict, segmentations, bbox_list = polygon_prediction(pred, args)
 
         if args.slices_path:
-            export_slices(args, file, image, pred.shape, reading_order_dict, segmentations, bbox_list, pred)
+            export_slices(args, file, image, reading_order_dict, segmentations, bbox_list, pred)
 
         if args.output_path:
             polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
@@ -326,7 +336,7 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
             export_xml(args, file, reading_order_dict, segmentations)
 
 
-def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tuple[int, ...],
+def export_slices(args: argparse.Namespace, file: str, image: ndarray,
                   reading_order_dict: Dict[int, int], segmentations: Dict[int, List[List[float]]],
                   bbox_list: Dict[int, List[List[float]]], pred: ndarray) -> None:
     """
@@ -343,7 +353,7 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
         os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
 
-    mask_list, reading_order_list, mask_bbox_list = get_slicing(segmentations, shape, bbox_list,
+    mask_list, reading_order_list, mask_bbox_list = get_slicing(segmentations, bbox_list,
                                                                 reading_order_dict,
                                                                 int(args.area_size * args.scale), pred)
 
@@ -433,7 +443,7 @@ def area_sufficient(bbox: List[float], size: int) -> bool:
 
 
 def get_slicing(
-        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...], bbox_list: Dict[int, List[List[float]]],
+        segmentations: Dict[int, List[List[float]]], bbox_list: Dict[int, List[List[float]]],
         reading_order: Dict[int, int], area_size: int, pred: ndarray
 ) -> Tuple[List[ndarray], List[int], List[List[float]]]:
     """
@@ -449,19 +459,20 @@ def get_slicing(
     reading_order_list: List[int] = []
     mask_bbox_list: List[List[float]] = []
     for label, segmentation in segmentations.items():
-        for key, polygon in enumerate(segmentation):
+        for key, _ in enumerate(segmentation):
 
             bbox = bbox_list[label][key]
             if area_sufficient(bbox, area_size):
-                polygon_ndarray = np.reshape(polygon, (-1, 2)).T
+                # polygon_ndarray = np.reshape(polygon, (-1, 2)).T
                 # x_coords, y_coords = draw.polygon(polygon_ndarray[1], polygon_ndarray[0])
-                create_mask(bbox, index, mask_bbox_list, masks, reading_order, reading_order_list, shape, pred)
+                create_mask(bbox, index, mask_bbox_list, masks, reading_order, reading_order_list, pred)
             index += 1
     return masks, reading_order_list, mask_bbox_list
 
 
 def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]], masks: List[ndarray],
-                reading_order: Dict[int, int], reading_order_list: List[int], shape: Tuple[int, ...], pred: ndarray) -> None:
+                reading_order: Dict[int, int], reading_order_list: List[int],
+                pred: ndarray) -> None:
     """
     Draw mask into empyt image and cut out the bbox area. Masks, as well as reading order and bboxes are appended to
     their respective lists for further processing
@@ -491,10 +502,10 @@ def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
     :param pred: prediction
     :return: prediction ndarray [H, W]
     """
-    max, argmax = torch.max(pred, dim=1)
+    max_tensor, argmax = torch.max(pred, dim=1)
     argmax = argmax.type(torch.uint8)
-    argmax[max < threshold] = 0
-    return argmax.detach().cpu().numpy() # type: ignore
+    argmax[max_tensor < threshold] = 0
+    return argmax.detach().cpu().numpy()  # type: ignore
 
 
 if __name__ == "__main__":

@@ -173,7 +173,7 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
         targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
         jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
-            pred.get_device())
+            pred.get_device()) # type: ignore
         accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
         confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
 
