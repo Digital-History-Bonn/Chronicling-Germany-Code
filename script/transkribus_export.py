@@ -1,5 +1,6 @@
 """Module contains polygon conversion and export functions."""
 from typing import Dict, List, Tuple
+from time import time
 
 import numpy as np
 from numpy import ndarray
@@ -8,32 +9,20 @@ from shapely.geometry import Polygon
 from skimage import measure
 
 
-def create_sub_masks(mask_image: Image.Image) -> Dict[int, Image.Image]:
-    """Split prediction in to submasks.
-    From https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset
+def create_sub_masks(pred: ndarray) -> Dict[int, Image.Image]:
+    """Split prediction in to submasks. Creates a submask for each unique value exept 0.
+    Numpy implementation of python version from
+     https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset
     """
-    width, height = mask_image.size
 
-    # Initialize a dictionary of sub-masks indexed by RGB colors
+    unique_values = np.unique(pred)
+    if 0 in unique_values:
+        unique_values = np.delete(unique_values, np.where(unique_values == 0)[0][0])
+
     sub_masks: Dict[int, Image] = {}
-    for pos_x in range(width):
-        for pos_y in range(height):
-            # Get the RGB values of the pixel
-            pixel = mask_image.getpixel((pos_x, pos_y))
 
-            # If the pixel is not black...
-            if pixel != 0:
-                # Check to see if we've created a sub-mask...
-                sub_mask = sub_masks.get(pixel)
-                if sub_mask is None:
-                    # Create a sub-mask (one bit per pixel) and add to the dictionary
-                    # Note: we add 1 pixel of padding in each direction
-                    # because the contour module doesn't handle cases
-                    # where pixels bleed to the edge of the image
-                    sub_masks[pixel] = Image.new("1", (width + 2, height + 2))
-
-                # Set the pixel value to 1 (default is 0), accounting for padding
-                sub_masks[pixel].putpixel((pos_x + 1, pos_y + 1), 1)
+    for value in unique_values:
+        sub_masks[value] = Image.fromarray(np.pad(pred == value, 1))
 
     return sub_masks
 
@@ -105,7 +94,8 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
     :param tolerance: Array with pixel tolarance values for poygon simplification
     :param pred: prediction ndarray
     """
-    masks = create_sub_masks(Image.fromarray(pred.astype(np.uint8)))
+    masks = create_sub_masks(pred)
+
     segmentations = {}
     bbox_dict = {}
     for label, mask in masks.items():

@@ -4,20 +4,17 @@ module for Dataset class
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Tuple, Union
+from typing import Tuple
 
 import torch
 from PIL import Image
 from PIL.Image import BICUBIC
-
 # pylint thinks torch has no name randperm this is wrong
 # pylint: disable-next=no-name-in-module
-from torch import randperm
 from torch.utils.data import Dataset
 from torchvision import transforms
-from tqdm import tqdm
 
-from src.news_seg.preprocessing import Preprocessing
+from src.news_seg.utils import pad_image, calculate_padding
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -31,7 +28,8 @@ class PredictDataset(Dataset):
     def __init__(
         self,
         image_path: str,
-        scale: float
+        scale: float,
+        pad: Tuple[int, int]
     ) -> None:
         """
         load images and targets from folder
@@ -46,6 +44,7 @@ class PredictDataset(Dataset):
 
         self.image_path = image_path
         self.scale = scale
+        self.pad = pad
 
         self.file_names = []
         for file_name in os.listdir(image_path):
@@ -74,7 +73,10 @@ class PredictDataset(Dataset):
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
         file_name = self.file_names[item]
-        return self.load_image(file_name), file_name
+        image = self.load_image(file_name)
+        pad = calculate_padding(self.pad, image.shape, self.scale)
+        image = pad_image(pad, image)
+        return image, file_name
 
     def __len__(self) -> int:
         """

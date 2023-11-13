@@ -8,6 +8,7 @@ from PIL import Image
 from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
 from numpy import ndarray
 from torchmetrics.classification import MulticlassConfusionMatrix
+from torchvision import transforms
 
 
 def multi_class_csi(
@@ -114,3 +115,50 @@ def split_batches(tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores
     """
     tensor = torch.permute(tensor, permutation).flatten(0, 2)
     return torch.stack(torch.split(tensor, tensor.shape[0] // num_scores_splits))  # type: ignore
+
+
+def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
+    """
+    Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
+    padded image is divisible by crop size.
+    :param image: tensor image
+    :return: padding tuple for right and bottom
+    """
+    # pad = ((crop_size - (image.shape[1] % crop_size)) % crop_size,
+    #        (crop_size - (image.shape[2] % crop_size)) % crop_size)
+    pad = (int(pad[0] * scale), int(pad[1] * scale))
+
+    assert (
+            pad[1] >= shape[-2]
+            and pad[0] >= shape[-1]
+    ), (
+        f"Final size has to be greater than actual image size. "
+        f"Padding to {pad[0]} x {pad[1]} "
+        f"but image has shape of {shape[-1]} x {shape[-2]}"
+    )
+
+    pad = (pad[1] - shape[-2], pad[0] - shape[-1])
+    return pad
+
+
+def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
+    """
+    Pad image to given size.
+    :param pad: values to be added on the right and bottom.
+    :param image: image tensor
+    :return: padded image
+    """
+    # debug shape
+    # print(image.shape)
+    transform = transforms.Pad(
+        (
+            0,
+            0,
+            (pad[1]),
+            (pad[0]),
+        )
+    )
+    image = transform(image)
+    # debug shape
+    # print(image.shape)
+    return image

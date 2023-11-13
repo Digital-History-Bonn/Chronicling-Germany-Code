@@ -16,17 +16,16 @@ from skimage import draw
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torch.nn import DataParallel
 from torch.utils.data import DataLoader
-from torchvision import transforms
 from tqdm import tqdm
-
-from news_seg.predict_dataset import PredictDataset
-# from torch.utils.data import DataLoader
 
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
 from src.news_seg import train
-from src.news_seg.utils import create_bbox_ndarray, split_batches
+from src.news_seg.predict_dataset import PredictDataset
+from src.news_seg.utils import create_bbox_ndarray
+
+# from torch.utils.data import DataLoader
 
 # from src.news_seg.preprocessing import Preprocessing
 # from src.news_seg.train import OUT_CHANNELS
@@ -224,6 +223,11 @@ def get_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+def collate_fn(batch):
+  return (
+      torch.stack([x[0] for x in batch]),
+      [x[1] for x in batch]
+  )
 
 def predict(args: argparse.Namespace) -> None:
     """
@@ -233,7 +237,7 @@ def predict(args: argparse.Namespace) -> None:
     cuda_count = torch.cuda.device_count()
     print(f"Using {device} device with {cuda_count} gpus")
 
-    dataset = PredictDataset(args.data_path, args.scale)
+    dataset = PredictDataset(args.data_path, args.scale, args.pad)
 
     pred_loader = DataLoader(
         dataset,
@@ -243,6 +247,7 @@ def predict(args: argparse.Namespace) -> None:
         prefetch_factor=2,
         persistent_workers=True,
         pin_memory=True,
+        collate_fn=collate_fn
     )
 
     model = DataParallel(train.init_model(args.model_path, device, args.model_architecture))
@@ -251,46 +256,14 @@ def predict(args: argparse.Namespace) -> None:
     threads = []
     end = time()
     for image, path in tqdm(
-            pred_loader, desc="predicting images", total=len(dataset), unit="files"
+            pred_loader, desc="predicting images", total=len(pred_loader), unit="batches"
     ):
-        start = time()
-        print(f"Batch Loading takes:{start - end}")
-        pad = calculate_padding(args.pad, image.shape, args.scale)
-        image = pad_image(pad, image)
-
         threads += execute_prediction(args, device, path, image, model)
 
-        end = time()
-        print(f"Prediction takes:{end - start}")
-
-    start = time()
+    print("Prediction done, waiting for post processing to end")
     for thread in threads:
         thread.join()
-    end = time()
-    print(f"Thread stop takes:{end - start}")
-
-def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
-    """
-    Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
-    padded image is divisible by crop size.
-    :param image: tensor image
-    :return: padding tuple for right and bottom
-    """
-    # pad = ((crop_size - (image.shape[1] % crop_size)) % crop_size,
-    #        (crop_size - (image.shape[2] % crop_size)) % crop_size)
-    pad = (int(pad[0] * scale), int(pad[1] * scale))
-
-    assert (
-            pad[1] >= shape[-2]
-            and pad[0] >= shape[-1]
-    ), (
-        f"Final size has to be greater than actual image size. "
-        f"Padding to {pad[0]} x {pad[1]} "
-        f"but image has shape of {shape[-1]} x {shape[-2]}"
-    )
-
-    pad = (pad[1] - shape[-2], pad[0] - shape[-1])
-    return pad
+    print("Prediction done, waiting for post processing to end")
 
 
 def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], image: torch.Tensor,
@@ -316,7 +289,7 @@ def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], 
     # crops = crops.permute(0, 2, 3, 1)
     # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
     # pred = pred.permute(2, 0, 1)
-
+    start = time()
     pred = process_prediction(pred, args.threshold)
     image_ndarray = image.numpy()
 
@@ -330,29 +303,6 @@ def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], 
     return threads
 
 
-def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
-    """
-    Pad image to given size.
-    :param pad: values to be added on the right and bottom.
-    :param image: image tensor
-    :return: padded image
-    """
-    # debug shape
-    # print(image.shape)
-    transform = transforms.Pad(
-        (
-            0,
-            0,
-            (pad[1]),
-            (pad[0]),
-        )
-    )
-    image = transform(image)
-    # debug shape
-    # print(image.shape)
-    return image
-
-
 def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Namespace) -> None:
     """
     Simplify prediction to polygons and export them to an image as well as transcribus xml
@@ -361,12 +311,13 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
     :param pred: prediction 2d ndarray
     """
     if args.export or args.slices_path:
-        polygon_pred, reading_order_dict, segmentations, bbox_list = polygon_prediction(pred, args)
+        reading_order_dict, segmentations, bbox_list = polygon_prediction(pred, args)
 
         if args.slices_path:
-            export_slices(args, file, image, pred.shape, reading_order_dict, segmentations, bbox_list)
+            export_slices(args, file, image, pred.shape, reading_order_dict, segmentations, bbox_list, pred)
 
         if args.output_path:
+            polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
             draw_prediction(
                 polygon_pred,
                 args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
@@ -377,7 +328,7 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
 
 def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tuple[int, ...],
                   reading_order_dict: Dict[int, int], segmentations: Dict[int, List[List[float]]],
-                  bbox_list: Dict[int, List[List[float]]]) -> None:
+                  bbox_list: Dict[int, List[List[float]]], pred: ndarray) -> None:
     """
     Cuts slices out of the input image and applies mask. Those are being saved, sorted by input
     image and reading order on that nespaper page
@@ -387,10 +338,15 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
     :param pred: prediction
     :param reading_order_dict: Dictionary for looking up reading order
     :param segmentations: polygons
+    :param pred: prediction 2d ndarray uint8
     """
-    mask_list, reading_order_list, mask_bbox_list = draw_polygons(segmentations, shape, bbox_list,
-                                                                  reading_order_dict,
-                                                                  int(args.area_size * args.scale))
+    if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
+        os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
+
+    mask_list, reading_order_list, mask_bbox_list = get_slicing(segmentations, shape, bbox_list,
+                                                                reading_order_dict,
+                                                                int(args.area_size * args.scale), pred)
+
     reading_order_dict = {k: v for v, k in enumerate(np.argsort(np.array(reading_order_list)))}
     for index, mask in enumerate(mask_list):
         bbox = mask_bbox_list[index]
@@ -399,9 +355,6 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray, shape: Tu
         slice_image = slice_image * mask
         slice_image = np.transpose(slice_image, (1, 2, 0))
         slice_image[slice_image[:, :, ] == (0, 0, 0)] = mean
-
-        if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
-            os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
 
         Image.fromarray((slice_image * 255).astype(np.uint8)).save(
             f"{args.slices_path}{os.path.splitext(file)[0]}/{reading_order_dict[index]}.png")
@@ -431,7 +384,7 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
 
 
 def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
-    ndarray, Dict[int, int], Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+    Dict[int, int], Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Calls polyong conversion. Original segmentation is first converted to polygons, then those polygons are
     drawen into an ndarray image. Furthermore, regions of sufficient size will be cut out and saved separately if
@@ -441,14 +394,13 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
     :return: smothed prediction ndarray image, reading order and segmentation dictionary
     """
     segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale))
-    polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
     get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
-    return polygon_pred, reading_order_dict, segmentations, bbox_list
+    return reading_order_dict, segmentations, bbox_list
 
 
 def draw_polygons_into_image(
@@ -480,12 +432,12 @@ def area_sufficient(bbox: List[float], size: int) -> bool:
     return (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) > size
 
 
-def draw_polygons(
+def get_slicing(
         segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...], bbox_list: Dict[int, List[List[float]]],
-        reading_order: Dict[int, int], area_size: int
+        reading_order: Dict[int, int], area_size: int, pred: ndarray
 ) -> Tuple[List[ndarray], List[int], List[List[float]]]:
     """
-    Takes segmentation dictionary and draws polygons with assigned labels into a new image.
+    Takes segmentation dictionary and slices it in bbox pieces for each polygon
     :param reading_order: assings reading order position to each polygon index
     :param bbox_list: Dictionaray of bboxes sorted after label
     :param shape: shape of original image
@@ -498,20 +450,18 @@ def draw_polygons(
     mask_bbox_list: List[List[float]] = []
     for label, segmentation in segmentations.items():
         for key, polygon in enumerate(segmentation):
-            polygon_ndarray = np.reshape(polygon, (-1, 2)).T
-            x_coords, y_coords = draw.polygon(polygon_ndarray[1], polygon_ndarray[0])
 
             bbox = bbox_list[label][key]
             if area_sufficient(bbox, area_size):
-                create_mask(bbox, index, mask_bbox_list, masks, reading_order, reading_order_list, shape, x_coords,
-                            y_coords)
+                polygon_ndarray = np.reshape(polygon, (-1, 2)).T
+                # x_coords, y_coords = draw.polygon(polygon_ndarray[1], polygon_ndarray[0])
+                create_mask(bbox, index, mask_bbox_list, masks, reading_order, reading_order_list, shape, pred)
             index += 1
     return masks, reading_order_list, mask_bbox_list
 
 
 def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]], masks: List[ndarray],
-                reading_order: Dict[int, int], reading_order_list: List[int], shape: Tuple[int, ...], x_coords: ndarray,
-                y_coords: object) -> None:
+                reading_order: Dict[int, int], reading_order_list: List[int], shape: Tuple[int, ...], pred: ndarray) -> None:
     """
     Draw mask into empyt image and cut out the bbox area. Masks, as well as reading order and bboxes are appended to
     their respective lists for further processing
@@ -525,9 +475,10 @@ def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]]
     :param x_coords:
     :param y_coords:
     """
-    temp_image = np.zeros(shape, dtype="uint8")
-    temp_image[x_coords, y_coords] = 1
-    mask = temp_image[int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2])]
+    # temp_image = np.zeros(shape, dtype="uint8")
+    # temp_image[x_coords, y_coords] = 1
+    mask = pred[int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2])]
+    mask = (mask == 4).astype(np.uint8)
     masks.append(mask)
     reading_order_list.append(reading_order[index])
     mask_bbox_list.append(bbox)
@@ -541,6 +492,7 @@ def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
     :return: prediction ndarray [H, W]
     """
     max, argmax = torch.max(pred, dim=1)
+    argmax = argmax.type(torch.uint8)
     argmax[max < threshold] = 0
     return argmax.detach().cpu().numpy() # type: ignore
 

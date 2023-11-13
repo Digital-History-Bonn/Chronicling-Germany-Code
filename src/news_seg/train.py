@@ -25,7 +25,7 @@ from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 from tqdm import tqdm
 
-from news_seg.utils import split_batches
+from src.news_seg.utils import split_batches
 from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.dh_segment_small import DhSegmentSmall
