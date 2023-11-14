@@ -1,3 +1,6 @@
+"""
+Module for plotting threads and data splitting graph
+"""
 import json
 import math
 import os
@@ -9,22 +12,15 @@ import tikzplotlib
 from numpy import ndarray
 from tqdm import tqdm
 
-
-def tikzplotlib_fix_ncols(obj):
-    """
-    workaround for matplotlib 3.6 renamed legend's _ncol to _ncols, which breaks tikzplotlib
-    """
-    if hasattr(obj, "_ncols"):
-        obj._ncol = obj._ncols
-    for child in obj.get_children():
-        tikzplotlib_fix_ncols(child)
+from experiments.plotting.utils import tikzplotlib_fix_ncols
 
 
+# pylint: disable=duplicate-code
 def load_json(path: str, shape: Tuple[int, ...], num_batches: int) -> ndarray:
     """
     Load all json files containing data for one training each.
     :param path: path to folder
-    :param shape: worker range x prefetch range
+    :param shape: intended shape of resulting data
     :param num_batches: total number of batches that have been processed during training
     """
     file_names = [f for f in os.listdir(path) if f.endswith(".json")]
@@ -68,6 +64,7 @@ def plot_3d(data: ndarray) -> None:
     axplt.set_yticks(np.arange(6) * 2, 2**(np.arange(6) * 2))
     axplt.view_init(elev=20., azim=135)
 
+    # pylint: disable=assignment-from-no-return
     fig = plt.gcf()
     fig = tikzplotlib_fix_ncols(fig)
     tikzplotlib.save("threads.tex")
@@ -76,32 +73,24 @@ def plot_3d(data: ndarray) -> None:
 
     plt.show()
 
-def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str) -> None:
-    """
-    Plot 2d data, which has been summarized from 3d Data along one axis.
-    :param data: ndarray 2d data
-    :param stds: standart deviation ndarray fro each data point
-    :param name: name for saved file
-    :param xlabel: name for x-axis label
-    """
-    xdata = np.arange(data.shape[0])
-    fig, axplt = plt.subplots()
-    axplt.set_xlabel(xlabel)
-    axplt.set_ylabel('Batches pro Sekunde')
-    axplt.bar(xdata, data, align="center", yerr=stds)
-
-    plt.savefig(name)
-    plt.show()
-
-
-data = load_json("logs/split-data/", (11, 2), 79 * 5)
-print(np.argmax(data))
-plot_3d(data)
-# data_2d = np.mean(data, axis=0)
-# stds = np.std(data, axis=0)
-# plot_2d(data_2d, stds, "prefetch-2d.pdf", "Prefetch Faktor")
+# def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str) -> None:
+#     """
+#     Plot 2d data, which has been summarized from 3d Data along one axis.
+#     :param data: ndarray 2d data
+#     :param stds: standart deviation ndarray fro each data point
+#     :param name: name for saved file
+#     :param xlabel: name for x-axis label
+#     """
+#     xdata = np.arange(data.shape[0])
+#     fig, axplt = plt.subplots()
+#     axplt.set_xlabel(xlabel)
+#     axplt.set_ylabel('Batches pro Sekunde')
+#     axplt.bar(xdata, data, align="center", yerr=stds)
 #
-# data_2d = np.mean(data, axis=1)
-# stds = np.std(data, axis=1)
-# plot_2d(data_2d, stds, "worker-2d.pdf", "Anzahl Worker")
+#     plt.savefig(name)
+#     plt.show()
 
+
+data_ndarray = load_json("logs/split-data/", (11, 2), 79 * 5)
+print(np.argmax(data_ndarray))
+plot_3d(data_ndarray)

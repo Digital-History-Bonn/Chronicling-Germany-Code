@@ -1,3 +1,4 @@
+"""Module for plotting worker and prefetch factor graphs"""
 import json
 import os
 from typing import Tuple, Any
@@ -8,22 +9,15 @@ import tikzplotlib
 from numpy import ndarray
 from tqdm import tqdm
 
-
-def tikzplotlib_fix_ncols(obj):
-    """
-    workaround for matplotlib 3.6 renamed legend's _ncol to _ncols, which breaks tikzplotlib
-    """
-    if hasattr(obj, "_ncols"):
-        obj._ncol = obj._ncols
-    for child in obj.get_children():
-        tikzplotlib_fix_ncols(child)
+from experiments.plotting.utils import tikzplotlib_fix_ncols
 
 
+# pylint: disable=duplicate-code
 def load_json(path: str, shape: Tuple[int, ...], num_batches: int) -> ndarray:
     """
     Load all json files containing data for one training each.
     :param path: path to folder
-    :param shape: worker range x prefetch range
+    :param shape: intended shape of resulting data
     :param num_batches: total number of batches that have been processed during training
     """
     file_names = [f for f in os.listdir(path) if f.endswith(".json")]
@@ -92,19 +86,20 @@ def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str, ticks: Any) ->
 
     plt.savefig(f"{name}.pdf")
 
+    # pylint: disable=assignment-from-no-return
     fig = plt.gcf()
     fig = tikzplotlib_fix_ncols(fig)
     tikzplotlib.save(f"{name}.tex")
     plt.show()
 
 
-data = load_json("logs/worker-experiment/", (40, 10), 79 * 5)
-print(np.argmax(data))
-plot_3d(data)
-data_2d = np.mean(data, axis=0)
-stds = np.std(data, axis=0)
-plot_2d(data_2d, stds, "prefetch-2d", "Prefetch Faktor", (np.arange(6) * 2 - 1, np.arange(6) * 2))
+data_ndarray = load_json("logs/worker-experiment/", (40, 10), 79 * 5)
+print(np.argmax(data_ndarray))
+plot_3d(data_ndarray)
+data_2d = np.mean(data_ndarray, axis=0)
+std_ndarray = np.std(data_ndarray, axis=0)
+plot_2d(data_2d, std_ndarray, "prefetch-2d", "Prefetch Faktor", (np.arange(6) * 2 - 1, np.arange(6) * 2))
 
-data_2d = np.mean(data, axis=1)
-stds = np.std(data, axis=1)
-plot_2d(data_2d, stds, "worker-2d", "Anzahl Worker", (np.arange(5) * 10 - 1, np.arange(5) * 10))
+data_2d = np.mean(data_ndarray, axis=1)
+std_ndarray = np.std(data_ndarray, axis=1)
+plot_2d(data_2d, std_ndarray, "worker-2d", "Anzahl Worker", (np.arange(5) * 10 - 1, np.arange(5) * 10))
