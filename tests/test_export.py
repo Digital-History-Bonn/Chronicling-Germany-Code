@@ -1,5 +1,6 @@
 """Class for testing prediction and export scripts"""
 import numpy as np
+import torch
 
 from tests.bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
@@ -26,9 +27,9 @@ class TestClassExport:
             ),
             (2, 0, 1),
         )
-        ground_truth = np.array([[0, 1, 1], [1, 2, 0]])
+        ground_truth = np.array([[0, 1, 1], [1, 2, 0]], dtype=np.uint8)
 
-        result = predict.process_prediction(data, 0.6)
+        result = predict.process_prediction(torch.tensor(data[None, :, :, :]), 0.6)
         assert np.all(result == ground_truth)
 
     def test_polygon_to_string(self):

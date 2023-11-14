@@ -499,8 +499,8 @@ def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
     :param threshold: confidence threshold for prediction
-    :param pred: prediction
-    :return: prediction ndarray [H, W]
+    :param pred: prediction [B, C, H, W]
+    :return: prediction ndarray [B, H, W]
     """
     max_tensor, argmax = torch.max(pred, dim=1)
     argmax = argmax.type(torch.uint8)
