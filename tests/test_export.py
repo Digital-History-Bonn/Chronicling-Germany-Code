@@ -60,9 +60,9 @@ class TestClassExport:
         ground_truth = (
             {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
             {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
-        assert prediction_to_polygons(data, tolerance, 1) == ground_truth
+        assert prediction_to_polygons(data, tolerance, 1, True) == ground_truth
         ground_truth = ({1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []}, {1: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
-        assert prediction_to_polygons(data, tolerance, 5) == ground_truth
+        assert prediction_to_polygons(data, tolerance, 5, True) == ground_truth
 
     def test_get_label_names(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
