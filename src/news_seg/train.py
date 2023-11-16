@@ -173,7 +173,7 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
         targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
         jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
-            pred.get_device()) # type: ignore
+            pred.get_device())  # type: ignore
         accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
         confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
 
@@ -365,7 +365,7 @@ class Trainer:
                     torch.cuda.empty_cache()
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        val_loss, acc, jac = self.validation()
+                        val_loss, acc, jac, _ = self.validation()
 
                         # early stopping
                         score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
@@ -417,7 +417,7 @@ class Trainer:
         return torch.permute(one_hot(targets.to(self.device), num_classes=OUT_CHANNELS),
                              (0, 3, 1, 2))
 
-    def validation(self, test_validation: bool = False) -> Tuple[float, float, float]:
+    def validation(self, test_validation: bool = False) -> Tuple[float, float, float, ndarray]:
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
         jaccard score, accuracy and multiclass accuracy are calculated over the validation set. Multiclass accuracy
@@ -467,13 +467,14 @@ class Trainer:
         loss = loss / size
         accuracy = accuracy / (size * self.num_scores_splits)
         jaccard = jaccard / (size * self.num_scores_splits)
+        class_acc = (class_acc / class_sum).detach().cpu().numpy()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.val_logging(
                 loss,
                 accuracy,
                 jaccard,
-                (class_acc / class_sum).detach().cpu().numpy(),
+                class_acc,
                 test_validation,
             )
 
@@ -481,7 +482,7 @@ class Trainer:
         logging = time()
         print(f"Val logging takes:{logging - scores}")
 
-        return loss, accuracy, jaccard
+        return loss, accuracy, jaccard, class_acc
 
     def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
                        jaccard: float, pred: Tensor, targets: Tensor) -> Tuple[
@@ -604,6 +605,27 @@ class Trainer:
         del size, image, target, pred
         torch.cuda.empty_cache()
 
+    def get_test_score(self, model_path: str) -> Tuple[float, float]:
+        """
+        After Training has finished, load best model and run test-dataset validation on it.
+        :param model_path: name of model to be evaluated.
+        :return: Tuple of scores with values from 0 to 1. First ist composed out of accuracy and jaccard score.
+        Second is the mean of multi clas csi results.
+        """
+        self.model.module.load(model_path, self.device)
+
+        self.model.module.means = torch.tensor((0.485, 0.456, 0.406))
+        self.model.module.stds = torch.tensor((0.229, 0.224, 0.225))
+
+        self.model.to(self.device)
+
+        _, acc, jac, class_acc = self.validation(True)
+
+        score = np.mean(np.array([acc, jac]))
+        class_score = np.mean(class_acc)
+
+        return round(float(score), ndigits=4), round(float(class_score), ndigits=4)
+
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
@@ -691,9 +713,9 @@ def get_args() -> argparse.Namespace:
         help="path for folder with folders 'images' and 'targets'",
     )
     parser.add_argument(
-        "--duration-path",
+        "--result-path",
         type=str,
-        default="default",
+        default="default/",
         help="path to folder in which duration log files should be written",
     )
     parser.add_argument(
@@ -818,8 +840,8 @@ def main() -> None:
         os.makedirs("models")
     if not os.path.exists("scores"):
         os.makedirs("scores")
-    if not os.path.exists(f"logs/{parameter_args.duration_path}"):
-        os.makedirs(f"logs/{parameter_args.duration_path}")
+    if not os.path.exists(f"logs/{parameter_args.result_path}"):
+        os.makedirs(f"logs/{parameter_args.result_path}")
 
     torch.manual_seed(parameter_args.torch_seed)
 
@@ -854,11 +876,12 @@ def main() -> None:
     print(f"num-scores-splits {parameter_args.num_scores_splits}")
     print(f"amp:  {parameter_args.amp}")
 
-    duration = trainer.train(epochs=parameter_args.epochs)
-    with open(f"logs/{parameter_args.duration_path}{parameter_args.id}.json",
+    _ = trainer.train(epochs=parameter_args.epochs)
+    score, multi_class_score = trainer.get_test_score(f"models/model_{parameter_args.name}_best.pt")
+    with open(f"logs/{parameter_args.result_path}{parameter_args.wd}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.loss, parameter_args.amp, duration), file)
+        json.dump((parameter_args.wd, parameter_args.lr, score, multi_class_score), file)
 
 
 if __name__ == "__main__":
