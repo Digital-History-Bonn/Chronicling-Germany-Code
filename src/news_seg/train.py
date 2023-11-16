@@ -467,14 +467,14 @@ class Trainer:
         loss = loss / size
         accuracy = accuracy / (size * self.num_scores_splits)
         jaccard = jaccard / (size * self.num_scores_splits)
-        class_acc = (class_acc / class_sum).detach().cpu().numpy()
+        class_acc_ndarray = (class_acc / class_sum).detach().cpu().numpy()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.val_logging(
                 loss,
                 accuracy,
                 jaccard,
-                class_acc,
+                class_acc_ndarray,
                 test_validation,
             )
 
@@ -482,7 +482,7 @@ class Trainer:
         logging = time()
         print(f"Val logging takes:{logging - scores}")
 
-        return loss, accuracy, jaccard, class_acc
+        return loss, accuracy, jaccard, class_acc_ndarray
 
     def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
                        jaccard: float, pred: Tensor, targets: Tensor) -> Tuple[
