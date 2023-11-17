@@ -877,7 +877,9 @@ def main() -> None:
     print(f"amp:  {parameter_args.amp}")
 
     _ = trainer.train(epochs=parameter_args.epochs)
-    score, multi_class_score = trainer.get_test_score(f"models/model_{parameter_args.name}_best.pt")
+    model_path = f"models/model_{parameter_args.name}_best.pt" if trainer.best_step != 0 else \
+        f"models/model_{parameter_args.name}.pt"
+    score, multi_class_score = trainer.get_test_score(model_path)
     with open(f"logs/{parameter_args.result_path}{parameter_args.wd}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
