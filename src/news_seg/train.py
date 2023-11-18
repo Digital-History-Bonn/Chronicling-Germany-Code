@@ -19,6 +19,7 @@ from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torchmetrics import JaccardIndex
@@ -236,6 +237,7 @@ class Trainer:
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 10)
 
         # load data
         preprocessing = Preprocessing(
@@ -366,6 +368,7 @@ class Trainer:
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
                         val_loss, acc, jac, _ = self.validation()
+                        self.scheduler.step(val_loss)
 
                         # early stopping
                         score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
