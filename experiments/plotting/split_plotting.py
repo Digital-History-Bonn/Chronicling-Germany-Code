@@ -67,6 +67,7 @@ def plot_3d(data: ndarray) -> None:
     # pylint: disable=assignment-from-no-return
     fig = plt.gcf()
     fig = tikzplotlib_fix_ncols(fig)
+    tikzplotlib.clean_figure()
     tikzplotlib.save("threads.tex")
 
     plt.savefig('threads.pdf')

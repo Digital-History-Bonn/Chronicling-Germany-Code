@@ -5,6 +5,9 @@ from numpy import ndarray
 import matplotlib.pyplot as plt
 
 import requests
+import tikzplotlib
+
+from experiments.plotting.utils import tikzplotlib_fix_ncols
 
 TAGS = ['current+best',
         'epoch',
@@ -36,10 +39,19 @@ TAGS = ['current+best',
         'val/jaccard+score',
         'val/loss']
 
-RUNS = [
-    ['cross_entropy_amp_A', 'cross_entropy_amp_B', 'cross_entropy_amp_C'],
-    ['cross_entropy__no_amp_A', 'cross_entropy__no_amp_B', 'cross_entropy__no_amp_C']
-]
+# RUNS = [
+#     ['cross_entropy_amp_A', 'cross_entropy_amp_B', 'cross_entropy_amp_C'],
+#     ['focal_loss_amp_A', 'focal_loss_amp_B', 'focal_loss_amp_C'],
+#     ['focal_loss_no_amp_A', 'focal_loss_no_amp_B', 'focal_loss_no_amp_C']
+# ]
+
+# RUNS = [
+#     ['cross_entropy_amp_A'],
+#     ['focal_loss_amp_A'],
+#     ['focal_loss_no_amp_A']
+# ]
+
+RUNS = [['lerning_rate_test_4_6_A']]
 
 plt.rcParams["figure.figsize"] = (30, 20)
 plt.rcParams["font.size"] = 35
@@ -57,11 +69,11 @@ def get_data(tag: str, run: str) -> Tuple[ndarray, ndarray]:
     url = f'http://localhost:6006/experiment/defaultExperimentId/data/plugin/scalars/scalars?tag={tag}&run={run}&format=csv'
     r = requests.get(url, allow_redirects=True)
     data_csv = reader(r.text.splitlines())
-    data = np.array(list(data_csv)[1:])
+    data = np.array(list(data_csv)[1:], dtype=float)
     return data[:, 1], data[:, 2]
 
 
-def get_timeseries(tag: str, runs: List[List[str]]) -> Any:
+def get_timeseries(tag: str, runs: List[List[str]] = RUNS) -> Tuple[List[ndarray], List[ndarray]]:
     """
     Build up lists for each run containing all versions of that run.
     :param tag: tag of data that should be loaded
@@ -73,12 +85,18 @@ def get_timeseries(tag: str, runs: List[List[str]]) -> Any:
     data = []
     step_lists = []
     for run in runs:
-        data.append[]
+        value_list = []
         for version in run:
             steps, values = get_data(tag, version)
-            data[-1].append(values)
-        step_lists.append(steps)
-    return steps, data
+            value_list.append(values)
+        data.append(np.array(value_list))
+        step_lists.append(np.array(steps, dtype=int))
+
+    #custom step correction
+    # step_lists[-1] = step_lists[-1]//2
+    # step_lists[-2] = step_lists[-2]//2
+
+    return step_lists, data
 
 
 def average(data):
@@ -88,60 +106,87 @@ def average(data):
     return avg_data
 
 
-def smoothing(data, alpha=.99):
-    smoothed_data = []
-    for item in data:
-        smoothed = []
-        curr = item[0]
-        for t in item:
-            curr = alpha * curr + (1 - alpha) * t
-            smoothed.append(curr)
-
-        smoothed_data.append(smoothed)
-    return smoothed_data
-
-
-def smoothing2(data, size=100):
-    smoothed_data = []
-    for item in data:
-        smoothed = []
-        for i in range(len(item)):
-            smoothed.append(np.mean(item[max(0, i - 50): i]))
-
-        smoothed_data.append(smoothed)
-    return smoothed_data
-
-
 STEPS, EPOCHS = get_timeseries('epoch')
 
 
-def plot_3d(steps, front, back, title='PLOT', labels=RUNS):
-    front_colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
-    back_colors = ['lightsteelblue', 'peachpuff', 'palegreen', 'tab:red', 'tab:purple']
+def plot(steps, data, main_color, background_color, title, labels, tiks_name, ylabel, legend):
+    """Plots timeseries with error bands"""
+    for index, timeseries in enumerate(data):
+        # mean = np.mean(timeseries, axis=0)
+        # error = np.std(timeseries, axis=0)
+        mean = timeseries[0]
 
-    for i, item in enumerate(back):
-        plt.plot_3d(steps, item, color=back_colors[int(i / 3)])
-
-    for i, item in enumerate(front):
-        plt.plot_3d(steps, item, label=labels[i], color=front_colors[i])
-
+        # plt.plot(steps[index], mean, color=main_color[index], label=labels[index])
+        plt.plot(steps[index], mean, color=main_color[index])
+        # plt.fill_between(steps[index], mean - error, mean + error, color=background_color[index])
     plt.title(title)
-    plt.xticks(range(0, int(steps[-1]) + 1, int(steps[-1] / 20)), range(0, 101, 5))
 
-    plt.xlabel('Epoch')
-    plt.ylabel('loss')
-    plt.legend()
-    plt.savefig(f"{title.replace(' ', '')}.pdf", bbox_inches='tight')
+    epochs = EPOCHS[0][0].astype(int)
+    number_epochs = epochs[-1]
+    number_steps = steps[0][-1]
+    step_per_epoch = number_steps // number_epochs
+    epoch_tiks = 20
+
+    plt.xticks(np.arange(0, number_steps, step_per_epoch * epoch_tiks), np.arange(0, number_epochs + 1, epoch_tiks))
+
+    plt.xlabel('Epochs')
+    plt.ylabel(ylabel)
+    # plt.legend(loc=legend)
+
+    plt.savefig(f"{tiks_name}.pdf")
+    fig = plt.gcf()
+    fig = tikzplotlib_fix_ncols(fig)
+    tikzplotlib.clean_figure()
+    tikzplotlib.save(f"{tiks_name}.tex")
+    plt.clf()
+    # plt.show()
 
 
-steps, data = get_timeseries('train+loss', runs=RUNS[3:])
-print(len(steps))
-print(len(data[0]))
+def val_loss():
+    steps, data = get_timeseries('val/loss')
+    title = "Validation Loss"
+    tiks_name = "hyperbest_val_loss"
+    ylabel = "Loss"
+    legend = "upper right"
 
-data_mean = np.mean(data)
-data_std = np.std(data)
-print(len(data_mean), data_mean[0].shape)
-smoothed = smoothing2(data_mean)
-print(smoothed[0][:10])
-print(smoothed[1][:10])
-# plot_3d(steps, smoothed, data, title='Training Loss', labels=['Training mit Pretraining', 'Training ohne Pretraining'])
+    return steps, data, title, tiks_name, ylabel, legend
+
+def val_acc():
+    steps, data = get_timeseries('val/accuracy')
+    title = "Validation accuracy"
+    tiks_name = "hyperbest_val_acc"
+    ylabel = "Accuracy"
+    legend = "lower right"
+
+    return steps, data, title, tiks_name, ylabel, legend
+
+def val_jac():
+    steps, data = get_timeseries('val/jaccard score')
+    title = "Validation Jaccard Score"
+    tiks_name = "hyperbest_val_jac"
+    ylabel = "Jaccard Score"
+    legend = "lower right"
+
+    return steps, data, title, tiks_name, ylabel, legend
+
+
+def main():
+    main_labels = ["cross entropy", "focal loss with amp", "focal loss"]
+    main_color = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    background_color = ['lightsteelblue', 'peachpuff', 'palegreen', 'tab:red', 'tab:purple']
+
+    steps, data, title, tiks_name, ylabel, legend = val_loss()
+
+    plot(steps, data, main_color, background_color, title, main_labels, tiks_name, ylabel, legend)
+
+    steps, data, title, tiks_name, ylabel, legend = val_acc()
+
+    plot(steps, data, main_color, background_color, title, main_labels, tiks_name, ylabel, legend)
+
+    steps, data, title, tiks_name, ylabel, legend = val_jac()
+
+    plot(steps, data, main_color, background_color, title, main_labels, tiks_name, ylabel, legend)
+
+
+if __name__ == "__main__":
+    main()

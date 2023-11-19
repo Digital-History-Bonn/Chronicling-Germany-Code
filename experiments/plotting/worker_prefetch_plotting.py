@@ -93,7 +93,7 @@ def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str, ticks: Any) ->
     plt.show()
 
 
-data_ndarray = load_json("logs/worker-experiment/", (40, 10), 79 * 5)
+data_ndarray = load_json("logs/worker-data-11-11/", (40, 10), 79 * 5)
 print(np.argmax(data_ndarray))
 plot_3d(data_ndarray)
 data_2d = np.mean(data_ndarray, axis=0)
