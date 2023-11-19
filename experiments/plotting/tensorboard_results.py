@@ -50,8 +50,17 @@ TAGS = ['current+best',
 #     ['focal_loss_amp_A'],
 #     ['focal_loss_no_amp_A']
 # ]
+RUNS = [
+    ['dh_segment_newspaper_H'],
+]
+# RUNS = [
+#     ['cbam_newspaper_A'],
+# ]
+# RUNS = [
+#     ['trans_unet_newspaper_A']
+# ]
 
-RUNS = [['lerning_rate_test_4_6_A']]
+# RUNS = [['lerning_rate_test_4_6_A']]
 
 plt.rcParams["figure.figsize"] = (30, 20)
 plt.rcParams["font.size"] = 35
@@ -92,7 +101,7 @@ def get_timeseries(tag: str, runs: List[List[str]] = RUNS) -> Tuple[List[ndarray
         data.append(np.array(value_list))
         step_lists.append(np.array(steps, dtype=int))
 
-    #custom step correction
+    # custom step correction
     # step_lists[-1] = step_lists[-1]//2
     # step_lists[-2] = step_lists[-2]//2
 
@@ -121,13 +130,8 @@ def plot(steps, data, main_color, background_color, title, labels, tiks_name, yl
         # plt.fill_between(steps[index], mean - error, mean + error, color=background_color[index])
     plt.title(title)
 
-    epochs = EPOCHS[0][0].astype(int)
-    number_epochs = epochs[-1]
-    number_steps = steps[0][-1]
-    step_per_epoch = number_steps // number_epochs
-    epoch_tiks = 20
-
-    plt.xticks(np.arange(0, number_steps, step_per_epoch * epoch_tiks), np.arange(0, number_epochs + 1, epoch_tiks))
+    # set_xticks(steps)
+    set_xticks_per_version(0)
 
     plt.xlabel('Epochs')
     plt.ylabel(ylabel)
@@ -142,28 +146,53 @@ def plot(steps, data, main_color, background_color, title, labels, tiks_name, yl
     # plt.show()
 
 
+def set_xticks(steps):
+    """Arange x ticks so that the units is epochs and not steps. Calculates step per value based on last epoch and
+    last step. This only works if this does not change throughout training and versions."""
+    epochs = EPOCHS[0][0].astype(int)
+    number_epochs = epochs[-1]
+    number_steps = steps[0][-1]
+    step_per_epoch = number_steps // number_epochs
+    epoch_tiks = 20
+    plt.xticks(np.arange(0, number_steps, step_per_epoch * epoch_tiks), np.arange(0, number_epochs + 1, epoch_tiks))
+
+
+def set_xticks_per_version(index):
+    """Arange x ticks so that the units is epochs and not steps. This version do"""
+    epochs = EPOCHS[index][0].astype(int)
+    steps = STEPS[index]
+    number_epochs = epochs[-1]
+
+    change = np.insert(epochs[:-1] != epochs[1:], 0, False)
+    steps = np.insert(steps[change], 0, 0)
+    epoch_tiks = 50
+    plt.xticks(np.append(steps[0::epoch_tiks], steps[-1]), np.arange(0, number_epochs + 1, epoch_tiks))
+
+
 def val_loss():
     steps, data = get_timeseries('val/loss')
     title = "Validation Loss"
-    tiks_name = "hyperbest_val_loss"
+    tiks_name = "init_dh_val_loss"
     ylabel = "Loss"
     legend = "upper right"
 
     return steps, data, title, tiks_name, ylabel, legend
 
+
 def val_acc():
     steps, data = get_timeseries('val/accuracy')
     title = "Validation accuracy"
-    tiks_name = "hyperbest_val_acc"
+    tiks_name = "init_dh_val_acc"
     ylabel = "Accuracy"
     legend = "lower right"
 
     return steps, data, title, tiks_name, ylabel, legend
 
+
 def val_jac():
     steps, data = get_timeseries('val/jaccard score')
     title = "Validation Jaccard Score"
-    tiks_name = "hyperbest_val_jac"
+    tiks_name = "init_dh_val_jac"
     ylabel = "Jaccard Score"
     legend = "lower right"
 
@@ -171,7 +200,7 @@ def val_jac():
 
 
 def main():
-    main_labels = ["cross entropy", "focal loss with amp", "focal loss"]
+    main_labels = ['DhSegment', 'CBAM DhSegment', 'Trans Unet']
     main_color = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
     background_color = ['lightsteelblue', 'peachpuff', 'palegreen', 'tab:red', 'tab:purple']
 
