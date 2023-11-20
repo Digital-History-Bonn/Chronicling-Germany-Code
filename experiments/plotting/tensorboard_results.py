@@ -52,7 +52,12 @@ TAGS = ['current+best',
 # ]
 RUNS = [
     ['dh_segment_newspaper_H'],
+    ['cbam_newspaper_A'],
+    ['trans_unet_newspaper_A']
 ]
+# RUNS = [
+#     ['dh_segment_newspaper_H'],
+# ]
 # RUNS = [
 #     ['cbam_newspaper_A'],
 # ]
@@ -116,6 +121,36 @@ def average(data):
 
 
 STEPS, EPOCHS = get_timeseries('epoch')
+
+
+def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[str], title: str) -> None:
+    """
+    Plot 2d data, which has been summarized from 3d Data along one axis.
+    :param data: ndarray 2d data
+    :param stds: standart deviation ndarray fro each data point
+    :param name: name for saved file
+    :param xlabel: name for x-axis label
+    """
+    xdata = np.arange(data.shape[0]) + 1
+    fig, axplt = plt.subplots()
+    axplt.set_ylabel('Critical Sucess Index')
+
+    for i in range(3):
+        # axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", yerr=stds[:, i], label=labels[i])
+        axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", label=labels[i])
+    # axplt.bar(xdata, data, align="center", yerr=stds)
+    axplt.set_xticks(ticks[0], ticks[1], rotation = 45, ha='right')
+    axplt.legend(loc="upper right")
+    fig.subplots_adjust(bottom=0.2)
+    plt.title(title)
+
+    plt.savefig(f"{name}.pdf")
+
+    # pylint: disable=assignment-from-no-return
+    fig = plt.gcf()
+    fig = tikzplotlib_fix_ncols(fig)
+    tikzplotlib.save(f"{name}.tex")
+    plt.show()
 
 
 def plot(steps, data, main_color, background_color, title, labels, tiks_name, ylabel, legend):
@@ -199,7 +234,7 @@ def val_jac():
     return steps, data, title, tiks_name, ylabel, legend
 
 
-def main():
+def graph():
     main_labels = ['DhSegment', 'CBAM DhSegment', 'Trans Unet']
     main_color = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
     background_color = ['lightsteelblue', 'peachpuff', 'palegreen', 'tab:red', 'tab:purple']
@@ -215,6 +250,65 @@ def main():
     steps, data, title, tiks_name, ylabel, legend = val_jac()
 
     plot(steps, data, main_color, background_color, title, main_labels, tiks_name, ylabel, legend)
+
+
+def class_sci():
+    tags = ['multi-acc-test/class 0',
+            'multi-acc-test/class 1',
+            'multi-acc-test/class 2',
+            'multi-acc-test/class 3',
+            'multi-acc-test/class 4',
+            'multi-acc-test/class 5',
+            'multi-acc-test/class 6',
+            'multi-acc-test/class 7',
+            'multi-acc-test/class 8',
+            'multi-acc-test/class 9']
+    data = []
+    for tag in tags:
+        _, values = get_timeseries(tag)
+        data.append([values[i][0][-1] for i in range(3)])
+
+    xticks = [np.arange(1, 11) + 0.375, ["Background",
+                             "UnknownRegion",
+                             "Caption",
+                             "Table",
+                             "Article",
+                             "Heading",
+                             "Header",
+                             "Separator Vertical",
+                             "Separator Short",
+                             "Separator Horizontal"]]
+    labels = ["DhSegment", "CBAM", "Trans Unet"]
+    name = "init-class-csi"
+    title = "Multi Class CSI"
+
+    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
+
+
+def results():
+    tags = ['test/loss',
+            'test/accuracy',
+            'test/jaccard score']
+    data = []
+    for tag in tags:
+        _, values = get_timeseries(tag)
+        data.append([values[i][0][-1] for i in range(3)])
+
+    xticks = [np.arange(1, 4) + 0.375, ["Loss",
+                             "Accuracy",
+                             "Jaccard Score"]]
+    labels = ["DhSegment", "CBAM", "Trans Unet"]
+    name = "init-test-results"
+    titel = "Test Ergenisse"
+
+    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, titel)
+
+def bar():
+    class_sci()
+
+
+def main():
+    bar()
 
 
 if __name__ == "__main__":
