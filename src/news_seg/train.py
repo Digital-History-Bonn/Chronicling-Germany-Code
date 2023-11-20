@@ -60,11 +60,14 @@ LOSS_WEIGHTS: torch.Tensor = torch.tensor([
 # set random seed for reproducibility
 # torch.manual_seed(42)
 
-def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True) -> Any:
+def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
+               skip_cbam: bool = False) -> Any:
     """
     Initialise model
     :param args:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
+    :param freeze: activates encoder freezing
+    :param skip_cbam: activates cbam skip connection
     :return: loaded model
     """
     if model_str == "dh_segment":
@@ -95,7 +98,7 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
     elif model_str == "dh_segment_cbam":
         model = DhSegmentCBAM(
-            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
+            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True, cbam_skip_connection=skip_cbam
         )
         model = setup_dh_segment(device, load, model, freeze)
     elif model_str == "dh_segment_small":
@@ -230,7 +233,7 @@ class Trainer:
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = DataParallel(init_model(load, self.device, args.model, args.freeze))
+        self.model = DataParallel(init_model(load, self.device, args.model, args.freeze, args.skip_cbam))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -809,6 +812,11 @@ def get_args() -> argparse.Namespace:
         help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
     )
     parser.add_argument(
+        "--skip-cbam",
+        action="store_true",
+        help="Activates cbam skip connection. Does only have an effect if the cbam dhsegment model is used",
+    )
+    parser.add_argument(
         "--loss",
         type=str,
         default="cross_entropy",
@@ -878,6 +886,7 @@ def main() -> None:
     print(f"num-processes {parameter_args.num_processes}")
     print(f"num-scores-splits {parameter_args.num_scores_splits}")
     print(f"amp:  {parameter_args.amp}")
+    print(f"skip cbam: {parameter_args.skip_cbam}")
 
     _ = trainer.train(epochs=parameter_args.epochs)
     model_path = f"models/model_{parameter_args.name}_best.pt" if trainer.best_step != 0 else \

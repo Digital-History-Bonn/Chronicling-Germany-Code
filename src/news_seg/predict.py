@@ -20,7 +20,7 @@ from tqdm import tqdm
 from script.convert_xml import create_xml
 from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
-from src.news_seg import train
+from src.news_seg import train # pylint: disable=no-name-in-module
 from src.news_seg.predict_dataset import PredictDataset
 from src.news_seg.utils import create_bbox_ndarray
 
@@ -198,6 +198,11 @@ def get_args() -> argparse.Namespace:
              "This will be adjusted depending on the scaling of the image.",
     )
     parser.add_argument(
+        "--skip-cbam",
+        action="store_true",
+        help="Activates cbam skip connection. Does only have an effect if the cbam dhsegment model is used",
+    )
+    parser.add_argument(
         "--separator-threshold",
         "-st",
         dest="separator_size",
@@ -253,7 +258,7 @@ def predict(args: argparse.Namespace) -> None:
         collate_fn=collate_fn
     )
 
-    model = DataParallel(train.init_model(args.model_path, device, args.model_architecture))
+    model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
     model.to(device)
     model.eval()
     threads = []

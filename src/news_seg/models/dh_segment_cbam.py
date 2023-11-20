@@ -22,7 +22,7 @@ class Encoder(nn.Module):
     (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py and https://github.com/Peachypie98/CBAM)
     """
 
-    def __init__(self, dhsegment: DhSegment, in_channels: int):
+    def __init__(self, dhsegment: DhSegment, in_channels: int, cbam_skip_connection: bool):
         super().__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
@@ -30,13 +30,13 @@ class Encoder(nn.Module):
         self.maxpool = dhsegment.maxpool
 
         self.block1 = dhsegment.block1
-        self.cbam1 = CBAM(256, 2)
+        self.cbam1 = CBAM(256, 2, cbam_skip_connection)
         self.block2 = dhsegment.block2
-        self.cbam2 = CBAM(512, 2)
+        self.cbam2 = CBAM(512, 2, cbam_skip_connection)
         self.block3 = dhsegment.block3
-        self.cbam3 = CBAM(512, 2)
+        self.cbam3 = CBAM(512, 2, cbam_skip_connection)
         self.block4 = dhsegment.block4
-        self.cbam4 = CBAM(512, 2)
+        self.cbam4 = CBAM(512, 2, cbam_skip_connection)
 
         # initialize normalization
         # pylint: disable=duplicate-code
@@ -139,12 +139,14 @@ class DhSegmentCBAM(nn.Module):
     https://github.com/Peachypie98/CBAM"""
 
     def __init__(
-        self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool =True
+            self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool = True,
+            cbam_skip_connection: bool = False
     ) -> None:
         """
-        :param in_channels:
-        :param out_channel:
-        :param zero_head:
+        :param in_channels: input image channels eg 3 for RGB
+        :param out_channel: number of output classes
+        :param load_resnet_weights: whether to load the resnet weights in the encoder
+        :param cbam_skip_connection: whether to bypass cbam module by a scik connection
         """
         # pylint: disable=duplicate-code
         super().__init__()
@@ -154,7 +156,7 @@ class DhSegmentCBAM(nn.Module):
             out_channel=out_channel,
             load_resnet_weights=load_resnet_weights,
         )
-        self.encoder = Encoder(dhsegment, in_channels)
+        self.encoder = Encoder(dhsegment, in_channels, cbam_skip_connection)
         self.decoder = Decoder(dhsegment)
 
     def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:
