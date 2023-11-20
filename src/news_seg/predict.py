@@ -320,7 +320,7 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
     :param file: path
     :param pred: prediction 2d ndarray
     """
-    if args.export or args.slices_path:
+    if args.export or args.slices_path or args.output_path:
         reading_order_dict, segmentations, bbox_list = polygon_prediction(pred, args)
 
         if args.slices_path:
@@ -403,7 +403,8 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
     :param pred: Original prediction ndarray image
     :return: smothed prediction ndarray image, reading order and segmentation dictionary
     """
-    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale))
+    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
+                                                      args.export or args.output_path)
 
     bbox_ndarray = create_bbox_ndarray(bbox_list)
     reading_order: List[int] = []
