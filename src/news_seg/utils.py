@@ -36,6 +36,37 @@ def multi_class_csi(
         )
     return csi
 
+def multi_precison_recall(
+        pred: torch.Tensor, target: torch.Tensor, out_channels) -> torch.Tensor:
+    """Calculate precision and recall using true positives, true negatives and false negatives from confusion matrix.
+    Returns numpy array with an entry for every class. If every prediction is a true negative,
+    the score cant be calculated and the array will contain nan. These cases should be completely ignored.
+    :param pred: prediction tensor
+    :param target: target tensor
+    :return:
+    """
+
+    pred = torch.argmax(pred, dim=1).type(torch.uint8)
+
+    metric: MulticlassConfusionMatrix = MulticlassConfusionMatrix(num_classes=out_channels).to(pred.get_device())
+
+    pred = pred.flatten()
+    target = target.flatten()
+
+    matrix: torch.Tensor = metric(pred, target)
+    true_positive = torch.diagonal(matrix)
+    false_positive = torch.sum(matrix, dim=1) - true_positive
+    false_negative = torch.sum(matrix, dim=0) - true_positive
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        precision = torch.tensor(
+            true_positive / (true_positive + false_positive)
+        )
+        recall = torch.tensor(
+            true_positive / (true_positive + false_negative)
+        )
+    return precision, recall
+
 
 def get_file(file: str, scale: float = 0.25) -> torch.Tensor:
     """

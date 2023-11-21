@@ -19,7 +19,7 @@ from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+# from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torchmetrics import JaccardIndex
@@ -33,7 +33,7 @@ from src.news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.news_dataset import NewsDataset
 from src.news_seg.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
-from src.news_seg.utils import multi_class_csi
+from src.news_seg.utils import multi_class_csi, multi_precison_recall
 
 EPOCHS = 1
 DATALOADER_WORKER = 1
@@ -172,23 +172,22 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     :param data: Combined and flattened prediction and Target with shape [P, C] P being number of pixels.
     The last Channel contains target data.
     """
-    while True:
-        pred = data[:, : -1]
-        targets = torch.squeeze(data[:, -1].to(torch.uint8))
+    pred = data[:, : -1]
+    targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
-        jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
-            pred.get_device())  # type: ignore
-        accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
-        confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
+    jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
+        pred.get_device())  # type: ignore
+    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
+    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
 
-        pred = torch.argmax(pred, dim=1).type(torch.uint8)
+    pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
-        # pylint: disable=not-callable
-        jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
-        accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
-        batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
+    # pylint: disable=not-callable
+    jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
+    accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
+    batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
 
-        return jaccard, accuracy, batch_class_acc
+    return jaccard, accuracy, batch_class_acc
 
 
 class Trainer:
@@ -240,7 +239,7 @@ class Trainer:
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 10)
+        # self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 10)
 
         # load data
         preprocessing = Preprocessing(
@@ -371,7 +370,7 @@ class Trainer:
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
                         val_loss, acc, jac, _ = self.validation()
-                        self.scheduler.step(val_loss)
+                        # self.scheduler.step(val_loss)
 
                         # early stopping
                         score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
@@ -436,10 +435,14 @@ class Trainer:
         self.model.eval()
         size = len(loader)
 
-        loss, jaccard, accuracy, class_acc, class_sum = (
+        loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum = (
             0.0,
             0.0,
             0.0,
+            torch.zeros(OUT_CHANNELS),
+            torch.zeros(OUT_CHANNELS),
+            torch.zeros(OUT_CHANNELS),
+            torch.zeros(OUT_CHANNELS),
             torch.zeros(OUT_CHANNELS),
             torch.zeros(OUT_CHANNELS),
         )
@@ -461,8 +464,10 @@ class Trainer:
             loss_time = time()
             print(f"Val loss takes:{loss_time - end}")
 
-            accuracy, class_acc, class_sum, jaccard = self.evaluate_batch(accuracy, class_acc,
-                                                                          class_sum, jaccard, pred, targets)
+            accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum = self.evaluate_batch(
+                accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision, precision_sum,
+                recall, recall_sum)
+
             loss += batch_loss
             scores = time()
             print(f"Val scores take:{scores - loss_time}")
@@ -474,6 +479,8 @@ class Trainer:
         accuracy = accuracy / (size * self.num_scores_splits)
         jaccard = jaccard / (size * self.num_scores_splits)
         class_acc_ndarray = (class_acc / class_sum).detach().cpu().numpy()
+        precision_ndarray = (precision / precision_sum).detach().cpu().numpy()
+        recall_ndarray = (recall / recall_sum).detach().cpu().numpy()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.val_logging(
@@ -481,6 +488,8 @@ class Trainer:
                 accuracy,
                 jaccard,
                 class_acc_ndarray,
+                precision_ndarray,
+                recall_ndarray,
                 test_validation,
             )
 
@@ -491,22 +500,28 @@ class Trainer:
         return loss, accuracy, jaccard, class_acc_ndarray
 
     def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
-                       jaccard: float, pred: Tensor, targets: Tensor) -> Tuple[
-        float, Tensor, Tensor, float]:
+                       jaccard: float, pred: Tensor, targets: Tensor, test_validation: bool, precision: Tensor,
+                       precision_sum: Tensor, recall: Tensor, recall_sum: Tensor) -> Tuple[
+        float, Tensor, Tensor, float, Tensor, Tensor, Tensor, Tensor]:
         """
         Evaluates prediction results of one validation(or test) batch. Updates running score variables. Uses Multi
         Threading to speed up score calculation. Despite threading inside python not being able to run on more than
         one process, in this case that works. The reason being, that all scores are calculated using torch functions,
         which bypass GIL by running C in the background. Using python or torch multiprocessing will not work if the
         data being handled is too large.
+        :param precision_sum: running sum variable
+        :param recall_sum: running sum variable
+        :param precision: running score variable
+        :param recall: running score variable
         :param accuracy: running score variable
         :param batch_loss: running score variable
         :param class_acc: running score variable
-        :param class_sum: running score variable
+        :param class_sum: running sum variable
         :param jaccard: running score variable
         :param loss: running score variable
         :param pred: prediction tensor [B,C,H,W]
         :param targets: target tensor [B,H,W]
+        :param test_validation: Activates precision and recall calculation on test runs.
         :return: Updated result score values
         """
         batch_class_acc = torch.zeros(OUT_CHANNELS)
@@ -514,6 +529,11 @@ class Trainer:
 
         pred = torch.nn.functional.softmax(pred, dim=1)
         targets = targets.to(self.device)
+
+        batch_precision = torch.zeros(OUT_CHANNELS)
+        batch_recall = torch.zeros(OUT_CHANNELS)
+        if test_validation:
+            batch_precision, batch_recall = multi_precison_recall(pred, targets, OUT_CHANNELS)
 
         pred_batches = split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1),
                                      self.num_scores_splits)
@@ -527,12 +547,21 @@ class Trainer:
             accuracy += result[1]
             batch_class_acc += torch.nan_to_num(result[2].detach().cpu())
             batch_class_sum += 1 - torch.isnan(
-                batch_class_acc).int()  # ignore pylint error. This comparison detects nan values
+                result[2].detach().cpu()).int()  # ignore pylint error. This comparison detects nan values
 
         class_acc += batch_class_acc
         class_sum += batch_class_sum
 
-        return accuracy, class_acc, class_sum, jaccard
+        precision += torch.nan_to_num(batch_precision.detach().cpu())
+        precision_sum += 1 - torch.isnan(
+            batch_precision.detach().cpu()).int()
+
+        recall += torch.nan_to_num(batch_recall.detach().cpu())
+        recall_sum += 1 - torch.isnan(
+            batch_recall.detach().cpu()).int()
+
+        return accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum
+
 
     def val_logging(
             self,
@@ -540,6 +569,8 @@ class Trainer:
             jaccard: float,
             accuracy: float,
             class_accs: ndarray,
+            precision: ndarray,
+            recall: ndarray,
             test_validation: bool,
     ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
@@ -583,6 +614,18 @@ class Trainer:
                     f"multi-acc-{environment}/class {i}", acc, global_step=self.step
                 )
 
+        if test_validation:
+            for i, value in enumerate(precision):
+                if not np.isnan(value):
+                    self.summary_writer.add_scalar(
+                        f"multi-precision-{environment}/class {i}", value, global_step=self.step
+                    )
+            for i, value in enumerate(recall):
+                if not np.isnan(value):
+                    self.summary_writer.add_scalar(
+                        f"multi-recall-{environment}/class {i}", value, global_step=self.step
+                    )
+
         self.summary_writer.add_image(
             f"image/{environment}-input",
             torch.squeeze(image.float().cpu()),
@@ -610,6 +653,7 @@ class Trainer:
 
         del size, image, target, pred
         torch.cuda.empty_cache()
+
 
     def get_test_score(self, model_path: str) -> Tuple[float, float]:
         """
