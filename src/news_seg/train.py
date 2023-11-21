@@ -942,7 +942,7 @@ def main() -> None:
     model_path = f"models/model_{parameter_args.name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{parameter_args.name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.batch_size}{parameter_args.crop_size}_{parameter_args.lr}.json",
+    with open(f"logs/{parameter_args.torch_seed}_{parameter_args.result_path}{parameter_args.name}.json",
               "w",
               encoding="utf-8") as file:
         json.dump((parameter_args.wd, parameter_args.lr, score, multi_class_score), file)
