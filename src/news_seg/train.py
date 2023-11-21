@@ -562,7 +562,6 @@ class Trainer:
 
         return accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum
 
-
     def val_logging(
             self,
             loss: float,
@@ -653,7 +652,6 @@ class Trainer:
 
         del size, image, target, pred
         torch.cuda.empty_cache()
-
 
     def get_test_score(self, model_path: str) -> Tuple[float, float]:
         """

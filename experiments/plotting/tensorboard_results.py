@@ -143,6 +143,7 @@ def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[s
     axplt.legend(loc="upper right")
     fig.subplots_adjust(bottom=0.2)
     plt.title(title)
+    plt.grid()
 
     plt.savefig(f"{name}.pdf")
 
@@ -170,6 +171,7 @@ def plot(steps, data, main_color, background_color, title, labels, tiks_name, yl
 
     plt.xlabel('Epochs')
     plt.ylabel(ylabel)
+    plt.grid()
     # plt.legend(loc=legend)
 
     plt.savefig(f"{tiks_name}.pdf")
@@ -284,6 +286,71 @@ def class_sci():
 
     plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
 
+def class_precision():
+    tags = ['multi-precision-test/class 0',
+            'multi-precision-test/class 1',
+            'multi-precision-test/class 2',
+            'multi-precision-test/class 3',
+            'multi-precision-test/class 4',
+            'multi-precision-test/class 5',
+            'multi-precision-test/class 6',
+            'multi-precision-test/class 7',
+            'multi-precision-test/class 8',
+            'multi-precision-test/class 9']
+    data = []
+    for tag in tags:
+        _, values = get_timeseries(tag)
+        data.append([values[i][0][-1] for i in range(3)])
+
+    xticks = [np.arange(1, 11) + 0.375, ["Background",
+                             "UnknownRegion",
+                             "Caption",
+                             "Table",
+                             "Article",
+                             "Heading",
+                             "Header",
+                             "Separator Vertical",
+                             "Separator Short",
+                             "Separator Horizontal"]]
+    labels = ["DhSegment", "CBAM", "Trans Unet"]
+    name = "init-class-precision"
+    title = "Multi Class Precision"
+
+    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
+
+
+def class_recall():
+    tags = ['multi-recall-test/class 0',
+            'multi-recall-test/class 1',
+            'multi-recall-test/class 2',
+            'multi-recall-test/class 3',
+            'multi-recall-test/class 4',
+            'multi-recall-test/class 5',
+            'multi-recall-test/class 6',
+            'multi-recall-test/class 7',
+            'multi-recall-test/class 8',
+            'multi-recall-test/class 9']
+    data = []
+    for tag in tags:
+        _, values = get_timeseries(tag)
+        data.append([values[i][0][-1] for i in range(3)])
+
+    xticks = [np.arange(1, 11) + 0.375, ["Background",
+                             "UnknownRegion",
+                             "Caption",
+                             "Table",
+                             "Article",
+                             "Heading",
+                             "Header",
+                             "Separator Vertical",
+                             "Separator Short",
+                             "Separator Horizontal"]]
+    labels = ["DhSegment", "CBAM", "Trans Unet"]
+    name = "init-class-recall"
+    title = "Multi Class Recall"
+
+    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
+
 
 def results():
     tags = ['test/loss',
@@ -304,7 +371,11 @@ def results():
     plot_bar(np.array(data), np.zeros(1), name, xticks, labels, titel)
 
 def bar():
-    class_sci()
+    # class_sci()
+    # results()
+    class_precision()
+    class_recall()
+
 
 
 def main():
