@@ -227,6 +227,7 @@ class Trainer:
         self.num_scores_splits = args.num_scores_splits
         self.amp = args.amp
         self.clip = args.clip
+        self.use_scheduler = args.scheduler
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -239,7 +240,7 @@ class Trainer:
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 10)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 3)
 
         # load data
         preprocessing = Preprocessing(
@@ -370,10 +371,12 @@ class Trainer:
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
                         val_loss, acc, jac, _ = self.validation()
-                        self.scheduler.step(val_loss)
 
                         # early stopping
                         score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
+                        if self.use_scheduler:
+                            self.scheduler.step(val_loss)
+
                         if score < self.best_score:
                             # update cur_best value
                             self.best_score = score
@@ -795,6 +798,11 @@ def get_args() -> argparse.Namespace:
         help="Whether the score corresponding to the loaded model should be loaded as well.",
     )
     parser.add_argument(
+        "--scheduler",
+        action="store_true",
+        help="Activates Scheduler",
+    )
+    parser.add_argument(
         "--amp",
         action="store_true",
         help="Activates automated mixed precision",
@@ -934,7 +942,7 @@ def main() -> None:
     model_path = f"models/model_{parameter_args.name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{parameter_args.name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.result_path}{parameter_args.wd}_{parameter_args.lr}.json",
+    with open(f"logs/{parameter_args.batch_size}{parameter_args.crop_size}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
         json.dump((parameter_args.wd, parameter_args.lr, score, multi_class_score), file)
