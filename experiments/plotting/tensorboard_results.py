@@ -50,11 +50,11 @@ TAGS = ['current+best',
 #     ['focal_loss_amp_A'],
 #     ['focal_loss_no_amp_A']
 # ]
-RUNS = [
-    ['dh_segment_newspaper_H'],
-    ['cbam_newspaper_A'],
-    ['trans_unet_newspaper_A']
-]
+# RUNS = [
+#     ['dh_segment_newspaper_H'],
+#     ['cbam_newspaper_A'],
+#     ['trans_unet_newspaper_A']
+# ]
 # RUNS = [
 #     ['dh_segment_newspaper_H'],
 # ]
@@ -65,7 +65,7 @@ RUNS = [
 #     ['trans_unet_newspaper_A']
 # ]
 
-# RUNS = [['lerning_rate_test_4_6_A']]
+RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
 
 plt.rcParams["figure.figsize"] = (30, 20)
 plt.rcParams["font.size"] = 35
@@ -135,12 +135,12 @@ def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[s
     fig, axplt = plt.subplots()
     axplt.set_ylabel('Critical Sucess Index')
 
-    for i in range(3):
+    # for i in range(1):
         # axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", yerr=stds[:, i], label=labels[i])
-        axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", label=labels[i])
-    # axplt.bar(xdata, data, align="center", yerr=stds)
-    axplt.set_xticks(ticks[0], ticks[1], rotation = 45, ha='right')
-    axplt.legend(loc="upper right")
+        # axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", label=labels[i])
+    axplt.bar(xdata, data, align="center", yerr=stds)
+    axplt.set_xticks(ticks[0], ticks[1], rotation=45, ha='right')
+    # axplt.legend(loc="upper right")
     fig.subplots_adjust(bottom=0.2)
     plt.title(title)
     plt.grid()
@@ -265,26 +265,26 @@ def class_sci():
             'multi-acc-test/class 7',
             'multi-acc-test/class 8',
             'multi-acc-test/class 9']
-    data = []
-    for tag in tags:
-        _, values = get_timeseries(tag)
-        data.append([values[i][0][-1] for i in range(3)])
+
+    mean, std = get_data_bar(tags)
 
     xticks = [np.arange(1, 11) + 0.375, ["Background",
-                             "UnknownRegion",
-                             "Caption",
-                             "Table",
-                             "Article",
-                             "Heading",
-                             "Header",
-                             "Separator Vertical",
-                             "Separator Short",
-                             "Separator Horizontal"]]
+                                         "UnknownRegion",
+                                         "Caption",
+                                         "Table",
+                                         "Article",
+                                         "Heading",
+                                         "Header",
+                                         "Separator Vertical",
+                                         "Separator Short",
+                                         "Separator Horizontal"]]
     labels = ["DhSegment", "CBAM", "Trans Unet"]
-    name = "init-class-csi"
+    name = "hyper-lr-class-csi"
     title = "Multi Class CSI"
 
-    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
+    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
+    plot_bar(mean, std, name, xticks, labels, title)
+
 
 def class_precision():
     tags = ['multi-precision-test/class 0',
@@ -297,26 +297,37 @@ def class_precision():
             'multi-precision-test/class 7',
             'multi-precision-test/class 8',
             'multi-precision-test/class 9']
-    data = []
-    for tag in tags:
-        _, values = get_timeseries(tag)
-        data.append([values[i][0][-1] for i in range(3)])
+
+    mean, std = get_data_bar(tags)
 
     xticks = [np.arange(1, 11) + 0.375, ["Background",
-                             "UnknownRegion",
-                             "Caption",
-                             "Table",
-                             "Article",
-                             "Heading",
-                             "Header",
-                             "Separator Vertical",
-                             "Separator Short",
-                             "Separator Horizontal"]]
+                                         "UnknownRegion",
+                                         "Caption",
+                                         "Table",
+                                         "Article",
+                                         "Heading",
+                                         "Header",
+                                         "Separator Vertical",
+                                         "Separator Short",
+                                         "Separator Horizontal"]]
     labels = ["DhSegment", "CBAM", "Trans Unet"]
     name = "init-class-precision"
     title = "Multi Class Precision"
 
-    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
+    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
+    plot_bar(mean, std, name, xticks, labels, title)
+
+
+def get_data_bar(tags):
+    data = []
+    for tag in tags:
+        _, values = get_timeseries(tag)
+        # data.append([values[i][0][-1] for i in range(3)])
+        data.append(np.stack([values[0][i][-1] for i in range(3)]))
+    data = np.array(data)
+    mean = np.mean(data, axis=1)
+    std = np.std(data, axis=1)
+    return mean, std
 
 
 def class_recall():
@@ -330,52 +341,50 @@ def class_recall():
             'multi-recall-test/class 7',
             'multi-recall-test/class 8',
             'multi-recall-test/class 9']
-    data = []
-    for tag in tags:
-        _, values = get_timeseries(tag)
-        data.append([values[i][0][-1] for i in range(3)])
+
+    mean, std = get_data_bar(tags)
 
     xticks = [np.arange(1, 11) + 0.375, ["Background",
-                             "UnknownRegion",
-                             "Caption",
-                             "Table",
-                             "Article",
-                             "Heading",
-                             "Header",
-                             "Separator Vertical",
-                             "Separator Short",
-                             "Separator Horizontal"]]
+                                         "UnknownRegion",
+                                         "Caption",
+                                         "Table",
+                                         "Article",
+                                         "Heading",
+                                         "Header",
+                                         "Separator Vertical",
+                                         "Separator Short",
+                                         "Separator Horizontal"]]
     labels = ["DhSegment", "CBAM", "Trans Unet"]
     name = "init-class-recall"
     title = "Multi Class Recall"
 
-    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, title)
+    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
+    plot_bar(mean, std, name, xticks, labels, title)
 
 
 def results():
     tags = ['test/loss',
             'test/accuracy',
             'test/jaccard score']
-    data = []
-    for tag in tags:
-        _, values = get_timeseries(tag)
-        data.append([values[i][0][-1] for i in range(3)])
+
+    mean, std = get_data_bar(tags)
 
     xticks = [np.arange(1, 4) + 0.375, ["Loss",
-                             "Accuracy",
-                             "Jaccard Score"]]
+                                        "Accuracy",
+                                        "Jaccard Score"]]
     labels = ["DhSegment", "CBAM", "Trans Unet"]
-    name = "init-test-results"
-    titel = "Test Ergenisse"
+    name = "hyper-lr-test-results"
+    title = "Test Ergenisse"
 
-    plot_bar(np.array(data), np.zeros(1), name, xticks, labels, titel)
+    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
+    plot_bar(mean, std, name, xticks, labels, title)
+
 
 def bar():
-    # class_sci()
-    # results()
-    class_precision()
-    class_recall()
-
+    class_sci()
+    results()
+    # class_precision()
+    # class_recall()
 
 
 def main():
