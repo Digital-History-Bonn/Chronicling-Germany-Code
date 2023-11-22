@@ -256,6 +256,7 @@ class Trainer:
             target_path=f"{args.data_path}targets/",
             limit=args.limit,
             dataset=args.dataset,
+            scale_aug=args.scale_aug
         )
 
         train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
@@ -815,6 +816,12 @@ def get_args() -> argparse.Namespace:
         dest="freeze",
         action="store_false",
         help="Deactivate encoder freezing",
+    )
+    parser.add_argument(
+        "--no-scale-aug",
+        dest="scale_aug",
+        action="store_false",
+        help="Deactivate scaling augmentation",
     )
     parser.add_argument(
         "--gpu-count",
