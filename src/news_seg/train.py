@@ -906,16 +906,19 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
+    name = f"{parameter_args.name}_{parameter_args.batch_size}_{parameter_args.crop_size}_{parameter_args.torch_seed}"
+
     # setup tensor board
-    train_log_dir = "logs/runs/" + parameter_args.name
+    train_log_dir = "logs/runs/" + name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
 
+
     trainer = Trainer(
         load=load_model,
-        save_model=f"models/model_{parameter_args.name}",
-        save_score=f"scores/model_{parameter_args.name}",
+        save_model=f"models/model_{name}",
+        save_score=f"scores/model_{name}",
         batch_size=parameter_args.batch_size,
         learningrate=parameter_args.lr,
         weight_decay=parameter_args.wd,
@@ -923,7 +926,7 @@ def main() -> None:
         args=parameter_args
     )
 
-    print(f"Training run {parameter_args.name}")
+    print(f"Training run {name}")
     print(f"Batchsize {parameter_args.batch_size}")
     print(f"LR {parameter_args.lr}")
     print(f"Loss Function {parameter_args.loss}")
@@ -939,13 +942,13 @@ def main() -> None:
     print(f"skip cbam: {parameter_args.skip_cbam}")
 
     _ = trainer.train(epochs=parameter_args.epochs)
-    model_path = f"models/model_{parameter_args.name}_best.pt" if trainer.best_step != 0 else \
-        f"models/model_{parameter_args.name}.pt"
+    model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
+        f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.torch_seed}_{parameter_args.result_path}{parameter_args.name}.json",
+    with open(f"logs/{parameter_args.result_path}{name}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.wd, parameter_args.lr, score, multi_class_score), file)
+        json.dump((parameter_args.batch_size, parameter_args.crop_size, score, multi_class_score), file)
 
 
 if __name__ == "__main__":
