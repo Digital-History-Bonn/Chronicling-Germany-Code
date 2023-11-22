@@ -45,6 +45,12 @@ TAGS = ['current+best',
 #     ['focal_loss_no_amp_A', 'focal_loss_no_amp_B', 'focal_loss_no_amp_C']
 # ]
 
+RUNS = [
+    ['dh_segment_euro_B', 'dh_segment_euro_C', 'dh_segment_euro_D'],
+    ['cbam_euro_skip_A', 'cbam_euro_skip_A', 'cbam_euro_skip_C'],
+    ['cbam_euro_no_skip_A', 'cbam_euro_no_skip_B', 'cbam_euro_no_skip_C']
+]
+
 # RUNS = [
 #     ['cross_entropy_amp_A'],
 #     ['focal_loss_amp_A'],
@@ -65,7 +71,32 @@ TAGS = ['current+best',
 #     ['trans_unet_newspaper_A']
 # ]
 
-RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
+# RUNS = [
+#     ['reduced_dh_segment_newspaper_A']
+# ]
+
+# RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
+
+# XTICKS = [np.arange(1, 11) + 0.375, ["Background",
+#                                      "UnknownRegion",
+#                                      "Caption",
+#                                      "Table",
+#                                      "Article",
+#                                      "Heading",
+#                                      "Header",
+#                                      "Separator Vertical",
+#                                      "Separator Short",
+#                                      "Separator Horizontal"]]
+
+XTICKS = [np.arange(1, 5) + 0.375, ["Background",
+                                     "Article",
+                                     "Heading",
+                                     "Separator"]]
+
+# XTICKS = [np.arange(1, 5) + 0.375, ["Background",
+#                                      "Text",
+#                                      "Separator",
+#                                      "Separator Big"]]
 
 plt.rcParams["figure.figsize"] = (30, 20)
 plt.rcParams["font.size"] = 35
@@ -94,8 +125,6 @@ def get_timeseries(tag: str, runs: List[List[str]] = RUNS) -> Tuple[List[ndarray
     :param runs: which runs to use
     :return: steps and data lists
     """
-    if runs is None:
-        runs = RUNS
     data = []
     step_lists = []
     for run in runs:
@@ -123,7 +152,7 @@ def average(data):
 STEPS, EPOCHS = get_timeseries('epoch')
 
 
-def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[str], title: str) -> None:
+def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[str], title: str, ylabel: str) -> None:
     """
     Plot 2d data, which has been summarized from 3d Data along one axis.
     :param data: ndarray 2d data
@@ -133,14 +162,16 @@ def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[s
     """
     xdata = np.arange(data.shape[0]) + 1
     fig, axplt = plt.subplots()
-    axplt.set_ylabel('Critical Sucess Index')
+    axplt.set_ylabel(ylabel)
 
-    # for i in range(1):
-        # axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", yerr=stds[:, i], label=labels[i])
+    for i in range(3):
+        axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", yerr=stds[:, i], label=labels[i])
         # axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", label=labels[i])
-    axplt.bar(xdata, data, align="center", yerr=stds)
+    # axplt.bar(xdata, data, align="center", yerr=stds)
+    # axplt.bar(xdata, data, align="center")
+
     axplt.set_xticks(ticks[0], ticks[1], rotation=45, ha='right')
-    # axplt.legend(loc="upper right")
+    axplt.legend(loc="upper right")
     fig.subplots_adjust(bottom=0.2)
     plt.title(title)
     plt.grid()
@@ -209,7 +240,7 @@ def set_xticks_per_version(index):
 def val_loss():
     steps, data = get_timeseries('val/loss')
     title = "Validation Loss"
-    tiks_name = "init_dh_val_loss"
+    tiks_name = "euro_val_loss"
     ylabel = "Loss"
     legend = "upper right"
 
@@ -219,7 +250,7 @@ def val_loss():
 def val_acc():
     steps, data = get_timeseries('val/accuracy')
     title = "Validation accuracy"
-    tiks_name = "init_dh_val_acc"
+    tiks_name = "euro_val_acc"
     ylabel = "Accuracy"
     legend = "lower right"
 
@@ -229,7 +260,7 @@ def val_acc():
 def val_jac():
     steps, data = get_timeseries('val/jaccard score')
     title = "Validation Jaccard Score"
-    tiks_name = "init_dh_val_jac"
+    tiks_name = "euro_val_jac"
     ylabel = "Jaccard Score"
     legend = "lower right"
 
@@ -237,7 +268,7 @@ def val_jac():
 
 
 def graph():
-    main_labels = ['DhSegment', 'CBAM DhSegment', 'Trans Unet']
+    main_labels = ['DhSegment', 'CBAM Skip', 'CBAM No Skip']
     main_color = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
     background_color = ['lightsteelblue', 'peachpuff', 'palegreen', 'tab:red', 'tab:purple']
 
@@ -255,111 +286,122 @@ def graph():
 
 
 def class_sci():
+    # tags = ['multi-acc-test/class 0',
+    #         'multi-acc-test/class 1',
+    #         'multi-acc-test/class 2',
+    #         'multi-acc-test/class 3',
+    #         'multi-acc-test/class 4',
+    #         'multi-acc-test/class 5',
+    #         'multi-acc-test/class 6',
+    #         'multi-acc-test/class 7',
+    #         'multi-acc-test/class 8',
+    #         'multi-acc-test/class 9']
+
     tags = ['multi-acc-test/class 0',
-            'multi-acc-test/class 1',
-            'multi-acc-test/class 2',
-            'multi-acc-test/class 3',
             'multi-acc-test/class 4',
             'multi-acc-test/class 5',
-            'multi-acc-test/class 6',
-            'multi-acc-test/class 7',
-            'multi-acc-test/class 8',
-            'multi-acc-test/class 9']
+            'multi-acc-test/class 7',]
+
+    # tags = ['multi-acc-test/class 0',
+    #         'multi-acc-test/class 4',
+    #         'multi-acc-test/class 7',
+    #         'multi-acc-test/class 9',]
 
     mean, std = get_data_bar(tags)
 
-    xticks = [np.arange(1, 11) + 0.375, ["Background",
-                                         "UnknownRegion",
-                                         "Caption",
-                                         "Table",
-                                         "Article",
-                                         "Heading",
-                                         "Header",
-                                         "Separator Vertical",
-                                         "Separator Short",
-                                         "Separator Horizontal"]]
-    labels = ["DhSegment", "CBAM", "Trans Unet"]
-    name = "hyper-lr-class-csi"
-    title = "Multi Class CSI"
+    # labels = ["DhSegment", "CBAM", "Trans Unet"]
+    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
 
-    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
-    plot_bar(mean, std, name, xticks, labels, title)
+    name = "pre-class-csi"
+    title = "Multi Class CSI"
+    ylabel = 'Critical Sucess Index'
+
+    # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
+    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
 
 
 def class_precision():
+    # tags = ['multi-precision-test/class 0',
+    #         'multi-precision-test/class 1',
+    #         'multi-precision-test/class 2',
+    #         'multi-precision-test/class 3',
+    #         'multi-precision-test/class 4',
+    #         'multi-precision-test/class 5',
+    #         'multi-precision-test/class 6',
+    #         'multi-precision-test/class 7',
+    #         'multi-precision-test/class 8',
+    #         'multi-precision-test/class 9']
+
     tags = ['multi-precision-test/class 0',
-            'multi-precision-test/class 1',
-            'multi-precision-test/class 2',
-            'multi-precision-test/class 3',
             'multi-precision-test/class 4',
             'multi-precision-test/class 5',
-            'multi-precision-test/class 6',
-            'multi-precision-test/class 7',
-            'multi-precision-test/class 8',
-            'multi-precision-test/class 9']
+            'multi-precision-test/class 7']
+
+    # tags = ['multi-precision-test/class 0',
+    #         'multi-precision-test/class 4',
+    #         'multi-precision-test/class 7',
+    #         'multi-precision-test/class 9']
 
     mean, std = get_data_bar(tags)
 
-    xticks = [np.arange(1, 11) + 0.375, ["Background",
-                                         "UnknownRegion",
-                                         "Caption",
-                                         "Table",
-                                         "Article",
-                                         "Heading",
-                                         "Header",
-                                         "Separator Vertical",
-                                         "Separator Short",
-                                         "Separator Horizontal"]]
-    labels = ["DhSegment", "CBAM", "Trans Unet"]
-    name = "init-class-precision"
+    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
+    name = "pre-class-precision"
     title = "Multi Class Precision"
+    ylabel = 'Precision'
 
-    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
-    plot_bar(mean, std, name, xticks, labels, title)
+    # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
+    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
 
 
 def get_data_bar(tags):
     data = []
     for tag in tags:
         _, values = get_timeseries(tag)
+        tag_data = []
+
+        for i in range(3):
+            tag_data.append([values[i][j][-1] for j in range(3)])
+
         # data.append([values[i][0][-1] for i in range(3)])
-        data.append(np.stack([values[0][i][-1] for i in range(3)]))
+        # data.append(values[0][0][-1])
+        data.append(np.array(tag_data))
     data = np.array(data)
-    mean = np.mean(data, axis=1)
-    std = np.std(data, axis=1)
+    mean = np.mean(data, axis=2)
+    std = np.std(data, axis=2)
     return mean, std
 
 
 def class_recall():
+    # tags = ['multi-recall-test/class 0',
+    #         'multi-recall-test/class 1',
+    #         'multi-recall-test/class 2',
+    #         'multi-recall-test/class 3',
+    #         'multi-recall-test/class 4',
+    #         'multi-recall-test/class 5',
+    #         'multi-recall-test/class 6',
+    #         'multi-recall-test/class 7',
+    #         'multi-recall-test/class 8',
+    #         'multi-recall-test/class 9']
+
     tags = ['multi-recall-test/class 0',
-            'multi-recall-test/class 1',
-            'multi-recall-test/class 2',
-            'multi-recall-test/class 3',
             'multi-recall-test/class 4',
             'multi-recall-test/class 5',
-            'multi-recall-test/class 6',
-            'multi-recall-test/class 7',
-            'multi-recall-test/class 8',
-            'multi-recall-test/class 9']
+            'multi-recall-test/class 7',]
+
+    # tags = ['multi-recall-test/class 0',
+    #         'multi-recall-test/class 4',
+    #         'multi-recall-test/class 7',
+    #         'multi-recall-test/class 9',]
 
     mean, std = get_data_bar(tags)
 
-    xticks = [np.arange(1, 11) + 0.375, ["Background",
-                                         "UnknownRegion",
-                                         "Caption",
-                                         "Table",
-                                         "Article",
-                                         "Heading",
-                                         "Header",
-                                         "Separator Vertical",
-                                         "Separator Short",
-                                         "Separator Horizontal"]]
-    labels = ["DhSegment", "CBAM", "Trans Unet"]
-    name = "init-class-recall"
+    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
+    name = "pre-class-recall"
     title = "Multi Class Recall"
+    ylabel = "Recall"
 
-    # plot_bar(data, np.zeros(1), name, xticks, labels, title)
-    plot_bar(mean, std, name, xticks, labels, title)
+    # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
+    plot_bar(mean, std, name, XTICKS, labels, title,  ylabel)
 
 
 def results():
@@ -372,22 +414,24 @@ def results():
     xticks = [np.arange(1, 4) + 0.375, ["Loss",
                                         "Accuracy",
                                         "Jaccard Score"]]
-    labels = ["DhSegment", "CBAM", "Trans Unet"]
-    name = "hyper-lr-test-results"
+    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
+    name = "pre-test-results"
     title = "Test Ergenisse"
+    ylabel = ""
 
     # plot_bar(data, np.zeros(1), name, xticks, labels, title)
-    plot_bar(mean, std, name, xticks, labels, title)
+    plot_bar(mean, std, name, xticks, labels, title, ylabel)
 
 
 def bar():
     class_sci()
     results()
-    # class_precision()
-    # class_recall()
+    class_precision()
+    class_recall()
 
 
 def main():
+    # graph()
     bar()
 
 

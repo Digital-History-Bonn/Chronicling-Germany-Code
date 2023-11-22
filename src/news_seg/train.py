@@ -611,22 +611,25 @@ class Trainer:
         )
 
         for i, acc in enumerate(class_accs):
-            if not np.isnan(acc):
-                self.summary_writer.add_scalar(
-                    f"multi-acc-{environment}/class {i}", acc, global_step=self.step
-                )
+            if np.isnan(acc):
+                acc = 0
+            self.summary_writer.add_scalar(
+                f"multi-acc-{environment}/class {i}", acc, global_step=self.step
+            )
 
         if test_validation:
             for i, value in enumerate(precision):
-                if not np.isnan(value):
-                    self.summary_writer.add_scalar(
-                        f"multi-precision-{environment}/class {i}", value, global_step=self.step
-                    )
+                if np.isnan(value):
+                    value = 0
+                self.summary_writer.add_scalar(
+                    f"multi-precision-{environment}/class {i}", value, global_step=self.step
+                )
             for i, value in enumerate(recall):
-                if not np.isnan(value):
-                    self.summary_writer.add_scalar(
-                        f"multi-recall-{environment}/class {i}", value, global_step=self.step
-                    )
+                if np.isnan(value):
+                    value = 0
+                self.summary_writer.add_scalar(
+                    f"multi-recall-{environment}/class {i}", value, global_step=self.step
+                )
 
         self.summary_writer.add_image(
             f"image/{environment}-input",
@@ -906,7 +909,8 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    name = f"{parameter_args.name}_{parameter_args.batch_size}_{parameter_args.crop_size}_{parameter_args.torch_seed}"
+    # name = f"{parameter_args.name}_{parameter_args.batch_size}_{parameter_args.crop_size}_{parameter_args.torch_seed}"
+    name = f"{parameter_args.name}"
 
     # setup tensor board
     train_log_dir = "logs/runs/" + name
