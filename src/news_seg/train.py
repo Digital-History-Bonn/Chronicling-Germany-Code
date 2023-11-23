@@ -916,8 +916,8 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    # name = f"{parameter_args.name}_{parameter_args.batch_size}_{parameter_args.crop_size}_{parameter_args.torch_seed}"
-    name = f"{parameter_args.name}"
+    name = f"{parameter_args.name}_{parameter_args.torch_seed}"
+    # name = f"{parameter_args.name}"
 
     # setup tensor board
     train_log_dir = "logs/runs/" + name

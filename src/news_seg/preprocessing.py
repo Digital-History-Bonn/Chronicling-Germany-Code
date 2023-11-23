@@ -22,9 +22,14 @@ THICKEN_UNDER = 0
 CROP_FACTOR = 1.5
 CROP_SIZE = 512
 
+# REDUCE_CLASSES = {
+#     0: [1],
+#     4: [2, 3, 5, 6],
+#     7: [8]
+# }
+
 REDUCE_CLASSES = {
     0: [1],
-    4: [2, 3, 5, 6],
     7: [8]
 }
 
