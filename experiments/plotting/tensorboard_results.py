@@ -45,10 +45,16 @@ TAGS = ['current+best',
 #     ['focal_loss_no_amp_A', 'focal_loss_no_amp_B', 'focal_loss_no_amp_C']
 # ]
 
+# RUNS = [
+#     ['dh_segment_euro_B', 'dh_segment_euro_C', 'dh_segment_euro_D'],
+#     ['cbam_euro_skip_A', 'cbam_euro_skip_A', 'cbam_euro_skip_C'],
+#     ['cbam_euro_no_skip_A', 'cbam_euro_no_skip_B', 'cbam_euro_no_skip_C']
+# ]
+
 RUNS = [
-    ['dh_segment_euro_B', 'dh_segment_euro_C', 'dh_segment_euro_D'],
-    ['cbam_euro_skip_A', 'cbam_euro_skip_A', 'cbam_euro_skip_C'],
-    ['cbam_euro_no_skip_A', 'cbam_euro_no_skip_B', 'cbam_euro_no_skip_C']
+    ['batch_64_512_1.0', 'batch_64_512_2.0', 'batch_64_512_3.0'],
+    ['scaling_64_512_1.0', 'scaling_64_512_2.0', 'scaling_64_512_3.0'],
+    ['reduce_1.0', 'reduce_2.0', 'reduce_3.0'],
 ]
 
 # RUNS = [
@@ -88,10 +94,19 @@ RUNS = [
 #                                      "Separator Short",
 #                                      "Separator Horizontal"]]
 
-XTICKS = [np.arange(1, 5) + 0.375, ["Background",
+XTICKS = [np.arange(1, 9) + 0.375, ["Background",
+                                     "Caption",
+                                     "Table",
                                      "Article",
                                      "Heading",
-                                     "Separator"]]
+                                     "Header",
+                                     "Separator",
+                                     "Separator Horizontal"]]
+
+# XTICKS = [np.arange(1, 5) + 0.375, ["Background",
+#                                      "Article",
+#                                      "Heading",
+#                                      "Separator"]]
 
 # XTICKS = [np.arange(1, 5) + 0.375, ["Background",
 #                                      "Text",
@@ -297,22 +312,32 @@ def class_sci():
     #         'multi-acc-test/class 8',
     #         'multi-acc-test/class 9']
 
-    tags = ['multi-acc-test/class 0',
-            'multi-acc-test/class 4',
-            'multi-acc-test/class 5',
-            'multi-acc-test/class 7',]
+    # tags = ['multi-acc-test/class 0',
+    #         'multi-acc-test/class 4',
+    #         'multi-acc-test/class 5',
+    #         'multi-acc-test/class 7',]
 
     # tags = ['multi-acc-test/class 0',
     #         'multi-acc-test/class 4',
     #         'multi-acc-test/class 7',
     #         'multi-acc-test/class 9',]
 
+    tags = ['multi-acc-test/class 0',
+            'multi-acc-test/class 2',
+            'multi-acc-test/class 3',
+            'multi-acc-test/class 4',
+            'multi-acc-test/class 5',
+            'multi-acc-test/class 6',
+            'multi-acc-test/class 7',
+            'multi-acc-test/class 9']
+
     mean, std = get_data_bar(tags)
 
     # labels = ["DhSegment", "CBAM", "Trans Unet"]
-    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
+    # labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
+    labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
 
-    name = "pre-class-csi"
+    name = "scale-class-csi"
     title = "Multi Class CSI"
     ylabel = 'Critical Sucess Index'
 
@@ -332,20 +357,29 @@ def class_precision():
     #         'multi-precision-test/class 8',
     #         'multi-precision-test/class 9']
 
-    tags = ['multi-precision-test/class 0',
-            'multi-precision-test/class 4',
-            'multi-precision-test/class 5',
-            'multi-precision-test/class 7']
+    # tags = ['multi-precision-test/class 0',
+    #         'multi-precision-test/class 4',
+    #         'multi-precision-test/class 5',
+    #         'multi-precision-test/class 7']
 
     # tags = ['multi-precision-test/class 0',
     #         'multi-precision-test/class 4',
     #         'multi-precision-test/class 7',
     #         'multi-precision-test/class 9']
 
+    tags = ['multi-precision-test/class 0',
+            'multi-precision-test/class 2',
+            'multi-precision-test/class 3',
+            'multi-precision-test/class 4',
+            'multi-precision-test/class 5',
+            'multi-precision-test/class 6',
+            'multi-precision-test/class 7',
+            'multi-precision-test/class 9']
+
     mean, std = get_data_bar(tags)
 
-    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
-    name = "pre-class-precision"
+    labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
+    name = "scale-class-precision"
     title = "Multi Class Precision"
     ylabel = 'Precision'
 
@@ -383,20 +417,29 @@ def class_recall():
     #         'multi-recall-test/class 8',
     #         'multi-recall-test/class 9']
 
-    tags = ['multi-recall-test/class 0',
-            'multi-recall-test/class 4',
-            'multi-recall-test/class 5',
-            'multi-recall-test/class 7',]
+    # tags = ['multi-recall-test/class 0',
+    #         'multi-recall-test/class 4',
+    #         'multi-recall-test/class 5',
+    #         'multi-recall-test/class 7',]
 
     # tags = ['multi-recall-test/class 0',
     #         'multi-recall-test/class 4',
     #         'multi-recall-test/class 7',
     #         'multi-recall-test/class 9',]
 
+    tags = ['multi-recall-test/class 0',
+            'multi-recall-test/class 2',
+            'multi-recall-test/class 3',
+            'multi-recall-test/class 4',
+            'multi-recall-test/class 5',
+            'multi-recall-test/class 6',
+            'multi-recall-test/class 7',
+            'multi-recall-test/class 9']
+
     mean, std = get_data_bar(tags)
 
-    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
-    name = "pre-class-recall"
+    labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
+    name = "scale-class-recall"
     title = "Multi Class Recall"
     ylabel = "Recall"
 
@@ -414,8 +457,8 @@ def results():
     xticks = [np.arange(1, 4) + 0.375, ["Loss",
                                         "Accuracy",
                                         "Jaccard Score"]]
-    labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
-    name = "pre-test-results"
+    labels = ["no scaling", "scaling", "reduce", "reduce focal"]
+    name = "scale-results"
     title = "Test Ergenisse"
     ylabel = ""
 
@@ -424,8 +467,8 @@ def results():
 
 
 def bar():
-    class_sci()
-    results()
+    # class_sci()
+    # results()
     class_precision()
     class_recall()
 
