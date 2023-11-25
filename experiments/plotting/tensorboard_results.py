@@ -52,7 +52,7 @@ TAGS = ['current+best',
 # ]
 
 RUNS = [
-    ['batch_64_512_1.0', 'batch_64_512_2.0', 'batch_64_512_3.0'],
+    ['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C'],
     ['scaling_64_512_1.0', 'scaling_64_512_2.0', 'scaling_64_512_3.0'],
     ['reduce_1.0', 'reduce_2.0', 'reduce_3.0'],
 ]
