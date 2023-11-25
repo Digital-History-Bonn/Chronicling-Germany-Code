@@ -69,11 +69,17 @@ class NewsDataset(Dataset):
                 def get_file_name(name: str) -> str:
                     return f"{name}.npy"
 
-            else:
+            elif self.dataset == "HLNA2013":
                 extension = ".tif"
 
                 def get_file_name(name: str) -> str:
                     return f"pc-{name}.npy"
+
+            else:
+                extension = ".png"
+
+                def get_file_name(name: str) -> str:
+                    return f"{name}.npy"
 
             # read all file names
             self.file_names = [
