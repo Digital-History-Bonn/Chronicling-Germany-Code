@@ -51,17 +51,12 @@ TAGS = ['current+best',
 #     ['cbam_euro_no_skip_A', 'cbam_euro_no_skip_B', 'cbam_euro_no_skip_C']
 # ]
 
-RUNS = [
-    ['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C'],
-    ['scaling_64_512_1.0', 'scaling_64_512_2.0', 'scaling_64_512_3.0'],
-    ['reduce_1.0', 'reduce_2.0', 'reduce_3.0'],
-]
-
 # RUNS = [
-#     ['cross_entropy_amp_A'],
-#     ['focal_loss_amp_A'],
-#     ['focal_loss_no_amp_A']
+#     ['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C'],
+#     ['scaling_64_512_1.0', 'scaling_64_512_2.0', 'scaling_64_512_3.0'],
+#     ['reduce_1.0', 'reduce_2.0', 'reduce_3.0'],
 # ]
+
 # RUNS = [
 #     ['dh_segment_newspaper_H'],
 #     ['cbam_newspaper_A'],
@@ -82,6 +77,9 @@ RUNS = [
 # ]
 
 # RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
+
+
+RUNS = [['final_dh_1.0', 'final_dh_2.0', 'final_dh_3.0']]
 
 # XTICKS = [np.arange(1, 11) + 0.375, ["Background",
 #                                      "UnknownRegion",
@@ -203,13 +201,13 @@ def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[s
 def plot(steps, data, main_color, background_color, title, labels, tiks_name, ylabel, legend):
     """Plots timeseries with error bands"""
     for index, timeseries in enumerate(data):
-        # mean = np.mean(timeseries, axis=0)
-        # error = np.std(timeseries, axis=0)
-        mean = timeseries[0]
+        mean = np.mean(timeseries, axis=0)
+        error = np.std(timeseries, axis=0)
+        # mean = timeseries[0]
 
         # plt.plot(steps[index], mean, color=main_color[index], label=labels[index])
         plt.plot(steps[index], mean, color=main_color[index])
-        # plt.fill_between(steps[index], mean - error, mean + error, color=background_color[index])
+        plt.fill_between(steps[index], mean - error, mean + error, color=background_color[index])
     plt.title(title)
 
     # set_xticks(steps)
@@ -246,16 +244,28 @@ def set_xticks_per_version(index):
     steps = STEPS[index]
     number_epochs = epochs[-1]
 
-    change = np.insert(epochs[:-1] != epochs[1:], 0, False)
-    steps = np.insert(steps[change], 0, 0)
+    # insert missing epoch values
+    missing = []
+    for index, _ in enumerate(epochs):
+        if index + 1 < len(epochs) and epochs[index] != epochs[index + 1] and epochs[index] + 1 != epochs[index + 1]:
+            missing.append(index)
+
+    missing = np.array(missing)
+    epochs = np.array(epochs)
+    steps = np.array(steps)
+    epochs = np.insert(epochs, missing + 1, epochs[missing] + 1)
+    steps = np.insert(steps, missing + 1, steps[missing])
+
+    change = np.insert(epochs[1:] != epochs[:-1], 0, True)
+    steps_epoch = np.insert(steps[change], 0, 0)
     epoch_tiks = 50
-    plt.xticks(np.append(steps[0::epoch_tiks], steps[-1]), np.arange(0, number_epochs + 1, epoch_tiks))
+    plt.xticks(np.append(steps_epoch[1::epoch_tiks], steps[-1] + 1), np.arange(0, number_epochs + 1, epoch_tiks))
 
 
 def val_loss():
     steps, data = get_timeseries('val/loss')
     title = "Validation Loss"
-    tiks_name = "euro_val_loss"
+    tiks_name = "final_test_val_loss"
     ylabel = "Loss"
     legend = "upper right"
 
@@ -265,7 +275,7 @@ def val_loss():
 def val_acc():
     steps, data = get_timeseries('val/accuracy')
     title = "Validation accuracy"
-    tiks_name = "euro_val_acc"
+    tiks_name = "final_test_val_acc"
     ylabel = "Accuracy"
     legend = "lower right"
 
@@ -275,7 +285,7 @@ def val_acc():
 def val_jac():
     steps, data = get_timeseries('val/jaccard score')
     title = "Validation Jaccard Score"
-    tiks_name = "euro_val_jac"
+    tiks_name = "final_test_val_jac"
     ylabel = "Jaccard Score"
     legend = "lower right"
 
@@ -474,8 +484,8 @@ def bar():
 
 
 def main():
-    # graph()
-    bar()
+    graph()
+    # bar()
 
 
 if __name__ == "__main__":
