@@ -952,14 +952,14 @@ def main() -> None:
     print(f"amp:  {parameter_args.amp}")
     print(f"skip cbam: {parameter_args.skip_cbam}")
 
-    _ = trainer.train(epochs=parameter_args.epochs)
+    duration = trainer.train(epochs=parameter_args.epochs)
     model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.result_path}{name}.json",
+    with open(f"logs/{parameter_args.result_path}{name}_{parameter_args.num_workers}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.batch_size, parameter_args.crop_size, score, multi_class_score), file)
+        json.dump((parameter_args.batch_size, parameter_args.num_workers, score, multi_class_score, duration), file)
 
 
 if __name__ == "__main__":
