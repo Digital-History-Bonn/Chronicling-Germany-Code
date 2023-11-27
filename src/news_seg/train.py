@@ -925,7 +925,6 @@ def main() -> None:
 
     load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
 
-
     trainer = Trainer(
         load=load_model,
         save_model=f"models/model_{name}",

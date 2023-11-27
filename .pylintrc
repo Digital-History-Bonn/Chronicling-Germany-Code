@@ -1,6 +1,7 @@
-[MAIN]
+[MASTER]
+ignore=migrations
 
-ignore = experiments
+[MAIN]
 
 # Analyse import fallback blocks. This can be used to support both Python 2 and
 # 3 compatible code, which means that the block might have code that exists
@@ -276,10 +277,10 @@ exclude-too-few-public-methods=
 ignored-parents=
 
 # Maximum number of arguments for function / method.
-max-args=10
+max-args=12
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=25
+max-attributes=26
 
 # Maximum number of boolean expressions in an if statement (see R0916).
 max-bool-expr=5
