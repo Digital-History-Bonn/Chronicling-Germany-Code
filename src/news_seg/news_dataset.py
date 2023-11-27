@@ -192,7 +192,7 @@ class NewsDataset(Dataset):
 
         return train_dataset, test_dataset, valid_dataset
 
-    def get_augmentations(self, resize_prob=0.75) -> Dict[str, transforms.Compose]:
+    def get_augmentations(self, resize_prob: float = 0.75) -> Dict[str, transforms.Compose]:
         """Defines transformations
         :param resize_prob: Probability of resize. This allows to deactivate the scaling augmentation.
         """
