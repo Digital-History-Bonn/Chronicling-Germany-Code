@@ -92,6 +92,42 @@ def plot_3d(data: ndarray) -> None:
 #     plt.show()
 
 
+def plot_2d(data: ndarray, error, name: str) -> None:
+    """
+    Plot 2d data, which has been summarized from 3d Data along one axis.
+    :param values: ndarray containing Lists of 4 values: wd, lr, score, class score
+    :param name: name for saved file
+    """
+    labels = ["score", "class score"]
+    main_color = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    background_color = ['lightsteelblue', 'peachpuff', 'palegreen', 'tab:red', 'tab:purple']
+
+    plt.plot(data[:, 0], data[:, 2], color=main_color[0], label=labels[0])
+    plt.plot(data[:, 0], data[:, 3], color=main_color[1], label=labels[1])
+    plt.fill_between(data[:, 0], data[:, 2] - error[:, 2], data[:, 2] + error[:, 2], color=background_color[0])
+    plt.fill_between(data[:, 0], data[:, 3] - error[:, 3], data[:, 3] + error[:, 3], color=background_color[1])
+    plt.title("Batch Size")
+
+    single_data = np.array([[0.9563, 0.9573, 0.9579], [0.5807, 0.5671, 0.5863]])
+    single_mean = np.mean(single_data, axis=1)
+    single_std = np.std(single_data, axis=1)
+    plt.errorbar([16], single_mean[0], yerr=single_std[0], fmt='o', color=main_color[0])
+    plt.errorbar([16], single_mean[1], yerr=single_std[1], fmt='o', color=main_color[1])
+
+    plt.xticks([16, 32, 64], [16, 32, 64])
+
+    plt.xlabel("Batch Size")
+    plt.legend(loc="right")
+
+    plt.grid()
+
+    plt.savefig(f"{name}.pdf")
+    fig = plt.gcf()
+    fig = tikzplotlib_fix_ncols(fig)
+    # tikzplotlib.clean_figure()
+    tikzplotlib.save(f"{name}.tex")
+
+
 data_ndarray = load_json("logs/split-data/", (11, 2), 79 * 5)
 print(np.argmax(data_ndarray))
 plot_3d(data_ndarray)

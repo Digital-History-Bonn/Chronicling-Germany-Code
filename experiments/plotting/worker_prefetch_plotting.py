@@ -1,7 +1,7 @@
 """Module for plotting worker and prefetch factor graphs"""
 import json
 import os
-from typing import Tuple, Any
+from typing import Tuple, Any, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,6 +27,23 @@ def load_json(path: str, shape: Tuple[int, ...], num_batches: int) -> ndarray:
             worker, prefetch, duration = json.load(file)
             data[worker - 1][prefetch - 1] = num_batches / duration
     return data
+
+
+# def load_json(path: str) -> List[List[float]]:
+#     """
+#     Load all json files containing data for one training each.
+#     :param path: path to folder
+#     :param shape: intended shape of resulting data
+#     :param num_batches: total number of batches that have been processed during training
+#     """
+#     worker = 79 * 3
+#     file_names = [f for f in os.listdir(path) if f.endswith(".json")]
+#     values = []
+#     for file_name in tqdm(file_names, desc="loading data", unit="files"):
+#         with open(f"{path}{file_name}", "r", encoding="utf-8") as file:
+#             raw_data = json.load(file)
+#             values.append([raw_data[1], worker/raw_data[4]])
+#     return values
 
 
 def plot_3d(data: ndarray) -> None:
@@ -77,11 +94,10 @@ def plot_2d(data: ndarray, stds: ndarray, name: str, xlabel: str, ticks: Any) ->
     :param name: name for saved file
     :param xlabel: name for x-axis label
     """
-    xdata = np.arange(data.shape[0])
     fig, axplt = plt.subplots()
     axplt.set_xlabel(xlabel)
     axplt.set_ylabel('Batches pro Sekunde')
-    axplt.bar(xdata, data, align="center", yerr=stds)
+    axplt.bar(data[:, 0] - 1, data[:, 1], align="center", yerr=stds[:, 1])
     axplt.set_xticks(ticks[0], ticks[1])
 
     plt.savefig(f"{name}.pdf")
@@ -103,3 +119,13 @@ plot_2d(data_2d, std_ndarray, "prefetch-2d", "Prefetch Faktor", (np.arange(6) * 
 data_2d = np.mean(data_ndarray, axis=1)
 std_ndarray = np.std(data_ndarray, axis=1)
 plot_2d(data_2d, std_ndarray, "worker-2d", "Anzahl Worker", (np.arange(5) * 10 - 1, np.arange(5) * 10))
+
+# values_1 = np.roll(np.array(load_json("logs/cbam_worker/")), 0, axis=0)
+# values_2 = np.roll(np.array(load_json("logs/cbam_worker_B/")), 0, axis=0)
+# values_3 = np.roll(np.array(load_json("logs/cbam_worker_C/")), 0, axis=0)
+#
+# data = np.stack([values_1, values_2, values_3])
+# mean_data = np.mean(data, axis=0)
+# error = np.std(data, axis=0)
+#
+# plot_2d(mean_data, error, "cbam-worker-2d", "Anzahl Worker", (np.arange(9) * 5 - 1, np.arange(9) * 5))
