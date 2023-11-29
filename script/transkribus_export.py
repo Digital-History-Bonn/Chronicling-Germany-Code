@@ -40,6 +40,9 @@ def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float], bbox_
     If this is not the case, polygon simplification ist not necessary.
     :return:
     """
+    if label == 5:
+        bbox_size = bbox_size//5
+
     contours = measure.find_contours(sub_mask, 0.5, positive_orientation="low")
     segmentations: List[List[float]] = []
     bbox_list: List[List[float]] = []
@@ -112,9 +115,11 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
     for label, mask in masks.items():
         # debug masks
         # mask.save(f"data/output/{label}.png")
-        if export or label == 4 or label == 9:
+        if (export or label == 4 or label == 9) and not label == 1:
             segment, bbox = create_polygons(np.array(mask), label, tolerance, bbox_size, export)
             segmentations[label], bbox_dict[label] = segment, bbox
+            print(f"label: {label}, length: {len(segment)}")
+
     return segmentations, bbox_dict
 
 
