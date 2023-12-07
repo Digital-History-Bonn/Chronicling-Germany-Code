@@ -21,6 +21,6 @@ plt.axis("off")
 # create a patch (proxy artist) for every color
 patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
 # put those patched as legend-handles into the legend
-plt.legend(handles=patches, loc="center right")
+plt.legend(handles=patches, loc="center right", ncol=3)
 plt.autoscale(tight=True)
 plt.savefig("legend-img", bbox_inches=0, pad_inches=0, dpi=500)

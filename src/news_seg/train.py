@@ -240,7 +240,7 @@ class Trainer:
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 3)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 9)
 
         # load data
         preprocessing = Preprocessing(
