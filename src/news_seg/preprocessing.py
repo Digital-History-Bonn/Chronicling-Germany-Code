@@ -28,20 +28,50 @@ REDUCE_CLASSES = {
     7: [8]
 }
 
+# REDUCE_CLASSES = {
+#     0: [1],
+#     7: [8]
+# }
+
 
 class Preprocessing:
     """
     class for preprocessing newspaper images and targets
     """
 
+    @staticmethod
+    def crop_img(crop_size: int, crop_factor: float, data: ndarray) ->ndarray:
+        """
+        Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
+        :param data: ndarray containing image and target
+        :return: ndarray of crops
+        """
+        windows = np.array(
+            view_as_windows(
+                data,
+                (data.shape[0], crop_size, crop_size),
+                step=int(crop_size // crop_factor),
+            ),
+        )
+        windows = np.reshape(
+            windows,
+            (
+                np.prod(windows.shape[:3]),
+                windows.shape[3],
+                windows.shape[4],
+                windows.shape[5],
+            ),
+        )
+        return windows
+
     def __init__(
-        self,
-        scale: float = SCALE,
-        crop_factor: float = CROP_FACTOR,
-        crop_size: int = CROP_SIZE,
-        crop: bool = True,
-        pad: Union[None, Tuple[int, int]] = None,
-        reduce_classes: bool = False
+            self,
+            scale: float = SCALE,
+            crop_factor: float = CROP_FACTOR,
+            crop_size: int = CROP_SIZE,
+            crop: bool = True,
+            pad: Union[None, Tuple[int, int]] = None,
+            reduce_classes: bool = False
     ):
         """
         :param scale: (default: 4)
@@ -56,7 +86,7 @@ class Preprocessing:
         self.reduce_classes = reduce_classes
 
     def __call__(
-        self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
+            self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
     ) -> npt.NDArray[np.uint8]:
         """
         preprocess for image with annotations
@@ -76,7 +106,7 @@ class Preprocessing:
             (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
         )
         if self.crop:
-            data = self.crop_img(data)
+            data = self.crop_img(self.crop_size, self.crop_factor, data)
             return data
 
         return np.expand_dims(data, axis=0)
@@ -111,7 +141,7 @@ class Preprocessing:
         return target
 
     def load(
-        self, input_path: str, target_path: str, file: str, dataset: str
+            self, input_path: str, target_path: str, file: str, dataset: str
     ) -> Tuple[Image.Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
@@ -136,7 +166,7 @@ class Preprocessing:
         return image, target
 
     def padding(
-        self, image: torch.Tensor, target: torch.Tensor
+            self, image: torch.Tensor, target: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Pads border to be divisble by 2**5 to avoid errors during pooling
@@ -166,7 +196,7 @@ class Preprocessing:
         return image, torch.squeeze(target)
 
     def scale_img(
-        self, image: Image.Image, target: npt.NDArray[np.uint8]
+            self, image: Image.Image, target: npt.NDArray[np.uint8]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         scales down all given images and target by scale
@@ -190,31 +220,6 @@ class Preprocessing:
         )
 
         return torch.tensor(np.transpose(image, (2, 0, 1))), torch.tensor(target)
-
-    def crop_img(self, data: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        """
-        Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
-        :param data: ndarray containing image and target
-        :return: ndarray of crops
-        """
-        windows = np.array(
-            view_as_windows(
-                data,
-                (data.shape[0], self.crop_size, self.crop_size),
-                step=int(self.crop_size // self.crop_factor),
-            ),
-            dtype=np.uint8,
-        )
-        windows = np.reshape(
-            windows,
-            (
-                np.prod(windows.shape[:3]),
-                windows.shape[3],
-                windows.shape[4],
-                windows.shape[5],
-            ),
-        )
-        return windows
 
 
 if __name__ == "__main__":

@@ -1,9 +1,13 @@
 """Class for testing prediction and export scripts"""
 import numpy as np
+import torch
 
+from tests.bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
-from script.transkribus_export import prediction_to_polygons
+from script.transkribus_export import prediction_to_polygons, get_reading_order, bbox_sufficient, get_splitting_regions
+from script.convert_xml import get_label_name
 from src.news_seg import predict
+from src.news_seg import utils
 
 
 class TestClassExport:
@@ -23,9 +27,9 @@ class TestClassExport:
             ),
             (2, 0, 1),
         )
-        ground_truth = np.array([[0, 1, 1], [1, 2, 0]])
+        ground_truth = np.array([[0, 1, 1], [1, 2, 0]], dtype=np.uint8)
 
-        result = predict.process_prediction(data, 0.6)
+        result = predict.process_prediction(torch.tensor(data[None, :, :, :]), 0.6)
         assert np.all(result == ground_truth)
 
     def test_polygon_to_string(self):
@@ -33,13 +37,101 @@ class TestClassExport:
         data = [19.0, 20.0, 1.0, 4.0, 5.5, 10.5, 20.0, 30.0]
         ground_truth = "19,20 1,4 5,10 20,30"
 
-        assert polygon_to_string(data) == ground_truth
+        assert polygon_to_string(data, 1.0) == ground_truth
+
+        ground_truth = "38,40 2,8 11,21 40,60"
+
+        assert polygon_to_string(data, 0.5) == ground_truth
 
     def test_prediction_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
+        tolerance = [
+            1.0,  # "UnknownRegion"
+            1.0,  # "caption"
+            1.0,  # "table"
+            1.0,  # "article"
+            1.0,  # "heading"
+            1.0,  # "header"
+            1.0,  # "separator_vertical"
+            1.0,  # "separator_short"
+            1.0]  # "separator_horizontal"
+
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
-        ground_truth = {
-            1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]],
-            3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]],
-        }
-        assert prediction_to_polygons(data) == ground_truth
+        ground_truth = (
+            {3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
+            {3: [[1.5, -0.5, 4.5, 1.5]]})
+        assert prediction_to_polygons(data, tolerance, 1, True) == ground_truth
+
+        data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 2], [2, 2, 2, 2, 2]])
+        ground_truth = (
+            {2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
+            {2: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
+        assert prediction_to_polygons(data, tolerance, 1, True) == ground_truth
+
+        ground_truth = ({2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []}, {2: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
+        assert prediction_to_polygons(data, tolerance, 5, True) == ground_truth
+
+    def test_get_label_names(self):
+        """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
+        assert get_label_name(1) == "UnknownRegion"
+        assert get_label_name(4) == "article"
+        assert get_label_name(9) == "separator_horizontal"
+
+    def test_get_reading_order(self):
+        """Tests reading order calculation based on bboxes. Elements contain id, label and bbox top left and
+        bottom right corner"""
+        bbox_data = np.array([[1, 4, 1, 1, 10, 10], [2, 9, 1, 100, 100, 105], [3, 3, 1, 11, 10, 21],
+                              [4, 6, 15, 1, 25, 10], [5, 6, 15, 11, 25, 21], [6, 4, 1, 120, 10, 130],
+                              [7, 4, 11, 120, 25, 130], [8, 9, 1, 200, 100, 205], [9, 9, 1, 210, 100, 215]])
+
+        ground_truth = np.array([1, 3, 4, 5, 2, 6, 7, 8, 9])
+
+        result = []
+        get_reading_order(bbox_data, result, 0)
+        assert all(result == ground_truth)
+
+        bbox_data = bbox
+        ground_truth = np.array(
+            [0, 11, 12, 1, 20, 2, 31, 3, 32, 22, 23, 25, 4, 5, 13, 6, 14, 24, 26, 28, 27, 21, 15, 29, 30, 7, 8, 9, 10,
+             16, 17, 18, 19])
+
+        result = []
+        get_reading_order(bbox_data, result, 0)
+        assert all(result == ground_truth)
+
+    def test_get_splitting_regions(self):
+        """Test spliting regions deection with threshold"""
+        bbox_data = np.array([[1, 4, 1, 1, 10, 10], [2, 9, 1, 100, 100, 105], [3, 3, 1, 11, 10, 21],
+                              [4, 6, 15, 1, 25, 10], [5, 6, 15, 11, 25, 21], [6, 4, 1, 120, 10, 130],
+                              [7, 4, 11, 120, 25, 130], [8, 9, 1, 200, 100, 205], [9, 9, 1, 210, 101, 215]])
+        ground_truth = np.array([1, 7, 8])  # actual indices are 2,8,9 but list begins with 0
+
+        result = get_splitting_regions(bbox_data, 0)
+        assert all(result == ground_truth)
+
+        ground_truth = np.array([8])
+        result = get_splitting_regions(bbox_data, 99)
+        assert all(result == ground_truth)
+
+    def test_center(self):
+        """
+        Test x-axis center calculation from bbox list.
+        """
+        data = [10.0, 10.0, 20.0, 20.0]
+        ground_thruth = 15.0
+
+        assert utils.calculate_x_axis_center(data) == ground_thruth
+
+    def test_bbox_sufficient(self):
+        """Test bbox threshold"""
+        data = [10.0, 10.0, 20.0, 20.0]
+        assert bbox_sufficient(data, 19)
+        assert not bbox_sufficient(data, 20)
+        assert data == [10.0, 10.0, 20.0, 20.0]
+
+    def test_area_sufficient(self):
+        """Test bbox threshold"""
+        data = [10.0, 10.0, 20.0, 20.0]
+        assert predict.area_sufficient(data, 99)
+        assert not predict.area_sufficient(data, 100)
+        assert data == [10.0, 10.0, 20.0, 20.0]

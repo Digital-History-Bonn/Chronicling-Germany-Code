@@ -27,15 +27,16 @@ class NewsDataset(Dataset):
     """
 
     def __init__(
-        self,
-        preprocessing: Preprocessing,
-        image_path: str = IMAGE_PATH,
-        target_path: str = TARGET_PATH,
-        data: Union[List[torch.Tensor], None] = None,
-        limit: Union[int, None] = None,
-        dataset: str = "transcribus",
-        sort: bool = False,
-        full_image: bool =False,
+            self,
+            preprocessing: Preprocessing,
+            image_path: str = IMAGE_PATH,
+            target_path: str = TARGET_PATH,
+            data: Union[List[torch.Tensor], None] = None,
+            limit: Union[int, None] = None,
+            dataset: str = "transcribus",
+            sort: bool = False,
+            full_image: bool = False,
+            scale_aug: bool = True
     ) -> None:
         """
         load images and targets from folder
@@ -54,6 +55,7 @@ class NewsDataset(Dataset):
         self.dataset = dataset
         self.image_path = image_path
         self.target_path = target_path
+        self.scale_aug = scale_aug
 
         self.data: List[torch.Tensor] = []
         if data:
@@ -67,11 +69,17 @@ class NewsDataset(Dataset):
                 def get_file_name(name: str) -> str:
                     return f"{name}.npy"
 
-            else:
+            elif self.dataset == "HLNA2013":
                 extension = ".tif"
 
                 def get_file_name(name: str) -> str:
                     return f"pc-{name}.npy"
+
+            else:
+                extension = ".png"
+
+                def get_file_name(name: str) -> str:
+                    return f"{name}.npy"
 
             # read all file names
             self.file_names = [
@@ -119,7 +127,8 @@ class NewsDataset(Dataset):
 
         # do augmentations
         if self.augmentations:
-            augmentations = self.get_augmentations()
+            prob = 0.75 if self.scale_aug else 0
+            augmentations = self.get_augmentations(prob)
             data = augmentations["default"](data)
             img = augmentations["images"](data[:-1]).float() / 255
             # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
@@ -129,7 +138,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-        self, ratio: Tuple[float, float, float]
+            self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -139,9 +148,9 @@ class NewsDataset(Dataset):
         assert sum(ratio) == 1, "ratio does not sum up to 1."
         assert len(ratio) == 3, "ratio does not have length 3"
         assert (
-            int(ratio[0] * len(self)) > 0
-            and int(ratio[1] * len(self)) > 0
-            and int(ratio[2] * len(self)) > 0
+                int(ratio[0] * len(self)) > 0
+                and int(ratio[1] * len(self)) > 0
+                and int(ratio[2] * len(self)) > 0
         ), (
             "Dataset is to small for given split ratios for test and validation dataset. "
             "Test or validation dataset have size of zero."
@@ -161,24 +170,32 @@ class NewsDataset(Dataset):
             image_path=self.image_path,
             target_path=self.target_path,
             data=list(torch_data[indices[: splits[0]]]),
+            dataset=self.dataset,
+            scale_aug=self.scale_aug
         )
         test_dataset = NewsDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
-            data=list(torch_data[indices[splits[0] : splits[1]]]),
+            data=list(torch_data[indices[splits[0]: splits[1]]]),
+            dataset=self.dataset,
+            scale_aug=self.scale_aug
         )
         valid_dataset = NewsDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
-            data=list(torch_data[indices[splits[1] :]]),
+            data=list(torch_data[indices[splits[1]:]]),
+            dataset=self.dataset,
+            scale_aug=self.scale_aug
         )
 
         return train_dataset, test_dataset, valid_dataset
 
-    def get_augmentations(self) -> Dict[str, transforms.Compose]:
-        """Defines transformations"""
+    def get_augmentations(self, resize_prob: float = 0.75) -> Dict[str, transforms.Compose]:
+        """Defines transformations
+        :param resize_prob: Probability of resize. This allows to deactivate the scaling augmentation.
+        """
         return {
             "default": transforms.Compose(
                 [
@@ -208,7 +225,7 @@ class NewsDataset(Dataset):
                                 ]
                             )
                         ],
-                        p=0.75,
+                        p=resize_prob,
                     ),
                 ]
             ),

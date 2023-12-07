@@ -174,7 +174,7 @@ class TestClassPreprocessing:
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
 
-        windows = pytest.preprocessing.crop_img(
+        windows = Preprocessing.crop_img(crop_size, 1,
             image
         )  # pylint: disable=protected-access
 

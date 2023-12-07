@@ -92,16 +92,18 @@ class CBAM(nn.Module):
     and one for channel attention (cam). Those to modules calculate and apply weights for pixels or channels.
     Removed addition from output and input at the end. Rest from https://github.com/Peachypie98/CBAM"""
 
-    def __init__(self, channels: int, down_scaling: int) -> None:
+    def __init__(self, channels: int, down_scaling: int, skip_connection: bool = False) -> None:
         """
         :param channels: number of channels
         :param down_scaling: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.
+        :param skip_connection: whether a skip connection is used to bypass the cbam module
         """
         super().__init__()
         self.channels = channels
         self.down_scaling = down_scaling
         self.sam = SAM(bias=False)
         self.cam = CAM(channels=self.channels, down_scaling=self.down_scaling)
+        self.skip_connection = skip_connection
 
     def forward(self, tensor_x: torch.Tensor) -> torch.Tensor:
         """
@@ -111,4 +113,4 @@ class CBAM(nn.Module):
         """
         output: torch.Tensor = self.cam(tensor_x)
         output = self.sam(output)
-        return output
+        return output + tensor_x if self.skip_connection else output
