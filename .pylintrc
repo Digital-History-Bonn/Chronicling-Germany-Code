@@ -1,3 +1,6 @@
+[MASTER]
+ignore=migrations
+
 [MAIN]
 
 # Analyse import fallback blocks. This can be used to support both Python 2 and
@@ -274,10 +277,10 @@ exclude-too-few-public-methods=
 ignored-parents=
 
 # Maximum number of arguments for function / method.
-max-args=10
+max-args=12
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=25
+max-attributes=26
 
 # Maximum number of boolean expressions in an if statement (see R0916).
 max-bool-expr=5
@@ -286,7 +289,7 @@ max-bool-expr=5
 max-branches=12
 
 # Maximum number of locals for function / method body.
-max-locals=15
+max-locals=26
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7

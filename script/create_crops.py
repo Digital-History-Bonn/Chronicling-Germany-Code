@@ -7,12 +7,10 @@ import os
 import torch
 from tqdm import tqdm
 
-# from preprocessing import Preprocessing
-
 from src.news_seg.preprocessing import Preprocessing
 
 
-def main():
+def main(args):
     """Load image and target data and saves single crops as torch tensor. Tensor contains 4 dimension, 3 for RGB image
     and target"""
     preprocessing = Preprocessing()
@@ -37,7 +35,10 @@ def main():
     # iterate over files
     for file in tqdm(paths, desc="cropping images", unit="image"):
         image, target = preprocessing.load(
-            f"{args.images}{file}{extension}", f"{args.targets}{get_file_name(file)}", f"{file}", dataset= args.dataset
+            f"{args.images}{file}{extension}",
+            f"{args.targets}{get_file_name(file)}",
+            f"{file}",
+            dataset=args.dataset,
         )
         # preprocess / create crops
         img_crops, tar_crops = preprocessing(image, target)
@@ -87,5 +88,5 @@ def get_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    args = get_args()
-    main()
+    parameter_args = get_args()
+    main(parameter_args)

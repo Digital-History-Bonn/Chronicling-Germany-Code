@@ -16,9 +16,12 @@ class TestClassNewsdataset:
     @pytest.fixture(autouse=True)
     def setup(self):
         """will initiate NewsDataset for every test"""
-        pytest.news_dataset = NewsDataset(Preprocessing(crop_size=256, crop_factor=1.5),
-                                          image_path=f"{DATA_PATH}input/",
-                                          target_path=f"{DATA_PATH}target_data/", sort=True)
+        pytest.news_dataset = NewsDataset(
+            Preprocessing(crop_size=256, crop_factor=1.5),
+            image_path=f"{DATA_PATH}input/",
+            target_path=f"{DATA_PATH}target_data/",
+            sort=True,
+        )
 
     def test_init(self):
         """verify file names list and length"""
@@ -28,13 +31,13 @@ class TestClassNewsdataset:
             crop_quantity = 25
 
             assert (
-                    pytest.news_dataset.file_names == ground_truth
-                    and len(pytest.news_dataset.file_names) == file_quantity
+                pytest.news_dataset.file_names == ground_truth
+                and len(pytest.news_dataset.file_names) == file_quantity
             )
             assert (
-                    len(pytest.news_dataset) == crop_quantity * file_quantity
-                    and pytest.news_dataset.data[0].dtype == torch.uint8
-                    and pytest.news_dataset.data[0].shape == (4, 256, 256)
+                len(pytest.news_dataset) == crop_quantity * file_quantity
+                and pytest.news_dataset.data[0].dtype == torch.uint8
+                and pytest.news_dataset.data[0].shape == (4, 256, 256)
             )
 
     def test_getitem(self):

@@ -12,10 +12,11 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-# from utils import replace_substrings
+from src.news_seg.utils import replace_substrings
 
 # pylint: disable=locally-disabled, import-error
-from src.news_seg.utils import replace_substrings
+# from utils import replace_substrings
+
 
 # as this is code obtained from pytorch docstrings are not added
 
@@ -59,7 +60,7 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 
 class Bottleneck(nn.Module):
     """
-    Bottleneck Layer from ResNet
+    Bottleneck Layer from ResNet https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     expansion = 4
@@ -127,7 +128,7 @@ class Bottleneck(nn.Module):
 
 class Block(nn.Module):
     """
-    Encoder Block
+    Encoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     def __init__(self, layers: List[Bottleneck], planes: int, conv_out: bool = False):
@@ -151,7 +152,7 @@ class Block(nn.Module):
         out_x = self.layers(in_x)
 
         if self.conv:
-            copy = self.conv(out_x) # type: ignore # pylint: disable=locally-disabled, not-callable
+            copy = self.conv(out_x)  # type: ignore # pylint: disable=locally-disabled, not-callable
         else:
             copy = out_x
 
@@ -170,7 +171,7 @@ class Block(nn.Module):
 
 class UpScaleBlock(nn.Module):
     """
-    Decoder Block
+    Decoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
     def __init__(self, in_up: int, in_copy: int, out_channels: int):
@@ -202,7 +203,7 @@ class UpScaleBlock(nn.Module):
 
 class DhSegment(nn.Module):
     """
-    DhSegment Model
+    DhSegment Model architecture is from https://arxiv.org/abs/1804.10371
     """
 
     def __init__(
@@ -433,7 +434,7 @@ class DhSegment(nn.Module):
         """
         pred = self(image).argmax(dim=1).float().cpu()
         prediction = torch.squeeze(pred / self.out_channel)
-        return prediction
+        return prediction #type: ignore
 
     def _load_resnet(self) -> None:
         """
@@ -470,7 +471,7 @@ def _dh_segment(
     arch: str, layers: List[int], pretrained: bool, progress: bool, **kwargs: Any
 ) -> nn.Module:
     """
-    create a dhSegment Model
+    create a dhSegment Model from https://arxiv.org/abs/1804.10371
     :param arch: Spring name of the ResNet-architecture for loading pretrained weights
     :param layers: List of Numbers of Bottleneck Blocks in ResNet-Blocks
     :param pretrained: bool if pretrained ResNet-weights should be load

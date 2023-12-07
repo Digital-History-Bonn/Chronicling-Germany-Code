@@ -15,11 +15,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-# from preprocessing import Preprocessing
-
 from src.news_seg.preprocessing import Preprocessing
-
-
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -30,9 +26,18 @@ class NewsDataset(Dataset):
     A dataset class for the newspaper datasets
     """
 
-    def __init__(self, preprocessing: Preprocessing, image_path: str = IMAGE_PATH, target_path: str = TARGET_PATH,
-                 data: Union[List[torch.Tensor], None] = None, limit: Union[int, None] = None,
-                 dataset: str = "transcribus", sort: bool = False):
+    def __init__(
+            self,
+            preprocessing: Preprocessing,
+            image_path: str = IMAGE_PATH,
+            target_path: str = TARGET_PATH,
+            data: Union[List[torch.Tensor], None] = None,
+            limit: Union[int, None] = None,
+            dataset: str = "transcribus",
+            sort: bool = False,
+            full_image: bool = False,
+            scale_aug: bool = True
+    ) -> None:
         """
         load images and targets from folder
         :param preprocessing:
@@ -45,9 +50,12 @@ class NewsDataset(Dataset):
         """
 
         self.preprocessing = preprocessing
+        if full_image:
+            preprocessing.crop = False
         self.dataset = dataset
         self.image_path = image_path
         self.target_path = target_path
+        self.scale_aug = scale_aug
 
         self.data: List[torch.Tensor] = []
         if data:
@@ -55,21 +63,32 @@ class NewsDataset(Dataset):
         else:
             # load data
             if self.dataset == "transcribus":
+                # pylint: disable=duplicate-code
                 extension = ".jpg"
 
                 def get_file_name(name: str) -> str:
                     return f"{name}.npy"
-            else:
+
+            elif self.dataset == "HLNA2013":
                 extension = ".tif"
 
                 def get_file_name(name: str) -> str:
                     return f"pc-{name}.npy"
 
+            else:
+                extension = ".png"
+
+                def get_file_name(name: str) -> str:
+                    return f"{name}.npy"
+
             # read all file names
-            self.file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
-            assert len(
-                self.file_names) > 0, (f"No Images in {image_path} with extension{extension} found. Make sure the "
-                                       f"specified dataset and path are correct.")
+            self.file_names = [
+                f[:-4] for f in os.listdir(image_path) if f.endswith(extension)
+            ]
+            assert len(self.file_names) > 0, (
+                f"No Images in {image_path} with extension{extension} found. Make sure the "
+                f"specified dataset and path are correct."
+            )
             if sort:
                 self.file_names.sort()
 
@@ -79,8 +98,11 @@ class NewsDataset(Dataset):
             # iterate over files
             for file in tqdm(self.file_names, desc="cropping images", unit="image"):
                 image, target = self.preprocessing.load(
-                    f"{image_path}{file}{extension}", f"{target_path}{get_file_name(file)}", file
-                    , dataset)
+                    f"{image_path}{file}{extension}",
+                    f"{target_path}{get_file_name(file)}",
+                    file,
+                    dataset,
+                )
                 # preprocess / create crops
                 crops = list(torch.tensor(self.preprocessing(image, target)))
                 self.data += crops
@@ -105,7 +127,8 @@ class NewsDataset(Dataset):
 
         # do augmentations
         if self.augmentations:
-            augmentations = self.get_augmentations()
+            prob = 0.75 if self.scale_aug else 0
+            augmentations = self.get_augmentations(prob)
             data = augmentations["default"](data)
             img = augmentations["images"](data[:-1]).float() / 255
             # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
@@ -115,7 +138,7 @@ class NewsDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-        self, ratio: Tuple[float, float, float]
+            self, ratio: Tuple[float, float, float]
     ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -124,6 +147,14 @@ class NewsDataset(Dataset):
         """
         assert sum(ratio) == 1, "ratio does not sum up to 1."
         assert len(ratio) == 3, "ratio does not have length 3"
+        assert (
+                int(ratio[0] * len(self)) > 0
+                and int(ratio[1] * len(self)) > 0
+                and int(ratio[2] * len(self)) > 0
+        ), (
+            "Dataset is to small for given split ratios for test and validation dataset. "
+            "Test or validation dataset have size of zero."
+        )
 
         splits = int(ratio[0] * len(self)), int(ratio[0] * len(self)) + int(
             ratio[1] * len(self)
@@ -134,35 +165,78 @@ class NewsDataset(Dataset):
         ).tolist()
         torch_data = torch.stack(self.data)
 
-        train_dataset = NewsDataset(self.preprocessing,
-                                    image_path=self.image_path, target_path=self.target_path,
-                                    data=list(torch_data[indices[: splits[0]]])
-                                    )
-        test_dataset = NewsDataset(self.preprocessing,
-                                   image_path=self.image_path, target_path=self.target_path,
-                                   data=list(torch_data[indices[splits[0]: splits[1]]])
-                                   )
-        valid_dataset = NewsDataset(self.preprocessing,
-                                    image_path=self.image_path, target_path=self.target_path,
-                                    data=list(torch_data[indices[splits[1]:]])
-                                    )
+        train_dataset = NewsDataset(
+            self.preprocessing,
+            image_path=self.image_path,
+            target_path=self.target_path,
+            data=list(torch_data[indices[: splits[0]]]),
+            dataset=self.dataset,
+            scale_aug=self.scale_aug
+        )
+        test_dataset = NewsDataset(
+            self.preprocessing,
+            image_path=self.image_path,
+            target_path=self.target_path,
+            data=list(torch_data[indices[splits[0]: splits[1]]]),
+            dataset=self.dataset,
+            scale_aug=self.scale_aug
+        )
+        valid_dataset = NewsDataset(
+            self.preprocessing,
+            image_path=self.image_path,
+            target_path=self.target_path,
+            data=list(torch_data[indices[splits[1]:]]),
+            dataset=self.dataset,
+            scale_aug=self.scale_aug
+        )
 
         return train_dataset, test_dataset, valid_dataset
 
-    def get_augmentations(self) -> Dict[str, transforms.Compose]:
-        """Defines transformations"""
+    def get_augmentations(self, resize_prob: float = 0.75) -> Dict[str, transforms.Compose]:
+        """Defines transformations
+        :param resize_prob: Probability of resize. This allows to deactivate the scaling augmentation.
+        """
         return {
             "default": transforms.Compose(
                 [
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomVerticalFlip(),
                     transforms.RandomRotation(180),
+                    transforms.RandomErasing(),
                     transforms.RandomApply(
-                        [transforms.RandomResizedCrop(size=self.preprocessing.crop_size, scale=(0.2, 1.0))]
-                    , p = 0.5)
+                        [
+                            transforms.RandomChoice(
+                                [
+                                    transforms.RandomResizedCrop(
+                                        size=self.preprocessing.crop_size,
+                                        scale=(0.2, 1.0),
+                                    ),
+                                    transforms.Compose(
+                                        [
+                                            transforms.Resize(
+                                                self.preprocessing.crop_size // 2,
+                                                antialias=True,
+                                            ),
+                                            transforms.Pad(
+                                                self.preprocessing.crop_size // 4
+                                            ),
+                                        ]
+                                    ),
+                                ]
+                            )
+                        ],
+                        p=resize_prob,
+                    ),
                 ]
             ),
             "images": transforms.RandomApply(
-                [transforms.Compose([transforms.GaussianBlur(5, (0.1, 1.5))])], p=0.5
+                [
+                    transforms.Compose(
+                        [
+                            transforms.GaussianBlur(5, (0.1, 1.5)),
+                        ]
+                    )
+                ],
+                p=0.75,
             ),
         }  # originally 0.8

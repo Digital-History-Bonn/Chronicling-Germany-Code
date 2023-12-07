@@ -19,8 +19,7 @@ def worker_experiment():
                           target_path=f"{args.data_path}targets/",
                           limit=args.limit, dataset=args.dataset)
     for num_workers in range(2, mp.cpu_count() * 2, 2):
-        train_loader = DataLoader(dataset, shuffle=True, num_workers=num_workers, batch_size=args.batch_size,
-                                  pin_memory=True)
+        train_loader = DataLoader(dataset, shuffle=True, num_workers=num_workers, batch_size=args.batch_size)
         start = time()
         for _ in range(1, args.epochs):
             for _, _ in enumerate(train_loader, 0):
