@@ -8,6 +8,7 @@ from numpy import ndarray
 from skimage import draw
 
 LABEL_ASSIGNMENTS = {
+    "TextLine": 0,
     "UnknownRegion": 1,
     "caption": 2,
     "table": 3,

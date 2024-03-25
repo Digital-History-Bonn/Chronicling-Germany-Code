@@ -6,10 +6,13 @@ import argparse
 import os
 from typing import Dict, List
 
+from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 import numpy as np
+import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
+from numpy import ndarray
 
 from script import draw_img, read_xml
 from script.draw_img import LABEL_NAMES
@@ -17,9 +20,44 @@ from script.draw_img import LABEL_NAMES
 # import draw_img, read_xml
 # from draw_img import LABEL_NAMES
 
+cmap = [
+    (1.0, 0.0, 0.16),
+    (1.0, 0.43843843843843844, 0.0),
+    (0, 0.222, 0.222),
+    (0.36036036036036045, 0.5, 0.5),
+    (0.0, 1.0, 0.2389486260454002),
+    (0.8363201911589008, 1.0, 0.0),
+    (0.0, 0.5615942028985507, 1.0),
+    (0.0422705314009658, 0.0, 1.0),
+    (0.6461352657004831, 0.0, 1.0),
+    (1.0, 0.0, 0.75),
+]
 
-INPUT = "../../data/newspaper/annotations/"
-OUTPUT = "../../data/newspaper/targets/"
+INPUT = "../data/newspaper/annotations/"
+OUTPUT = "../data/newspaper/targets/"
+
+
+def draw_prediction(img: ndarray, path: str) -> None:
+    """
+    Draw prediction with legend. And save it.
+    :param img: prediction ndarray
+    :param path: path for the prediction to be saved.
+    """
+
+    # unique, counts = np.unique(img, return_counts=True)
+    # print(dict(zip(unique, counts)))
+    values = LABEL_NAMES
+    for i in range(len(values)):
+        img[-1][-(i + 1)] = i + 1
+    plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
+    plt.axis("off")
+    # create a patch (proxy artist) for every color
+    # patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
+    # put those patched as legend-handles into the legend
+    # plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
+    plt.autoscale(tight=True)
+    plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
+    # plt.show()
 
 
 def main(parsed_args: argparse.Namespace) -> None:
@@ -50,8 +88,8 @@ def main(parsed_args: argparse.Namespace) -> None:
         img = draw_img.draw_img(annotation)
 
         # Debug
-        # io.imsave(f"{OUTPUT}{path}.png", img / 10)
-        #
+        draw_prediction(img, f"{parsed_args.output_path}{path}")
+
         # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
         #     json.dump(annotation, file)
 
