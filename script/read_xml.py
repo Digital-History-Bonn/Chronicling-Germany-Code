@@ -24,6 +24,8 @@ def read_transcribus(
 
     tags_dict = find_regions(bs_data, "TextRegion", True, "TextLine", tags_dict)
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict)
+    tags_dict = find_regions(bs_data, "Image", False, "", tags_dict)
+    tags_dict = find_regions(bs_data, "Graphic", False, "", tags_dict)
 
     page = bs_data.find("Page")
 
