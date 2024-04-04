@@ -24,6 +24,8 @@ def read_transcribus(
 
     tags_dict = find_regions(bs_data, "TextRegion", True, "TextLine", tags_dict)
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict)
+    tags_dict = find_regions(bs_data, "Image", False, "", tags_dict)
+    tags_dict = find_regions(bs_data, "Graphic", False, "", tags_dict)
 
     page = bs_data.find("Page")
 
@@ -57,7 +59,7 @@ def find_regions(
             r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
         )
         if region_type_matches is None:
-            region_type = "UnknownRegion"
+            region_type = 'image' if tag in ('Image', 'Graphic') else "UnknownRegion"
         else:
             region_type = region_type_matches.group(2)
         if region_type not in tags_dict:

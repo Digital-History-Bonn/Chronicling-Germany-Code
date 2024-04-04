@@ -18,7 +18,7 @@ def create_sub_masks(pred: ndarray) -> Dict[int, Image.Image]:
     if 0 in unique_values:
         unique_values = np.delete(unique_values, np.where(unique_values == 0)[0][0])
 
-    sub_masks: Dict[int, Image] = {}
+    sub_masks: Dict[int, Image.Image] = {}
 
     for value in unique_values:
         sub_masks[value] = Image.fromarray(np.pad(pred == value, 1))
