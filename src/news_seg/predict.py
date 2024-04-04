@@ -204,8 +204,11 @@ def predict(args: argparse.Namespace) -> None:
         pin_memory=True,
         collate_fn=collate_fn
     )
+    if device != 'cpu':
+        model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
+    else:
+        model = train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
 
-    model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
     model.to(device)
     model.eval()
     threads = []

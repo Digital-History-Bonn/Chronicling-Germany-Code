@@ -37,14 +37,19 @@ TOLERANCE = [
     10.0,  # "header"
     2.0,  # "separator_vertical"
     2.0,  # "separator_short"
-    5.0]  # "separator_horizontal"
+    5.0,  # "separator_horizontal"
+    5.0,  # "image",
+    5.0   # "inverted_text"
+]
 
 # The order dictates the priority in the drawing process. Eg. "image": 10 assigns label 10 to image regions, but the
 # drawn region will be overwritten by tables, which are further down the dictionary.
 LABEL_ASSIGNMENTS = {
     "TextLine": 0,
+    "advertisement": 0,
     "UnknownRegion": 1,
     "image": 10,
+    "Image": 10,
     "inverted_text": 11,
     "caption": 2,
     "table": 3,

@@ -30,7 +30,7 @@ def draw_prediction(img: ndarray, path: str) -> None:
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
     plt.axis("off")
     # create a patch (proxy artist) for every color
-    # patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
+    # patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(len(LABEL_NAMES))]
     # put those patched as legend-handles into the legend
     # plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
     plt.autoscale(tight=True)
