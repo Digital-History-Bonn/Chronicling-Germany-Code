@@ -8,7 +8,7 @@ from typing import Tuple
 
 import torch
 from PIL import Image
-from PIL.Image import BICUBIC # pylint: disable=no-name-in-module
+from PIL.Image import BICUBIC # pylint: disable=no-name-in-module # type:ignore
 # pylint thinks torch has no name randperm this is wrong
 # pylint: disable-next=no-name-in-module
 from torch.utils.data import Dataset

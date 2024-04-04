@@ -9,7 +9,7 @@ import numpy.typing as npt
 import torch
 from numpy import ndarray
 from PIL import Image
-from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module
+from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # type:ignore
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
@@ -205,8 +205,8 @@ class Preprocessing:
         return: ndarray tuple containing scaled image and target
         """
         if self.scale == 1:
-            image = np.array(image, dtype=np.uint8)
-            return torch.tensor(np.transpose(image, (2, 0, 1))), torch.tensor(target)
+            image_ndarray = np.array(image, dtype=np.uint8)
+            return torch.tensor(np.transpose(image_ndarray, (2, 0, 1))), torch.tensor(target)
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
@@ -215,11 +215,11 @@ class Preprocessing:
         target_img = Image.fromarray(np.array(target.astype(np.uint8)))
         target_img = target_img.resize(shape, resample=NEAREST)
 
-        image, target = np.array(image, dtype=np.uint8), np.array(
+        image_ndarray, target = np.array(image, dtype=np.uint8), np.array(
             target_img, dtype=np.uint8
         )
 
-        return torch.tensor(np.transpose(image, (2, 0, 1))), torch.tensor(target)
+        return torch.tensor(np.transpose(image_ndarray, (2, 0, 1))), torch.tensor(target)
 
 
 if __name__ == "__main__":

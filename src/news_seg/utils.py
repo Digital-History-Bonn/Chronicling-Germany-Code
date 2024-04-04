@@ -4,16 +4,16 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
-from PIL import Image
-from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
+# from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type:ignore
 from matplotlib import pyplot as plt
 from numpy import ndarray
-from skimage.color import label2rgb # pylint: disable=no-name-in-module
+from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchmetrics.classification import MulticlassConfusionMatrix
 from torchvision import transforms
 
 from src.news_seg.class_config import LABEL_NAMES
 from src.news_seg.class_config import cmap_12 as cmap
+
 
 def draw_prediction(img: ndarray, path: str) -> None:
     """
@@ -36,6 +36,7 @@ def draw_prediction(img: ndarray, path: str) -> None:
     plt.autoscale(tight=True)
     plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
     # plt.show()
+
 
 def multi_class_csi(
         pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
@@ -61,6 +62,7 @@ def multi_class_csi(
             true_positive / (true_positive + false_negative + false_positive)
         )
     return csi
+
 
 def multi_precison_recall(
         pred: torch.Tensor, target: torch.Tensor, out_channels: int) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -93,25 +95,6 @@ def multi_precison_recall(
             true_positive / (true_positive + false_negative)
         )
     return precision, recall
-
-
-def get_file(file: str, scale: float = 0.25) -> torch.Tensor:
-    """
-    loads a image as tensor
-    :param file: path to file
-    :param scale: scale
-    :return: image as torch.Tensor
-    """
-    img = Image.open(file).convert("RGB")
-    shape = int(img.size[0] * scale), int(img.size[1] * scale)
-    img = img.resize(shape, resample=BICUBIC)
-
-    w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
-    img_np = np.pad(
-        np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), "constant", constant_values=0
-    )
-    img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
-    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)  # type: ignore
 
 
 def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
