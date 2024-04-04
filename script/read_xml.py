@@ -59,7 +59,7 @@ def find_regions(
             r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
         )
         if region_type_matches is None:
-            region_type = 'image' if tag == 'Image' or tag == 'Graphic' else "UnknownRegion"
+            region_type = 'image' if tag in ('Image', 'Graphic') else "UnknownRegion"
         else:
             region_type = region_type_matches.group(2)
         if region_type not in tags_dict:
