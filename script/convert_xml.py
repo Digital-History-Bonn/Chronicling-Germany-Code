@@ -131,6 +131,7 @@ def create_xml(
     """
     xml_data = BeautifulSoup(xml_file, "xml")
     page = xml_data.find("Page")
+    page.clear()
     order = xml_data.new_tag("ReadingOrder")
     order_group = xml_data.new_tag(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
@@ -138,7 +139,7 @@ def create_xml(
 
     add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale)
     order.append(order_group)
-    page.insert(1, order)
+    page.insert(0, order)
     return xml_data
 
 
