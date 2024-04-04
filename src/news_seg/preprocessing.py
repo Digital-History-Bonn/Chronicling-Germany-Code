@@ -9,7 +9,7 @@ import numpy.typing as npt
 import torch
 from numpy import ndarray
 from PIL import Image
-from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # type:ignore
+from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # type: ignore
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
