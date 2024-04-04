@@ -51,7 +51,11 @@ def main(parsed_args: argparse.Namespace) -> None:
         img = draw_img.draw_img(annotation)
 
         # Debug
-        draw_prediction(img, f"{parsed_args.output_path}{path}")
+        if parsed_args.image_path:
+            if not os.path.exists(parsed_args.image_path):
+                print(f"creating {parsed_args.image_path}.")
+                os.makedirs(parsed_args.image_path)
+            draw_prediction(img, f"{parsed_args.image_path}{path}")
 
         # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
         #     json.dump(annotation, file)
@@ -103,6 +107,14 @@ def get_args() -> argparse.Namespace:
         dest="output_path",
         default=OUTPUT,
         help="path for ouput folder",
+    )
+    parser.add_argument(
+        "--image-path",
+        "-i",
+        type=str,
+        dest="image_path",
+        default=None,
+        help="path for debug image folder. If no path is supplied, no debug images will be generated.",
     )
     return parser.parse_args()
 
