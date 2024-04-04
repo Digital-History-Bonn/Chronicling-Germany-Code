@@ -7,38 +7,7 @@ import numpy as np
 from numpy import ndarray
 from skimage import draw
 
-# The order dictates the priority in the drawing process. Eg. "image": 10 assigns label 10 to image regions, but the
-# drawn region will be overwritten by tables, which are further down the dictionary.
-LABEL_ASSIGNMENTS = {
-    "TextLine": 0,
-    "UnknownRegion": 1,
-    "image": 10,
-    "inverted_text": 11,
-    "caption": 2,
-    "table": 3,
-    "article": 4,
-    "article_": 4,
-    "heading": 5,
-    "header": 6,
-    "separator_fancy": 7,
-    "separator_vertical": 7,
-    "separator_short": 8,
-    "separator_horizontal": 9,
-}
-
-LABEL_NAMES = [
-    "UnknownRegion",
-    "caption",
-    "table",
-    "article",
-    "heading",
-    "header",
-    "separator_vertical",
-    "separator_short",
-    "separator_horizontal",
-    "image",
-    "inverted_text",
-]
+from src.news_seg.class_config import LABEL_ASSIGNMENTS
 
 
 def draw_img(annotation: dict) -> ndarray:

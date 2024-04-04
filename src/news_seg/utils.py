@@ -6,10 +6,36 @@ import numpy as np
 import torch
 from PIL import Image
 from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
+from matplotlib import pyplot as plt
 from numpy import ndarray
+from skimage.color import label2rgb # pylint: disable=no-name-in-module
 from torchmetrics.classification import MulticlassConfusionMatrix
 from torchvision import transforms
 
+from src.news_seg.class_config import LABEL_NAMES
+from src.news_seg.class_config import cmap_12 as cmap
+
+def draw_prediction(img: ndarray, path: str) -> None:
+    """
+    Draw prediction with legend. And save it.
+    :param img: prediction ndarray
+    :param path: path for the prediction to be saved.
+    """
+
+    # unique, counts = np.unique(img, return_counts=True)
+    # print(dict(zip(unique, counts)))
+    values = LABEL_NAMES
+    for i in range(len(values)):
+        img[-1][-(i + 1)] = i + 1
+    plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
+    plt.axis("off")
+    # create a patch (proxy artist) for every color
+    # patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
+    # put those patched as legend-handles into the legend
+    # plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
+    plt.autoscale(tight=True)
+    plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
+    # plt.show()
 
 def multi_class_csi(
         pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix

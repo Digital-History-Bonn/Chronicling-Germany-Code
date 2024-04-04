@@ -6,28 +6,21 @@ from threading import Thread
 from typing import Dict, List, Tuple, Any
 
 # import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from PIL import Image
 from numpy import ndarray
 from skimage import draw
-from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from script.convert_xml import create_xml
-from script.draw_img import LABEL_NAMES
 from script.transkribus_export import prediction_to_polygons, get_reading_order
-from src.news_seg import train # pylint: disable=no-name-in-module
+from src.news_seg import train  # pylint: disable=no-name-in-module
+from src.news_seg.class_config import TOLERANCE
 from src.news_seg.predict_dataset import PredictDataset
-from src.news_seg.utils import create_bbox_ndarray
-
-# from torch.utils.data import DataLoader
-
-# from src.news_seg.preprocessing import Preprocessing
-# from src.news_seg.train import OUT_CHANNELS
+from src.news_seg.utils import create_bbox_ndarray, draw_prediction
 
 # import train
 
@@ -39,52 +32,6 @@ FINAL_SIZE = (1024, 1024)
 
 # Tolerance pixel for polygon simplification. All points in the simplified object will be within
 # the tolerance distance of the original geometry.
-TOLERANCE = [
-    10.0,  # "UnknownRegion"
-    5.0,  # "caption"
-    5.0,  # "table"
-    5.0,  # "article"
-    10.0,  # "heading"
-    10.0,  # "header"
-    2.0,  # "separator_vertical"
-    2.0,  # "separator_short"
-    5.0]  # "separator_horizontal"
-
-cmap = [
-    (1.0, 0.0, 0.16),
-    (1.0, 0.43843843843843844, 0.0),
-    (0, 0.222, 0.222),
-    (0.36036036036036045, 0.5, 0.5),
-    (0.0, 1.0, 0.2389486260454002),
-    (0.8363201911589008, 1.0, 0.0),
-    (0.0, 0.5615942028985507, 1.0),
-    (0.0422705314009658, 0.0, 1.0),
-    (0.6461352657004831, 0.0, 1.0),
-    (1.0, 0.0, 0.75),
-]
-
-
-def draw_prediction(img: ndarray, path: str) -> None:
-    """
-    Draw prediction with legend. And save it.
-    :param img: prediction ndarray
-    :param path: path for the prediction to be saved.
-    """
-
-    # unique, counts = np.unique(img, return_counts=True)
-    # print(dict(zip(unique, counts)))
-    values = LABEL_NAMES
-    for i in range(len(values)):
-        img[-1][-(i + 1)] = i + 1
-    plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
-    plt.axis("off")
-    # create a patch (proxy artist) for every color
-    # patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(9)]
-    # put those patched as legend-handles into the legend
-    # plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
-    plt.autoscale(tight=True)
-    plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
-    # plt.show()
 
 
 def get_args() -> argparse.Namespace:
