@@ -32,17 +32,16 @@ def read_transcribus(
 
     page = bs_data.find("Page")
 
-    # check tags
-    if "UnknownRegion" in tags_dict.keys():
-        print(f"Found {len(tags_dict['UnknownRegion'])} UnknownRegion(s) in {page['imageFilename']}.\n")
-        if log_path is not None:
+    if log_path is not None:
+        # check tags
+        if "UnknownRegion" in tags_dict.keys():
+            print(f"Found {len(tags_dict['UnknownRegion'])} UnknownRegion(s) in {page['imageFilename']}.")
             with open(f"{log_path}covert_logs.txt", 'a', encoding='utf-8') as f:
                 f.write(f"Found {len(tags_dict['UnknownRegion'])} UnknownRegion(s) in {page['imageFilename']}.\n")
 
-    unknown_tags = [key for key in tags_dict.keys() if key not in VALID_TAGS]
-    for tag in unknown_tags:
-        print(f'Found {len(tags_dict[tag])} region(s) with unknown {tag} tag in {page["imageFilename"]}.\n')
-        if log_path is not None:
+        unknown_tags = [key for key in tags_dict.keys() if key not in VALID_TAGS]
+        for tag in unknown_tags:
+            print(f'Found {len(tags_dict[tag])} region(s) with unknown {tag} tag in {page["imageFilename"]}.')
             with open(f"{log_path}covert_logs.txt", 'a', encoding='utf-8') as f:
                 f.write(f'Found {len(tags_dict[tag])} region(s) with unknown {tag} tag in {page["imageFilename"]}.\n')
 
