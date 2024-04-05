@@ -28,7 +28,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
     read = (
-        lambda file: read_xml.read_transcribus(path=file, log_path=parsed_args.log_path)  # type: ignore
+        lambda file: read_xml.read_transcribus(path=file, log_path=parsed_args.log_path)  # pylint: disable=unnecessary-lambda-assignment
         if parsed_args.dataset == "transcribus"
         else read_xml.read_hlna2013
     )
