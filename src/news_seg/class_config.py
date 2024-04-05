@@ -82,7 +82,6 @@ VALID_TAGS = [
     'advertisement',
     'article_',
     'article',
-    'paragraph',
     'caption',
     'heading',
     'header',
