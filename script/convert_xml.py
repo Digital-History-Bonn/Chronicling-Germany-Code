@@ -23,11 +23,12 @@ from src.news_seg.utils import draw_prediction
 INPUT = "../data/newspaper/annotations/"
 OUTPUT = "../data/newspaper/targets/"
 
+
 def main(parsed_args: argparse.Namespace) -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
     read = (
-        read_xml.read_transcribus
+        lambda path: read_xml.read_transcribus(path=path, log_path=parsed_args.log_path)
         if parsed_args.dataset == "transcribus"
         else read_xml.read_hlna2013
     )
@@ -55,7 +56,7 @@ def main(parsed_args: argparse.Namespace) -> None:
             if not os.path.exists(parsed_args.image_path):
                 print(f"creating {parsed_args.image_path}.")
                 os.makedirs(parsed_args.image_path)
-            draw_prediction(img, f"{parsed_args.image_path}{path}")
+            draw_prediction(img, f"{parsed_args.image_path}{path}.png")
 
         # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
         #     json.dump(annotation, file)
@@ -106,7 +107,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         dest="output_path",
         default=OUTPUT,
-        help="path for ouput folder",
+        help="path for output folder",
     )
     parser.add_argument(
         "--image-path",
@@ -116,6 +117,15 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for debug image folder. If no path is supplied, no debug images will be generated.",
     )
+    parser.add_argument(
+        "--log-path",
+        "-l",
+        type=str,
+        dest="log_path",
+        default=None,
+        help="path for log file",
+    )
+
     return parser.parse_args()
 
 

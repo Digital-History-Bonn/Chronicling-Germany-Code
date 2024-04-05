@@ -39,7 +39,7 @@ TOLERANCE = [
     2.0,  # "separator_short"
     5.0,  # "separator_horizontal"
     5.0,  # "image",
-    5.0   # "inverted_text"
+    5.0  # "inverted_text"
 ]
 
 # The order dictates the priority in the drawing process. Eg. "image": 10 assigns label 10 to image regions, but the
@@ -75,4 +75,24 @@ LABEL_NAMES = [
     "separator_horizontal",
     "image",
     "inverted_text",
+]
+
+VALID_TAGS = [
+    'TextLine',
+    'advertisement',
+    'article_',
+    'article',
+    'paragraph',
+    'caption',
+    'heading',
+    'header',
+    'separator_fancy',
+    'Image',
+    'Graphic',
+    'table',
+    'inverted_text',
+    'separator_horizontal',
+    'separator_vertical',
+    'separator_short',
+    'UnknownRegion'
 ]

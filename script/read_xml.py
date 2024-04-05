@@ -3,17 +3,20 @@ Module contains read xml functions for all datasets. Data will be writen into a 
 mypy typing is ignored for this dictionary
 """
 import re
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 from bs4 import BeautifulSoup, ResultSet
+from src.news_seg.class_config import VALID_TAGS
 
 
 def read_transcribus(
-    path: str,
+        path: str,
+        log_path: Optional[str],
 ) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
+    :param log_path: path to log file
     :return: dictionary {height: , width: , tags: {tag_name_1: [], tag_name_2: [], ...}}
     """
     with open(path, "r", encoding="utf-8") as file:
@@ -29,6 +32,20 @@ def read_transcribus(
 
     page = bs_data.find("Page")
 
+    # check tags
+    if "UnknownRegion" in tags_dict.keys():
+        print(f'Found UnknownRegion in {page["imageFilename"]}.')
+        if log_path is not None:
+            with open(f"{log_path}covert_logs.txt", 'a') as f:
+                f.write(f'Found UnknownRegion in {page["imageFilename"]}.\n')
+
+    unknown_tags = [key for key in tags_dict.keys() if key not in VALID_TAGS]
+    for tag in unknown_tags:
+        print(f'Found region with unknown {tag} tag in {page["imageFilename"]}.')
+        if log_path is not None:
+            with open(f"{log_path}covert_logs.txt", 'a') as f:
+                f.write(f'Found region with unknown {tag} tag in {page["imageFilename"]}.\n')
+
     if page:
         return {
             "size": [int(page["imageWidth"]), int(page["imageHeight"])],
@@ -38,11 +55,11 @@ def read_transcribus(
 
 
 def find_regions(
-    data: BeautifulSoup,
-    tag: str,
-    search_children: bool,
-    child_tag: str,
-    tags_dict: Dict[str, List[List[List[int]]]],
+        data: BeautifulSoup,
+        tag: str,
+        search_children: bool,
+        child_tag: str,
+        tags_dict: Dict[str, List[List[List[int]]]],
 ) -> Dict[str, List[List[List[int]]]]:
     """
     returns dictionary with all coordinates of specified regions
@@ -79,7 +96,7 @@ def find_regions(
 
 
 def read_hlna2013(
-    path: str,
+        path: str,
 ) -> Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]]:
     """
     reads xml file and returns important information in dict
@@ -116,9 +133,9 @@ def read_hlna2013(
 
 
 def get_coordinates(
-    annotation: Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]],
-    separator_regions: ResultSet,
-    text_regions: ResultSet,
+        annotation: Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]],
+        separator_regions: ResultSet,
+        text_regions: ResultSet,
 ) -> None:
     """Append coordinates to annotation dictionary
     :param annotation: dictionary to contain data
