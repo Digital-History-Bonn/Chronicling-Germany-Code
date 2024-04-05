@@ -11,7 +11,7 @@ from src.news_seg.class_config import VALID_TAGS
 
 def read_transcribus(
         path: str,
-        log_path: Optional[str],
+        log_path: Optional[str] = None,
 ) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
