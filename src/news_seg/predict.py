@@ -30,6 +30,7 @@ RESULT_PATH = "../../data/output/"
 CROP_SIZE = 1024
 FINAL_SIZE = (1024, 1024)
 
+
 # Tolerance pixel for polygon simplification. All points in the simplified object will be within
 # the tolerance distance of the original geometry.
 
@@ -172,6 +173,16 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Activates automated mixed precision",
     )
+
+    parser.add_argument(
+        "--debug",
+        "-dgb",
+        dest="debug",
+        type=bool,
+        default=False,
+        help="Activates the debug mode, and returns the models uncertainties",
+    )
+
     return parser.parse_args()
 
 
@@ -179,7 +190,8 @@ def collate_fn(batch: Any) -> Any:
     """dataloader collate function"""
     return (
         torch.stack([x[0] for x in batch]),
-        [x[1] for x in batch]
+        torch.stack([x[1] for x in batch]),
+        [x[2] for x in batch]
     )
 
 
@@ -192,7 +204,11 @@ def predict(args: argparse.Namespace) -> None:
     cuda_count = torch.cuda.device_count()
     print(f"Using {device} device with {cuda_count} gpus")
 
-    dataset = PredictDataset(args.data_path, args.scale, args.pad)
+    dataset = PredictDataset(args.data_path,
+                             args.scale, args.pad,
+                             target_path=f"{args.data_path}../../newspaper-dataset-main-annotations/targets/")
+
+    print(f"{len(dataset)=}")
 
     pred_loader = DataLoader(
         dataset,
@@ -214,11 +230,11 @@ def predict(args: argparse.Namespace) -> None:
     threads = []
 
     batch = 0
-    for image, path in tqdm(
+    for image, target, path in tqdm(
             pred_loader, desc="predicting images", total=len(pred_loader), unit="batches"
     ):
         batch += 1
-        threads += execute_prediction(args, device, path, image, model)
+        threads += execute_prediction(args, device, path, image, target, model, args.debug)
 
         if batch % 10 == 0:
             for thread in threads:
@@ -232,7 +248,7 @@ def predict(args: argparse.Namespace) -> None:
 
 
 def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], image: torch.Tensor,
-                       model: Any) -> List[Thread]:
+                       target: torch.Tensor, model: Any, debug: bool = False) -> List[Thread]:
     """
     Run model to create prediction and start thrads for export.
     Todo: add switch for prediction with and without cropping
@@ -255,7 +271,9 @@ def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], 
     # crops = crops.permute(0, 2, 3, 1)
     # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
     # pred = pred.permute(2, 0, 1)
-    pred_ndarray = process_prediction(pred, args.threshold)
+    pred_ndarray = process_prediction(pred, args.threshold) if debug else process_prediction_debug(pred,
+                                                                                                   target,
+                                                                                                   args.threshold)
     image_ndarray = image.numpy()
 
     threads = []
@@ -462,6 +480,13 @@ def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
     argmax = argmax.type(torch.uint8)
     argmax[max_tensor < threshold] = 0
     return argmax.detach().cpu().numpy()  # type: ignore
+
+
+def process_prediction_debug(prediction, target, threshold) -> np.ndarray:
+    prediction = prediction.take(target)
+    uncertainty_map = prediction < threshold
+
+    return uncertainty_map.detach().cpu().numpy()
 
 
 if __name__ == "__main__":
