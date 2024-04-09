@@ -16,11 +16,12 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from script.convert_xml import create_xml
-from script.transkribus_export import prediction_to_polygons, get_reading_order
+from script.transkribus_export import prediction_to_polygons
+from reading_order import setup_reading_order
 from src.news_seg import train  # pylint: disable=no-name-in-module
 from src.news_seg.class_config import TOLERANCE
 from src.news_seg.predict_dataset import PredictDataset
-from src.news_seg.utils import create_bbox_ndarray, draw_prediction
+from src.news_seg.utils import draw_prediction
 
 # import train
 
@@ -361,10 +362,7 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
     segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
                                                       args.export or args.output_path)
 
-    bbox_ndarray = create_bbox_ndarray(bbox_list)
-    reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
-    reading_order_dict = {k: v for v, k in enumerate(reading_order)}
+    reading_order_dict = setup_reading_order(args, bbox_list)
 
     return reading_order_dict, segmentations, bbox_list
 
