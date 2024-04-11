@@ -129,7 +129,23 @@ def get_reading_order(bbox_dict: Dict[int, List[List[float]]]) -> Dict[int, int]
     global_x_min = np.min(properties[:, 2])
     global_x_max = np.max(properties[:, 3])
     columns_per_page: int = round(global_x_max - global_x_min / x_median)
+    divider_split(properties, x_median, columns_per_page)
 
+
+def divider_split(properties: ndarray, x_median: int, columns_per_page: int):
+
+    splitting_indices = get_preliminary_splitting_regions(properties, x_median, columns_per_page)
+
+    if len(splitting_indices) > 0:
+        index = splitting_indices[0]
+        big_seperator_entry = properties[index]
+        bbox_list = np.delete(properties, index, axis=0)
+
+        region_bool = bbox_list[:, 5] > big_seperator_entry[5]
+        divider_split(bbox_list[np.invert(region_bool)], result, big_separator_size)
+        result.append(big_seperator_entry[0])
+
+        get_reading_order(bbox_list[region_bool], result, big_separator_size)
 
 def get_preliminary_splitting_regions(properties: ndarray, x_median: int, columns_per_page) -> List[int]:
     """
