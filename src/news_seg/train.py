@@ -639,12 +639,7 @@ class Trainer:
         )  # type:ignore
         self.summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[
-            None,
-            :,
-            :,
-            ]
-            / OUT_CHANNELS,
+            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
             global_step=self.step,
         )  # type:ignore
         self.summary_writer.add_image(
