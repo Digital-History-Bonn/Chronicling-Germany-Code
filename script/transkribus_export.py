@@ -5,10 +5,8 @@ import cv2
 import numpy as np
 from numpy import ndarray
 from PIL import Image
-from scipy.ndimage import minimum_filter
 from shapely.geometry import Polygon
 from skimage import measure
-from skimage.measure import approximate_polygon
 
 
 def create_sub_masks(pred: ndarray) -> Dict[int, Image.Image]:
@@ -108,7 +106,7 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
     :param tolerance: Array with pixel tolarance values for poygon simplification
     :param pred: prediction ndarray
     :param export: wheter transkribus export or output_path is activated.
-        If this is not athe case, only the article and horizontal seperator class bboxes are of relevance.
+        If this is not the case, only the article and horizontal seperator class bboxes are of relevance.
         Everything else will be skipped to improve performance.
     """
     masks = create_sub_masks(pred)
@@ -126,8 +124,12 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
     return segmentations, bbox_dict
 
 
-def debug_to_polygons(pred: ndarray) -> Tuple[
-    Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+def debug_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+    """
+    Converts the uncertain pixel image into polygones
+    :param pred: map of uncertaion pixels ndarray [B, C, H, W]
+    return: dict with segmentations and dict with bboxes
+    """
     segmentations = {i: [] for i in range(10)}
     bbox_dict = {i: [] for i in range(10)}
 
@@ -146,7 +148,10 @@ def debug_to_polygons(pred: ndarray) -> Tuple[
             continue
         contour = contour.squeeze()
         segmentations[1 if inner else 2].append(contour.flatten())
-        bbox_dict[1 if inner else 2].append([contour[:, 0].max(), contour[:, 1].min(), contour[:, 0].min(), contour[:, 1].max()])
+        bbox_dict[1 if inner else 2].append([contour[:, 0].max(),
+                                             contour[:, 1].min(),
+                                             contour[:, 0].min(),
+                                             contour[:, 1].max()])
 
     return segmentations, bbox_dict
 
