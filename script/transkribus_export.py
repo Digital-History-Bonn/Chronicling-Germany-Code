@@ -133,7 +133,7 @@ def debug_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict
     segmentations = {i: [] for i in range(10)}
     bbox_dict = {i: [] for i in range(10)}
 
-    contours, hierarchy = cv2.findContours(pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # pylint: disable=no-member
 
     # calc inner and outer contours
     inner_outer = []
