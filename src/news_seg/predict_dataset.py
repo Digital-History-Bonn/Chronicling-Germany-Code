@@ -47,12 +47,12 @@ class PredictDataset(Dataset):
         self.scale = scale
         self.pad = pad
 
-        self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") + glob.glob(f"{image_path}*.jpg")][:4]
+        self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") +
+                           glob.glob(f"{image_path}*.jpg")][:4]
 
     def load_image(self, file: str) -> torch.Tensor:
         """
         Loads image and applies necessary transformation for prdiction.
-        :param args: arguments
         :param file: path to image
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
@@ -64,10 +64,13 @@ class PredictDataset(Dataset):
         return data
 
     def load_target(self, file) -> torch.Tensor:
+        """
+        Loads target and applies necessary transformation for debugging function.
+        :param file: path to target
+        :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
+        """
         target = np.load(f"{self.target_path}{file[:-4]}.npy")
         shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
-        print(f"{shape=}")
-        print(f"{torch.tensor(target).shape=}")
         target = torch.nn.functional.interpolate(torch.tensor(target[None, None, :, :]), size=shape, mode='nearest')
         return target
 
@@ -97,4 +100,3 @@ class PredictDataset(Dataset):
         :return: number of items in dateset
         """
         return len(self.file_names)
-
