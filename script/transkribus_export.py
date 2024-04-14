@@ -130,8 +130,8 @@ def debug_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict
     :param pred: map of uncertaion pixels ndarray [B, C, H, W]
     return: dict with segmentations and dict with bboxes
     """
-    segmentations = {i: [] for i in range(10)}
-    bbox_dict = {i: [] for i in range(10)}
+    segmentations: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
+    bbox_dict: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
 
     contours, hierarchy = cv2.findContours(pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # pylint: disable=no-member
 
@@ -147,7 +147,7 @@ def debug_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict
         if len(contour) <= 3:
             continue
         contour = contour.squeeze()
-        segmentations[1 if inner else 2].append(contour.flatten())
+        segmentations[1 if inner else 2].append(list(contour.flatten()))
         bbox_dict[1 if inner else 2].append([contour[:, 0].max(),
                                              contour[:, 1].min(),
                                              contour[:, 0].min(),

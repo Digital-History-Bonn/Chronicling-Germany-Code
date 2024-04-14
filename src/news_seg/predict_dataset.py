@@ -63,7 +63,7 @@ class PredictDataset(Dataset):
         data: torch.Tensor = transform(image).float() / 255
         return data
 
-    def load_target(self, file) -> torch.Tensor:
+    def load_target(self, file: str) -> torch.Tensor:
         """
         Loads target and applies necessary transformation for debugging function.
         :param file: path to target
