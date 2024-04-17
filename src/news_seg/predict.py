@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from script.convert_xml import create_xml
 from script.transkribus_export import prediction_to_polygons
-from reading_order import setup_reading_order
+from reading_order import PageProperties
 from src.news_seg import train  # pylint: disable=no-name-in-module
 from src.news_seg.class_config import TOLERANCE
 from src.news_seg.predict_dataset import PredictDataset
@@ -362,7 +362,8 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
     segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
                                                       args.export or args.output_path)
 
-    reading_order_dict = setup_reading_order(args, bbox_list)
+    page = PageProperties(bbox_list)
+    reading_order_dict = page.get_reading_order()
 
     return reading_order_dict, segmentations, bbox_list
 

@@ -8,24 +8,32 @@ from transkribus_export import bbox_sufficient
 
 def get_region_properties(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
     """
-    minx, miny, maxx, maxy
+
     Takes Dict with label keys and bbox List and converts it to a property ndarray.
-    :param bbox_dict: Label keys and bbox Lists
-    :return: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+    :param bbox_dict: Label keys and bbox Lists with minx, miny, maxx, maxy
+    :return: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany, width, height.
     """
     index = 0
     result = []
     for label, bbox_list in bbox_dict.items():
-        for bbox in bbox_list:
-            result.append([index, label, bbox[0], bbox[2], np.mean([bbox[0], bbox[2]]), np.mean([bbox[1], bbox[3]])])
-            index += 1
-    return np.array(result, dtype=int)
+        if len(bbox_list) == 0:
+            continue
+        bbox_ndarray = np.array(bbox_list)
+        label_properties = np.vstack(
+            [np.arange(len(bbox_ndarray)) + index, np.full(len(bbox_ndarray), label), bbox_ndarray[:, 0],
+             bbox_ndarray[:, 2], np.mean([bbox_ndarray[:, 0], bbox_ndarray[:, 2]], axis=0),
+             np.mean([bbox_ndarray[:, 1], bbox_ndarray[:, 3]], axis=0), bbox_ndarray[:, 2] - bbox_ndarray[:, 0],
+             bbox_ndarray[:, 3] - bbox_ndarray[:, 1]]).T
+        result.append(label_properties)
+        index += len(bbox_ndarray)
+    return np.concatenate(result, axis=0)
 
 
 def median(properties: ndarray) -> int:
     """
     Calculates the mean of x width of all text and table regions. This produces an estimation for column size.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
     :return: text region x mean
     """
     labels = properties[:, 1]
@@ -37,7 +45,8 @@ def get_global_splitting_regions(properties: ndarray, x_median: int, columns_per
     """
     Determine divider indices. A region is considered a page divider, if it has the right class and if it
     spans over the whole page. This means, it has to be at least as wide, as x_median * columns_per_page.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
     :param x_median: estimated column width.
     :param columns_per_page: estimated columns per page.
     :return: index list of page spanning section divider
@@ -45,14 +54,15 @@ def get_global_splitting_regions(properties: ndarray, x_median: int, columns_per
     class_indices, rounded_width = get_width_in_terms_of_column(properties, x_median, 9)
     splitting_regions = np.zeros(properties.shape[0], dtype=bool)
     splitting_regions[class_indices] = rounded_width >= columns_per_page
-    return splitting_regions # type: ignore
+    return splitting_regions  # type: ignore
 
 
 def get_local_splitting_regions(properties: ndarray, x_median: int, columns_per_page: int) -> ndarray:
     """
     Determine divider indices. A region is considered a page divider, if it has the right class and if it
     spans over the whole page. This means, it has to be at least as wide, as x_median * columns_per_page.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
     :param x_median: estimated column width.
     :param columns_per_page: estimated columns per page.
     :return: index list of page spanning section divider
@@ -60,14 +70,15 @@ def get_local_splitting_regions(properties: ndarray, x_median: int, columns_per_
     class_indices, rounded_width = get_width_in_terms_of_column(properties, x_median, 9)
     splitting_regions = np.zeros(properties.shape[0], dtype=bool)
     splitting_regions[class_indices] = (rounded_width < columns_per_page) * (rounded_width > 0)
-    return splitting_regions # type: ignore
+    return splitting_regions  # type: ignore
 
 
 def get_width_in_terms_of_column(properties: ndarray, x_median: int, region_class: int) -> Tuple[ndarray, ndarray]:
     """
     Calculates the width of all regions with specified class in terms of columns. For example a region can be roughly
     2 columns wide.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
     :param x_median: estimated column width.
     :param region_class: class number to be filtered by.
     :return: index and rounded width lists
@@ -77,9 +88,41 @@ def get_width_in_terms_of_column(properties: ndarray, x_median: int, region_clas
     return class_indices, rounded_width
 
 
+def sort_column(column: ndarray) -> Tuple[ndarray, ...]:
+    """
+    Splits column regions into left and right border separators, which separatre columns from one another if they
+    are present. Those are sorted from left to right. All other column regions are sorted from top to bottom.
+    :param columns: all regions in columns
+    :param column: all regions belonging to this column.
+    :return: sorted ndarrays for left and right border as well as the actual column regions.
+    """
+    is_separator = np.where(np.isin(column[:, 1], [7, 8, 9]))[0]
+    column_x_mean = np.mean(column[np.invert(is_separator)][:, 4])
+    is_vertical = (
+            column[is_separator][:, 6] < column[is_separator][:, 7])
+
+    is_right_of_column = column[is_separator][:, 2] > column_x_mean
+    is_left_of_column = column[is_separator][:, 3] < column_x_mean
+
+    is_right_border_separator = is_right_of_column * is_vertical
+    is_left_border_separator = is_left_of_column * is_vertical
+    is_border_separator = is_separator[is_right_border_separator + is_left_border_separator]
+
+    column_to_sort = np.delete(column, is_border_separator, axis=0)
+    left_border_to_sort = column[is_separator][is_left_border_separator]
+    right_border_to_sort = column[is_separator][is_right_border_separator]
+
+    sorted_column = column_to_sort[np.argsort(column_to_sort[:, 5])]
+    sorted_left_border_separator = left_border_to_sort[np.argsort(left_border_to_sort[:, 4])]
+    sorted_right_border_separator = right_border_to_sort[np.argsort(right_border_to_sort[:, 4])]
+
+    return sorted_column, sorted_left_border_separator, sorted_right_border_separator
+
+
 class PageProperties:
     def __init__(self, bbox_dict: Dict[int, List[List[float]]], properties: Union[None, ndarray] = None):
         if properties is not None:
+            assert properties.shape[1] == 8, f"Properties ndarray has to have the shape nx8. Found {properties.shape}"
             self.properties = properties
         else:
             self.properties = get_region_properties(bbox_dict)
@@ -102,102 +145,14 @@ class PageProperties:
 
         return {k: v for v, k in enumerate(result)}
 
-    # def get_splitting_regions(bbox_list: ndarray, big_separator_size:int) -> List[int]:
-    #     """
-    #     Extract big separators if they meet the threshold
-    #     :param bbox_list: 2d n x 6 ndarray with id, label and bbox corners.
-    #     :param big_separator_size: big separator threshold. If this requirement isnt met, the separator is too short
-    #     :return: list of big separators
-    #     """
-    #     index_list = np.where(bbox_list[:, 1] == 9)[0]
-    #     result_list = []
-    #     for index in index_list:
-    #         if bbox_sufficient(bbox_list[index][2:], big_separator_size, True):
-    #             result_list.append(index)
-    #     return result_list
-    #
-    #
-    # def get_reading_order(bbox_list: ndarray, result: List[int], big_separator_size: int) -> None:
-    #     """
-    #     Calculate reading order by first seperating regions by big seperators. Regions without big seperators are
-    #     forwarded to calculate_reading_order. Big seperators are being handelt seperately.
-    #     :param bbox_list: 2d n x 6 ndarray with id, label and bbox corners.
-    #     :param result: Result List, is being filled over recursive calls.
-    #     :return: list of indices in reading order
-    #     """
-    #
-    #     splitting_indices= get_splitting_regions(bbox_list, big_separator_size)
-    #     if len(splitting_indices) > 0:
-    #         splitting_index = splitting_indices[0]
-    #         big_seperator_entry = bbox_list[splitting_index]
-    #         bbox_list = np.delete(bbox_list, splitting_index, axis=0)
-    #
-    #         region_bool = bbox_list[:, 5] > big_seperator_entry[3]
-    #         get_reading_order(bbox_list[np.invert(region_bool)], result, big_separator_size)
-    #         result.append(big_seperator_entry[0])
-    #
-    #         get_reading_order(bbox_list[region_bool], result, big_separator_size)
-    #     else:
-    #         calculate_reading_order(bbox_list, result)
-    #
-    #
-    # def calculate_reading_order(bbox_list: ndarray, result: List[int]) -> None:
-    #     """
-    #     Receives regions without big sperators.
-    #     Bboxes are sorted by the sum of the upper left corner to identify the upper left most element.
-    #     Then, all elements, which begin below of that pivot element are considered one column and sorted verticly.
-    #     This is repeated until all regions are concatenated.
-    #     :param bbox_list:
-    #     :param result:
-    #     """
-    #     if bbox_list.size == 0:
-    #         return
-    #     sorted_by_sum = bbox_list[np.argsort(bbox_list[:, 2: 4].sum(axis=1))]
-    #     while True:
-    #         level_bool = sorted_by_sum[:, 2] <= sorted_by_sum[0, 4]
-    #         # debug pivot elments
-    #         # print(f"Pivot Element {len(result) + 1} with bbox {sorted_by_sum[0]}")
-    #         current_level = sorted_by_sum[level_bool]
-    #         current_level = current_level[np.argsort(current_level[:, 3])]
-    #
-    #         result += list(current_level[:, 0])
-    #
-    #         next_level = sorted_by_sum[np.invert(level_bool)]
-    #         sorted_by_sum = next_level
-    #         if next_level.size == 0:
-    #             break
-    #
-    #
-    # def setup_reading_order(args, bbox_list):
-    #     """"""
-    #     bbox_ndarray = create_bbox_ndarray(bbox_list)
-    #     reading_order: List[int] = []
-    #     get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
-    #     reading_order_dict = {k: v for v, k in enumerate(reading_order)}
-    #     return reading_order_dict
-    #
-    #
-    # def create_bbox_ndarray(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
-    #     """
-    #     Takes Dict with label keys and bbox List and converts it to bbox ndarray.
-    #     :param bbox_dict: Label keys and bbox Lists
-    #     :return: 2d ndarray with n x 7 values. Containing id, label, 2 bbox corners and x-axis center.
-    #     """
-    #     index = 0
-    #     result = []
-    #     for label, bbox_list in bbox_dict.items():
-    #         for bbox in bbox_list:
-    #             result.append([index, label] + bbox)
-    #             index += 1
-    #     return np.array(result, dtype=int)
-
     def global_divider_split(self, properties: ndarray, global_splitting_bool: ndarray,
                              local_splitting_indices: ndarray,
                              result: List[int]) -> None:
         """
         If there are still global dividers in the properties sub array, a global split is executed.
         This includes, recursively recalling this function.
-        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
         :param global_splitting_bool: Indices of page spanning dividers.
         :param local_splitting_indices: Indices for dividers that span over at least 2 columns, but not over the whole page.
         :param result: reading order result which is updated by reference
@@ -208,17 +163,18 @@ class PageProperties:
             self.local_divider_split(properties, local_splitting_indices, result)
 
     def execute_single_global_split(self, properties: ndarray, global_splitting_bool: ndarray,
-                                    local_splitting_indices: ndarray, result: List[int]) -> None:
+                                    local_splitting_bool: ndarray, result: List[int]) -> None:
         """
         Executes global divider split by deleting the divider and calling global_divider_split for all regions above
         and below the divider separately. The divider itself is inserted between the regions above and below in the
         reading order result.
         :param global_splitting_bool: Indices of page spanning dividers.
-        :param local_splitting_indices: Indices for dividers that span over at least 2 columns, but not over the whole page.
-        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+        :param local_splitting_bool: Indices for dividers that span over at least 2 columns, but not over the whole page.
+        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
         :param result: reading order result which is updated by reference
         """
-        split_index = np.where(global_splitting_bool)[0][0]
+        split_index = np.where(global_splitting_bool)[np.argmax(properties[global_splitting_bool][:, 5])][0]
         divider_entry = properties[split_index]
 
         properties = np.delete(properties, split_index, axis=0)
@@ -227,16 +183,17 @@ class PageProperties:
         region_bool = properties[:, 5] > divider_entry[5]
 
         self.global_divider_split(properties[np.invert(region_bool)], global_splitting_bool[np.invert(region_bool)],
-                                  local_splitting_indices[np.invert(region_bool)], result)
+                                  local_splitting_bool[np.invert(region_bool)], result)
         result.append(divider_entry[0])  # type: ignore
         self.global_divider_split(properties[region_bool], global_splitting_bool[region_bool],
-                                  local_splitting_indices[region_bool], result)
+                                  local_splitting_bool[region_bool], result)
 
     def local_divider_split(self, properties: ndarray, local_splitting_bool: ndarray, result: List[int]) -> None:
         """
         If there are still local dividers in the properties sub array, a global split is executed.
         This includes, recursively recalling this function.
-        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
         :param local_splitting_bool: Indices for dividers that span over at least 2 columns, but not over the whole page.
         :param result: reading order result which is updated by reference
         """
@@ -253,10 +210,11 @@ class PageProperties:
         again. The divider itself is inserted bevore the remaining regions into the reading order result.
         :param global_splitting_indices: Indices of page spanning dividers.
         :param local_splitting_bool: Indices for dividers that span over at least 2 columns, but not over the whole page.
-        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
         :param result: reading order result which is updated by reference
         """
-        split_index = np.where(local_splitting_bool)[0][0]
+        split_index = np.where(local_splitting_bool)[np.argmin(properties[local_splitting_bool][:, 5])][0]
         divider_entry = properties[split_index]
 
         properties = np.delete(properties, split_index, axis=0)
@@ -273,12 +231,13 @@ class PageProperties:
     def column_split(self, properties: ndarray, result: List[int]) -> None:
         """
         Estimates the right column border by taking the global x min value and adding it to the x median. From there,
-        all regions left of the exstimated column border are considered to be in the column and are sorted by
-        meany value of properties ndarray. These are appended to the result list. Then, the next column border is
+        all regions left of the estimated column border are considered to be in the column and are sorted.
+        The dorted indices are appended to the result list. Then, the next column border is
         estimated and the already processed column regions are excluded from further analysis. If no region left of
         the column border is found, the loop continues. If all regions that are left, are in that column, the
         loop terminates.
-        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx and meany.
+        :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+        and height.
         :param result: reading order result which is updated by reference
         """
         if len(properties) == 0:
@@ -289,12 +248,15 @@ class PageProperties:
 
         while True:
             in_column: ndarray = columns[:, 4] < estimated_column_border
+
             if all(np.invert(in_column)):
                 estimated_column_border += self.x_median
                 continue
 
-            sorted_column = columns[in_column][np.argsort(columns[in_column][:, 5])]
+            sorted_column, sorted_left_border_separator, sorted_right_border_separator = sort_column(columns[in_column])
+            result += sorted_left_border_separator[:, 0].tolist()
             result += sorted_column[:, 0].tolist()
+            result += sorted_right_border_separator[:, 0].tolist()
 
             if all(in_column):
                 break
