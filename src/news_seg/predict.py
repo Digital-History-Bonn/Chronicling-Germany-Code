@@ -183,13 +183,9 @@ def get_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--debug",
-        "-dgb",
-        dest="debug",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Activates the debug mode, and returns the models uncertainties",
     )
-
     return parser.parse_args()
 
 
@@ -228,8 +224,10 @@ def predict(args: argparse.Namespace) -> None:
         collate_fn=collate_fn
     )
     if device != 'cpu':
+        print(f"Using {device} device")
         model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
     else:
+        print(f"Using {device} device with {cuda_count} gpus")
         model = train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
 
     model.to(device)

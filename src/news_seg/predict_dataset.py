@@ -48,7 +48,7 @@ class PredictDataset(Dataset):
         self.pad = pad
 
         self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") +
-                           glob.glob(f"{image_path}*.jpg")][:4]
+                           glob.glob(f"{image_path}*.jpg")]
 
     def load_image(self, file: str) -> torch.Tensor:
         """
@@ -70,8 +70,10 @@ class PredictDataset(Dataset):
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
         target = np.load(f"{self.target_path}{file[:-4]}.npy")
+        target[(target == 10) + (target == 11)] = 0  # TODO: remove this hot fix for unknown labels
         shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
         target = torch.nn.functional.interpolate(torch.tensor(target[None, None, :, :]), size=shape, mode='nearest')
+
         return target
 
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
