@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from script.convert_xml import create_xml
-from script.transkribus_export import prediction_to_polygons, get_reading_order
+from script.transkribus_export import prediction_to_polygons, get_reading_order, debug_to_polygons
 from src.news_seg import train  # pylint: disable=no-name-in-module
 from src.news_seg.class_config import TOLERANCE
 from src.news_seg.predict_dataset import PredictDataset
@@ -65,7 +65,7 @@ def get_args() -> argparse.Namespace:
         "-sp",
         type=str,
         default=None,
-        help="path for folder where sclices are to be saved. If none is given, no slices will created",
+        help="path for folder where slices are to be saved. If none is given, no slices will created",
     )
     parser.add_argument(
         "--model-path",
@@ -187,8 +187,7 @@ def get_args() -> argparse.Namespace:
         dest="debug",
         type=bool,
         default=False,
-        help="Activates the debug mode, and returns the models uncertainties. Make sure, that the targets are present "
-             "in the specified directory. See -h --target-path.",
+        help="Activates the debug mode, and returns the models uncertainties",
     )
 
     return parser.parse_args()
@@ -229,10 +228,8 @@ def predict(args: argparse.Namespace) -> None:
         collate_fn=collate_fn
     )
     if device != 'cpu':
-        print(f"Using {device} device with {cuda_count} gpus")
         model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
     else:
-        print(f"Using {device} device.")
         model = train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
 
     model.to(device)
@@ -281,9 +278,10 @@ def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], 
     # crops = crops.permute(0, 2, 3, 1)
     # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
     # pred = pred.permute(2, 0, 1)
-    pred_ndarray = process_prediction(pred, args.threshold) if debug else process_prediction_debug(pred,
-                                                                                                   target,
-                                                                                                   args.threshold)
+    pred_ndarray = process_prediction(pred, args.threshold) if not debug else process_prediction_debug(pred,
+                                                                                                       target.to(
+                                                                                                           device),
+                                                                                                       args.threshold)
     image_ndarray = image.numpy()
 
     threads = []
@@ -310,6 +308,7 @@ def export_polygons(file: str, pred: ndarray, image: ndarray, args: argparse.Nam
             export_slices(args, file, image, reading_order_dict, segmentations, bbox_list, pred)
 
         if args.output_path:
+            np.save(args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".npy", pred)
             polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
             draw_prediction(
                 polygon_pred,
@@ -379,20 +378,26 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
 def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
     Dict[int, int], Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
-    Calls polyong conversion. Original segmentation is first converted to polygons, then those polygons are
-    drawen into an ndarray image. Furthermore, regions of sufficient size will be cut out and saved separately if
+    Calls polygon conversion. Original segmentation is first converted to polygons, then those polygons are
+    drawn into a ndarray image. Furthermore, regions of sufficient size will be cut out and saved separately if
     required.
     :param args: args
     :param pred: Original prediction ndarray image
-    :return: smothed prediction ndarray image, reading order and segmentation dictionary
+    :return: smoothed prediction ndarray image, reading order and segmentation dictionary
     """
-    segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
-                                                      args.export or args.output_path)
 
-    bbox_ndarray = create_bbox_ndarray(bbox_list)
-    reading_order: List[int] = []
-    get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
-    reading_order_dict = {k: v for v, k in enumerate(reading_order)}
+    if args.debug:
+        segmentations, bbox_list = debug_to_polygons(pred)
+        reading_order_dict = {i: i for i in range(10_000)}
+
+    else:
+        segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
+                                                          args.export or args.output_path)
+
+        bbox_ndarray = create_bbox_ndarray(bbox_list)
+        reading_order: List[int] = []
+        get_reading_order(bbox_ndarray, reading_order, int(args.separator_size * args.scale))
+        reading_order_dict = {k: v for v, k in enumerate(reading_order)}
 
     return reading_order_dict, segmentations, bbox_list
 
@@ -492,11 +497,25 @@ def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
     return argmax.detach().cpu().numpy()  # type: ignore
 
 
-def process_prediction_debug(prediction, target, threshold) -> np.ndarray:
-    prediction = prediction.take(target)
-    uncertainty_map = prediction < threshold
+def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:
+    """
+    Extract uncertain predictions based on the ground truth.
+    :param prediction: prediction from model
+    :param target: ground truth
+    :param threshold: limit for model confidence to consider prediction as certain
+    :return numpy array with uncertain pixels [B, H, W]
+    """
+    # gather the predicted probability for ground truth class
+    prediction_for_truth = torch.gather(prediction, 1, target.squeeze(1).long())
+    # uncertain are all pixel with a predicted probability below a given treshold
+    uncertainty_map: torch.Tensor = prediction_for_truth < threshold
 
-    return uncertainty_map.detach().cpu().numpy()
+    # create a numpy array with class 6 at uncertain pixels
+    mask = uncertainty_map.detach().cpu().numpy()
+    uncertainty = np.zeros_like(mask, dtype=np.uint8)
+    uncertainty[mask] = 1
+
+    return uncertainty[:, 0, :, :]
 
 
 if __name__ == "__main__":

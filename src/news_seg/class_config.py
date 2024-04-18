@@ -33,7 +33,7 @@ TOLERANCE = [
     5.0,  # "caption"
     5.0,  # "table"
     5.0,  # "article"
-    10.0,  # "heading"
+    1.0,  # "heading"
     10.0,  # "header"
     2.0,  # "separator_vertical"
     2.0,  # "separator_short"
