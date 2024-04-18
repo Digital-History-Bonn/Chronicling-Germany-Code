@@ -48,7 +48,7 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--target-path",
-        "-d",
+        "-tp",
         type=str,
         default="targets/",
         help="Path for folder with targets for debugging. Need to be .npy files.",
