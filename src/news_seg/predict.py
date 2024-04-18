@@ -43,8 +43,15 @@ def get_args() -> argparse.Namespace:
         "-d",
         type=str,
         default=DATA_PATH,
-        help="path for folder with images to be segmented. Images need to be png or jpg. Otherwise they"
+        help="Path for folder with images to be segmented. Images need to be png or jpg. Otherwise they"
              " will be skipped",
+    )
+    parser.add_argument(
+        "--target-path",
+        "-d",
+        type=str,
+        default="targets/",
+        help="Path for folder with targets for debugging. Need to be .npy files.",
     )
     parser.add_argument(
         "--output-path",
@@ -180,7 +187,8 @@ def get_args() -> argparse.Namespace:
         dest="debug",
         type=bool,
         default=False,
-        help="Activates the debug mode, and returns the models uncertainties",
+        help="Activates the debug mode, and returns the models uncertainties. Make sure, that the targets are present "
+             "in the specified directory. See -h --target-path.",
     )
 
     return parser.parse_args()
@@ -202,11 +210,11 @@ def predict(args: argparse.Namespace) -> None:
     """
     device = args.cuda if torch.cuda.is_available() else "cpu"
     cuda_count = torch.cuda.device_count()
-    print(f"Using {device} device with {cuda_count} gpus")
 
+    target_path = args.target_path if args.debug else None
     dataset = PredictDataset(args.data_path,
                              args.scale, args.pad,
-                             target_path=f"{args.data_path}../../newspaper-dataset-main-annotations/targets/")
+                             target_path=target_path)
 
     print(f"{len(dataset)=}")
 
@@ -221,8 +229,10 @@ def predict(args: argparse.Namespace) -> None:
         collate_fn=collate_fn
     )
     if device != 'cpu':
+        print(f"Using {device} device with {cuda_count} gpus")
         model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
     else:
+        print(f"Using {device} device.")
         model = train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
 
     model.to(device)
