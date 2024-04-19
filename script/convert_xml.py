@@ -172,6 +172,7 @@ def add_regions_to_xml(order_group: BeautifulSoup, page: BeautifulSoup, reading_
                     attrs={"index": str(reading_order[index]), "regionRef": str(index)},
                 )
             )
+            # TODO: add other region types
             region = xml_data.new_tag(
                 "TextRegion",
                 attrs={

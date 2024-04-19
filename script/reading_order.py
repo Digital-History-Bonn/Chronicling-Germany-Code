@@ -130,7 +130,7 @@ class PageProperties:
         self.x_median = median(self.properties)
         self.global_x_min = np.min(self.properties[:, 2])
         self.global_x_max = np.max(self.properties[:, 3])
-        self.columns_per_page: int = round(self.global_x_max - self.global_x_min / self.x_median)
+        self.columns_per_page: int = round((self.global_x_max - self.global_x_min) / self.x_median)
 
         self.global_splitting_bool = get_global_splitting_regions(self.properties, self.x_median,
                                                                   self.columns_per_page)
@@ -143,7 +143,7 @@ class PageProperties:
         result: List[int] = []
         self.global_divider_split(self.properties, self.global_splitting_bool, self.local_splitting_bool, result)
 
-        return {k: v for v, k in enumerate(result)}
+        return {k: v for v, k in enumerate(result)} # TODO: why dict? just preserve list
 
     def global_divider_split(self, properties: ndarray, global_splitting_bool: ndarray,
                              local_splitting_indices: ndarray,
@@ -174,11 +174,12 @@ class PageProperties:
         and height.
         :param result: reading order result which is updated by reference
         """
-        split_index = np.where(global_splitting_bool)[np.argmax(properties[global_splitting_bool][:, 5])][0]
+        split_index = np.where(global_splitting_bool)[0][np.argmax(properties[global_splitting_bool][:, 5])]
         divider_entry = properties[split_index]
 
         properties = np.delete(properties, split_index, axis=0)
         global_splitting_bool = np.delete(global_splitting_bool, split_index, axis=0)
+        local_splitting_bool = np.delete(local_splitting_bool, split_index, axis=0)
 
         region_bool = properties[:, 5] > divider_entry[5]
 
@@ -214,13 +215,13 @@ class PageProperties:
         and height.
         :param result: reading order result which is updated by reference
         """
-        split_index = np.where(local_splitting_bool)[np.argmin(properties[local_splitting_bool][:, 5])][0]
+        split_index = np.where(local_splitting_bool)[0][np.argmin(properties[local_splitting_bool][:, 5])]
         divider_entry = properties[split_index]
 
         properties = np.delete(properties, split_index, axis=0)
         local_splitting_bool = np.delete(local_splitting_bool, split_index, axis=0)
 
-        region_bool = (properties[:, 5] > divider_entry[5]) + (properties[:, 4] > divider_entry[3]) + (
+        region_bool = (properties[:, 5] < divider_entry[5]) + (properties[:, 4] > divider_entry[3]) + (
                 properties[:, 4] < divider_entry[2])
 
         self.local_divider_split(properties[region_bool], local_splitting_bool[region_bool], result)
@@ -262,5 +263,5 @@ class PageProperties:
                 break
 
             actual_column_border = np.mean(sorted_column[np.isin(sorted_column[:, 1], [2, 3, 4, 5])][:, 3])
-            estimated_column_border = actual_column_border + self.x_median
+            estimated_column_border = actual_column_border + self.x_median if not np.isnan(actual_column_border) else estimated_column_border + self.x_median
             columns = columns[np.invert(in_column)]
