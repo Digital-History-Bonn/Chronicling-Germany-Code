@@ -1,4 +1,4 @@
-"""Module contains polygon conversion and export functions."""
+"""Module for polygon conversion"""
 from typing import Dict, List, Tuple
 
 import cv2
@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 from skimage import measure
 
 
-def create_sub_masks(pred: ndarray) -> Dict[int, Image.Image]:
+def create_label_masks(pred: ndarray) -> Dict[int, Image.Image]:
     """Split prediction in to submasks. Creates a submask for each unique value except 0.
     Numpy implementation of python version from
      https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset
@@ -27,7 +27,7 @@ def create_sub_masks(pred: ndarray) -> Dict[int, Image.Image]:
     return sub_masks
 
 
-def create_polygons(sub_mask: ndarray, label: int, tolerance: List[float], bbox_size: int, export: bool) -> Tuple[
+def create_mask_polygons(sub_mask: ndarray, label: int, tolerance: List[float], bbox_size: int, export: bool) -> Tuple[
     List[List[float]], List[List[float]]]:
     """Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
@@ -99,32 +99,31 @@ def bbox_sufficient(bbox: List[float], size: int, x_axis: bool = False) -> bool:
     return (bbox[2] - bbox[0]) + (bbox[3] - bbox[1]) > size
 
 
-def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int, export: bool) -> Tuple[
+def prediction_to_region_polygons(pred: ndarray, tolerance: List[float], bbox_size: int, export: bool) -> Tuple[
     Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
-    Converts prediction int ndarray to a dictionary of polygons
+    Converts prediction int ndarray to a dictionary of polygons by splitting the prediction into binary label masks.
+    For each mask, polygons are created and appended to a list.
     :param tolerance: Array with pixel tolarance values for poygon simplification
     :param pred: prediction ndarray
     :param export: wheter transkribus export or output_path is activated.
         If this is not the case, only the article and horizontal seperator class bboxes are of relevance.
         Everything else will be skipped to improve performance.
     """
-    masks = create_sub_masks(pred)
+    masks = create_label_masks(pred)
 
     segmentations = {}
     bbox_dict = {}
     for label, mask in masks.items():
-        # debug masks
-        # mask.save(f"data/output/{label}.png")
         if (export or label == 4 or label == 9) and not label == 1:
-            segment, bbox = create_polygons(np.array(mask), label, tolerance, bbox_size, export)
+            segment, bbox = create_mask_polygons(np.array(mask), label, tolerance, bbox_size, export)
             segmentations[label], bbox_dict[label] = segment, bbox
             print(f"label: {label}, length: {len(segment)}")
 
     return segmentations, bbox_dict
 
 
-def debug_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+def uncertainty_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Converts the uncertain pixel image into polygones
     :param pred: map of uncertaion pixels ndarray [B, C, H, W]

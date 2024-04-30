@@ -3,7 +3,8 @@ import json
 
 import numpy as np
 
-from script.reading_order import get_global_splitting_regions, get_local_splitting_regions, PageProperties
+from src.news_seg.processing.reading_order import get_global_splitting_regions, get_local_splitting_regions, \
+    PageProperties
 
 DATA_PATH = "./tests/data/"
 

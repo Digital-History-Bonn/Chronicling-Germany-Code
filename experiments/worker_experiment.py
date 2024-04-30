@@ -5,8 +5,8 @@ from time import time  # type: ignore
 
 from torch.utils.data import DataLoader  # type: ignore
 
-from src.news_seg.news_dataset import NewsDataset  # type: ignore
-from src.news_seg.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR  # type: ignore
+from src.news_seg.datasets.news_dataset import NewsDataset  # type: ignore
+from src.news_seg.processing.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR  # type: ignore
 
 EPOCHS = 1
 BATCH_SIZE = 64
