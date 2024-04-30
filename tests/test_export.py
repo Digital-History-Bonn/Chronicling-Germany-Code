@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from script.convert_xml import polygon_to_string
-from script.transkribus_export import prediction_to_polygons, bbox_sufficient
+from script.transkribus_export import prediction_to_polygons, bbox_sufficient, debug_to_polygons
 from script.convert_xml import get_label_name
 from src.news_seg import predict
 from src.news_seg import utils
@@ -29,6 +29,28 @@ class TestClassExport:
         ground_truth = np.array([[0, 1, 1], [1, 2, 0]], dtype=np.uint8)
 
         result = predict.process_prediction(torch.tensor(data[None, :, :, :]), 0.6)
+        assert np.all(result == ground_truth)
+
+    def test_process_debug_prediction(self):
+        """Function for testing prediction argmax and threshold handling.
+        Each tripple of data represents probabilities for 3 possible classes.
+        If the maximum is above the threshold, the result should contain that class label.
+        Otherwise, it is always class 0."""
+        data = np.transpose(
+            np.array(
+                [
+                    [[0.1, 0.5, 0.4], [0.1, 0.8, 0.1], [0.2, 0.7, 0.1]],
+                    [[0.0, 0.6, 0.4], [0.05, 0.05, 0.9], [0.01, 0.59, 0.4]],
+                ]
+            ),
+            (2, 0, 1),
+        )
+        target = np.transpose(np.array([[1, 1, 1], [2, 2, 0]]), (0, 1))
+        ground_truth = np.array([[1, 0, 0], [1, 0, 1]], dtype=np.uint8)
+
+        result = predict.process_prediction_debug(torch.tensor(data[None, :, :, :]),
+                                                  torch.tensor(target[None, None, :, :]),
+                                                  0.6)
         assert np.all(result == ground_truth)
 
     def test_polygon_to_string(self):
@@ -69,6 +91,16 @@ class TestClassExport:
 
         ground_truth = ({2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []}, {2: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
         assert prediction_to_polygons(data, tolerance, 5, True) == ground_truth
+
+    def test_debug_to_polygons(self):
+        """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
+
+        data = np.array([[0, 0, 1, 1, 1], [0, 0, 1, 0, 1], [1, 1, 1, 1, 1]], dtype=np.uint8)
+        ground_truth = (
+        {0: [], 1: [[2, 0, 2, 1, 1, 2, 0, 2, 4, 2, 4, 0]], 2: [[2, 1, 3, 0, 4, 1, 3, 2]], 3: [], 4: [], 5: [], 6: [],
+         7: [], 8: [], 9: []},
+        {0: [], 1: [[4, 0, 0, 2]], 2: [[4, 0, 2, 2]], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []})
+        assert debug_to_polygons(data) == ground_truth
 
     def test_get_label_names(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""

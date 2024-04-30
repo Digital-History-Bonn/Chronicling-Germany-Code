@@ -261,23 +261,12 @@ def execute_prediction(args: argparse.Namespace, device: str, paths: List[str], 
     :param image: image tensor [3, H, W]
     :param model: model to run prediction on
     """
-    # shape = (image.shape[1] // args.crop_size, image.shape[2] // args.crop_size)
-    # crops = torch.tensor(Preprocessing.crop_img(args.crop_size, 1, np.array(image)))
-    # predictions = []
-    # dataloader = DataLoader(crops, batch_size=args.batch_size, shuffle=False)
-    # for crop in dataloader:
     with torch.autocast(device, enabled=args.amp):
         pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
-    # predictions.append(pred)
-
-    # crops = torch.stack(predictions, dim=0)
-    # crops = crops.permute(0, 2, 3, 1)
-    # pred = torch.reshape(crops, (shape[0] * args.crop_size, shape[1] * args.crop_size, OUT_CHANNELS))
-    # pred = pred.permute(2, 0, 1)
-    pred_ndarray = process_prediction(pred, args.threshold) if not debug else process_prediction_debug(pred,
-                                                                                                       target.to(
-                                                                                                           device),
-                                                                                                       args.threshold)
+    if debug:
+        pred_ndarray = process_prediction_debug(pred,target.to(device),args.threshold)
+    else:
+        pred_ndarray = process_prediction(pred, args.threshold)
     image_ndarray = image.numpy()
 
     threads = []
@@ -384,7 +373,7 @@ def polygon_prediction(pred: ndarray, args: argparse.Namespace) -> Tuple[
 
     if args.debug:
         segmentations, bbox_list = debug_to_polygons(pred)
-        reading_order_dict = {i: i for i in range(10_000)}
+        reading_order_dict = {i: i for i in range(len(segmentations))}
 
     else:
         segmentations, bbox_list = prediction_to_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
@@ -493,18 +482,17 @@ def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
 
 def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:
     """
-    Extract uncertain predictions based on the ground truth.
+    Extract uncertain predictions based on the ground truth. Uncertain are all pixel with a predicted probability
+    for the target class below a given threshold
     :param prediction: prediction from model
     :param target: ground truth
     :param threshold: limit for model confidence to consider prediction as certain
     :return numpy array with uncertain pixels [B, H, W]
     """
-    # gather the predicted probability for ground truth class
-    prediction_for_truth = torch.gather(prediction, 1, target.squeeze(1).long())
-    # uncertain are all pixel with a predicted probability below a given treshold
-    uncertainty_map: torch.Tensor = prediction_for_truth < threshold
+    confidence_for_target = torch.gather(prediction, 1, target.long())
+    uncertainty_map: torch.Tensor = confidence_for_target < threshold
 
-    # create a numpy array with class 6 at uncertain pixels
+    # create a numpy array with class 1 at uncertain pixels
     mask = uncertainty_map.detach().cpu().numpy()
     uncertainty = np.zeros_like(mask, dtype=np.uint8)
     uncertainty[mask] = 1
