@@ -3,9 +3,11 @@ module for Dataset class
 """
 from __future__ import annotations
 
+import glob
 import os
-from typing import Tuple
+from typing import Tuple, Optional, Union
 
+import numpy as np
 import torch
 from PIL import Image
 from PIL.Image import BICUBIC # pylint: disable=no-name-in-module # type: ignore
@@ -29,33 +31,28 @@ class PredictDataset(Dataset):
         self,
         image_path: str,
         scale: float,
-        pad: Tuple[int, int]
+        pad: Tuple[int, int],
+        target_path: Optional[str] = None,
     ) -> None:
         """
         load images and targets from folder
-        :param preprocessing:
-        :param data: uses this list instead of loading data from disc
-        :param sort: sort file_names for testing purposes
         :param image_path: image path
+        :param scale: factor for scaling the images
+        :param pad: right and bottom pad for images in pixel
         :param target_path: target path
-        :param limit: limits the quantity of loaded images
-        :param dataset: which dataset to expect. Options are 'transcribus' and 'HLNA2013' (europeaner newspaper project)
         """
 
         self.image_path = image_path
+        self.target_path = target_path
         self.scale = scale
         self.pad = pad
 
-        self.file_names = []
-        for file_name in os.listdir(image_path):
-            if os.path.splitext(file_name)[1] != ".png" and os.path.splitext(file_name)[1] != ".jpg":
-                continue
-            self.file_names.append(file_name)
+        self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") +
+                           glob.glob(f"{image_path}*.jpg")]
 
     def load_image(self, file: str) -> torch.Tensor:
         """
         Loads image and applies necessary transformation for prdiction.
-        :param args: arguments
         :param file: path to image
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
@@ -66,7 +63,20 @@ class PredictDataset(Dataset):
         data: torch.Tensor = transform(image).float() / 255
         return data
 
-    def __getitem__(self, item: int) -> Tuple[torch.Tensor, str]:
+    def load_target(self, file: str) -> torch.Tensor:
+        """
+        Loads target and applies necessary transformation for debugging function.
+        :param file: path to target
+        :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
+        """
+        target = np.load(f"{self.target_path}{file[:-4]}.npy")
+        target[(target == 10) + (target == 11)] = 0  # TODO: remove this hot fix for unknown labels
+        shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
+        target = torch.nn.functional.interpolate(torch.tensor(target[None, None, :, :]), size=shape, mode='nearest')
+
+        return target
+
+    def __getitem__(self, item: int) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
         """
         returns one datapoint
         :param item: number of the datapoint
@@ -74,9 +84,17 @@ class PredictDataset(Dataset):
         """
         file_name = self.file_names[item]
         image = self.load_image(file_name)
+
         pad = calculate_padding(self.pad, image.shape, self.scale)
         image = pad_image(pad, image)
-        return image, file_name
+
+        if self.target_path is not None:
+            target = self.load_target(file_name)
+            target = pad_image(pad, target)
+        else:
+            target = None
+
+        return image, target, file_name
 
     def __len__(self) -> int:
         """
