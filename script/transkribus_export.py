@@ -121,5 +121,3 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
             print(f"label: {label}, length: {len(segment)}")
 
     return segmentations, bbox_dict
-
-

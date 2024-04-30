@@ -220,7 +220,9 @@ def read_regions_for_reading_order(
 
     return bbox_dict, id_align_dict, bs_data
 
+
 def read_raw_data(path: str) -> BeautifulSoup:
+    """Read xml file and return BeautifulSoup object"""
     with open(f"{path}.xml", "r", encoding="utf-8") as file:
         data = file.read()
 
@@ -242,8 +244,9 @@ def tag_to_label_dict(id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[L
     for key, coords in tags_dict.items():
         if key not in LABEL_ASSIGNMENTS:
             for coord, region_id in zip(coords, id_dict[key]):
-                bbox_dict[1].append(Polygon(coord).bounds)
-                id_align_dict[1].append(region_id)
+                if len(coord) < 2:
+                    bbox_dict[1].append(Polygon(coord).bounds)
+                    id_align_dict[1].append(region_id)
 
     # Valid tags
     for key, label in LABEL_ASSIGNMENTS.items():

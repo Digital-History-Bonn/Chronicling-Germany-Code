@@ -2,10 +2,8 @@
 import numpy as np
 import torch
 
-from data.bbox_test_data import bbox
 from script.convert_xml import polygon_to_string
 from script.transkribus_export import prediction_to_polygons, bbox_sufficient
-from script.reading_order import get_splitting_regions, get_reading_order
 from script.convert_xml import get_label_name
 from src.news_seg import predict
 from src.news_seg import utils

@@ -5,7 +5,6 @@ import os
 from threading import Thread
 from typing import Dict, List, Tuple, Any
 
-# import matplotlib.patches as mpatches
 import numpy as np
 import torch
 from PIL import Image
@@ -16,14 +15,12 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from script.convert_xml import create_xml
+from script.reading_order import PageProperties
 from script.transkribus_export import prediction_to_polygons
-from reading_order import PageProperties
-from src.news_seg import train  # pylint: disable=no-name-in-module
 from src.news_seg.class_config import TOLERANCE
 from src.news_seg.predict_dataset import PredictDataset
+from src.news_seg.train import init_model
 from src.news_seg.utils import draw_prediction
-
-# import train
 
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
@@ -206,9 +203,9 @@ def predict(args: argparse.Namespace) -> None:
         collate_fn=collate_fn
     )
     if device != 'cpu':
-        model = DataParallel(train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
+        model = DataParallel(init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
     else:
-        model = train.init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
+        model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
 
     model.to(device)
     model.eval()

@@ -1,23 +1,27 @@
 """Module for importing xml files and updating the reading order of regions and lines. TODO: lines"""
 import argparse
+import json
 import os
 import re
-from typing import List, Tuple, Dict
+from typing import List, Dict
 
 from tqdm import tqdm
 
-import read_xml
-from reading_order import PageProperties
+from script.read_xml import read_raw_data, read_regions_for_reading_order
+from script.reading_order import PageProperties
 
 
 def align_ids(id_dict: Dict[int, List[str]]) -> List[str]:
+    """Collapses list of region lists(2d array) to a single list ids (1d)."""
     result = []
     for _, id_list in id_dict.items():
         for region_id in id_list:
             result.append(region_id)
     return result
 
+
 def main(parsed_args: argparse.Namespace):
+    """Handles loading of xml files and updating the reading order of regions."""
     data_paths = [
         f[:-4] for f in os.listdir(parsed_args.data_path) if f.endswith(".xml")
     ]
@@ -27,10 +31,12 @@ def main(parsed_args: argparse.Namespace):
         os.makedirs(parsed_args.output_path)
 
     for path in tqdm(data_paths):
-        bbox_dict, id_dict, bs_data = read_xml.read_regions_for_reading_order(f"{parsed_args.data_path}{path}")
-        bs_copy = read_xml.read_raw_data(f"{parsed_args.data_path}{path}")
+        bbox_dict, id_dict, bs_data = read_regions_for_reading_order(f"{parsed_args.data_path}{path}")
+        bs_copy = read_raw_data(f"{parsed_args.data_path}{path}")
         page = PageProperties(bbox_dict)
         reading_order_dict = page.get_reading_order()
+        with open(f"{parsed_args.output_path}{path}.json", "w", encoding="utf-8") as file:
+            json.dump(reading_order_dict, file)
 
         id_list = align_ids(id_dict)
 
