@@ -1,6 +1,7 @@
 """Module contains polygon conversion and export functions."""
 from typing import Dict, List, Tuple
 
+import cv2
 import numpy as np
 from numpy import ndarray
 from PIL import Image
@@ -9,7 +10,7 @@ from skimage import measure
 
 
 def create_sub_masks(pred: ndarray) -> Dict[int, Image.Image]:
-    """Split prediction in to submasks. Creates a submask for each unique value exept 0.
+    """Split prediction in to submasks. Creates a submask for each unique value except 0.
     Numpy implementation of python version from
      https://www.immersivelimit.com/tutorials/create-coco-annotations-from-scratch/#create-custom-coco-dataset
     """
@@ -105,7 +106,7 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
     :param tolerance: Array with pixel tolarance values for poygon simplification
     :param pred: prediction ndarray
     :param export: wheter transkribus export or output_path is activated.
-        If this is not athe case, only the article and horizontal seperator class bboxes are of relevance.
+        If this is not the case, only the article and horizontal seperator class bboxes are of relevance.
         Everything else will be skipped to improve performance.
     """
     masks = create_sub_masks(pred)
@@ -119,6 +120,38 @@ def prediction_to_polygons(pred: ndarray, tolerance: List[float], bbox_size: int
             segment, bbox = create_polygons(np.array(mask), label, tolerance, bbox_size, export)
             segmentations[label], bbox_dict[label] = segment, bbox
             print(f"label: {label}, length: {len(segment)}")
+
+    return segmentations, bbox_dict
+
+
+def debug_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+    """
+    Converts the uncertain pixel image into polygones
+    :param pred: map of uncertaion pixels ndarray [B, C, H, W]
+    return: dict with segmentations and dict with bboxes
+    """
+    segmentations: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
+    bbox_dict: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
+
+    contours, hierarchy = cv2.findContours(pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # pylint: disable=no-member
+
+    # calc inner and outer contours
+    inner_outer = []
+    for item in hierarchy[0, :, 3]:
+        if item == -1:
+            inner_outer.append(True)
+        else:
+            inner_outer.append(not inner_outer[item])
+
+    for contour, inner in zip(contours, inner_outer):
+        if len(contour) <= 3:
+            continue
+        contour = contour.squeeze()
+        segmentations[1 if inner else 2].append(list(contour.flatten()))
+        bbox_dict[1 if inner else 2].append([contour[:, 0].max(),
+                                             contour[:, 1].min(),
+                                             contour[:, 0].min(),
+                                             contour[:, 1].max()])
 
     return segmentations, bbox_dict
 
