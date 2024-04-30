@@ -85,6 +85,7 @@ def img_save(file: str, img: np.ndarray) -> None:
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
+    # pylint: disable=locally-disabled, duplicate-code
     parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
     parser.add_argument(
         "--dataset",
@@ -172,6 +173,7 @@ def add_regions_to_xml(order_group: BeautifulSoup, page: BeautifulSoup, reading_
                     attrs={"index": str(reading_order[index]), "regionRef": str(index)},
                 )
             )
+            # TODO: add other region types
             region = xml_data.new_tag(
                 "TextRegion",
                 attrs={

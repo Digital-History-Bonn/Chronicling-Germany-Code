@@ -72,7 +72,7 @@ class PredictDataset(Dataset):
         target = np.load(f"{self.target_path}{file[:-4]}.npy")
         target[(target == 10) + (target == 11)] = 0  # TODO: remove this hot fix for unknown labels
         shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
-        target = torch.nn.functional.interpolate(torch.tensor(target[None, None, :, :]), size=shape, mode='nearest')
+        target = torch.nn.functional.interpolate(torch.tensor(target[None, :, :]), size=shape, mode='nearest')
 
         return target
 

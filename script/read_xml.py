@@ -6,7 +6,9 @@ import re
 from typing import Dict, List, Tuple, Union, Optional
 
 from bs4 import BeautifulSoup, ResultSet
-from src.news_seg.class_config import VALID_TAGS
+from shapely import Polygon
+
+from src.news_seg.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
 
 
 def read_transcribus(
@@ -29,6 +31,8 @@ def read_transcribus(
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict)
     tags_dict = find_regions(bs_data, "Image", False, "", tags_dict)
     tags_dict = find_regions(bs_data, "Graphic", False, "", tags_dict)
+
+    # TODO: add Table Regions
 
     page = bs_data.find("Page")
 
@@ -59,6 +63,7 @@ def find_regions(
         search_children: bool,
         child_tag: str,
         tags_dict: Dict[str, List[List[List[int]]]],
+        id_dict: Union[None, Dict[str, List[str]]] = None
 ) -> Dict[str, List[List[List[int]]]]:
     """
     returns dictionary with all coordinates of specified regions
@@ -67,9 +72,13 @@ def find_regions(
     :param search_children: only True if there are children to be included
     :param child_tag: children tag to be found
     :param tags_dict: dictionary to contain region data
+    :param id_dict: if a dict is provided, it will be filled with region ids.
     :return: tags: {tag_name_1: [], tag_name_2: [], ...}
     """
+    assert id_dict is None or not child_tag, ("Child tag extraction and id_dict are not compatible. Please be sure "
+                                              "you know what you are doing, bevore activating both.")
     regions = data.find_all(tag)
+
     for region in regions:
         region_type_matches = re.search(
             r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
@@ -83,6 +92,13 @@ def find_regions(
         tags_dict[region_type].append(
             [pair.split(",") for pair in region.Coords["points"].split()]
         )
+        if id_dict is not None:
+            if region_type not in id_dict:
+                id_dict[region_type] = []
+            id_dict[region_type].append(
+                region["id"]
+            )
+
         if search_children:
             lines = region.find_all(child_tag)
             if child_tag not in tags_dict:
@@ -176,3 +192,68 @@ def get_coordinates(
             [(int(p.get("x")), int(p.get("y"))) for p in coord.find_all("Point")]
         )
     annotation["tags"]["separator_vertical"] = separator  # type: ignore
+
+
+def read_regions_for_reading_order(
+        path: str,
+) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[str]], BeautifulSoup]:
+    """
+    Returns bbox and id dictionaries, that are suited for reading order module. Returns bs_data as well, to preserve
+    the original data and only adjust the reading order.
+    :param path: path to xml file without .xml
+    """
+    with open(f"{path}.xml", "r", encoding="utf-8") as file:
+        data = file.read()
+
+    tags_dict = {"TextLine": []}  # type: ignore
+    id_dict: Dict[str, List[str]] = {}
+    bs_data = BeautifulSoup(data, "xml")
+
+    tags_dict = find_regions(bs_data, "TextRegion", False, "", tags_dict, id_dict)
+    tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict, id_dict)
+    tags_dict = find_regions(bs_data, "Image", False, "", tags_dict, id_dict)
+    tags_dict = find_regions(bs_data, "Graphic", False, "", tags_dict, id_dict)
+
+    # TODO: add Table Regions
+
+    bbox_dict, id_align_dict = tag_to_label_dict(id_dict, tags_dict)
+
+    return bbox_dict, id_align_dict, bs_data
+
+
+def read_raw_data(path: str) -> BeautifulSoup:
+    """Read xml file and return BeautifulSoup object"""
+    with open(f"{path}.xml", "r", encoding="utf-8") as file:
+        data = file.read()
+
+    return BeautifulSoup(data, "xml")
+
+
+def tag_to_label_dict(id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[List[List[int]]]]) -> Tuple[
+    Dict[int, List[List[float]]], Dict[int, List[str]]]:
+    """
+    Assigns numerical labels to string tags and adds them to dictionaries. Unkown tags are interpreted as
+    UnkownRegion (label = 1.)
+    :param id_dict:
+    :param tags_dict:
+    """
+    bbox_dict: Dict[int, List[List[float]]] = {1: []}
+    id_align_dict: Dict[int, List[str]] = {1: []}
+
+    # UnkownRegion
+    for key, coords in tags_dict.items():
+        if key not in LABEL_ASSIGNMENTS:
+            for coord, region_id in zip(coords, id_dict[key]):
+                if len(coord) < 2:
+                    bbox_dict[1].append(Polygon(coord).bounds)
+                    id_align_dict[1].append(region_id)
+
+    # Valid tags
+    for key, label in LABEL_ASSIGNMENTS.items():
+        if label != 0 and key in tags_dict:
+            bbox_dict[label] = []
+            id_align_dict[label] = []
+            for coord, region_id in zip(tags_dict[key], id_dict[key]):
+                bbox_dict[label].append(Polygon(coord).bounds)
+                id_align_dict[label].append(region_id)
+    return bbox_dict, id_align_dict
