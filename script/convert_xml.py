@@ -85,6 +85,7 @@ def img_save(file: str, img: np.ndarray) -> None:
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
+    # pylint: disable=locally-disabled, duplicate-code
     parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
     parser.add_argument(
         "--dataset",

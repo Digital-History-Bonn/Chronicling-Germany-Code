@@ -81,6 +81,7 @@ def create_xml(bs_copy, bs_data, id_list, reading_order_dict):
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
+    # pylint: disable=locally-disabled, duplicate-code
     parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
     parser.add_argument(
         "--data-path",
