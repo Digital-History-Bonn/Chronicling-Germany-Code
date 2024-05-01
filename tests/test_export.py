@@ -2,11 +2,12 @@
 import numpy as np
 import torch
 
-from script.convert_xml import polygon_to_string
-from script.transkribus_export import prediction_to_polygons, bbox_sufficient, debug_to_polygons
-from script.convert_xml import get_label_name
-from src.news_seg import predict
-from src.news_seg import utils
+from src.news_seg.predict import process_prediction_debug, process_prediction
+from src.news_seg.processing.polygon_handler import bbox_sufficient, uncertainty_to_polygons, \
+    prediction_to_region_polygons
+from src.news_seg.processing.slicing_export import area_sufficient
+from src.news_seg.processing.transkribus_export import get_label_name, polygon_to_string
+from src.news_seg.utils import calculate_x_axis_center
 
 
 class TestClassExport:
@@ -28,7 +29,7 @@ class TestClassExport:
         )
         ground_truth = np.array([[0, 1, 1], [1, 2, 0]], dtype=np.uint8)
 
-        result = predict.process_prediction(torch.tensor(data[None, :, :, :]), 0.6)
+        result = process_prediction(torch.tensor(data[None, :, :, :]), 0.6)
         assert np.all(result == ground_truth)
 
     def test_process_debug_prediction(self):
@@ -48,9 +49,9 @@ class TestClassExport:
         target = np.transpose(np.array([[1, 1, 1], [2, 2, 0]]), (0, 1))
         ground_truth = np.array([[1, 0, 0], [1, 0, 1]], dtype=np.uint8)
 
-        result = predict.process_prediction_debug(torch.tensor(data[None, :, :, :]),
-                                                  torch.tensor(target[None, None, :, :]),
-                                                  0.6)
+        result = process_prediction_debug(torch.tensor(data[None, :, :, :]),
+                                          torch.tensor(target[None, None, :, :]),
+                                          0.6)
         assert np.all(result == ground_truth)
 
     def test_polygon_to_string(self):
@@ -81,26 +82,27 @@ class TestClassExport:
         ground_truth = (
             {3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
             {3: [[1.5, -0.5, 4.5, 1.5]]})
-        assert prediction_to_polygons(data, tolerance, 1, True) == ground_truth
+        assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 2], [2, 2, 2, 2, 2]])
         ground_truth = (
             {2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
             {2: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
-        assert prediction_to_polygons(data, tolerance, 1, True) == ground_truth
+        assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 
         ground_truth = ({2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []}, {2: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
-        assert prediction_to_polygons(data, tolerance, 5, True) == ground_truth
+        assert prediction_to_region_polygons(data, tolerance, 5, True) == ground_truth
 
     def test_debug_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
 
         data = np.array([[0, 0, 1, 1, 1], [0, 0, 1, 0, 1], [1, 1, 1, 1, 1]], dtype=np.uint8)
         ground_truth = (
-        {0: [], 1: [[2, 0, 2, 1, 1, 2, 0, 2, 4, 2, 4, 0]], 2: [[2, 1, 3, 0, 4, 1, 3, 2]], 3: [], 4: [], 5: [], 6: [],
-         7: [], 8: [], 9: []},
-        {0: [], 1: [[4, 0, 0, 2]], 2: [[4, 0, 2, 2]], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []})
-        assert debug_to_polygons(data) == ground_truth
+            {0: [], 1: [[2, 0, 2, 1, 1, 2, 0, 2, 4, 2, 4, 0]], 2: [[2, 1, 3, 0, 4, 1, 3, 2]], 3: [], 4: [], 5: [],
+             6: [],
+             7: [], 8: [], 9: []},
+            {0: [], 1: [[4, 0, 0, 2]], 2: [[4, 0, 2, 2]], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []})
+        assert uncertainty_to_polygons(data) == ground_truth
 
     def test_get_label_names(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
@@ -115,7 +117,7 @@ class TestClassExport:
         data = [10.0, 10.0, 20.0, 20.0]
         ground_thruth = 15.0
 
-        assert utils.calculate_x_axis_center(data) == ground_thruth
+        assert calculate_x_axis_center(data) == ground_thruth
 
     def test_bbox_sufficient(self):
         """Test bbox threshold"""
@@ -127,6 +129,6 @@ class TestClassExport:
     def test_area_sufficient(self):
         """Test bbox threshold"""
         data = [10.0, 10.0, 20.0, 20.0]
-        assert predict.area_sufficient(data, 99)
-        assert not predict.area_sufficient(data, 100)
+        assert area_sufficient(data, 99)
+        assert not area_sufficient(data, 100)
         assert data == [10.0, 10.0, 20.0, 20.0]

@@ -31,8 +31,8 @@ from src.news_seg.models.dh_segment import DhSegment
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.trans_unet import VisionTransformer
-from src.news_seg.news_dataset import NewsDataset
-from src.news_seg.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
+from src.news_seg.datasets.news_dataset import NewsDataset
+from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
 from src.news_seg.utils import multi_class_csi, multi_precison_recall
 
 EPOCHS = 1

@@ -1,7 +1,7 @@
 """
-Module for converting region data into an image containing label values for each pixel.
+Module for drawing polygon data into images.
 """
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 from numpy import ndarray
@@ -12,7 +12,7 @@ from src.news_seg.class_config import LABEL_ASSIGNMENTS
 
 def draw_img(annotation: dict) -> ndarray:
     """
-    draws an image with the information from the read-function
+    draws an image with the information from the transkribus xml read function
     :param annotation: dict with information
     :return: ndarray
     """
@@ -47,3 +47,22 @@ def draw_polygon(
     img[x_coords, y_coords] = label
 
     return img
+
+
+def draw_polygons_into_image(
+        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
+) -> ndarray:
+    """
+    Takes segmentation dictionary and draws polygons with assigned labels into a new image.
+    :param shape: shape of original image
+    :param segmentations: dictionary assigning labels to polygon lists
+    :return: result image as ndarray
+    """
+
+    polygon_pred = np.zeros(shape, dtype="uint8")
+    for label, segmentation in segmentations.items():
+        for polygon in segmentation:
+            polygon_ndarray = np.reshape(polygon, (-1, 2)).T
+            x_coords, y_coords = draw.polygon(polygon_ndarray[1], polygon_ndarray[0])
+            polygon_pred[x_coords, y_coords] = label
+    return polygon_pred

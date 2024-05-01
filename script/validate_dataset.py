@@ -6,8 +6,8 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from src.news_seg.news_dataset import NewsDataset
-from src.news_seg.preprocessing import (
+from src.news_seg.datasets.news_dataset import NewsDataset
+from src.news_seg.processing.preprocessing import (
     Preprocessing,
 )
 

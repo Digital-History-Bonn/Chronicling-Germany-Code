@@ -5,7 +5,7 @@ import pytest
 from PIL import Image
 import torch
 
-from src.news_seg.preprocessing import Preprocessing
+from src.news_seg.processing.preprocessing import Preprocessing
 
 DATA_PATH = "./tests/data/preprocessing/"
 
