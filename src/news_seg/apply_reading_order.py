@@ -5,6 +5,7 @@ import os
 import re
 from typing import List, Dict
 
+from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from src.news_seg.processing.read_xml import read_raw_data, read_regions_for_reading_order
@@ -51,7 +52,8 @@ def main(parsed_args: argparse.Namespace) -> None:
                 bs_copy.prettify().replace("<Unicode>\n      ", "<Unicode>").replace("\n     </Unicode>", "</Unicode>"))
 
 
-def create_xml(bs_copy, bs_data, id_list, reading_order_dict) -> None:
+def create_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
+               reading_order_dict: dict[int, int]) -> None:
     """
     Copy regions into new BeautifulSoup object with corrected reading order.
     """
