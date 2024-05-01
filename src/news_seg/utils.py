@@ -1,13 +1,12 @@
 """Utility Module"""
-import warnings
-from typing import Dict, List, Tuple
+import os
+from typing import Dict, List, Tuple, Callable
 
 import torch
 # from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type:ignore
 from matplotlib import pyplot as plt
 from numpy import ndarray
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
-from torchmetrics.classification import MulticlassConfusionMatrix
 from torchvision import transforms
 
 from src.news_seg.class_config import LABEL_NAMES
@@ -35,65 +34,6 @@ def draw_prediction(img: ndarray, path: str) -> None:
     plt.autoscale(tight=True)
     plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
     # plt.show()
-
-
-def multi_class_csi(
-        pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
-) -> torch.Tensor:
-    """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
-    Csi score is used as substitute for accuracy, calculated separately for each class.
-    Returns numpy array with an entry for every class. If every prediction is a true negative,
-    the score cant be calculated and the array will contain nan. These cases should be completely ignored.
-    :param pred: prediction tensor
-    :param target: target tensor
-    :return:
-    """
-    pred = pred.flatten()
-    target = target.flatten()
-
-    matrix: torch.Tensor = metric(pred, target)
-    true_positive = torch.diagonal(matrix)
-    false_positive = torch.sum(matrix, dim=1) - true_positive
-    false_negative = torch.sum(matrix, dim=0) - true_positive
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        csi = torch.tensor(
-            true_positive / (true_positive + false_negative + false_positive)
-        )
-    return csi
-
-
-def multi_precison_recall(
-        pred: torch.Tensor, target: torch.Tensor, out_channels: int) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Calculate precision and recall using true positives, true negatives and false negatives from confusion matrix.
-    Returns numpy array with an entry for every class. If every prediction is a true negative,
-    the score cant be calculated and the array will contain nan. These cases should be completely ignored.
-    :param pred: prediction tensor
-    :param target: target tensor
-    :return:
-    """
-
-    pred = torch.argmax(pred, dim=1).type(torch.uint8)
-
-    metric: MulticlassConfusionMatrix = MulticlassConfusionMatrix(num_classes=out_channels).to(pred.get_device())
-
-    pred = pred.flatten()
-    target = target.flatten()
-
-    # pylint: disable=not-callable
-    matrix: torch.Tensor = metric(pred, target)
-    true_positive = torch.diagonal(matrix)
-    false_positive = torch.sum(matrix, dim=1) - true_positive
-    false_negative = torch.sum(matrix, dim=0) - true_positive
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        precision = torch.tensor(
-            true_positive / (true_positive + false_positive)
-        )
-        recall = torch.tensor(
-            true_positive / (true_positive + false_negative)
-        )
-    return precision, recall
 
 
 def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
@@ -187,3 +127,44 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     # debug shape
     # print(image.shape)
     return image
+
+
+def get_file_stems(extension: str, image_path: str) -> List[str]:
+    """
+    Returns file name without extension.
+    :param extension: extension of the files to be loaded
+    :param image_path: path of image folder
+    :return: List of file names.
+    """
+    file_names = [
+        f[:-4] for f in os.listdir(image_path) if f.endswith(extension)
+    ]
+    assert len(file_names) > 0, (
+        f"No Images in {image_path} with extension{extension} found. Make sure the "
+        f"specified dataset and path are correct."
+    )
+    return file_names
+
+
+def prepare_file_loading(dataset: str) -> Tuple[str, Callable]:
+    """Depending on the dataset this returns the correct extension string, as well as a function to get the
+    file names for loading."""
+    if dataset == "transkribus":
+        # pylint: disable=duplicate-code
+        extension = ".jpg"
+
+        def get_file_name(name: str) -> str:
+            return f"{name}.npy"
+
+    elif dataset == "HLNA2013":
+        extension = ".tif"
+
+        def get_file_name(name: str) -> str:
+            return f"pc-{name}.npy"
+
+    else:
+        extension = ".png"
+
+        def get_file_name(name: str) -> str:
+            return f"{name}.npy"
+    return extension, get_file_name

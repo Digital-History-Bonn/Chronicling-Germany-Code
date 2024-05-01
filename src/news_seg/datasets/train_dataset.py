@@ -3,7 +3,6 @@ module for Dataset class
 """
 from __future__ import annotations
 
-import os
 from typing import Dict, List, Tuple, Union
 
 import torch
@@ -15,13 +14,14 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
+from src.news_seg.utils import get_file_stems, prepare_file_loading
 from src.news_seg.processing.preprocessing import Preprocessing
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
 
 
-class NewsDataset(Dataset):
+class TrainDataset(Dataset):
     """
     A dataset class for the newspaper datasets
     """
@@ -33,10 +33,12 @@ class NewsDataset(Dataset):
             target_path: str = TARGET_PATH,
             data: Union[List[torch.Tensor], None] = None,
             limit: Union[int, None] = None,
-            dataset: str = "transcribus",
+            dataset: str = "transkribus",
             sort: bool = False,
             full_image: bool = False,
-            scale_aug: bool = True
+            scale_aug: bool = True,
+            file_stems: Union[List[str], None] = None,
+            name: str = "default"
     ) -> None:
         """
         load images and targets from folder
@@ -46,7 +48,8 @@ class NewsDataset(Dataset):
         :param image_path: image path
         :param target_path: target path
         :param limit: limits the quantity of loaded images
-        :param dataset: which dataset to expect. Options are 'transcribus' and 'HLNA2013' (europeaner newspaper project)
+        :param dataset: which dataset to expect. Options are 'transkribus' and 'HLNA2013' (europeaner newspaper project)
+        :param name: name of dataset type. Eg. train, val and test dataset.
         """
 
         self.preprocessing = preprocessing
@@ -61,42 +64,23 @@ class NewsDataset(Dataset):
         if data:
             self.data = data
         else:
-            # load data
-            if self.dataset == "transcribus":
-                # pylint: disable=duplicate-code
-                extension = ".jpg"
+            extension, get_file_name = prepare_file_loading(self.dataset)
 
-                def get_file_name(name: str) -> str:
-                    return f"{name}.npy"
-
-            elif self.dataset == "HLNA2013":
-                extension = ".tif"
-
-                def get_file_name(name: str) -> str:
-                    return f"pc-{name}.npy"
-
+            if file_stems:
+                self.file_stems = file_stems
             else:
-                extension = ".png"
-
-                def get_file_name(name: str) -> str:
-                    return f"{name}.npy"
-
-            # read all file names
-            self.file_names = [
-                f[:-4] for f in os.listdir(image_path) if f.endswith(extension)
-            ]
-            assert len(self.file_names) > 0, (
-                f"No Images in {image_path} with extension{extension} found. Make sure the "
-                f"specified dataset and path are correct."
-            )
+                self.file_stems = get_file_stems(extension, image_path)
             if sort:
-                self.file_names.sort()
+                self.file_stems.sort()
 
             if limit is not None:
-                self.file_names = self.file_names[:limit]
+                assert limit <= len(
+                    self.file_stems), (f"Provided limit with size {limit} is greater than the train dataset "
+                                       f"with size {len(self.file_stems)}.")
+                self.file_stems = self.file_stems[:limit]
 
             # iterate over files
-            for file in tqdm(self.file_names, desc="cropping images", unit="image"):
+            for file in tqdm(self.file_stems, desc=f"cropping {name} images", unit="image"):
                 image, target = self.preprocessing.load(
                     f"{image_path}{file}{extension}",
                     f"{target_path}{get_file_name(file)}",
@@ -139,11 +123,11 @@ class NewsDataset(Dataset):
 
     def random_split(
             self, ratio: Tuple[float, float, float]
-    ) -> Tuple[NewsDataset, NewsDataset, NewsDataset]:
+    ) -> Tuple[TrainDataset, TrainDataset, TrainDataset]:
         """
         splits the dataset in parts of size given in ratio
         :param ratio: list[float]:
-        :return (list): list of NewsDatasets
+        :return (tuple): tuple of NewsDatasets
         """
         assert sum(ratio) == 1, "ratio does not sum up to 1."
         assert len(ratio) == 3, "ratio does not have length 3"
@@ -165,7 +149,7 @@ class NewsDataset(Dataset):
         ).tolist()
         torch_data = torch.stack(self.data)
 
-        train_dataset = NewsDataset(
+        train_dataset = TrainDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
@@ -173,7 +157,7 @@ class NewsDataset(Dataset):
             dataset=self.dataset,
             scale_aug=self.scale_aug
         )
-        test_dataset = NewsDataset(
+        valid_dataset = TrainDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
@@ -181,7 +165,7 @@ class NewsDataset(Dataset):
             dataset=self.dataset,
             scale_aug=self.scale_aug
         )
-        valid_dataset = NewsDataset(
+        test_dataset = TrainDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
@@ -190,7 +174,7 @@ class NewsDataset(Dataset):
             scale_aug=self.scale_aug
         )
 
-        return train_dataset, test_dataset, valid_dataset
+        return train_dataset, valid_dataset, test_dataset
 
     def get_augmentations(self, resize_prob: float = 0.75) -> Dict[str, transforms.Compose]:
         """Defines transformations

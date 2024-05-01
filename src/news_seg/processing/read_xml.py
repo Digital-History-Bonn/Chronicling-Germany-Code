@@ -11,7 +11,7 @@ from shapely import Polygon
 from src.news_seg.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
 
 
-def read_transcribus(
+def read_transkribus(
         path: str,
         log_path: Optional[str] = None,
 ) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:

@@ -9,7 +9,7 @@ import os
 import warnings
 from multiprocessing.pool import ThreadPool
 from time import time
-from typing import Tuple, Union, Any
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -20,174 +20,16 @@ from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from torchmetrics import JaccardIndex
-from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 from tqdm import tqdm
 
+from src.news_seg.train_config import BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS, \
+    EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT
+from src.news_seg.helper.train_helper import init_model, load_score, focal_loss, calculate_scores, initiate_datasets, \
+    initiate_dataloader
 from src.news_seg.utils import split_batches
-from src.news_seg.models.dh_segment import DhSegment
-from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
-from src.news_seg.models.dh_segment_small import DhSegmentSmall
-from src.news_seg.models.trans_unet import VisionTransformer
-from src.news_seg.datasets.news_dataset import NewsDataset
-from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
-from src.news_seg.utils import multi_class_csi, multi_precison_recall
-
-EPOCHS = 1
-DATALOADER_WORKER = 1
-IN_CHANNELS, OUT_CHANNELS = 3, 10
-VAL_NUMBER = 3
-
-BATCH_SIZE = 32
-LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
-WEIGHT_DECAY = 1e-6  # 1e-6 from Paper
-LOSS_WEIGHTS: torch.Tensor = torch.tensor([
-    2.0,
-    10.0,
-    10.0,
-    10.0,
-    4.0,
-    20.0,
-    10.0,
-    10.0,
-    10.0,
-    20.0,
-]) / 20
-
-
-# set random seed for reproducibility
-# torch.manual_seed(42)
-
-def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
-               skip_cbam: bool = False) -> Any:
-    """
-    Initialise model
-    :param args:
-    :param load: contains path to load the model from. If False, the model will be initialised randomly
-    :param freeze: activates encoder freezing
-    :param skip_cbam: activates cbam skip connection
-    :return: loaded model
-    """
-    if model_str == "dh_segment":
-        # create model
-        model: Any = DhSegment(
-            [3, 4, 6, 4],
-            in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
-            load_resnet_weights=True,
-        )
-        model = setup_dh_segment(device, load, model, freeze)
-    elif model_str == "trans_unet":
-        load_backbone = not load
-        model = VisionTransformer(
-            load_backbone=load_backbone,
-            in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
-            load_resnet_weights=True,
-        )
-
-        model = model.float()
-        if freeze:
-            model.encoder.freeze_encoder()
-        # load model if argument is None, it does nothing
-        model.load(load, device)
-
-        model.encoder.means = torch.tensor((0.485, 0.456, 0.406))
-        model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
-    elif model_str == "dh_segment_cbam":
-        model = DhSegmentCBAM(
-            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True, cbam_skip_connection=skip_cbam
-        )
-        model = setup_dh_segment(device, load, model, freeze)
-    elif model_str == "dh_segment_small":
-        model = DhSegmentSmall(
-            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
-        )
-        model = setup_dh_segment(device, load, model, freeze)
-    assert model, "No valid model string supplied in model parameter"
-    return model
-
-
-def setup_dh_segment(
-        device: str, load: Union[str, None], model: Any, freeze: bool
-) -> Any:
-    """
-    Setup function for dh_segment and dh_segment_cbam
-    :param device:
-    :param load: contains path to load the model from. If False, the model will be initialised randomly
-    :param model:
-    :return:
-    """
-    model = model.float()
-    if freeze:
-        model.freeze_encoder()
-    # load model if argument is None, it does nothing
-    model.load(load, device)
-    # set mean and std in a model for normalization
-    model.means = torch.tensor((0.485, 0.456, 0.406))
-    model.stds = torch.tensor((0.229, 0.224, 0.225))
-    return model
-
-
-def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float, int, int]:
-    """
-    Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
-    """
-    best_score = 1000
-    step = 0
-    epoch = 1
-    if args.load_score and load:
-        with open(f"scores/model_{args.load}.json", "r", encoding="utf-8") as file:
-            best_score, step, epoch = json.load(file)
-    return best_score, step, epoch
-
-
-def focal_loss(
-        prediction: torch.Tensor,
-        target: torch.Tensor,
-        weights: torch.Tensor,
-        gamma: float = 2.0
-) -> torch.Tensor:
-    """
-    Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
-    :param weights: tensor of size num_classes with weights between 0 and 1
-    :param prediction: Unnormalized log probabilities, with shape `[batch, num_classes, ...]`.
-    :param target: Valid probability distributions (non-negative, sum to 1), e.g a
-      one hot encoding specifying the correct class for each input
-    :param gamma: Focusing parameter `>=0`. It controls the contribution of higher confidence predictions.
-      Defaults to 2.
-    :return: loss tensor [batches, ...]"""
-    probalbilites = torch.nn.functional.softmax(prediction, dim=1)
-    focus = torch.pow(1 - probalbilites, gamma)
-    loss = 1 - target * weights[None, :, None, None] * focus * probalbilites
-    return torch.sum(loss, dim=1) / OUT_CHANNELS  # type: ignore
-
-
-def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
-    """
-    Applies argmax on the channel dimension of the prediction to obtain int class values.
-    Then computes jaccard, accuracy and multi class csi score (critical sucess index)
-    :param data: Combined and flattened prediction and Target with shape [P, C] P being number of pixels.
-    The last Channel contains target data.
-    """
-    pred = data[:, : -1]
-    targets = torch.squeeze(data[:, -1].to(torch.uint8))
-
-    jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
-        pred.get_device())  # type: ignore
-    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
-    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
-
-    pred = torch.argmax(pred, dim=1).type(torch.uint8)
-
-    # pylint: disable=not-callable
-    jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
-    accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
-    batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
-
-    return jaccard, accuracy, batch_class_acc
+from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
+from src.news_seg.helper.train_helper import multi_precison_recall
 
 
 class Trainer:
@@ -241,68 +83,13 @@ class Trainer:
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 9)
+        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
         # load data
-        preprocessing = Preprocessing(
-            scale=args.scale,
-            crop_factor=args.crop_factor,
-            crop_size=args.crop_size,
-            pad=args.pad,
-            reduce_classes=args.reduce_classes
-        )
-        dataset = NewsDataset(
-            preprocessing,
-            image_path=f"{args.data_path}images/",
-            target_path=f"{args.data_path}targets/",
-            limit=args.limit,
-            dataset=args.dataset,
-            scale_aug=args.scale_aug
-        )
+        train_set, validation_set, test_set = initiate_datasets(args)
 
-        train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
-        print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
-
-        # Turn of augmentations on Validation-set
-        validation_set.augmentations = False
-        test_set.augmentations = False
-
-        # init dataloader
-        self.train_loader = DataLoader(
-            train_set,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=args.num_workers,
-            drop_last=True,
-            prefetch_factor=args.prefetch_factor,
-            persistent_workers=True,
-            pin_memory=True,
-
-        )
-        self.val_loader = DataLoader(
-            validation_set,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=args.num_workers,
-            drop_last=True,
-            prefetch_factor=args.prefetch_factor,
-            persistent_workers=True,
-            pin_memory=True,
-        )
-        self.test_loader = DataLoader(
-            test_set,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=args.num_workers,
-            drop_last=True,
-        )
-
-        assert (
-                len(self.train_loader) > 0
-                and len(self.val_loader) > 0
-                and len(self.test_loader) > 0
-        ), "At least one Dataset is to small to assemble at least one batch"
-
-        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
+        self.train_loader, self.val_loader, self.test_loader = initiate_dataloader(args, batch_size, test_set,
+                                                                                   train_set, validation_set)
 
     def train(self, epochs: int = 1) -> float:
         """
@@ -772,7 +559,7 @@ def get_args() -> argparse.Namespace:
         "--limit",
         type=int,
         default=None,
-        help="limit quantity of loaded images for testing purposes",
+        help="Limit quantity of loaded images for the train dataset. ",
     )
     parser.add_argument(
         "--crop-size", type=int, default=CROP_SIZE, help="Window size of image cropping"
@@ -786,8 +573,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=str,
-        default="transcribus",
-        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
+        default="transkribus",
+        help="which dataset to expect. Options are 'transkribus' and 'HLNA2013' "
              "(europeaner newspaper project)",
     )
     parser.add_argument(
@@ -887,11 +674,27 @@ def get_args() -> argparse.Namespace:
              "Has to be grater or equal to actual image after scaling",
     )
     parser.add_argument(
+        "--split-ratio",
+        type=float,
+        nargs="+",
+        default=DEFAULT_SPLIT,
+        help="Takes 3 float values for a custom dataset split ratio. The ratio have to sum up to one and the Dataset "
+             "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
+             "and validation in this order.",
+    )
+    parser.add_argument(
         "--reduce-classes",
         "-r",
         action="store_true",
         help="If activated, classes are merged into 3 categories. Those being Text, normal "
              "separators and big separators.",
+    )
+    parser.add_argument(
+        "--custom-split-path",
+        type=str,
+        default=None,
+        help="Provide path for folder with custom-split.json. This should contain a list with file stems "
+             "of train, validation and test images. File stems is the file name without the extension.",
     )
 
     return parser.parse_args()

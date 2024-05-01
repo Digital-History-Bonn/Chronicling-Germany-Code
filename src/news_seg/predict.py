@@ -12,14 +12,14 @@ from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.news_seg.processing.draw_img_from_polygons import draw_polygons_into_image
-from src.news_seg.processing.slicing_export import export_slices
-from src.news_seg.processing.transkribus_export import export_xml
-from src.news_seg.processing.reading_order import PageProperties
-from src.news_seg.processing.polygon_handler import prediction_to_region_polygons, uncertainty_to_polygons
 from src.news_seg.class_config import TOLERANCE
 from src.news_seg.datasets.predict_dataset import PredictDataset
-from src.news_seg.train import init_model
+from src.news_seg.helper.train_helper import init_model
+from src.news_seg.processing.draw_img_from_polygons import draw_polygons_into_image
+from src.news_seg.processing.polygon_handler import prediction_to_region_polygons, uncertainty_to_polygons
+from src.news_seg.processing.reading_order import PageProperties
+from src.news_seg.processing.slicing_export import export_slices
+from src.news_seg.processing.transkribus_export import export_xml
 from src.news_seg.utils import draw_prediction
 
 DATA_PATH = "../../data/newspaper/input/"

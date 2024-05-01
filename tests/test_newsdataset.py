@@ -4,7 +4,7 @@ import json
 import pytest
 import torch
 
-from src.news_seg.datasets.news_dataset import NewsDataset
+from src.news_seg.datasets.train_dataset import TrainDataset
 from src.news_seg.processing.preprocessing import Preprocessing
 
 DATA_PATH = "./tests/data/newsdataset/"
@@ -16,7 +16,7 @@ class TestClassNewsdataset:
     @pytest.fixture(autouse=True)
     def setup(self):
         """will initiate NewsDataset for every test"""
-        pytest.news_dataset = NewsDataset(
+        pytest.news_dataset = TrainDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
             image_path=f"{DATA_PATH}input/",
             target_path=f"{DATA_PATH}target_data/",
@@ -31,8 +31,8 @@ class TestClassNewsdataset:
             crop_quantity = 25
 
             assert (
-                pytest.news_dataset.file_names == ground_truth
-                and len(pytest.news_dataset.file_names) == file_quantity
+                    pytest.news_dataset.file_stems == ground_truth
+                    and len(pytest.news_dataset.file_stems) == file_quantity
             )
             assert (
                 len(pytest.news_dataset) == crop_quantity * file_quantity

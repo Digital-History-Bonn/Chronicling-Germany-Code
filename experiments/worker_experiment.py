@@ -5,7 +5,7 @@ from time import time  # type: ignore
 
 from torch.utils.data import DataLoader  # type: ignore
 
-from src.news_seg.datasets.news_dataset import NewsDataset  # type: ignore
+from src.news_seg.datasets.train_dataset import TrainDataset  # type: ignore
 from src.news_seg.processing.preprocessing import Preprocessing, CROP_SIZE, CROP_FACTOR  # type: ignore
 
 EPOCHS = 1
@@ -15,9 +15,9 @@ BATCH_SIZE = 64
 def worker_experiment():
     """Load data with increasing amount of workers"""
     preprocessing = Preprocessing(scale=1, crop_factor=args.crop_factor, crop_size=args.crop_size)
-    dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images/",
-                          target_path=f"{args.data_path}targets/",
-                          limit=args.limit, dataset=args.dataset)
+    dataset = TrainDataset(preprocessing, image_path=f"{args.data_path}images/",
+                           target_path=f"{args.data_path}targets/",
+                           limit=args.limit, dataset=args.dataset)
     for num_workers in range(2, mp.cpu_count() * 2, 2):
         train_loader = DataLoader(dataset, shuffle=True, num_workers=num_workers, batch_size=args.batch_size)
         start = time()
