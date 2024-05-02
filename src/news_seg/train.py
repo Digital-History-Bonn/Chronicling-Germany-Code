@@ -75,10 +75,8 @@ class Trainer:
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = DataParallel(init_model(load, self.device, args.model, args.freeze, args.skip_cbam))
-        #TODO: change this
-        OUT_CHANNELS = 12
-        print(OUT_CHANNELS)
+        self.model = DataParallel(
+            init_model(load, self.device, args.model, args.freeze, args.skip_cbam, args.override_load_channels))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -689,6 +687,14 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="Provide path for folder with custom-split.json. This should contain a list with file stems "
              "of train, validation and test images. File stems is the file name without the extension.",
+    )
+    parser.add_argument(
+        "--override-load-channels",
+        type=int,
+        default=OUT_CHANNELS,
+        help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
+             "loaded with this number of output classes instead of the configured number. This is necessary if a "
+             "pretrained model is intended to be used for a task with a different number of output classes.",
     )
 
     return parser.parse_args()

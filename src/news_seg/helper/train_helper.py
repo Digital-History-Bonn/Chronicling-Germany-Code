@@ -24,7 +24,7 @@ from src.news_seg.train_config import IN_CHANNELS, OUT_CHANNELS
 
 
 def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
-               skip_cbam: bool = False) -> Any:
+               skip_cbam: bool = False, overwrite_load_channels: int = OUT_CHANNELS) -> Any:
     """
     Initialise model
     :param args:
@@ -38,10 +38,10 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         model: Any = DhSegment(
             [3, 4, 6, 4],
             in_channels=IN_CHANNELS,
-            out_channel=10,
+            out_channel=overwrite_load_channels,
             load_resnet_weights=True,
         )
-        model = setup_dh_segment(device, load, model, freeze)
+        model = setup_dh_segment(device, load, model, freeze, overwrite_load_channels)
     elif model_str == "trans_unet":
         load_backbone = not load
         model = VisionTransformer(
@@ -74,10 +74,12 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
 
 
 def setup_dh_segment(
-        device: str, load: Union[str, None], model: Any, freeze: bool
-) -> Any:
+        device: str, load: Union[str, None], model: Any, freeze: bool,
+        override_load_channels: int = OUT_CHANNELS) -> Any:
     """
     Setup function for dh_segment and dh_segment_cbam
+    :param override_load_channels: overrides the out channel number with that a model will be loaded.
+    :param freeze: freezes the encoder
     :param device:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :param model:
@@ -88,11 +90,12 @@ def setup_dh_segment(
         model.freeze_encoder()
     # load model if argument is None, it does nothing
     model.load(load, device)
-    #TODO add parameter for changing the last layer. This is necessary if loaded model has another class count than the intended new model. Change handling of out classes
-    model.conv2 = conv1x1(32, 12) 
-    model.out_channel = 12
-    OUT_CHANNELS = 12
-    print(OUT_CHANNELS)
+    if override_load_channels != OUT_CHANNELS:
+        model.conv2 = conv1x1(32, 12)
+        model.out_channel = 12
+        print(
+            f"overriding model loading out channels. {override_load_channels} channels are "
+            f"loaded and overwritten with {OUT_CHANNELS} channels")
     # set mean and std in a model for normalization
     model.means = torch.tensor((0.485, 0.456, 0.406))
     model.stds = torch.tensor((0.229, 0.224, 0.225))
@@ -178,13 +181,15 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
             train_file_stems = split[0]
             val_file_stems = split[1]
             test_file_stems = split[2]
-            print(f"custom page level split with train size {len(train_file_stems)}, val size {len(val_file_stems)} and test size {len(test_file_stems)}")
+            print(
+                f"custom page level split with train size {len(train_file_stems)}, val size"
+                f" {len(val_file_stems)} and test size {len(test_file_stems)}")
     else:
         train_pages, validation_pages, test_pages = page_dataset.random_split(args.split_ratio)
         train_file_stems = train_pages.file_stems
         val_file_stems = validation_pages.file_stems
         test_file_stems = test_pages.file_stems
-        
+
         with open("custom-split.json", "w", encoding="utf8") as file:
             json.dump((train_file_stems, val_file_stems, test_file_stems), file)
 
@@ -222,6 +227,7 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
     validation_set.augmentations = False
     test_set.augmentations = False
     return train_set, validation_set, test_set
+
 
 def initiate_dataloader(args: argparse.Namespace, batch_size: int, test_set: TrainDataset, train_set: TrainDataset,
                         validation_set: TrainDataset) -> Tuple[DataLoader, ...]:
