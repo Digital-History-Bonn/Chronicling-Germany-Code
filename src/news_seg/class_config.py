@@ -95,3 +95,14 @@ VALID_TAGS = [
     'separator_short',
     'UnknownRegion'
 ]
+
+# REDUCE_CLASSES = {
+#     0: [1],
+#     7: [8]
+# }
+
+REDUCE_CLASSES = {
+    0: [1, 10],
+    4: [2, 5, 6, 11],
+    7: [8, 9]
+}

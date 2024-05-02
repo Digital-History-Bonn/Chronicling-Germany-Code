@@ -13,24 +13,14 @@ from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # ty
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
+from src.news_seg.class_config import REDUCE_CLASSES
+
 SCALE = 1
 EXPANSION = 5
 THICKEN_ABOVE = 3
 THICKEN_UNDER = 0
 CROP_FACTOR = 1.5
 CROP_SIZE = 512
-
-REDUCE_CLASSES = {
-    0: [1],
-    4: [2, 3, 5, 6],
-    7: [8]
-}
-
-
-# REDUCE_CLASSES = {
-#     0: [1],
-#     7: [8]
-# }
 
 
 class Preprocessing:
