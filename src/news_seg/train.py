@@ -458,8 +458,8 @@ class Trainer:
 
         _, acc, jac, class_acc = self.validation(True)
 
-        score = np.mean(np.array([acc, jac]))
-        class_score = np.mean(class_acc)
+        score = np.nanmean(np.array([acc, jac]))
+        class_score = np.nanmean(class_acc)
 
         return round(float(score), ndigits=4), round(float(class_score), ndigits=4)
 
