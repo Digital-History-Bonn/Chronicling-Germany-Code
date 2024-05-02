@@ -18,3 +18,4 @@ ml_collections
 positional-encodings
 torchmetrics
 opencv-python
+tikzplotlib
