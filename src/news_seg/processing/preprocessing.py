@@ -13,8 +13,6 @@ from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # ty
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
-from src.news_seg.utils import correct_shape
-
 SCALE = 1
 EXPANSION = 5
 THICKEN_ABOVE = 3
@@ -28,6 +26,7 @@ REDUCE_CLASSES = {
     7: [8]
 }
 
+
 # REDUCE_CLASSES = {
 #     0: [1],
 #     7: [8]
@@ -40,7 +39,7 @@ class Preprocessing:
     """
 
     @staticmethod
-    def crop_img(crop_size: int, crop_factor: float, data: ndarray) ->ndarray:
+    def crop_img(crop_size: int, crop_factor: float, data: ndarray) -> ndarray:
         """
         Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
         :param data: ndarray containing image and target
@@ -70,7 +69,6 @@ class Preprocessing:
             crop_factor: float = CROP_FACTOR,
             crop_size: int = CROP_SIZE,
             crop: bool = True,
-            pad: Union[None, Tuple[int, int]] = None,
             reduce_classes: bool = False
     ):
         """
@@ -82,7 +80,7 @@ class Preprocessing:
         self.crop_factor = crop_factor
         self.crop_size = crop_size
         self.crop = crop
-        self.pad = pad
+        self.pad: Union[Tuple[int, int], None] = None
         self.reduce_classes = reduce_classes
 
     def __call__(
@@ -113,20 +111,32 @@ class Preprocessing:
 
     def set_padding(self, image: torch.Tensor) -> None:
         """
-        Set Padding accordingly, if image size is smaller than crop size
+        Sets padding to make the image compatible with cropping. For this, it can not be smaller than one crop
+        at each dimension. If a dimension is of greater size than a crop, it will be padded to be a multiple of
+        the crop step size. This prevents the last crop to the right and bottom to be dropped.
         :param image:
         """
-        if (image.shape[1] < self.crop_size or image.shape[2] < self.crop_size) and self.crop:
-            pad_y = (
-                self.crop_size if image.shape[1] < self.crop_size else image.shape[1]
-            )
-            pad_x = (
-                self.crop_size if image.shape[2] < self.crop_size else image.shape[2]
-            )
+        if self.crop:
+            shape = (image.shape[-1], image.shape[-2])
+            crop_step = int(self.crop_size // self.crop_factor)
+            if shape[0] < self.crop_size:
+                pad_x = self.crop_size - shape[0]
+            elif shape[0] % crop_step > 0:
+                pad_x = crop_step - (shape[0] % crop_step)
+            else:
+                pad_x = 0
+
+            if shape[1] < self.crop_size:
+                pad_y = self.crop_size - shape[1]
+            elif shape[1] % crop_step > 0:
+                pad_y = crop_step - (shape[1] % crop_step)
+            else:
+                pad_y = 0
+
             self.pad = (pad_x, pad_y)
             print(
-                f"Image padding because of crop size {self.crop_size} and image shape {image.shape[2]} x "
-                f"{image.shape[1]}"
+                f"Image padding by {self.pad} because of crop size {self.crop_size}, crop step {crop_step} and "
+                f"image shape {shape[0]} x {shape[1]}"
             )
 
     def replace_labels(self, target: torch.Tensor) -> torch.Tensor:
@@ -169,25 +179,15 @@ class Preprocessing:
             self, image: torch.Tensor, target: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Pads border to be divisble by 2**5 to avoid errors during pooling
-        :param image:
-        :param target:
-        :return:
+        Pads image by given size to the right and bottom.
         """
         if self.pad:
-            assert self.pad[1] >= image.shape[1] and self.pad[0] >= image.shape[2], (
-                f"Final size has to be greater than actual image size. "
-                f"Padding to {self.pad[0]} x {self.pad[1]} "
-                f"but image has shape of {image.shape[2]} x {image.shape[1]}"
-            )
-
-            image = correct_shape(image)
-            target = correct_shape(target[None, :])
-
             transform = transforms.Pad(
                 (
-                    (self.pad[0] - image.shape[2]) // 2,
-                    (self.pad[1] - image.shape[1]) // 2,
+                    0,
+                    0,
+                    self.pad[0],
+                    self.pad[1],
                 )
             )
             image = transform(image)

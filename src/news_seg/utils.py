@@ -47,20 +47,6 @@ def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
     return string
 
 
-def correct_shape(image: torch.Tensor) -> torch.Tensor:
-    """
-    If one of the dimension has an uneven number of pixels, the last row/ column is remove to achieve an
-    even pixel number.
-    :param image: input image
-    :return: corrected image
-    """
-    if image.shape[2] % 2 != 0:
-        image = image[:, :, :-1]
-    if image.shape[1] % 2 != 0:
-        image = image[:, :-1, :]
-    return image
-
-
 def calculate_x_axis_center(bbox: List[float]) -> float:
     """
     Calculate x-axis center from 2 1d points.
@@ -84,8 +70,7 @@ def split_batches(tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores
 
 def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
     """
-    Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
-    padded image is divisible by crop size.
+    Calculate padding values to be added to the right and bottom of the image.
     :param image: tensor image
     :return: padding tuple for right and bottom
     """

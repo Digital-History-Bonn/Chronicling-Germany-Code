@@ -4,6 +4,7 @@ import json
 import pytest
 import torch
 
+from src.news_seg.datasets.page_dataset import PageDataset
 from src.news_seg.datasets.train_dataset import TrainDataset
 from src.news_seg.processing.preprocessing import Preprocessing
 
@@ -16,11 +17,14 @@ class TestClassNewsdataset:
     @pytest.fixture(autouse=True)
     def setup(self):
         """will initiate NewsDataset for every test"""
+        image_path = f"{DATA_PATH}input/"
+        pytest.page_dataset = PageDataset(image_path)
         pytest.news_dataset = TrainDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
             image_path=f"{DATA_PATH}input/",
             target_path=f"{DATA_PATH}target_data/",
             sort=True,
+            file_stems=pytest.page_dataset.file_stems,
         )
 
     def test_init(self):
@@ -28,7 +32,7 @@ class TestClassNewsdataset:
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
             file_quantity = 30
-            crop_quantity = 25
+            crop_quantity = 36
 
             assert (
                     pytest.news_dataset.file_stems == ground_truth
@@ -63,19 +67,38 @@ class TestClassNewsdataset:
 
     def test_split(self):
         """verify splitting operation"""
-        dataset_1, dataset_2, dataset_3 = pytest.news_dataset.random_split(
+
+        page_dataset_1, page_dataset_2, page_dataset_3 = pytest.page_dataset.random_split(
             (0.5, 0.3, 0.2)
         )
-        assert len(dataset_1) == 375 and len(dataset_2) == 225 and len(dataset_3) == 150
-        try:
-            dataset_1.augmentations = False
-            dataset_2.augmentations = False
-            dataset_2.augmentations = False
-        except AttributeError as exc:
-            assert False, (
-                f"random split does not result in Newsdatasets. Those are "
-                f"expected to have an augmentations attribute {exc}"
-            )
+        assert len(page_dataset_1) == 15 and len(page_dataset_2) == 9 and len(page_dataset_3) == 6
+
+        dataset_1 = TrainDataset(
+            Preprocessing(crop_size=256, crop_factor=1.5),
+            image_path=f"{DATA_PATH}input/",
+            target_path=f"{DATA_PATH}target_data/",
+            sort=True,
+            file_stems=page_dataset_1.file_stems,
+            name="train"
+        )
+
+        dataset_2 = TrainDataset(
+            Preprocessing(crop_size=256, crop_factor=1.5),
+            image_path=f"{DATA_PATH}input/",
+            target_path=f"{DATA_PATH}target_data/",
+            sort=True,
+            file_stems=page_dataset_1.file_stems,
+            name="train"
+        )
+
+        dataset_3 = TrainDataset(
+            Preprocessing(crop_size=256, crop_factor=1.5),
+            image_path=f"{DATA_PATH}input/",
+            target_path=f"{DATA_PATH}target_data/",
+            sort=True,
+            file_stems=page_dataset_1.file_stems,
+            name="train"
+        )
 
         assert dataset_1.data[0].shape == (4, 256, 256)
         assert dataset_2.data[0].shape == (4, 256, 256)

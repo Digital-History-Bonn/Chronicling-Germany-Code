@@ -665,15 +665,6 @@ def get_args() -> argparse.Namespace:
         help="Which loss function to use. Available are [cross_entropy, focal_loss]",
     )
     parser.add_argument(
-        "--pad",
-        "-p",
-        type=int,
-        nargs="+",
-        default=None,
-        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-             "Has to be grater or equal to actual image after scaling",
-    )
-    parser.add_argument(
         "--split-ratio",
         type=float,
         nargs="+",

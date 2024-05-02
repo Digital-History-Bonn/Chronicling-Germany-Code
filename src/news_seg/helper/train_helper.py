@@ -161,7 +161,6 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
         scale=args.scale,
         crop_factor=args.crop_factor,
         crop_size=args.crop_size,
-        pad=args.pad,
         reduce_classes=args.reduce_classes
     )
     image_path = f"{args.data_path}images/"
