@@ -3,7 +3,7 @@ import torch
 
 EPOCHS = 1
 DATALOADER_WORKER = 1
-IN_CHANNELS, OUT_CHANNELS = 3, 10
+IN_CHANNELS, OUT_CHANNELS = 3, 12
 VAL_NUMBER = 3
 DEFAULT_SPLIT = (0.9, 0.05, 0.05)
 
@@ -21,4 +21,6 @@ LOSS_WEIGHTS: torch.Tensor = torch.tensor([
     10.0,
     10.0,
     20.0,
+    10.0,
+    10.0
 ]) / 20

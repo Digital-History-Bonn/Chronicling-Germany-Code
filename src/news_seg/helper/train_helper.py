@@ -14,7 +14,7 @@ from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionM
 from src.news_seg.datasets.page_dataset import PageDataset
 from src.news_seg.datasets.train_dataset import TrainDataset
 
-from src.news_seg.models.dh_segment import DhSegment
+from src.news_seg.models.dh_segment import DhSegment, conv1x1
 from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
 from src.news_seg.models.dh_segment_small import DhSegmentSmall
 from src.news_seg.models.trans_unet import VisionTransformer
@@ -38,7 +38,7 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         model: Any = DhSegment(
             [3, 4, 6, 4],
             in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
+            out_channel=10,
             load_resnet_weights=True,
         )
         model = setup_dh_segment(device, load, model, freeze)
@@ -88,6 +88,11 @@ def setup_dh_segment(
         model.freeze_encoder()
     # load model if argument is None, it does nothing
     model.load(load, device)
+    #TODO add parameter for changing the last layer. This is necessary if loaded model has another class count than the intended new model. Change handling of out classes
+    model.conv2 = conv1x1(32, 12) 
+    model.out_channel = 12
+    OUT_CHANNELS = 12
+    print(OUT_CHANNELS)
     # set mean and std in a model for normalization
     model.means = torch.tensor((0.485, 0.456, 0.406))
     model.stds = torch.tensor((0.229, 0.224, 0.225))
@@ -173,11 +178,15 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
             train_file_stems = split[0]
             val_file_stems = split[1]
             test_file_stems = split[2]
+            print(f"custom page level split with train size {len(train_file_stems)}, val size {len(val_file_stems)} and test size {len(test_file_stems)}")
     else:
         train_pages, validation_pages, test_pages = page_dataset.random_split(args.split_ratio)
         train_file_stems = train_pages.file_stems
         val_file_stems = validation_pages.file_stems
         test_file_stems = test_pages.file_stems
+        
+        with open("custom-split.json", "w", encoding="utf8") as file:
+            json.dump((train_file_stems, val_file_stems, test_file_stems), file)
 
     train_set = TrainDataset(
         preprocessing,
