@@ -76,6 +76,9 @@ class Trainer:
         print(f"Using {self.device} device")
 
         self.model = DataParallel(init_model(load, self.device, args.model, args.freeze, args.skip_cbam))
+        #TODO: change this
+        OUT_CHANNELS = 12
+        print(OUT_CHANNELS)
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
