@@ -29,7 +29,7 @@ Depending on your setup, you may require `PYTHONPATH=.` in front of the commands
 Before starting the training process all data has to be converted.
 This command loads xml annotation data and converts it to .npy files.
 ````
-python script/convert_xml.py -a annotations/ -o targets/
+python src/news_seg/convert_xml.py -a annotations/ -o targets/
 ````
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.

@@ -92,7 +92,7 @@ class PredictDataset(Dataset):
             target = self.load_target(file_name)
             target = pad_image(pad, target)
         else:
-            target = None
+            target = torch.zeros((image.shape[0], image.shape[1]))
 
         return image, target, file_name
 
