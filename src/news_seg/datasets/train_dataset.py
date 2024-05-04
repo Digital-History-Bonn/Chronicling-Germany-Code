@@ -83,11 +83,11 @@ class TrainDataset(Dataset):
             # iterate over files
             threads = []
             for i, file in enumerate(tqdm(self.file_stems, desc=f"cropping {name} images", unit="image")):
-                threads.append(
-                    Thread(target=self.process_image,
-                           args=(dataset, extension, file, get_file_name, image_path, target_path)))
-
-                if i != 0 and i % 10 == 0:
+                thread = Thread(target=self.process_image,
+                                args=(dataset, extension, file, get_file_name, image_path, target_path))
+                thread.start()
+                threads.append(thread)
+                if i != 0 and i % 32 == 0:
                     for thread in threads:
                         thread.join()
                     threads = []

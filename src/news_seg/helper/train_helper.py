@@ -243,7 +243,6 @@ def initiate_dataloader(args: argparse.Namespace, batch_size: int, test_set: Tra
         drop_last=True,
         prefetch_factor=args.prefetch_factor,
         persistent_workers=True,
-        pin_memory=True,
 
     )
     val_loader = DataLoader(
@@ -254,7 +253,6 @@ def initiate_dataloader(args: argparse.Namespace, batch_size: int, test_set: Tra
         drop_last=True,
         prefetch_factor=args.prefetch_factor,
         persistent_workers=True,
-        pin_memory=True,
     )
     test_loader = DataLoader(
         test_set,
@@ -292,9 +290,7 @@ def multi_class_csi(
     false_negative = torch.sum(matrix, dim=0) - true_positive
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        csi = torch.tensor(
-            true_positive / (true_positive + false_negative + false_positive)
-        )
+        csi = true_positive / (true_positive + false_negative + false_positive)
     return csi
 
 
