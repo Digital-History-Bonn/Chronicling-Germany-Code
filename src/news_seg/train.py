@@ -109,7 +109,7 @@ class Trainer:
             with tqdm(
                     total=(len(self.train_loader)),
                     desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batche(s)",
+                    unit="batch(es)",
             ) as pbar:
                 for images, targets in self.train_loader:
                     start = time()
