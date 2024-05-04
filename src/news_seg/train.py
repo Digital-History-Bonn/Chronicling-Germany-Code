@@ -112,14 +112,20 @@ class Trainer:
                     unit="batch(es)",
             ) as pbar:
                 for images, targets in self.train_loader:
+                    transfer = time()
+                    images = images.to(self.device, non_blocking=True)
+                    targets = targets.to(self.device, non_blocking=True)
+                    transfer_end = time()
+                    print(f"Transfer takes:{transfer_end - transfer}")
+
                     start = time()
                     print(f"Batch Start takes:{start - end}")
 
                     with torch.autocast(self.device, enabled=self.amp):
-                        preds = self.model(images.to(self.device))
+                        preds = self.model(images.to(self.device, non_blocking=True))
                         pred = time()
                         print(f"prediction takes:{pred - start}")
-                        loss = self.apply_loss(preds, targets.to(self.device))
+                        loss = self.apply_loss(preds, targets.to(self.device, non_blocking=True))
                     loss_time = time()
                     print(f"loss takes:{loss_time - pred}")
 
@@ -638,7 +644,7 @@ def get_args() -> argparse.Namespace:
         "--prefetch-factor",
         "-pf",
         type=int,
-        default=2,
+        default=None,
         help="Number of batches that will be loaded by each worker in advance.",
     )
     parser.add_argument(
