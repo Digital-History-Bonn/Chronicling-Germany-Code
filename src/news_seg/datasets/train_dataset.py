@@ -3,7 +3,8 @@ module for Dataset class
 """
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Union
+from threading import Thread
+from typing import Dict, List, Tuple, Union, Callable
 
 import torch
 
@@ -80,18 +81,34 @@ class TrainDataset(Dataset):
                 self.file_stems = self.file_stems[:limit]
 
             # iterate over files
-            for file in tqdm(self.file_stems, desc=f"cropping {name} images", unit="image"):
-                image, target = self.preprocessing.load(
-                    f"{image_path}{file}{extension}",
-                    f"{target_path}{get_file_name(file)}",
-                    file,
-                    dataset,
-                )
-                # preprocess / create crops
-                crops = list(torch.tensor(self.preprocessing(image, target)))
-                self.data += crops
+            threads = []
+            for i, file in enumerate(tqdm(self.file_stems, desc=f"cropping {name} images", unit="image")):
+                threads.append(
+                    Thread(target=self.process_image,
+                           args=(dataset, extension, file, get_file_name, image_path, target_path)))
+
+                if i != 0 and i % 10 == 0:
+                    for thread in threads:
+                        thread.join()
+                    threads = []
+            for thread in threads:
+                thread.join()
 
         self.augmentations = True
+
+    def process_image(self, dataset: str, extension: str, file: str, get_file_name: Callable, image_path: str,
+                      target_path: str) -> None:
+        """
+        Loads and processes images.
+        """
+        image, target = self.preprocessing.load(
+            f"{image_path}{file}{extension}",
+            f"{target_path}{get_file_name(file)}",
+            file,
+            dataset,
+        )
+        crops = list(torch.tensor(self.preprocessing(image, target)))
+        self.data += crops
 
     def __len__(self) -> int:
         """
