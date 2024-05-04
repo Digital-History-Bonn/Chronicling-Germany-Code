@@ -115,8 +115,6 @@ class Trainer:
                     start = time()
                     print(f"Batch Start takes:{start - end}")
 
-                    self.optimizer.zero_grad(set_to_none=True)
-
                     with torch.autocast(self.device, enabled=self.amp):
                         preds = self.model(images.to(self.device))
                         pred = time()
@@ -130,6 +128,8 @@ class Trainer:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
+
+                    self.optimizer.zero_grad(set_to_none=True)
 
                     end = time()
                     print(f"backwards step takes:{end - pred}")
