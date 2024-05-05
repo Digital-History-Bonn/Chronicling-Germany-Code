@@ -112,22 +112,22 @@ class Trainer:
                     unit="batch(es)",
             ) as pbar:
                 for images, targets in self.train_loader:
-                    transfer = time()
+                    # transfer = time()
                     images = images.to(self.device, non_blocking=True)
                     targets = targets.to(self.device, non_blocking=True)
-                    transfer_end = time()
-                    print(f"Transfer takes:{transfer_end - transfer}")
+                    # transfer_end = time()
+                    # print(f"Transfer takes:{transfer_end - transfer}")
 
                     start = time()
                     print(f"Batch Start takes:{start - end}")
 
                     with torch.autocast(self.device, enabled=self.amp):
                         preds = self.model(images.to(self.device, non_blocking=True))
-                        pred = time()
-                        print(f"prediction takes:{pred - start}")
+                        # pred = time()
+                        # print(f"prediction takes:{pred - start}")
                         loss = self.apply_loss(preds, targets.to(self.device, non_blocking=True))
-                    loss_time = time()
-                    print(f"loss takes:{loss_time - pred}")
+                    # loss_time = time()
+                    # print(f"loss takes:{loss_time - pred}")
 
                     # Backpropagation
                     self.scaler.scale(loss).backward()
@@ -137,8 +137,8 @@ class Trainer:
 
                     self.optimizer.zero_grad(set_to_none=True)
 
-                    end = time()
-                    print(f"backwards step takes:{end - pred}")
+                    backward = time()
+                    print(f"backwards step takes:{backward - start}")
 
                     # update tensor board logs
                     self.step += 1
@@ -160,9 +160,12 @@ class Trainer:
                     pbar.update(1)
                     pbar.set_postfix(**{"loss (batch)": loss.item()})
 
+                    # cache = time()
                     # delete data from gpu cache
                     del images, loss, targets, preds
-                    torch.cuda.empty_cache()
+                    # torch.cuda.empty_cache()
+                    # cache_end = time()
+                    # print(f"cache takes:{cache_end - cache}")
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
                         val_loss, acc, jac, _ = self.validation()
@@ -187,6 +190,8 @@ class Trainer:
                     self.summary_writer.add_scalar(
                         "current best", self.best_step, global_step=self.step
                     )  # type:ignore
+                    end = time()
+                    print(f"rest takes:{end - backward}")
 
             # save model at end of epoch
             self.model.module.save(self.save_model)  # type: ignore
@@ -271,7 +276,7 @@ class Trainer:
             print(f"Val scores take:{scores - loss_time}")
 
             del images, targets, pred, batch_loss
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         loss = loss / size
         accuracy = accuracy / (size * self.num_scores_splits)
@@ -447,7 +452,7 @@ class Trainer:
         print(f"average jaccard score: {jaccard}")  # Intersection over Union
 
         del size, image, target, pred
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
     def get_test_score(self, model_path: str) -> Tuple[float, float]:
         """
@@ -759,10 +764,10 @@ def main() -> None:
     model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.result_path}{name}_{parameter_args.num_workers}.json",
+    with open(f"logs/{parameter_args.result_path}{name}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.batch_size, parameter_args.num_workers, score, multi_class_score, duration), file)
+        json.dump((parameter_args.batch_size, parameter_args.lr, score, multi_class_score, duration), file)
 
 
 if __name__ == "__main__":

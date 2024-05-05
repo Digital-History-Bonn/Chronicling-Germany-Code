@@ -249,8 +249,9 @@ def initiate_dataloader(args: argparse.Namespace, batch_size: int, test_set: Tra
         validation_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=1,
+        num_workers=args.num_workers,
         drop_last=True,
+        prefetch_factor=args.prefetch_factor,
         persistent_workers=True,
         pin_memory=True,
     )
