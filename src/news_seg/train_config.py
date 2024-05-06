@@ -15,7 +15,7 @@ LOSS_WEIGHTS: torch.Tensor = torch.tensor([
     10.0,
     10.0,
     10.0,
-    4.0,
+    2.0,
     20.0,
     10.0,
     20.0,
