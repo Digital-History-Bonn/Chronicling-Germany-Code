@@ -173,10 +173,10 @@ class Trainer:
                     # print(f"cache takes:{cache_end - cache}")
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        _, acc, jac, class_acc = self.validation()
+                        _, _, _, class_acc = self.validation()
 
                         # early stopping
-                        score: float = (1 - acc) + (1 - jac) + (1 - np.nanmean(class_acc))  # type: ignore
+                        score: float = (1 - np.mean(np.nan_to_num(class_acc)))  # type: ignore
 
                         if self.scheduler_type:
                             if self.scheduler_type == "reduced_on_plateau":
@@ -484,8 +484,8 @@ class Trainer:
 
         _, acc, jac, class_acc = self.validation(True)
 
-        score = np.nanmean(np.array([acc, jac]))
-        class_score = np.nanmean(class_acc)
+        score = np.mean(np.array([acc, jac]))
+        class_score = np.mean(np.nan_to_num(class_acc))
 
         return round(float(score), ndigits=4), round(float(class_score), ndigits=4)
 
