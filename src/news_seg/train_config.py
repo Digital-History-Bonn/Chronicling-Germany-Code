@@ -11,7 +11,7 @@ BATCH_SIZE = 32
 LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
 WEIGHT_DECAY = 1e-6  # 1e-6 from Paper
 LOSS_WEIGHTS: torch.Tensor = torch.tensor([
-    2.0,
+    5.0,
     10.0,
     10.0,
     10.0,
