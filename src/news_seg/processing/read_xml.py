@@ -29,8 +29,8 @@ def read_transkribus(
 
     tags_dict = find_regions(bs_data, "TextRegion", True, "TextLine", tags_dict)
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict)
-    tags_dict = find_regions(bs_data, "Image", False, "", tags_dict)
-    tags_dict = find_regions(bs_data, "Graphic", False, "", tags_dict)
+    tags_dict = find_regions(bs_data, "ImageRegion", False, "", tags_dict)
+    tags_dict = find_regions(bs_data, "GraphicRegion", False, "", tags_dict)
 
     # TODO: add Table Regions
 
@@ -84,7 +84,7 @@ def find_regions(
             r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
         )
         if region_type_matches is None:
-            region_type = 'image' if tag in ('Image', 'Graphic') else "UnknownRegion"
+            region_type = 'image' if tag in ('ImageRegion', 'GraphicRegion') else "UnknownRegion"
         else:
             region_type = region_type_matches.group(2)
         if region_type not in tags_dict:
@@ -211,8 +211,8 @@ def read_regions_for_reading_order(
 
     tags_dict = find_regions(bs_data, "TextRegion", False, "", tags_dict, id_dict)
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict, id_dict)
-    tags_dict = find_regions(bs_data, "Image", False, "", tags_dict, id_dict)
-    tags_dict = find_regions(bs_data, "Graphic", False, "", tags_dict, id_dict)
+    tags_dict = find_regions(bs_data, "ImageRegion", False, "", tags_dict, id_dict)
+    tags_dict = find_regions(bs_data, "GraphicRegion", False, "", tags_dict, id_dict)
 
     # TODO: add Table Regions
 
