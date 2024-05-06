@@ -19,7 +19,7 @@ from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmRestarts
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
@@ -69,7 +69,7 @@ class Trainer:
         self.num_scores_splits = args.num_scores_splits
         self.amp = args.amp
         self.clip = args.clip
-        self.use_scheduler = args.scheduler
+        self.scheduler_type = args.scheduler
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
@@ -83,7 +83,12 @@ class Trainer:
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 5)
+
+        if args.scheduler == 'reduce_on_plateau':
+            self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 15)
+        elif args.scheduler == 'cosine_annealing':
+            self.scheduler = CosineAnnealingWarmRestarts(self.optimizer, 5, 1, eta_min=0, last_epoch=-1)  # type: ignore
+
         self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
         # load data
@@ -168,12 +173,19 @@ class Trainer:
                     # print(f"cache takes:{cache_end - cache}")
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        val_loss, acc, jac, _ = self.validation()
+                        _, acc, jac, class_acc = self.validation()
 
                         # early stopping
-                        score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
-                        if self.use_scheduler:
-                            self.scheduler.step(val_loss)
+                        score: float = (1 - acc) + (1 - jac) + (1 - np.nanmean(class_acc))  # type: ignore
+
+                        if self.scheduler_type:
+                            if self.scheduler_type == "reduced_on_plateau":
+                                self.scheduler.step(score)
+                            else:
+                                self.scheduler.step(self.epoch)
+                            self.summary_writer.add_scalar(
+                                "lr", self.scheduler.get_last_lr(), global_step=self.step
+                            )  # type:ignore
 
                         if score < self.best_score:
                             # update cur_best value
@@ -468,6 +480,8 @@ class Trainer:
 
         self.model.to(self.device)
 
+        self.step += 1
+
         _, acc, jac, class_acc = self.validation(True)
 
         score = np.nanmean(np.array([acc, jac]))
@@ -597,8 +611,9 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--scheduler",
-        action="store_true",
-        help="Activates Scheduler",
+        type=str,
+        default=None,
+        help="Select scheduler [reduce_on_plateau, cosine_annealing].",
     )
     parser.add_argument(
         "--amp",
