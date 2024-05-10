@@ -12,8 +12,6 @@ from PIL import Image, ImageOps, ImageDraw
 from skimage import draw
 from bs4 import BeautifulSoup, PageElement
 from matplotlib import pyplot as plt
-from matplotlib import patches
-from skimage import io
 from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
