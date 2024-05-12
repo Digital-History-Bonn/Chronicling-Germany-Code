@@ -244,7 +244,7 @@ def tag_to_label_dict(id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[L
     for key, coords in tags_dict.items():
         if key not in LABEL_ASSIGNMENTS:
             for coord, region_id in zip(coords, id_dict[key]):
-                if len(coord) < 2:
+                if len(coord) > 2:
                     bbox_dict[1].append(Polygon(coord).bounds)
                     id_align_dict[1].append(region_id)
 
@@ -256,4 +256,7 @@ def tag_to_label_dict(id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[L
             for coord, region_id in zip(tags_dict[key], id_dict[key]):
                 bbox_dict[label].append(Polygon(coord).bounds)
                 id_align_dict[label].append(region_id)
+
+    if len(bbox_dict) == 1 and len(bbox_dict[1]) == 0:
+        return {}, {}
     return bbox_dict, id_align_dict

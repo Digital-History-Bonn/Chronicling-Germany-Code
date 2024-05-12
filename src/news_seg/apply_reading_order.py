@@ -1,6 +1,5 @@
 """Module for importing xml files and updating the reading order of regions and lines. TODO: lines"""
 import argparse
-import json
 import os
 import re
 from typing import List, Dict
@@ -34,10 +33,12 @@ def main(parsed_args: argparse.Namespace) -> None:
     for path in tqdm(data_paths):
         bbox_dict, id_dict, bs_data = read_regions_for_reading_order(f"{parsed_args.data_path}{path}")
         bs_copy = read_raw_data(f"{parsed_args.data_path}{path}")
+        if len(bbox_dict) == 0:
+            continue
         page = PageProperties(bbox_dict)
         reading_order_dict = page.get_reading_order()
-        with open(f"{parsed_args.output_path}{path}.json", "w", encoding="utf-8") as file:
-            json.dump(reading_order_dict, file)
+        # with open(f"{parsed_args.output_path}{path}.json", "w", encoding="utf-8") as file:
+        #     json.dump(reading_order_dict, file)
 
         id_list = align_ids(id_dict)
 
