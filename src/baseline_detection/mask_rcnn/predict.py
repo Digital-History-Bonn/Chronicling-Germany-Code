@@ -123,7 +123,6 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
                   "readingOrder": []}
 
     # iterate over regions and predict lines
-    reading_order_idx = 0
     for region in sorted(annotation, key=lambda anno: anno['readingOrder']):
         subimage = image[:, region['part'][0]: region['part'][2],
                    region['part'][1]: region['part'][3]]
@@ -139,8 +138,7 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
         prediction["lines"].extend([line + shift for line in pred["lines"]])
         prediction["masks"].extend([mask + shift for mask in pred["masks"]])
         prediction["region"].extend([region['readingOrder']] * length)
-        prediction["readingOrder"].extend([reading_order_idx + i for i in range(length)])
-        reading_order_idx += length
+        prediction["readingOrder"].extend([i for i in range(length)])
 
     return prediction
 
