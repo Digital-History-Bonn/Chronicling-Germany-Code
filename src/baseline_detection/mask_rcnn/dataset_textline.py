@@ -37,7 +37,6 @@ class CustomDataset(Dataset):  # type: ignore
         """
         # load image and targets depending on objective
         image = torch.tensor(io.imread(f"{self.data[index]}/image.jpg")).permute(2, 0, 1)
-        # print(f"{image.shape=}")
         boxes = torch.load(f"{self.data[index]}/bboxes.pt")
         polygons = torch.load(f"{self.data[index]}/masks.pt")
         masks = []

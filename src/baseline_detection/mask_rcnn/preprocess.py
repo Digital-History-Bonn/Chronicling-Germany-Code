@@ -106,6 +106,14 @@ def get_tag(textregion: PageElement):
     return match.group()[6:-2]
 
 
+def get_reading_order_idx(textregion: PageElement):
+    desc = textregion['custom']
+    match = re.search(r"readingOrder\s*\{index:(\d+);\}", desc)
+    if match is None:
+        return -1
+    return int(match.group(1))
+
+
 def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.
@@ -144,7 +152,8 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
             region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {'part': part,
                                                                                'bboxes': [],
                                                                                'masks': [],
-                                                                               'baselines': []}
+                                                                               'baselines': [],
+                                                                               'readingOrder': get_reading_order_idx(region)}
 
             text_region = region.find_all('TextLine')
             for text_line in text_region:

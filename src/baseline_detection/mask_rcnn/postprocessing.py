@@ -69,11 +69,21 @@ def postprocess(prediction: Dict[str, torch.Tensor],
     keep_indices = keep_indices.to(int)
 
     # remove non maxima
-    reduced_prediction = {}
-    reduced_prediction['boxes'] = boxes[keep_indices]
-    reduced_prediction['scores'] = scores[keep_indices]
-    if 'masks' in prediction.keys():
-        reduced_prediction['masks'] = prediction['masks'][keep_indices]
+    reduced_prediction = {
+        'boxes': boxes[keep_indices],
+        'scores': scores[keep_indices],
+        'masks': prediction['masks'][keep_indices]
+    }
+
+    # make boxes int and mask bool
+    reduced_prediction["boxes"] = reduced_prediction["boxes"].int()
+    reduced_prediction["masks"] = reduced_prediction["masks"] > 0.5
+
+    # sort results
+    order = [index for index, _ in sorted(enumerate(reduced_prediction['boxes']), key=lambda box: (box[0], box[1]))]
+    reduced_prediction['boxes'] = reduced_prediction['boxes'][order]
+    reduced_prediction['scores'] = reduced_prediction['scores'][order]
+    reduced_prediction['masks'] = reduced_prediction['masks'][order]
 
     return reduced_prediction
 

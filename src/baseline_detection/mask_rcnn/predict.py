@@ -1,19 +1,18 @@
 from pathlib import Path
+from pprint import pprint
 from typing import Dict, Union, List
 
-import matplotlib.pyplot as plt
 import torch
+from skimage.measure import find_contours
 from torchvision.transforms import GaussianBlur
 from skimage import io
 from skimage.draw import line as sk_line
 from torchvision.models.detection import MaskRCNN
 
-from src.baseline_detection.mask_rcnn.dataset_baseline import CustomDataset
 from src.baseline_detection.mask_rcnn.postprocessing import postprocess
 from src.baseline_detection.mask_rcnn.preprocess import extract
 from src.baseline_detection.mask_rcnn.trainer_textline import get_model
 from monai.networks.nets import BasicUNet
-
 
 
 def prior(size: int):
@@ -59,16 +58,21 @@ def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor):
     return line.int()
 
 
+def get_polygon(mask: torch.Tensor):
+    polygons = find_contours(mask)
+    lengths = torch.tensor([len(polygon) for polygon in polygons])
+    idx = torch.argmax(lengths)
+    return torch.tensor(polygons[idx])
+
+
 def predict_image(textline_model: MaskRCNN,
                   baseline_model: BasicUNet,
                   image: torch.Tensor,
                   device: torch.device):
-
     gauss_filter = GaussianBlur(kernel_size=5, sigma=2.0)
     image = image.to(device)
 
     # predict example form training set
-    print(f"{image.shape=}")
     pred: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = textline_model([image])[0]
 
     # move predictions to cpu
@@ -80,9 +84,6 @@ def predict_image(textline_model: MaskRCNN,
     # postprecess image (non maxima supression)
     pred = postprocess(pred, method='iom', threshold=.6)
 
-    pred["boxes"] = pred["boxes"].int()
-    pred["masks"] = pred["masks"] > 0.5
-
     baseline_probability_map = baseline_model(image[None])[0, 1]
 
     baseline_probability_map = baseline_probability_map.detach().cpu()
@@ -93,29 +94,37 @@ def predict_image(textline_model: MaskRCNN,
         line = predict_baseline(box, mask, baseline_probability_map)
         pred['lines'].append(line)
 
+    pred['masks'] = [get_polygon(mask[0].numpy()) for mask in pred['masks']]
+
     return pred
 
 
 def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tensor]]]):
-
+    # set device
     device = torch.device('cuda:0')
 
-    textline_model = get_model(objective='textlines',
-                               load_weights='MaskRCCNLineDetection2_Newspaper_textlines_e25_es')
+    # init and load model for textline detection
+    textline_model = get_model(load_weights='MaskRCCNLineDetection2_Newspaper_textlines_e25_es')
     textline_model.to(device)
     textline_model.eval()
 
+    # init and load model for baseline detection
     baseline_model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=2)
-    baseline_model.load_state_dict(torch.load(f'{Path(__file__).parent.absolute()}/../../models/test3_baseline_e100_es.pt'))
+    baseline_model.load_state_dict(
+        torch.load(f'{Path(__file__).parent.absolute()}/../../../models/test3_baseline_e100_es.pt'))
     baseline_model.to(device)
     baseline_model.eval()
 
     prediction = {"boxes": torch.zeros((0, 4)),
                   "scores": torch.zeros((0,)),
-                  "masks": torch.zeros((0, *image.shape)),
-                  "lines": []}
+                  "masks": [],
+                  "lines": [],
+                  "region": [],
+                  "readingOrder": []}
 
-    for region in annotation:
+    # iterate over regions and predict lines
+    reading_order_idx = 0
+    for region in sorted(annotation, key=lambda anno: anno['readingOrder']):
         subimage = image[:, region['part'][0]: region['part'][2],
                    region['part'][1]: region['part'][3]]
 
@@ -124,56 +133,31 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
         shift = torch.tensor([region['part'][1], region['part'][0], region['part'][1], region['part'][0]])
         prediction["boxes"] = torch.vstack([prediction["boxes"], pred["boxes"] + shift])
         prediction["scores"] = torch.hstack([prediction["scores"], pred["scores"]])
-        # prediction["masks"] = torch.stack([prediction["masks"], pred["masks"] + shift])
+
+        length = len(pred['lines'])
         shift = torch.tensor([region['part'][0], region['part'][1]])
-        prediction["lines"].extend([l + shift for l in pred["lines"]])
+        prediction["lines"].extend([line + shift for line in pred["lines"]])
+        prediction["masks"].extend([mask + shift for mask in pred["masks"]])
+        prediction["region"].extend([region['readingOrder']] * length)
+        prediction["readingOrder"].extend([reading_order_idx + i for i in range(length)])
+        reading_order_idx += length
 
     return prediction
 
 
 def main():
-    device = torch.device('cuda:0')
-
-    textline_model = get_model(objective='textlines',
-                               load_weights='MaskRCCNLineDetection2_Newspaper_textlines_e25_es')
-    textline_model.to(device)
-    textline_model.eval()
-
-    baseline_model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=2)
-    baseline_model.load_state_dict(torch.load(f'{Path(__file__).parent.absolute()}/../../models/test3_baseline_e100_es.pt'))
-    baseline_model.to(device)
-    baseline_model.eval()
-
-    dataset = CustomDataset(f'{Path(__file__).parent.absolute()}/../../data/Newspaper/valid')
-
-    image, _ = dataset[6]
-
-    pred = predict_image(textline_model, baseline_model, image, device)
-
-    result = draw_prediction(image, pred)
-
-    result = draw_lines_on_image(result, pred['lines'])
-
-    print(f"{result.shape=}, {result.max()}, {result.min()}, {result.dtype=}")
-
-    io.imsave(f'{Path(__file__).parent.absolute()}/../../data/Examples/baselineDetectionExample6.png', result.transpose((1, 2, 0)))
-
-
-if __name__ == '__main__':
-    image = torch.tensor(io.imread(f"{Path(__file__).parent.absolute()}/../../data/newspaper-dataset-main-images/images/Koelnische_Zeitung_1924 - 0085.jpg")).permute(2, 0, 1)
+    print(torch.cuda.is_available())
+    image = torch.tensor(io.imread(
+        f"{Path(__file__).parent.absolute()}/../../../data/images/Koelnische_Zeitung_1924 - 0085.jpg")).permute(
+        2, 0, 1)
     image = image.to(torch.device('cuda:0'))
     image = image.float()
 
-    anno = extract(f"{Path(__file__).parent.absolute()}/../../data/newspaper-dataset-main-annotations/annotations/Koelnische_Zeitung_1924 - 0085.xml")
+    anno, _ = extract(
+        f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml")
 
     pred = predict_page(image, anno)
 
-    del pred['masks']
 
-    result = draw_prediction(image.cpu(), pred)
-
-    result = draw_lines_on_image(result, pred['lines'])
-
-    io.imsave(
-        f'{Path(__file__).parent.absolute()}/../../data/Examples/baselineDetectionPageExample6.png',
-        result.transpose((1, 2, 0)))
+if __name__ == '__main__':
+    main()
