@@ -77,6 +77,20 @@ LABEL_NAMES = [
     "inverted_text",
 ]
 
+REGION_TYPES = {
+    "UnknownRegion": "UnknownRegion",
+    "caption": "TextRegion",
+    "table": "TableRegion",
+    "article": "TextRegion",
+    "heading": "TextRegion",
+    "header": "TextRegion",
+    "separator_vertical": "SeparatorRegion",
+    "separator_short": "SeparatorRegion",
+    "separator_horizontal": "SeparatorRegion",
+    "image": "GraphicRegion",
+    "inverted_text": "TextRegion",
+}
+
 VALID_TAGS = [
     'TextLine',
     'advertisement',

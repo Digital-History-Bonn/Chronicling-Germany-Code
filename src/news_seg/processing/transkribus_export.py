@@ -1,11 +1,12 @@
 """Module for creating Transkribus PAGE XML data."""
 import argparse
 import os
+import re
 from typing import Dict, List
 
 from bs4 import BeautifulSoup
 
-from src.news_seg.class_config import LABEL_NAMES
+from src.news_seg.class_config import LABEL_NAMES, REGION_TYPES
 
 
 def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
@@ -74,9 +75,11 @@ def add_regions_to_xml(order_group: BeautifulSoup, page: BeautifulSoup, reading_
                     attrs={"index": str(reading_order[index]), "regionRef": str(index)},
                 )
             )
-            # TODO: add other region types
+
+            region_type = REGION_TYPES[get_label_name(label)]
+
             region = xml_data.new_tag(
-                "TextRegion",
+                region_type,
                 attrs={
                     "id": str(index),
                     "custom": f"readingOrder {{index:{reading_order[index]};}} structure "
@@ -114,3 +117,35 @@ def polygon_to_string(input_list: List[float], scale: float) -> str:
     string = " ".join(generator_expression)
 
     return string
+
+
+def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
+             reading_order_dict: dict[int, int]) -> None:
+    """
+    Copy regions into new BeautifulSoup object with corrected reading order.
+    :param bs_copy: copy of xml data, to be overwritten
+    :param bs_data: xml data
+    :param id_list: list of region ids, that are used to copy data.
+    :param reading_order_dict:
+    """
+    page = bs_copy.find("Page")
+    page.clear()
+    order_group = bs_copy.new_tag(
+        "OrderedGroup", attrs={"caption": "Regions reading order"}
+    )
+    for key, order in reading_order_dict.items():
+        region = bs_data.find(attrs={'id': f'{id_list[int(key)]}'})
+        custom_match = re.search(
+            r"(structure \{type:.+?;})", region["custom"]
+        )
+
+        class_info = "structure {type:UnkownRegion;}" if custom_match is None else custom_match.group(1)
+        region.attrs['custom'] = f"readingOrder {{index:{order};}} {class_info}"
+
+        order_group.append(
+            bs_copy.new_tag(
+                "RegionRefIndexed",
+                attrs={"index": str(order), "regionRef": id_list[int(key)]},
+            )
+        )
+        page.append(region)

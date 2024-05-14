@@ -31,8 +31,7 @@ def read_transkribus(
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict)
     tags_dict = find_regions(bs_data, "ImageRegion", False, "", tags_dict)
     tags_dict = find_regions(bs_data, "GraphicRegion", False, "", tags_dict)
-
-    # TODO: add Table Regions
+    tags_dict = find_regions(bs_data, "TableRegion", False, "", tags_dict)
 
     page = bs_data.find("Page")
 
@@ -213,8 +212,7 @@ def read_regions_for_reading_order(
     tags_dict = find_regions(bs_data, "SeparatorRegion", False, "", tags_dict, id_dict)
     tags_dict = find_regions(bs_data, "ImageRegion", False, "", tags_dict, id_dict)
     tags_dict = find_regions(bs_data, "GraphicRegion", False, "", tags_dict, id_dict)
-
-    # TODO: add Table Regions
+    tags_dict = find_regions(bs_data, "TableRegion", False, "", tags_dict, id_dict)
 
     bbox_dict, id_align_dict = tag_to_label_dict(id_dict, tags_dict)
 

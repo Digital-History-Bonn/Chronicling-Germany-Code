@@ -1,14 +1,13 @@
 """Module for importing xml files and updating the reading order of regions and lines. TODO: lines"""
 import argparse
 import os
-import re
 from typing import List, Dict
 
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from src.news_seg.processing.read_xml import read_raw_data, read_regions_for_reading_order
 from src.news_seg.processing.reading_order import PageProperties
+from src.news_seg.processing.transkribus_export import copy_xml
 
 
 def align_ids(id_dict: Dict[int, List[str]]) -> List[str]:
@@ -42,7 +41,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 
         id_list = align_ids(id_dict)
 
-        create_xml(bs_copy, bs_data, id_list, reading_order_dict)
+        copy_xml(bs_copy, bs_data, id_list, reading_order_dict)
 
         with open(
                 f"{parsed_args.output_path}{path}.xml",
@@ -51,35 +50,6 @@ def main(parsed_args: argparse.Namespace) -> None:
         ) as xml_file:
             xml_file.write(
                 bs_copy.prettify().replace("<Unicode>\n      ", "<Unicode>").replace("\n     </Unicode>", "</Unicode>"))
-
-
-def create_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
-               reading_order_dict: dict[int, int]) -> None:
-    """
-    Copy regions into new BeautifulSoup object with corrected reading order.
-    """
-    page = bs_copy.find("Page")
-    page.clear()
-    order_group = bs_copy.new_tag(
-        "OrderedGroup", attrs={"caption": "Regions reading order"}
-    )
-    for key, order in reading_order_dict.items():
-        region = bs_data.find(attrs={'id': f'{id_list[int(key)]}'})
-        custom_match = re.search(
-            r"(structure \{type:.+?;})", region["custom"]
-        )
-
-        class_info = "structure {type:UnkownRegion;}" if custom_match is None else custom_match.group(1)
-        region.attrs['custom'] = f"readingOrder {{index:{order};}} {class_info}"
-
-        # TODO: align this with convert xml into shared functions
-        order_group.append(
-            bs_copy.new_tag(
-                "RegionRefIndexed",
-                attrs={"index": str(order), "regionRef": id_list[int(key)]},
-            )
-        )
-        page.append(region)
 
 
 def get_args() -> argparse.Namespace:

@@ -10,7 +10,7 @@ from typing import Tuple, Optional, Union
 import numpy as np
 import torch
 from PIL import Image
-from PIL.Image import BICUBIC # pylint: disable=no-name-in-module # type: ignore
+from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type: ignore
 # pylint thinks torch has no name randperm this is wrong
 # pylint: disable-next=no-name-in-module
 from torch.utils.data import Dataset
@@ -28,11 +28,11 @@ class PredictDataset(Dataset):
     """
 
     def __init__(
-        self,
-        image_path: str,
-        scale: float,
-        pad: Tuple[int, int],
-        target_path: Optional[str] = None,
+            self,
+            image_path: str,
+            scale: float,
+            pad: Tuple[int, int],
+            target_path: Optional[str] = None,
     ) -> None:
         """
         load images and targets from folder
@@ -69,8 +69,7 @@ class PredictDataset(Dataset):
         :param file: path to target
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
-        target = np.load(f"{self.target_path}{file[:-4]}.npy")
-        target[(target == 10) + (target == 11)] = 0  # TODO: remove this hot fix for unknown labels
+        target:  torch.Tensor = np.load(f"{self.target_path}{file[:-4]}.npy")
         shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
         target = torch.nn.functional.interpolate(torch.tensor(target[None, :, :]), size=shape, mode='nearest')
 
