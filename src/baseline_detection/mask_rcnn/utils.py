@@ -1,5 +1,6 @@
 from typing import Dict
 
+import numpy as np
 import torch
 from torchvision.utils import draw_segmentation_masks, draw_bounding_boxes
 
@@ -40,3 +41,9 @@ def draw_prediction(image: torch.Tensor, prediction: Dict[str, torch.Tensor]):
     image = draw_bounding_boxes(image.to(torch.uint8), prediction['boxes'], width=2, colors='red')
 
     return image
+
+
+def convert_coord(element):
+    coords = element.find('Coords')
+    return np.array([tuple(map(int, point.split(','))) for
+              point in coords['points'].split()])[:, np.array([1, 0])]
