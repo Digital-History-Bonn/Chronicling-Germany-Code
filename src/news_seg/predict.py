@@ -12,7 +12,7 @@ from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.news_seg.class_config import TOLERANCE
+from src.news_seg.class_config import TOLERANCE, REDUCE_CLASSES
 from src.news_seg.datasets.predict_dataset import PredictDataset
 from src.news_seg.helper.train_helper import init_model
 from src.news_seg.processing.draw_img_from_polygons import draw_polygons_into_image
@@ -51,7 +51,7 @@ def predict_batch(args: argparse.Namespace, device: str, paths: List[str], image
     if debug:
         pred_ndarray = process_prediction_debug(pred, target.to(device), args.threshold)
     else:
-        pred_ndarray = process_prediction(pred, args.threshold)
+        pred_ndarray = process_prediction(pred, args.threshold, args.reduce)
     image_ndarray = image.numpy()
 
     threads = []
@@ -113,17 +113,31 @@ def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
     return reading_order_dict, segmentations, bbox_list
 
 
-def process_prediction(pred: torch.Tensor, threshold: float) -> ndarray:
+def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
     :param threshold: confidence threshold for prediction
     :param pred: prediction [B, C, H, W]
     :return: prediction ndarray [B, H, W]
     """
+    if reduce:
+        collapse_prediction(pred)
+
     max_tensor, argmax = torch.max(pred, dim=1)
     argmax = argmax.type(torch.uint8)
     argmax[max_tensor < threshold] = 0
     return argmax.detach().cpu().numpy()  # type: ignore
+
+
+def collapse_prediction(pred: torch.Tensor) -> None:
+    """
+    Collapses classes in the prediction tensor after softmax activation.
+    This is used to make models with different classes compatible. This does not change the total number of classes.
+    """
+    for replace_label, label_list in REDUCE_CLASSES.items():
+        for label in label_list:
+            pred[:, replace_label:, :] += pred[:, label:, :]
+            pred[:, label:, :] = 0
 
 
 def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:

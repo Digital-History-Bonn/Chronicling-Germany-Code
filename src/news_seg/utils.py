@@ -9,7 +9,7 @@ from numpy import ndarray
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 
-from src.news_seg.class_config import LABEL_NAMES
+from src.news_seg.class_config import LABEL_NAMES, REDUCE_CLASSES
 from src.news_seg.class_config import cmap_12 as cmap
 
 
@@ -153,3 +153,13 @@ def prepare_file_loading(dataset: str) -> Tuple[str, Callable]:
         def get_file_name(name: str) -> str:
             return f"{name}.npy"
     return extension, get_file_name
+
+
+def replace_labels(target: torch.Tensor) -> torch.Tensor:
+    """
+    Replace labels to reduce classes
+    """
+    for replace_label, label_list in REDUCE_CLASSES.items():
+        for label in label_list:
+            target[target == label] = replace_label
+    return target

@@ -13,7 +13,7 @@ from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # ty
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
-from src.news_seg.class_config import REDUCE_CLASSES
+from src.news_seg.utils import replace_labels
 
 SCALE = 1
 EXPANSION = 5
@@ -88,7 +88,7 @@ class Preprocessing:
         self.set_padding(image)
 
         image, target = self.padding(image, target)
-        target = self.replace_labels(target)
+        target = replace_labels(target) if self.reduce_classes else target
 
         data: npt.NDArray[np.uint8] = np.concatenate(
             (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
@@ -128,17 +128,6 @@ class Preprocessing:
                 f"Image padding by {self.pad} because of crop size {self.crop_size}, crop step {crop_step} and "
                 f"image shape {shape[0]} x {shape[1]}"
             )
-
-    def replace_labels(self, target: torch.Tensor) -> torch.Tensor:
-        """
-        Replace labels to reduce classes
-        :param target:
-        """
-        if self.reduce_classes:
-            for replace_label, label_list in REDUCE_CLASSES.items():
-                for label in label_list:
-                    target[target == label] = replace_label
-        return target
 
     def load(
             self, input_path: str, target_path: str, file: str, dataset: str
