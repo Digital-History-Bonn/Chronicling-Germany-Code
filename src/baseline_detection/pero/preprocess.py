@@ -50,21 +50,36 @@ def get_bbox(
     return x_min, y_min, x_max, y_max  # type: ignore
 
 
-def split_textbox(box: Polygon, baseline: LineString):
+def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
+    """
+    Splits textline polygone into ascender and descender by separating with the baseline.
+
+    Args:
+        textline: shapely Polygon of textline
+        baseline: shapely LineString of baseline
+
+    Raises:
+        ValueError: If baseline is not intersecting the given textline
+
+    Returns:
+        ascender, descender
+    """
     # extend line to avoid not completely intersecting polygone
     points = list(baseline.coords)
     new_coords = [(-100, points[0][1])] + points + [(points[-1][0] + 100, points[-1][1])]
     baseline = LineString(new_coords)
 
     # Use the split method to split the polygon
-    parts = split(box, baseline)
+    parts = split(textline, baseline)
 
     if len(parts.geoms) >= 2:
         # Determine which part is above and below the split line
-        ascender = parts.geoms[0] if parts.geoms[0].centroid.y < parts.geoms[1].centroid.y else \
-            parts.geoms[1]
-        descender = parts.geoms[1] if parts.geoms[0].centroid.y < parts.geoms[1].centroid.y else \
-            parts.geoms[0]
+        if parts.geoms[0].centroid.y < parts.geoms[1].centroid.y:
+            ascender = parts.geoms[0]
+            descender = parts.geoms[1]
+        else:
+            ascender = parts.geoms[1]
+            descender = parts.geoms[0]
         return ascender, descender
 
     else:
@@ -89,6 +104,16 @@ def is_valid(box: torch.Tensor):
 
 
 def calc_heights(polygon: Polygon, baseline: torch.tensor):
+    """
+    Calculates the heights of the polygon at all x coordinates.
+
+    Args:
+        polygon: shapely Polygon of ascender or descender
+        baseline: shapely LineString of baseline
+
+    Returns:
+        x and y coordinates of the baseline and the corresponding height values
+    """
     bbox = polygon.bounds
 
     # Move the coordinates relative to the bottom-left corner of its bounding box
@@ -139,6 +164,9 @@ def draw_baseline_target(shape: Tuple[int, int],
         textregions: list of polygons around paragraph
         name: filename for logging errors
         width: width of the drawn baselines
+
+    Returns:
+        np.array with targets
     """
     # Create a blank target filled with ones (white)
     target = np.zeros((*shape, 6), dtype=np.uint8)
@@ -224,13 +252,13 @@ def get_tag(textregion: PageElement):
     return match.group()[6:-2]
 
 
-def extract(xml_path: str, create_subimages: bool) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[torch.Tensor]]:
+def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]],
+                                    List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.
 
     Args:
         xml_path: path to the xml file.
-        create_subimages: create subimages based on the paragraph segmentation
 
     Returns:
         A list of dictionary representing all Textregions in the given document
@@ -275,19 +303,17 @@ def extract(xml_path: str, create_subimages: bool) -> Tuple[List[Dict[str, List[
                     line = torch.tensor([tuple(map(int, point.split(','))) for
                                          point in baseline['points'].split()])[:, torch.tensor([1, 0])]
 
-                    if create_subimages:
-                        line -= bbox[:2].unsqueeze(0)
+                    line -= bbox[:2].unsqueeze(0)
 
                     region_dict['baselines'].append(line)  # type: ignore
 
                     # get mask
                     polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
-                                               point in polygon['points'].split()])[:,
-                                 torch.tensor([1, 0])]
+                                               point in polygon['points'].split()])
+                    polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
 
                     # move mask to be in subimage
-                    if create_subimages:
-                        polygon_pt -= bbox[:2].unsqueeze(0)
+                    polygon_pt -= bbox[:2].unsqueeze(0)
 
                     # calc bbox for line
                     box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
@@ -334,13 +360,15 @@ def rename_files(folder_path: str) -> None:
 
 
 def plot_target(image: np.ndarray,
-                target: np.ndarray, figsize=(50, 10), dpi=500):
+                target: np.ndarray,
+                figsize=(50, 10),
+                dpi=500):
     """
-    Creates and saves an Image of the targets on the image
+    Creates and saves an Image of the targets on the image.
 
     Args:
         image: numpy array representation of the image (width, height, channel)
-        target numpy array representation of the target (width, height, channel)
+        target: numpy array representation of the target (width, height, channel)
         figsize: size of the plot (default: 50, 10)
         dpi: dpi of the plot
     """
@@ -372,8 +400,7 @@ def plot_target(image: np.ndarray,
     plt.show()
 
 
-def main(image_folder: str, target_folder: str, output_path: str, create_baseline_target: bool,
-         create_subimages: bool) -> None:
+def main(image_folder: str, target_folder: str, output_path: str) -> None:
     """
     Preprocesses the complete dataset so it can be used for training.
 
@@ -381,7 +408,6 @@ def main(image_folder: str, target_folder: str, output_path: str, create_baselin
         image_folder: path to images
         target_folder: path to xml files
         output_path: path to save folder
-        create_baseline_target: if True creates targets for baseline UNet
     """
     to_tensor = transforms.PILToTensor()
 
@@ -401,7 +427,7 @@ def main(image_folder: str, target_folder: str, output_path: str, create_baselin
             continue
 
         # extract annotation information from annotation xml file
-        regions, mask_regions = extract(tar_path, create_subimages=create_subimages)
+        regions, mask_regions = extract(tar_path)
 
         # open image, check orientation, convert to tensor
         image = Image.open(img_path)
@@ -418,17 +444,19 @@ def main(image_folder: str, target_folder: str, output_path: str, create_baselin
             textregion.append(region['textregion'])
 
         # create target as numpy array and save it in a compressed file
-        target = draw_baseline_target(image.shape[:2], baselines, masks, mask_regions, textregion, document_name)
-        np.savez_compressed(f"{output_path}/{document_name}",
-                            array=target)
+        target = draw_baseline_target(image.shape[:2],
+                                      baselines,
+                                      masks,
+                                      mask_regions,
+                                      textregion,
+                                      document_name)
+        np.savez_compressed(f"{output_path}/{document_name}", array=target)
 
 
 if __name__ == "__main__":
     main(f'{Path(__file__).parent.absolute()}/../../../data/images',
          f'{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions',
-         f'{Path(__file__).parent.absolute()}/../../../data/preprocessed',
-         create_baseline_target=True,
-         create_subimages=False)
+         f'{Path(__file__).parent.absolute()}/../../../data/preprocessed')
 
     # test_array = np.load(
     #     f'{Path(__file__).parent.absolute()}/../../data/Newspaper/preprocessed3/Koelnische Zeitung 1866.06-1866.09 - 0182/baselines.npz')[

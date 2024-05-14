@@ -3,7 +3,7 @@
 import glob
 import os
 from pathlib import Path
-from typing import List, Dict, Union, Tuple, Optional
+from typing import List, Dict, Union, Tuple
 
 import torch
 from shapely import LineString
@@ -16,24 +16,7 @@ from skimage import io
 from tqdm import tqdm
 import re
 
-
-def get_bbox(
-        points: Union[np.ndarray, torch.Tensor],  # type: ignore
-) -> Tuple[int, int, int, int]:
-    """
-    Creates a bounding box around all given points.
-
-    Args:
-        points: np.ndarray of shape (N x 2) containing a list of points
-
-    Returns:
-        coordinates of bounding box in the format (x_min, y_min, x_max, y_max)
-
-    """
-    x_max, x_min = points[:, 0].max(), points[:, 0].min()
-    y_max, y_min = points[:, 1].max(), points[:, 1].min()
-
-    return x_min, y_min, x_max, y_max  # type: ignore
+from src.baseline_detection.mask_rcnn.utils import get_bbox
 
 
 def is_valid(box: torch.Tensor):
@@ -53,17 +36,20 @@ def is_valid(box: torch.Tensor):
     return True
 
 
-def draw_baseline_target(shape: Tuple[int, int],
-                         baselines: List[torch.Tensor],
-                         mask_regions: List[torch.Tensor]) -> np.ndarray:
+def create_baseline_target(shape: Tuple[int, int],
+                           baselines: List[torch.Tensor],
+                           mask_regions: List[torch.Tensor]) -> np.ndarray:
     """
-    Draw baseline target for given shape.
+    Creates a baseline target for given shape.
 
     Args:
         shape: shape of target
         baselines: list of baselines
-        textlines: polygone around the textline
-        width: width of the drawn baselines
+        mask_regions: regions to mask in input image,
+                      because we know there are no baseline from layout
+
+    Returns:
+        numpy array representing target for baseline prediction
     """
     # Create a blank target filled with ones (white)
     target = np.zeros((*shape, 2), dtype=np.uint8)
@@ -91,7 +77,7 @@ def draw_baseline_target(shape: Tuple[int, int],
 
 def get_tag(textregion: PageElement):
     """
-    Returns the tag of the given textregion
+    Returns the tag of the given textregion.
 
     Args:
         textregion: PageElement of Textregion
@@ -107,6 +93,15 @@ def get_tag(textregion: PageElement):
 
 
 def get_reading_order_idx(textregion: PageElement):
+    """
+    Extracts reading order from textregion PageElement.
+
+    Args:
+        textregion: PageElement of Textregion
+
+    Returns:
+         Reading Order Index as int
+    """
     desc = textregion['custom']
     match = re.search(r"readingOrder\s*\{index:(\d+);\}", desc)
     if match is None:
@@ -149,11 +144,12 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
                                  point in coords['points'].split()])[:, torch.tensor([1, 0])]
             part = torch.tensor(get_bbox(part))
 
-            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {'part': part,
-                                                                               'bboxes': [],
-                                                                               'masks': [],
-                                                                               'baselines': [],
-                                                                               'readingOrder': get_reading_order_idx(region)}
+            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {
+                'part': part,
+                'bboxes': [],
+                'masks': [],
+                'baselines': [],
+                'readingOrder': get_reading_order_idx(region)}
 
             text_region = region.find_all('TextLine')
             for text_line in text_region:
@@ -162,7 +158,8 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
                 if baseline:
                     # get and shift baseline
                     line = torch.tensor([tuple(map(int, point.split(','))) for
-                                         point in baseline['points'].split()])[:, torch.tensor([1, 0])]
+                                         point in baseline['points'].split()])
+                    line = line[:, torch.tensor([1, 0])]
 
                     line -= part[:2].unsqueeze(0)
 
@@ -170,8 +167,8 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
 
                     # get mask
                     polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
-                                               point in polygon['points'].split()])[:,
-                                 torch.tensor([1, 0])]
+                                               point in polygon['points'].split()])
+                    polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
 
                     # move mask to be in subimage
                     polygon_pt -= part[:2].unsqueeze(0)
@@ -258,7 +255,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
 
             # save subimage
             subimage = image[region['part'][0]: region['part'][2],
-                       region['part'][1]: region['part'][3]]
+                             region['part'][1]: region['part'][3]]
 
             io.imsave(f"{output_path}/{document_name}/region_{i}/image.jpg",
                       subimage.to(torch.uint8))
@@ -271,8 +268,8 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
             torch.save(region['bboxes'],
                        f"{output_path}/{document_name}/region_{i}/bboxes.pt")
 
-            target = draw_baseline_target(subimage.shape[:2], region['baselines'],
-                                          region['masks'])
+            target = create_baseline_target(subimage.shape[:2], region['baselines'],
+                                            region['masks'])
             np.savez_compressed(f"{output_path}/{document_name}/region_{i}/baselines",
                                 array=target)
 
@@ -283,7 +280,8 @@ if __name__ == "__main__":
          f'{Path(__file__).parent.absolute()}/../../../data/preprocessed')
 
     # test_array = np.load(
-    #     f'{Path(__file__).parent.absolute()}/../../../data/Newspaper/preprocessed/Koelnische_Zeitung_1924 - 0008/baselines.npz')[
-    #     'array']
+    #     f'{Path(__file__).parent.absolute()}/../../../'
+    #     f'data/Newspaper/preprocessed/Koelnische_Zeitung_1924 - 0008/baselines.npz')['array']
     # image = io.imread(
-    #     f'{Path(__file__).parent.absolute()}/../../../data/Newspaper/newspaper-dataset-main-images/images/Koelnische_Zeitung_1924 - 0008.jpg')
+    #    f'{Path(__file__).parent.absolute()}/../../../'
+    #    f'data/Newspaper/newspaper-dataset-main-images/images/Koelnische_Zeitung_1924 - 0008.jpg')

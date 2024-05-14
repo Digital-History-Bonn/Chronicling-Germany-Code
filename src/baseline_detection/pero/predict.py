@@ -1,3 +1,5 @@
+"""Prediction script for Pero baseline detection."""
+
 from pathlib import Path
 from copy import deepcopy
 from typing import List, Tuple
@@ -29,7 +31,8 @@ from src.baseline_detection.xml_conversion import add_baselines
 
 def nonmaxima_suppression(input, element_size=(7, 1)):
     """
-    Function from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py
+    Function from
+    https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py
     Vertical non-maxima suppression.
     :param input: input array
     :param element_size: structure element for greyscale dilations
@@ -45,7 +48,9 @@ def nonmaxima_suppression(input, element_size=(7, 1)):
     return input * (input == dilated)
 
 
-def plot_lines_on_image(image: torch.Tensor, baselines: List[torch.Tensor], textlines: List[torch.Tensor]):
+def plot_lines_on_image(image: torch.Tensor,
+                        baselines: List[torch.Tensor],
+                        textlines: List[torch.Tensor]):
     """
     Plot lines on the given image.
 
@@ -83,13 +88,15 @@ def plot_lines_on_image(image: torch.Tensor, baselines: List[torch.Tensor], text
 
     plt.axis('off')  # Turn off axis
     plt.tight_layout()
-    plt.savefig(f"{Path(__file__).parent.absolute()}/../../../data/PeroBaselinePrediction7.png", dpi=1000)
-    print(f"saved fig to {Path(__file__).parent.absolute()}/../../../data/PeroBaselinePrediction7.png")
+    plt.savefig(f"{Path(__file__).parent.absolute()}/../../../"
+                f"data/PeroBaselinePrediction7.png", dpi=1000)
+    print(f"saved fig to {Path(__file__).parent.absolute()}/../../../"
+          f"data/PeroBaselinePrediction7.png")
 
 
 def clustered_lines_to_polygons(t_list, clusters_array):
     """
-    Function from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py
+    Function from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
     """
     regions_textlines_tmp = []
     polygons_tmp = []
@@ -210,7 +217,9 @@ class BaselineEngine:
         textregion_draw = ImageDraw.Draw(textregion_img)
         for textregion in textregions:
             # draw textregion
-            textregion_draw.polygon([(x[1].item(), x[0].item()) for x in textregion], fill=0, outline=255,
+            textregion_draw.polygon([(x[1].item(), x[0].item()) for x in textregion],
+                                    fill=0,
+                                    outline=255,
                                     width=3)
 
         return self.to_tensor(textregion_img)
@@ -224,10 +233,10 @@ class BaselineEngine:
         x_1_shifted = int(round(x_1)) - np.amin(b_shifted[:, 0])
         x_2_shifted = int(round(x_2)) - np.amin(b_shifted[:, 0])
         map_crop = map[
-                   np.clip(np.amin(b_shifted[:, 1] - t), 0, map.shape[0] - 1): np.clip(np.amax(b_shifted[:, 1] + t + 1),
-                                                                                       0,
-                                                                                       map.shape[0] - 1),
-                   np.amin(b_shifted[:, 0]): np.amax(b_shifted[:, 0])
+                   np.clip(np.amin(b_shifted[:, 1] - t), 0, map.shape[0] - 1):
+                   np.clip(np.amax(b_shifted[:, 1] + t + 1), 0, map.shape[0] - 1),
+                   np.amin(b_shifted[:, 0]):
+                   np.amax(b_shifted[:, 0])
                    ]
 
         b_shifted[:, 1] -= (np.amin(b_shifted[:, 1]) - t)
@@ -236,7 +245,10 @@ class BaselineEngine:
         penalty_mask = np.zeros_like(map_crop)
         for b_ind in range(b_shifted.shape[0] - 1):
             try:
-                cv2.line(penalty_mask, tuple(b_shifted[b_ind, :]), tuple(b_shifted[b_ind + 1, :]), color=1,
+                cv2.line(penalty_mask,
+                         tuple(b_shifted[b_ind, :]),
+                         tuple(b_shifted[b_ind + 1, :]),
+                         color=1,
                          thickness=(2 * t) + 1)
             except:
                 print("WARNING: Paragraph penalty calculation failed.")
@@ -248,7 +260,8 @@ class BaselineEngine:
 
     def get_pair_penalty(self, b1, b2, h1, h2, map, ds):
         """
-        Function from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py
+        Function from
+        https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
         """
         x_overlap = max(0, min(np.amax(b1[:, 0]), np.amax(b2[:, 0])) - max(np.amin(b1[:, 0]), np.amin(b2[:, 0])))
         if x_overlap > 5:
@@ -464,21 +477,34 @@ class BaselineEngine:
         return textregions, mask_regions
 
 
-def main(image_path: str, layout_xml_path: str):
+def main(image_path: str, layout_xml_path: str, output_file: str):
+    """
+    Predicts textlines and baselines in given image and writes into a annotation xml file.
+
+    Args:
+        image_path (str): Path to image
+        layout_xml_path (str): Path to layout xml file
+        output_file (str): Path to output xml file
+    """
     baseline_engine = BaselineEngine(model_name='height2_baseline_e250_es', cuda=0)
 
     image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
     textlines, baselines = baseline_engine.predict(image, layout_xml_path)
 
     add_baselines(
-        f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
+        layout_xml=layout_xml_path,
         textlines=textlines,
         baselines=baselines,
+        output_file=output_file
     )
 
 
 if __name__ == '__main__':
     main(
-        image_path=f"{Path(__file__).parent.absolute()}/../../../data/images/Koelnische_Zeitung_1924 - 0085.jpg",
-        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml"
+        image_path=f"{Path(__file__).parent.absolute()}/../../../"
+                   f"data/images/Koelnische_Zeitung_1924 - 0085.jpg",
+        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../"
+                        f"data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
+        output_file=f"{Path(__file__).parent.absolute()}/../../../"
+                    f"data/predictionExample.xml'"
     )

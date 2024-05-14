@@ -1,14 +1,14 @@
-"""Module to train Mask R-CNN Model"""
+"""Module to train Mask R-CNN Model."""
 
 import os
 from pathlib import Path
 import argparse
-from typing import Optional, Union, Dict
+from typing import Optional, Union
 
 import numpy as np
 import torch
 from torch.optim import AdamW, Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torchvision.models.detection import (
     FasterRCNN,
@@ -46,7 +46,6 @@ class Trainer:
             testdataset: dataset to validate model while trainings process
             optimizer: optimizer to use
             name: name of the model in save-files and tensorboard
-            mask_prediction: Set True if you want to get masks predicted
             cuda: number of used cuda device
         """
         self.device = (
@@ -215,7 +214,12 @@ class Trainer:
         return np.mean(loss)
 
     def log_examples(self, dataset: str):
-        """Predicts and logs a example image form the training- and from the validation set."""
+        """
+        Predicts and logs a example image form the training- and from the validation set.
+
+        Args:
+            dataset: dataset to log
+        """
         self.model.eval()
 
         example = self.train_example_image if dataset == 'Training' else self.example_image
@@ -242,62 +246,22 @@ class Trainer:
 
         self.model.train()
 
-    def log_loss(self, dataset: str,
-                 loss: float,
-                 loss_classifier: float,
-                 loss_box_reg: float,
-                 loss_objectness: float,
-                 loss_rpn_box_reg: float,
-                 loss_masks: float
-                 ):
+    def log_loss(self, dataset: str, **kwargs):
         """
         Logs the loss values to tensorboard.
 
         Args:
             dataset: Name of the dataset the loss comes from ('Training' or 'Valid')
-            loss: average over all loss
-            loss_classifier: average classifier loss
-            loss_box_reg: average box regression loss loss
-            loss_objectness: average objectiveness loss
-            loss_rpn_box_reg: average rpn box regression loss
-            loss_masks: average masking loss
+            kwargs: Dict with loss names as keys and values as values
+
         """
         # logging
-        self.writer.add_scalar(
-            f"{dataset}/loss",
-            loss,
-            global_step=self.epoch
-        )  # type: ignore
-
-        self.writer.add_scalar(
-            f"{dataset}/loss_classifier",
-            loss_classifier,
-            global_step=self.epoch
-        )  # type: ignore
-
-        self.writer.add_scalar(
-            f"{dataset}/loss_box_reg",
-            loss_box_reg,
-            global_step=self.epoch
-        )  # type: ignore
-
-        self.writer.add_scalar(
-            f"{dataset}/loss_objectness",
-            loss_objectness,
-            global_step=self.epoch
-        )  # type: ignore
-
-        self.writer.add_scalar(
-            f"{dataset}/loss_rpn_box_reg",
-            loss_rpn_box_reg,
-            global_step=self.epoch
-        )  # type: ignore
-
-        self.writer.add_scalar(
-            f"{dataset}/loss_masks",
-            loss_masks,
-            global_step=self.epoch
-        )  # type: ignore
+        for key, value in kwargs.items():
+            self.writer.add_scalar(
+                f"{dataset}/{key}",
+                value,
+                global_step=self.epoch
+            )  # type: ignore
 
         self.writer.flush()  # type: ignore
 
@@ -328,7 +292,12 @@ def get_model(load_weights: Optional[str] = None) -> MaskRCNN:
 
 
 def get_args() -> argparse.Namespace:
-    """Defines arguments."""
+    """
+    Defines arguments.
+
+    Returns:
+        Namespace with call arguments
+    """
     parser = argparse.ArgumentParser(description="training")
 
     parser.add_argument(

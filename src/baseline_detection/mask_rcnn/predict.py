@@ -1,3 +1,5 @@
+"""Prediction script for Mask R-CNN baseline detection."""
+
 from pathlib import Path
 from typing import Dict, Union, List
 
@@ -7,7 +9,6 @@ from shapely.affinity import translate
 from skimage.measure import find_contours
 from torchvision.transforms import GaussianBlur
 from skimage import io
-from skimage.draw import line as sk_line
 from torchvision.models.detection import MaskRCNN
 
 from src.baseline_detection.mask_rcnn.postprocessing import postprocess
@@ -19,6 +20,15 @@ from src.baseline_detection.xml_conversion import add_baselines
 
 
 def prior(size: int):
+    """
+    Creates a prior map for the baseline in the bounding box.
+
+    Args:
+        size (int): Height of the bounding box
+
+    Returns:
+        tensor of size with vertical prior values
+    """
     p1 = int(size * 0.3)
     p2 = int(size * 0.6)
     p3 = int(size * 0.80)
@@ -28,40 +38,40 @@ def prior(size: int):
                          torch.linspace(1, 0.0, size - p3)])
 
 
-def draw_lines_on_image(image_tensor, lines):
-    # Convert torch tensor to numpy array
-    image_np = image_tensor.permute(1, 2, 0).numpy()
+def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor) -> LineString:
+    """
+    Predicts baseline in bounding box using the mask and probability map.
 
-    # Draw lines on the image
-    for line in lines:
-        # Iterate over consecutive pairs of points in the line
-        for i in range(len(line) - 1):
-            # Extract coordinates
-            y1, x1 = line[i]
-            y2, x2 = line[i + 1]
+    Args:
+        box (torch.Tensor): Bounding box of textline
+        mask (torch.Tensor): Mask of textline
+        map (torch.Tensor): Probability map of baseline inside bounding box
 
-            # Generate coordinates for the line using skimage.draw.line
-            rr, cc = sk_line(y1, x1, y2, x2)
-
-            # Draw the line
-            image_np[rr, cc] = [0, 0, 255]  # Color of the line (here, blue)
-
-    return image_np.transpose((2, 0, 1))
-
-
-def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor):
+    Returns:
+        LineString of baseline in bounding box
+    """
     line_region = map * mask[0]
     line_region = line_region[box[1]:box[3], box[0]:box[2]] * prior(box[3] - box[1])[:, None]
 
     y_pos = torch.argmax(line_region, dim=0)
     y_values = torch.amax(line_region, dim=0)
 
-    line = torch.vstack([box[1] + y_pos, torch.arange(box[0], box[0] + len(y_pos))]).T[y_values > 0.5]
+    line = torch.vstack([box[1] + y_pos,
+                         torch.arange(box[0], box[0] + len(y_pos))]).T[y_values > 0.5]
 
-    return line.int()
+    return LineString(line.int()).simplify(tolerance=1)
 
 
 def get_polygon(mask: torch.Tensor) -> Polygon:
+    """
+    Converts mask into one polygon representing the textline.
+
+    Args:
+        mask (torch.Tensor): Mask of textline
+
+    Returns:
+        Polygon of textline
+    """
     polygons = find_contours(mask)
     lengths = torch.tensor([len(polygon) for polygon in polygons])
     idx = torch.argmax(lengths)
@@ -71,12 +81,31 @@ def get_polygon(mask: torch.Tensor) -> Polygon:
 def predict_image(textline_model: MaskRCNN,
                   baseline_model: BasicUNet,
                   image: torch.Tensor,
-                  device: torch.device):
+                  device: torch.device) -> Dict[str, Union[torch.Tensor, Geometry]]:
+    """
+    Predicts textlines and baselines in given image.
+
+    Args:
+        textline_model (MaskRCNN): Mask R-CNN model for textline detection
+        baseline_model (BasicUNet): Mask R-CNN model for baseline prediction
+        image (torch.Tensor): Image of paragraph of page
+        device (torch.device): Device used for prediction
+
+    Returns:
+        Dict with predictions for:
+            boxes: textline bounding boxes
+            scores: probabilities of textlines
+            textlines: polygons of textlines
+            baselines: Linestrings of textlines
+    """
     gauss_filter = GaussianBlur(kernel_size=5, sigma=2.0)
     image = image.to(device)
 
     # predict example form training set
-    pred: Dict[str, Union[torch.Tensor, List[torch.Tensor], List[Geometry]]] = textline_model([image])[0]
+    pred: Dict[str, Union[torch.Tensor,
+                          List[torch.Tensor],
+                          List[Polygon],
+                          List[LineString]]] = textline_model([image])[0]
 
     # move predictions to cpu
     pred["boxes"] = pred["boxes"].detach().cpu()
@@ -94,15 +123,28 @@ def predict_image(textline_model: MaskRCNN,
 
     pred['lines'] = []
     for box, mask in zip(pred["boxes"], pred["masks"]):
-        line = predict_baseline(box, mask, baseline_probability_map)
-        pred['lines'].append(LineString(line).simplify(tolerance=1))
+        pred['lines'].append(predict_baseline(box, mask, baseline_probability_map))
 
-    pred['masks'] = [get_polygon(mask[0].numpy()) for mask in pred['masks']]
+    pred['textline'] = [get_polygon(mask[0].numpy()) for mask in pred['masks']]
+    del pred['masks']
+    del pred['labels']
 
     return pred
 
 
 def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tensor]]]):
+    """
+    Predicts textlines and baselines in given image (complete page).
+
+    Args:
+        image (torch.Tensor): Image of complete page
+        annotation (List[Dict[str, List[torch.Tensor]]]): annotations of page layout,
+                                                          containing TextRegions
+
+    Returns:
+        Prediction dict with boundingboxes, probability score, textlines,
+        baselines, region and readingOrder.
+    """
     # set device
     device = torch.device('cuda:0')
 
@@ -120,7 +162,7 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
 
     prediction = {"boxes": torch.zeros((0, 4)),
                   "scores": torch.zeros((0,)),
-                  "masks": [],
+                  "textline": [],
                   "lines": [],
                   "region": [],
                   "readingOrder": []}
@@ -128,25 +170,36 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
     # iterate over regions and predict lines
     for region in sorted(annotation, key=lambda anno: anno['readingOrder']):
         subimage = image[:, region['part'][0]: region['part'][2],
-                   region['part'][1]: region['part'][3]]
+                         region['part'][1]: region['part'][3]]
 
         pred = predict_image(textline_model, baseline_model, subimage, device)
 
-        shift = torch.tensor([region['part'][1], region['part'][0], region['part'][1], region['part'][0]])
+        shift = torch.tensor([region['part'][1], region['part'][0],
+                              region['part'][1], region['part'][0]])
         prediction["boxes"] = torch.vstack([prediction["boxes"], pred["boxes"] + shift])
         prediction["scores"] = torch.hstack([prediction["scores"], pred["scores"]])
 
         length = len(pred['lines'])
         shift = torch.tensor([region['part'][0], region['part'][1]])
-        prediction["lines"].extend([translate(line, xoff=shift[0], yoff=shift[1]) for line in pred["lines"]])
-        prediction["masks"].extend([translate(mask, xoff=shift[0], yoff=shift[1]) for mask in pred["masks"]])
+        prediction["lines"].extend([translate(line, xoff=shift[0], yoff=shift[1])
+                                    for line in pred["lines"]])
+        prediction["textline"].extend([translate(mask, xoff=shift[0], yoff=shift[1])
+                                       for mask in pred["textline"]])
         prediction["region"].extend([region['readingOrder']] * length)
         prediction["readingOrder"].extend([i for i in range(length)])
 
     return prediction
 
 
-def main(image_path: str, layout_xml_path: str):
+def main(image_path: str, layout_xml_path: str, output_file: str):
+    """
+    Predicts textlines and baselines in given image and writes into a annotation xml file.
+
+    Args:
+        image_path (str): Path to image
+        layout_xml_path (str): Path to layout xml file
+        output_file (str): Path to output xml file
+    """
     image = torch.tensor(io.imread(image_path)).permute(2, 0, 1)
     image = image.to(torch.device('cuda:0'))
     image = image.float()
@@ -156,13 +209,17 @@ def main(image_path: str, layout_xml_path: str):
 
     add_baselines(
         layout_xml_path,
-        pred['masks'],
+        output_file,
+        pred['textline'],
         pred['lines']
     )
 
 
 if __name__ == '__main__':
     main(
-        image_path=f"{Path(__file__).parent.absolute()}/../../../data/images/Koelnische_Zeitung_1924 - 0085.jpg",
-        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml"
+        image_path=f"{Path(__file__).parent.absolute()}/../../../"
+                   f"data/images/Koelnische_Zeitung_1924 - 0085.jpg",
+        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../"
+                        f"data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
+        output_file=f"{Path(__file__).parent.absolute()}/../../../data/predictionExample.xml"
     )

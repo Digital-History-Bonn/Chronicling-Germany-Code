@@ -2,14 +2,11 @@
 
 import os
 import glob
-from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import torch
-from torch.nn import Sequential, ModuleList
 import torch.nn.functional as F
-from matplotlib import pyplot as plt
 from skimage import io
 from torch.nn import Module
 from torch.utils.data import Dataset
@@ -17,9 +14,7 @@ from torchvision import transforms
 
 
 class RandomCropAndResize(Module):
-    """
-    Crops the given image and target at a random position.
-    """
+    """Crops the given image and target at a random position."""
 
     def __init__(self, size: Tuple[int, int]):
         """
@@ -37,7 +32,7 @@ class RandomCropAndResize(Module):
 
         Args:
             image: torch Tensor representation of the image (channel, width, height)
-            target torch Tensor representation of the target (channel, width, height)
+            target: torch Tensor representation of the target (channel, width, height)
 
         Returns:
             cropped image: torch Tensor representation of the image (channel, size[0], size[1])
@@ -61,8 +56,10 @@ class CustomDataset(Dataset):  # type: ignore
         Newspaper Class for training.
 
         Args:
-            path: path to folder with images
-            transformation: torchvision transforms for on-the-fly augmentations
+            image_path: path to folder with images
+            target_path: path to folder with targets
+            augmentations: torchvision transforms for on-the-fly augmentations
+            cropping: whether to crop images or not
         """
         super().__init__()
         self.image_path = image_path
@@ -81,11 +78,11 @@ class CustomDataset(Dataset):  # type: ignore
 
         Returns:
             image, target
-
         """
-
-        image = torch.tensor(io.imread(f"{self.image_path}/{self.data[index]}.jpg")).permute(2, 0, 1) / 256
-        target = torch.tensor(np.load(f"{self.target_path}/{self.data[index]}.npz")['array']).permute(2, 0, 1).float()
+        image = torch.tensor(io.imread(f"{self.image_path}/{self.data[index]}.jpg"))
+        image = image.permute(2, 0, 1) / 256
+        target = torch.tensor(np.load(f"{self.target_path}/{self.data[index]}.npz")['array'])
+        target = target.permute(2, 0, 1).float()
 
         # mask image
         image = image * target[None, 5, :, :]

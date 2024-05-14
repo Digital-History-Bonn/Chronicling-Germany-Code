@@ -1,15 +1,11 @@
 """Newspaper Class for newspaper mask R-CNN."""
 
-import os
 import glob
-from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import torch
-from torch.nn import Sequential, ModuleList
 import torch.nn.functional as F
-from matplotlib import pyplot as plt
 from skimage import io
 from torch.nn import Module
 from torch.utils.data import Dataset
@@ -28,7 +24,9 @@ class CustomDataset(Dataset):  # type: ignore
 
         Args:
             path: path to folder with images
-            transformation: torchvision transforms for on-the-fly augmentations
+            scaling: scaling factor for image
+            augmentations: torchvision transforms for on-the-fly augmentations
+            cropping: whether to crop images randomly during training
         """
         super().__init__()
         self.path = path
@@ -40,7 +38,7 @@ class CustomDataset(Dataset):  # type: ignore
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Returns image and target (boxes, labels, img_number) from dataset.
+        Returns image and target from dataset.
 
         Args:
             index: index of datapoint
@@ -49,7 +47,6 @@ class CustomDataset(Dataset):  # type: ignore
             image, target
 
         """
-
         image = torch.tensor(io.imread(f"{self.data[index]}/image.jpg")).permute(2, 0, 1) / 256
         target = torch.tensor(np.load(f"{self.data[index]}/baselines.npz")['array'])
         target = target.permute(2, 0, 1).float()
@@ -85,48 +82,36 @@ class CustomDataset(Dataset):  # type: ignore
 
         Returns:
             length of the dataset
-
         """
         return len(self.data)
 
 
 class RandomCropAndResize(Module):
-    def __init__(self, size):
+    """Random cropping module."""
+
+    def __init__(self, size: Tuple[int, int]):
+        """
+        Random cropping module.
+
+        Args:
+            size: size of the crop
+        """
         super().__init__()
         self.size = size
 
-    def __call__(self, image: torch.Tensor, target: torch.Tensor):
-        # Randomly crop the image and mask
+    def __call__(self, image: torch.Tensor,
+                 target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Randomly crop the image and mask.
+
+        Args:
+            image: input image
+            target: target of same size
+
+        Returns:
+            cropped image and target
+        """
         i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.size)
         image = transforms.functional.crop(image, i, j, h, w)
         target = transforms.functional.crop(target, i, j, h, w)
         return image, target
-
-
-if __name__ == "__main__":
-    augmentations = Sequential(
-        transforms.RandomApply(
-            ModuleList(
-                [transforms.ColorJitter(brightness=(0.5, 1.5), saturation=(0, 2))]
-            ),
-            p=0,
-        ),
-        transforms.RandomApply(
-            ModuleList(
-                [transforms.GaussianBlur(kernel_size=9, sigma=(2, 10))]
-            ),
-            p=0,
-        ),
-        transforms.RandomAdjustSharpness(sharpness_factor=1.5, p=0),
-        transforms.RandomGrayscale(p=1),
-    )
-
-    dataset = CustomDataset('../../data/Newspaper/train', cropping=False)
-    print(len(dataset))
-
-    image, target = dataset[0]
-    print(f"{image.shape=}, {target.shape=}")
-
-    plt.imshow(image.permute(1, 2, 0))
-    plt.imshow(target[0], alpha=0.5, cmap='gray')
-    plt.show()

@@ -1,6 +1,4 @@
-"""
-This script is from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py
-"""
+"""This script is from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py"""
 
 import math
 import random
@@ -13,8 +11,6 @@ from scipy.spatial import Delaunay
 import shapely
 import shapely.geometry as sg
 from shapely.ops import unary_union, polygonize
-
-# from pero_ocr.core.layout import TextLine
 
 
 def check_line_position(baseline, page_size, margin=20, min_ratio=0.125):

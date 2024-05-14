@@ -24,6 +24,7 @@ LR = 0.00001
 
 class Trainer:
     """Class to train models."""
+
     def __init__(
             self,
             model: nn.Module,
@@ -42,7 +43,6 @@ class Trainer:
             testdataset: dataset to validate model while trainings process
             optimizer: optimizer to use
             name: name of the model in save-files and tensorboard
-            mask_prediction: Set True if you want to get masks predicted
             cuda: number of used cuda device
         """
         self.device = (
@@ -176,7 +176,12 @@ class Trainer:
         return np.mean(loss_lst)
 
     def log_examples(self, dataset: str):
-        """Predicts and logs a example image form the training- and from the validation set."""
+        """
+        Predicts and logs a example image form the training- and from the validation set.
+
+        Args:
+            dataset: dataset to log
+        """
         self.model.eval()
 
         example = self.train_example_image if dataset == 'Training' else self.example_image
@@ -191,7 +196,13 @@ class Trainer:
         self.model.train()
 
     def log_image(self, dataset: str, **kwargs):
+        """
+        Logs a given images under the given dataset label.
 
+        Args:
+            dataset: dataset to log the images under ('Training' or 'Validation')
+            kwargs: Dict with names (keys) and images (images) to log
+        """
         for key, image in kwargs.items():
             # log in tensorboard
             self.writer.add_image(
@@ -208,10 +219,8 @@ class Trainer:
 
         Args:
             dataset: Name of the dataset the loss comes from ('Training' or 'Valid')
-            loss: average over all loss
-
+            kwargs: Dict with loss names as keys and values as values
         """
-        # logging
         for key, value in kwargs.items():
             self.writer.add_scalar(
                 f"{dataset}/{key}",
@@ -223,7 +232,12 @@ class Trainer:
 
 
 def get_args() -> argparse.Namespace:
-    """Defines arguments."""
+    """
+    Defines arguments.
+
+    Returns:
+        Namespace with call arguments
+    """
     parser = argparse.ArgumentParser(description="training")
 
     parser.add_argument(

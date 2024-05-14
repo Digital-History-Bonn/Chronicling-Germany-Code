@@ -23,7 +23,7 @@ def copy(folder: str, split: List[str], name: str) -> None:
 
     for f in tqdm(split, desc="copying"):
         numb = f.split(os.sep)[-1]
-        shutil.copy(f, f"{folder}/../{name}/{numb}")
+        shutil.copytree(f, f"{folder}/../{name}/{numb}")
 
 
 def split_dataset(folder: str, split: Tuple[float, float, float]) -> None:
@@ -59,9 +59,9 @@ def split_dataset(folder: str, split: Tuple[float, float, float]) -> None:
     print(f"{len(test)=}")
 
     # copy data in 3 new folder
-    copy(folder, train, "train_pero")
-    copy(folder, valid, "valid_pero")
-    copy(folder, test, "test_pero")
+    copy(folder, train, "train_mask")
+    copy(folder, valid, "valid_mask")
+    copy(folder, test, "test_mask")
 
 
 if __name__ == "__main__":

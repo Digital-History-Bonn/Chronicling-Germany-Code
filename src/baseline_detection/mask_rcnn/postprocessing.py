@@ -9,7 +9,7 @@ from skimage.measure import regionprops
 
 def finetune_bboxes(masks: torch.Tensor, threshold=.5) -> torch.Tensor:
     """
-    Calculates bounding boxes form the masks.
+    Recalculates bounding boxes from the masks.
 
     Args:
         masks: tensor with all the predicted masks
@@ -46,11 +46,8 @@ def postprocess(prediction: Dict[str, torch.Tensor],
     if method not in ('iou', 'iom'):
         raise NameError(f"Method must be one of 'iou' or 'iom', got {method}!")
 
-    boxes = prediction['boxes']
     scores = prediction['scores']
-
-    if 'masks' in prediction.keys():
-        boxes = finetune_bboxes(prediction['masks'])
+    boxes = finetune_bboxes(prediction['masks'])
 
     # calc matrix of intersection depending on method
     inter, union = _box_inter_union(boxes, boxes)
@@ -80,7 +77,8 @@ def postprocess(prediction: Dict[str, torch.Tensor],
     reduced_prediction["masks"] = reduced_prediction["masks"] > 0.5
 
     # sort results
-    order = [index for index, _ in sorted(enumerate(reduced_prediction['boxes']), key=lambda box: (box[0], box[1]))]
+    order = [index for index, _ in sorted(enumerate(reduced_prediction['boxes']),
+                                          key=lambda box: (box[0], box[1]))]
     reduced_prediction['boxes'] = reduced_prediction['boxes'][order]
     reduced_prediction['scores'] = reduced_prediction['scores'][order]
     reduced_prediction['masks'] = reduced_prediction['masks'][order]

@@ -28,6 +28,7 @@ class MultiTargetLoss(nn.Module):
 
     Oriented on pero (https://arxiv.org/abs/2102.11838)
     """
+
     def __init__(self, scaling: float = 0.01):
         """
         Custom loss for multi task semantic segmentation.
@@ -53,9 +54,10 @@ class MultiTargetLoss(nn.Module):
         Returns:
             overall loss, individual losses (ascender, descender, baseline, limits)
         """
-
-        ascender_loss = self.mse(pred[:, 0, :, :].float() * target[:, 2, :, :].float() , target[:, 0, :, :].float())
-        descender_loss = self.mse(pred[:, 1, :, :].float() * target[:, 2, :, :].float(), target[:, 1, :, :].float())
+        ascender_loss = self.mse(pred[:, 0, :, :].float() * target[:, 2, :, :].float(),
+                                 target[:, 0, :, :].float())
+        descender_loss = self.mse(pred[:, 1, :, :].float() * target[:, 2, :, :].float(),
+                                  target[:, 1, :, :].float())
         baseline_loss = self.dice(pred[:, 2:4, :, :], target[:, 2, None, :, :])
         limits_loss = self.dice(pred[:, 4:6, :, :], target[:, 3, None, :, :])
 
@@ -84,7 +86,6 @@ class Trainer:
             testdataset: dataset to validate model while trainings process
             optimizer: optimizer to use
             name: name of the model in save-files and tensorboard
-            mask_prediction: Set True if you want to get masks predicted
             cuda: number of used cuda device
         """
         print(f"{torch.cuda.is_available()=}")
@@ -254,7 +255,12 @@ class Trainer:
         return np.mean(loss_lst)
 
     def log_examples(self, dataset: str):
-        """Predicts and logs a example image form the training- and from the validation set."""
+        """
+        Predicts and logs a example image form the training- and from the validation set.
+
+        Args:
+            dataset: dataset to log
+        """
         self.model.eval()
 
         example = self.train_example_image if dataset == 'Training' else self.example_image
@@ -281,7 +287,13 @@ class Trainer:
         self.model.train()
 
     def log_image(self, dataset: str, **kwargs):
-        """Logs image to tensorboard"""
+        """
+        Logs given images under the given dataset label.
+
+        Args:
+            dataset: dataset to log the images under ('Training' or 'Validation')
+            kwargs: Dict with names (keys) and images (images) to log
+        """
         for key, image in kwargs.items():
             # log in tensorboard
             self.writer.add_image(
@@ -313,7 +325,12 @@ class Trainer:
 
 
 def get_args() -> argparse.Namespace:
-    """Defines arguments."""
+    """
+    Defines arguments.
+
+    Returns:
+        Namespace with call arguments
+    """
     parser = argparse.ArgumentParser(description="training")
 
     parser.add_argument(
