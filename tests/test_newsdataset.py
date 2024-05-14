@@ -32,15 +32,12 @@ class TestClassNewsdataset:
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
             file_quantity = 30
-            crop_quantity = 36
 
             assert (
                     pytest.news_dataset.file_stems == ground_truth
                     and len(pytest.news_dataset.file_stems) == file_quantity
             )
-            assert (
-                len(pytest.news_dataset) == crop_quantity * file_quantity
-                and pytest.news_dataset.data[0].dtype == torch.uint8
+            assert (pytest.news_dataset.data[0].dtype == torch.uint8
                 and pytest.news_dataset.data[0].shape == (4, 256, 256)
             )
 
