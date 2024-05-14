@@ -1,8 +1,9 @@
 from pathlib import Path
-from pprint import pprint
 from typing import Dict, Union, List
 
 import torch
+from shapely import Polygon, LineString, Geometry
+from shapely.affinity import translate
 from skimage.measure import find_contours
 from torchvision.transforms import GaussianBlur
 from skimage import io
@@ -13,6 +14,8 @@ from src.baseline_detection.mask_rcnn.postprocessing import postprocess
 from src.baseline_detection.mask_rcnn.preprocess import extract
 from src.baseline_detection.mask_rcnn.trainer_textline import get_model
 from monai.networks.nets import BasicUNet
+
+from src.baseline_detection.xml_conversion import add_baselines
 
 
 def prior(size: int):
@@ -58,11 +61,11 @@ def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor):
     return line.int()
 
 
-def get_polygon(mask: torch.Tensor):
+def get_polygon(mask: torch.Tensor) -> Polygon:
     polygons = find_contours(mask)
     lengths = torch.tensor([len(polygon) for polygon in polygons])
     idx = torch.argmax(lengths)
-    return torch.tensor(polygons[idx])
+    return Polygon(polygons[idx]).simplify(tolerance=1)
 
 
 def predict_image(textline_model: MaskRCNN,
@@ -73,7 +76,7 @@ def predict_image(textline_model: MaskRCNN,
     image = image.to(device)
 
     # predict example form training set
-    pred: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = textline_model([image])[0]
+    pred: Dict[str, Union[torch.Tensor, List[torch.Tensor], List[Geometry]]] = textline_model([image])[0]
 
     # move predictions to cpu
     pred["boxes"] = pred["boxes"].detach().cpu()
@@ -92,7 +95,7 @@ def predict_image(textline_model: MaskRCNN,
     pred['lines'] = []
     for box, mask in zip(pred["boxes"], pred["masks"]):
         line = predict_baseline(box, mask, baseline_probability_map)
-        pred['lines'].append(line)
+        pred['lines'].append(LineString(line).simplify(tolerance=1))
 
     pred['masks'] = [get_polygon(mask[0].numpy()) for mask in pred['masks']]
 
@@ -135,8 +138,8 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
 
         length = len(pred['lines'])
         shift = torch.tensor([region['part'][0], region['part'][1]])
-        prediction["lines"].extend([line + shift for line in pred["lines"]])
-        prediction["masks"].extend([mask + shift for mask in pred["masks"]])
+        prediction["lines"].extend([translate(line, xoff=shift[0], yoff=shift[1]) for line in pred["lines"]])
+        prediction["masks"].extend([translate(mask, xoff=shift[0], yoff=shift[1]) for mask in pred["masks"]])
         prediction["region"].extend([region['readingOrder']] * length)
         prediction["readingOrder"].extend([i for i in range(length)])
 
@@ -155,6 +158,12 @@ def main():
         f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml")
 
     pred = predict_page(image, anno)
+
+    add_baselines(
+        f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
+        pred['masks'],
+        pred['lines']
+    )
 
 
 if __name__ == '__main__':
