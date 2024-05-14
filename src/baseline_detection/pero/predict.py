@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 import numpy as np
 import torch
+from shapely import Polygon, LineString
 from torch import nn
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
@@ -23,6 +24,7 @@ from monai.networks.nets import BasicUNet
 
 from src.baseline_detection.pero.preprocess import get_tag
 from src.baseline_detection.pero import layout_helpers as helpers
+from src.baseline_detection.xml_conversion import add_baselines
 
 
 def nonmaxima_suppression(input, element_size=(7, 1)):
@@ -386,7 +388,7 @@ class BaselineEngine:
 
         return b_list, h_list, t_list
 
-    def predict(self, image: torch.Tensor, layout: str):
+    def predict(self, image: torch.Tensor, layout: str) -> Tuple[List[Polygon], List[LineString]]:
         """
         Predicts the baselines and textlines on a given image.
 
@@ -419,14 +421,18 @@ class BaselineEngine:
 
         if not b_list:
             print('fail!')
-            return [], [], [], []
+            return [], []
 
         # clusters_array = make_clusters(b_list, h_list, t_list, maps[:, :, 4], 2)
         # p_list = clustered_lines_to_polygons(t_list, clusters_array)
 
         b_list, h_list, t_list = helpers.order_lines_vertical(b_list, h_list, t_list)
         # p_list, b_list, t_list = rotate_layout(p_list, b_list, t_list, rot, image.shape)
-        plot_lines_on_image(image, b_list, t_list)
+
+        baselines = [LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list]
+        textlines = [Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list]
+
+        return textlines, baselines
 
     def get_textregions(self, xml_path) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         with open(xml_path, "r", encoding="utf-8") as file:
@@ -458,14 +464,21 @@ class BaselineEngine:
         return textregions, mask_regions
 
 
+def main(image_path: str, layout_xml_path: str):
+    baseline_engine = BaselineEngine(model_name='height2_baseline_e250_es', cuda=0)
+
+    image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
+    textlines, baselines = baseline_engine.predict(image, layout_xml_path)
+
+    add_baselines(
+        f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
+        textlines=textlines,
+        baselines=baselines,
+    )
+
+
 if __name__ == '__main__':
-    baseline_engine = BaselineEngine(model_name='height2_baseline_e250_es',
-                                     cuda=0)
-
-    path = 'data/images/Koelnische_Zeitung_1924 - 0071.jpg'
-    image = torch.tensor(io.imread(f"{Path(__file__).parent.absolute()}/../../../{path}")).permute(
-        2, 0, 1) / 256
-
-    layout = f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0071.xml"
-
-    baseline_engine.predict(image, layout)
+    main(
+        image_path=f"{Path(__file__).parent.absolute()}/../../../data/images/Koelnische_Zeitung_1924 - 0085.jpg",
+        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml"
+    )

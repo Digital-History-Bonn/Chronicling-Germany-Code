@@ -1,9 +1,8 @@
-import glob
-from pprint import pprint
 from typing import List
 
 import numpy as np
 from bs4 import BeautifulSoup
+from shapely import LineString
 from shapely.geometry import Polygon
 
 from src.baseline_detection.mask_rcnn.utils import convert_coord
@@ -32,7 +31,7 @@ def polygon_to_string(input_list: List[float]) -> str:
     return string
 
 
-def add_baselines(layout_xml, textlines: List[Polygon], baselines: List[np.ndarray]) -> None:
+def add_baselines(layout_xml, textlines: List[Polygon], baselines: List[LineString]) -> None:
     with open(layout_xml, "r", encoding="utf-8") as file:
         data = file.read()
 

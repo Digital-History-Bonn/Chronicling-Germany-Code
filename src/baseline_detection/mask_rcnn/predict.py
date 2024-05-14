@@ -146,25 +146,23 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
     return prediction
 
 
-def main():
-    print(torch.cuda.is_available())
-    image = torch.tensor(io.imread(
-        f"{Path(__file__).parent.absolute()}/../../../data/images/Koelnische_Zeitung_1924 - 0085.jpg")).permute(
-        2, 0, 1)
+def main(image_path: str, layout_xml_path: str):
+    image = torch.tensor(io.imread(image_path)).permute(2, 0, 1)
     image = image.to(torch.device('cuda:0'))
     image = image.float()
 
-    anno, _ = extract(
-        f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml")
-
+    anno, _ = extract(layout_xml_path)
     pred = predict_page(image, anno)
 
     add_baselines(
-        f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
+        layout_xml_path,
         pred['masks'],
         pred['lines']
     )
 
 
 if __name__ == '__main__':
-    main()
+    main(
+        image_path=f"{Path(__file__).parent.absolute()}/../../../data/images/Koelnische_Zeitung_1924 - 0085.jpg",
+        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml"
+    )
