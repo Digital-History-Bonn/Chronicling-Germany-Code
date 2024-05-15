@@ -49,7 +49,7 @@ def extract(file: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     return textlines, baselines
 
 
-def distance(pred: torch.tensor, target: torch.tensor) -> float:
+def distance(pred: torch.Tensor, target: torch.Tensor) -> float:
     """
     Not implemented yet.
 
@@ -76,6 +76,9 @@ def textline_detection_metrics(prediction: List[Polygon],
         prediction: List of predicted textlines.
         target: List of ground truth textlines.
         threshold: Threshold for IoU.
+
+    Returns:
+        precision, recall, F1 score
     """
     matrix = torch.zeros((len(prediction), len(target)))
     intersects = []
@@ -90,9 +93,9 @@ def textline_detection_metrics(prediction: List[Polygon],
     pred_iuo = ious.amax(dim=1)
     target_iuo = ious.amax(dim=0)
 
-    tp = torch.sum(pred_iuo >= threshold)
+    tp = torch.sum(pred_iuo >= threshold).item()
     fp = len(matrix) - tp
-    fn = torch.sum(target_iuo < threshold)
+    fn = torch.sum(target_iuo < threshold).item()
 
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
@@ -101,7 +104,7 @@ def textline_detection_metrics(prediction: List[Polygon],
     return precision, recall, f1_score
 
 
-def evaluation(prediction_file: str, ground_truth_file: str):
+def evaluation(prediction_file: str, ground_truth_file: str) -> None:
     """
     Evaluates the baseline detection.
 

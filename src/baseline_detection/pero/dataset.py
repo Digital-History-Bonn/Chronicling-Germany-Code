@@ -2,7 +2,7 @@
 
 import os
 import glob
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 import torch
@@ -26,7 +26,8 @@ class RandomCropAndResize(Module):
         super().__init__()
         self.size = size
 
-    def __call__(self, image: torch.Tensor, target: torch.Tensor):
+    def __call__(self, image: torch.Tensor,
+                 target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Crops the given image and target at a random position.
 
@@ -50,7 +51,7 @@ class CustomDataset(Dataset):  # type: ignore
 
     def __init__(self, image_path: str,
                  target_path: str,
-                 augmentations: Module = None,
+                 augmentations: Optional[Module] = None,
                  cropping: bool = True) -> None:
         """
         Newspaper Class for training.

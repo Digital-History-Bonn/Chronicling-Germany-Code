@@ -24,7 +24,7 @@ from src.baseline_detection.pero import layout_helpers as helpers
 from src.baseline_detection.xml_conversion import add_baselines
 
 
-def nonmaxima_suppression(input: np.ndarray, element_size: Tuple[int, int] = (7, 1)):
+def nonmaxima_suppression(input: np.ndarray, element_size: Tuple[int, int] = (7, 1)) -> np.ndarray:
     """
     Function from
     https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
@@ -51,7 +51,7 @@ def nonmaxima_suppression(input: np.ndarray, element_size: Tuple[int, int] = (7,
 
 def plot_lines_on_image(image: torch.Tensor,
                         baselines: List[torch.Tensor],
-                        textlines: List[torch.Tensor]):
+                        textlines: List[torch.Tensor]) -> None:
     """
     Plot lines on the given image.
 
@@ -85,7 +85,7 @@ def plot_lines_on_image(image: torch.Tensor,
     plt.imshow(baseline_image, cmap='Blues', alpha=0.4)
 
     for i, line in enumerate(baselines):
-        plt.text(line[0][0], line[0][1], i, fontsize=1, color='red')
+        plt.text(line[0][0].item(), line[0][1].item(), str(i), fontsize=1, color='red')
 
     plt.axis('off')  # Turn off axis
     plt.tight_layout()
@@ -214,7 +214,9 @@ class BaselineEngine:
         resize = transforms.Resize((width // 2, height // 2))
         return resize(image)
 
-    def draw_textregions(self, textregions: List[torch.Tensor], width: int, height: int):
+    def draw_textregions(self, textregions: List[torch.Tensor],
+                         width: int,
+                         height: int) -> torch.Tensor:
         """
         Creates outline image of the textregions from our layout prediction.
 
@@ -240,7 +242,9 @@ class BaselineEngine:
 
         return self.to_tensor(textregion_img)
 
-    def parse(self, out_map: np.ndarray):
+    def parse(self,
+              out_map: np.ndarray
+              ) -> Tuple[List[np.ndarray], List[List[float]],  List[np.ndarray]]:
         """
         Function from
         https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
@@ -374,9 +378,9 @@ class BaselineEngine:
         return textlines, baselines
 
 
-def main(image_path: str, layout_xml_path: str, output_file: str):
+def main(image_path: str, layout_xml_path: str, output_file: str) -> None:
     """
-    Predicts textlines and baselines in given image and writes into a annotation xml file.
+    Predicts textlines and baselines in given image and writes into an annotation xml file.
 
     Args:
         image_path (str): Path to image

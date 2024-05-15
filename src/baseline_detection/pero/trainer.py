@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 import argparse
-from typing import Union
+from typing import Union, Tuple
 
 import numpy as np
 import torch
@@ -43,7 +43,8 @@ class MultiTargetLoss(nn.Module):
                              softmax=True)
         self.mse = MSELoss()
 
-    def forward(self, pred: torch.Tensor, target: torch.Tensor):
+    def forward(self, pred: torch.Tensor,
+                target: torch.Tensor) -> Tuple[float, float, float, float, float]:
         """
         Forward pass for loss.
 

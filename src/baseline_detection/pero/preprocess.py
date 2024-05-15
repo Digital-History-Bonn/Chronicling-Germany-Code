@@ -16,7 +16,7 @@ from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
 
-from src.baseline_detection.utils import get_tag, get_bbox
+from src.baseline_detection.utils import get_tag, get_bbox, is_valid
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
@@ -55,24 +55,8 @@ def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Pol
         raise ValueError('Baseline and polygone not intersecting!')
 
 
-def is_valid(box: torch.Tensor):
-    """
-    Checks if given bounding box has a valid size.
-
-    Args:
-        box: bounding box (xmin, ymin, xmax, ymax)
-
-    Returns:
-        True if bounding box is valid
-    """
-    if box[2] - box[0] <= 0:
-        return False
-    if box[3] - box[1] <= 0:
-        return False
-    return True
-
-
-def calc_heights(polygon: Polygon, baseline: torch.tensor):
+def calc_heights(polygon: Polygon,
+                 baseline: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the heights of the polygon at all x coordinates.
 

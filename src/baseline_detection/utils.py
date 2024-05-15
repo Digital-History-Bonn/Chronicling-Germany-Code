@@ -24,7 +24,7 @@ def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
     return x_min, y_min, x_max, y_max  # type: ignore
 
 
-def get_tag(textregion: PageElement):
+def get_tag(textregion: PageElement) -> str:
     """
     Returns the tag of the given textregion.
 
@@ -39,6 +39,23 @@ def get_tag(textregion: PageElement):
     if match is None:
         return 'UnknownRegion'
     return match.group()[6:-2]
+
+
+def is_valid(box: torch.Tensor) -> bool:
+    """
+    Checks if given bounding box has a valid size.
+
+    Args:
+        box: bounding box (xmin, ymin, xmax, ymax)
+
+    Returns:
+        True if bounding box is valid
+    """
+    if box[2] - box[0] <= 0:
+        return False
+    if box[3] - box[1] <= 0:
+        return False
+    return True
 
 
 def convert_coord(element: PageElement) -> np.ndarray:

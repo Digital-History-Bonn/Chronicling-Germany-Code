@@ -16,25 +16,7 @@ from skimage import io
 from tqdm import tqdm
 import re
 
-from src.baseline_detection.utils import get_bbox
-
-
-def is_valid(box: torch.Tensor):
-    """
-    Checks if given bounding box has a valid size.
-
-    Args:
-        box: bounding box (xmin, ymin, xmax, ymax)
-
-    Returns:
-        True if bounding box is valid
-    """
-    if box[2] - box[0] <= 0:
-        return False
-    if box[3] - box[1] <= 0:
-        return False
-    return True
-
+from src.baseline_detection.utils import get_bbox, is_valid
 
 def create_baseline_target(shape: Tuple[int, int],
                            baselines: List[torch.Tensor],

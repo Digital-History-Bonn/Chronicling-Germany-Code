@@ -213,7 +213,7 @@ class Trainer:
 
         return np.mean(loss)
 
-    def log_examples(self, dataset: str):
+    def log_examples(self, dataset: str) -> None:
         """
         Predicts and logs a example image form the training- and from the validation set.
 
@@ -246,7 +246,7 @@ class Trainer:
 
         self.model.train()
 
-    def log_loss(self, dataset: str, **kwargs):
+    def log_loss(self, dataset: str, **kwargs) -> None:
         """
         Logs the loss values to tensorboard.
 

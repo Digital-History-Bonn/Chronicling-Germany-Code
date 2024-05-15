@@ -195,7 +195,7 @@ class Trainer:
 
         self.model.train()
 
-    def log_image(self, dataset: str, **kwargs):
+    def log_image(self, dataset: str, **kwargs) -> None:
         """
         Logs a given images under the given dataset label.
 
@@ -213,7 +213,7 @@ class Trainer:
 
         self.writer.flush()  # type: ignore
 
-    def log_loss(self, dataset: str, **kwargs):
+    def log_loss(self, dataset: str, **kwargs) -> None:
         """
         Logs the loss values to tensorboard.
 

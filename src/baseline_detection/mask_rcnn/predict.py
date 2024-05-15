@@ -51,7 +51,8 @@ def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor) -
         LineString of baseline in bounding box
     """
     line_region = map * mask[0]
-    line_region = line_region[box[1]:box[3], box[0]:box[2]] * prior(box[3] - box[1])[:, None]
+    line_region = line_region[box[1]:box[3], box[0]:box[2]] * prior((box[3] - box[1]).item())
+    line_region = line_region[:, None]
 
     y_pos = torch.argmax(line_region, dim=0)
     y_values = torch.amax(line_region, dim=0)
