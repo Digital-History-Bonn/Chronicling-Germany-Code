@@ -132,6 +132,7 @@ def uncertainty_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]]
     segmentations: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
     bbox_dict: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
 
+    # pylint: disable=unpacking-non-sequence
     contours, hierarchy = cv2.findContours(pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # pylint: disable=no-member
 
     # calc inner and outer contours

@@ -113,7 +113,7 @@ def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
     return reading_order_dict, segmentations, bbox_list
 
 
-def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool) -> ndarray:
+def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = False) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
     :param threshold: confidence threshold for prediction
