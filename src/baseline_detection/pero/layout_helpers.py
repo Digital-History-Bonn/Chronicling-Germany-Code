@@ -1,4 +1,4 @@
-"""This script is from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py"""
+"""This script is from https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py."""
 
 import math
 import random

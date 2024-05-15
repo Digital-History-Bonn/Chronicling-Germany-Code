@@ -3,51 +3,20 @@
 import glob
 import os
 from pathlib import Path
-from typing import List, Dict, Union, Tuple, Optional
+from typing import List, Dict, Union, Tuple
 
 import torch
 from torchvision import transforms
 import numpy as np
 from PIL import Image, ImageOps, ImageDraw
 from skimage import draw
-from bs4 import BeautifulSoup, PageElement
+from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
-import re
 
-
-def get_bbox(
-        points: Union[np.ndarray, torch.Tensor],  # type: ignore
-        corners: Union[None, List[int]] = None,
-        tablebbox: Optional[Tuple[int, int, int, int]] = None,
-) -> Tuple[int, int, int, int]:
-    """
-    Creates a bounding box around all given points.
-
-    Args:
-        points: np.ndarray of shape (N x 2) containing a list of points
-        corners: corners can be defined if this is the case only the corner points are used for bb
-        tablebbox: if given, bbox is calculated relative to table
-
-    Returns:
-        coordinates of bounding box in the format (x_min, y_min, x_max, y_max)
-
-    """
-    if corners:
-        points = points[corners]
-
-    x_max, x_min = points[:, 0].max(), points[:, 0].min()
-    y_max, y_min = points[:, 1].max(), points[:, 1].min()
-    # swap 0 and 1 for tablebox if np.flip in extract_glosat_annotation
-    if tablebbox:
-        x_min -= tablebbox[0]
-        y_min -= tablebbox[1]
-        x_max -= tablebbox[0]
-        y_max -= tablebbox[1]
-
-    return x_min, y_min, x_max, y_max  # type: ignore
+from src.baseline_detection.utils import get_tag, get_bbox
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
@@ -235,25 +204,7 @@ def draw_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def get_tag(textregion: PageElement):
-    """
-    Returns the tag of the given textregion
-
-    Args:
-        textregion: PageElement of Textregion
-
-    Returns:
-        Given tag of that Textregion
-    """
-    desc = textregion['custom']
-    match = re.search(r"\{type:.*;\}", desc)
-    if match is None:
-        return 'UnknownRegion'
-    return match.group()[6:-2]
-
-
-def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]],
-                                    List[torch.Tensor]]:
+def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.
 
@@ -288,11 +239,13 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]],
                                        point in coords['points'].split()])[:, torch.tensor([1, 0])]
             bbox = torch.tensor(get_bbox(textregion))
 
-            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {'part': bbox,
-                                                                               'textregion': textregion,
-                                                                               'bboxes': [],
-                                                                               'masks': [],
-                                                                               'baselines': []}
+            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {
+                'part': bbox,
+                'textregion': textregion,
+                'bboxes': [],
+                'masks': [],
+                'baselines': []
+            }
 
             text_region = region.find_all('TextLine')
             for text_line in text_region:
@@ -301,10 +254,9 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]],
                 if baseline:
                     # get and shift baseline
                     line = torch.tensor([tuple(map(int, point.split(','))) for
-                                         point in baseline['points'].split()])[:, torch.tensor([1, 0])]
-
+                                         point in baseline['points'].split()])
+                    line = line[:, torch.tensor([1, 0])]
                     line -= bbox[:2].unsqueeze(0)
-
                     region_dict['baselines'].append(line)  # type: ignore
 
                     # get mask
@@ -459,8 +411,11 @@ if __name__ == "__main__":
          f'{Path(__file__).parent.absolute()}/../../../data/preprocessed')
 
     # test_array = np.load(
-    #     f'{Path(__file__).parent.absolute()}/../../data/Newspaper/preprocessed3/Koelnische Zeitung 1866.06-1866.09 - 0182/baselines.npz')[
-    #     'array']
+    #     f'{Path(__file__).parent.absolute()}/../../'
+    #     f'data/Newspaper/preprocessed3/'
+    #     f'Koelnische Zeitung 1866.06-1866.09 - 0182/baselines.npz')['array']
     # image = io.imread(
-    #     f'{Path(__file__).parent.absolute()}/../../data/Newspaper/newspaper-dataset-main-images/images/Koelnische Zeitung 1866.06-1866.09 - 0182.jpg')
+    #     f'{Path(__file__).parent.absolute()}/../../'
+    #     f'data/Newspaper/newspaper-dataset-main-images/'
+    #     f'images/Koelnische Zeitung 1866.06-1866.09 - 0182.jpg')
     # plot_target(image, test_array)

@@ -16,7 +16,7 @@ from skimage import io
 from tqdm import tqdm
 import re
 
-from src.baseline_detection.mask_rcnn.utils import get_bbox
+from src.baseline_detection.utils import get_bbox
 
 
 def is_valid(box: torch.Tensor):

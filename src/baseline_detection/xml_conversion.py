@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup, PageElement
 from shapely import LineString
 from shapely.geometry import Polygon
 
-from src.baseline_detection.mask_rcnn.utils import convert_coord
+from src.baseline_detection.utils import convert_coord
 
 
 def get_textregions(page: PageElement) -> Tuple[List[PageElement], List[Polygon]]:

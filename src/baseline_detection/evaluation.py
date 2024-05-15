@@ -1,31 +1,26 @@
+"""Evaluation script for baseline detection."""
 from typing import Tuple, List
 from itertools import product
-import re
 
 import torch
-from bs4 import BeautifulSoup, PageElement
+from bs4 import BeautifulSoup
 from shapely import intersection, union
 from shapely.geometry import Polygon
 
-
-def get_tag(textregion: PageElement):
-    """
-    Returns the tag of the given textregion
-
-    Args:
-        textregion: PageElement of Textregion
-
-    Returns:
-        Given tag of that Textregion
-    """
-    desc = textregion['custom']
-    match = re.search(r"\{type:.*;\}", desc)
-    if match is None:
-        return 'UnknownRegion'
-    return match.group()[6:-2]
+from src.baseline_detection.utils import get_tag
 
 
 def extract(file: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+    """
+    Extracts predicted textlines and baseline from the xml file.
+
+    Args:
+        file: path to the xml file.
+
+    Returns:
+        textlines: List of predicted textlines.
+        baselines: List of baseline predicted textlines.
+    """
     with open(file, "r", encoding="utf-8") as file:
         data = file.read()
 
@@ -42,7 +37,8 @@ def extract(file: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
             for text_line in text_region:
                 textline = text_line.find('Coords')
                 polygon = torch.tensor([tuple(map(int, point.split(','))) for
-                                     point in textline['points'].split()])[:, torch.tensor([1, 0])]
+                                        point in textline['points'].split()])
+                polygon = polygon[:, torch.tensor([1, 0])]
                 textlines.append(polygon)
 
                 baseline = text_line.find('Baseline')
@@ -54,19 +50,42 @@ def extract(file: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
 
 
 def distance(pred: torch.tensor, target: torch.tensor) -> float:
+    """
+    Not implemented yet.
+
+    Args:
+        pred: Predicted baselines.
+        target: Target baselines.
+
+    Returns:
+        Distance between the predicted and target baselines.
+    """
     return 1.0
 
 
-def iou_matrix(set1: List[Polygon], set2: List[Polygon], threshold: float = .7) -> Tuple[float, float, float]:
-    matrix = torch.zeros((len(set1), len(set2)))
+def textline_detection_metrics(prediction: List[Polygon],
+                               target: List[Polygon],
+                               threshold: float = .7) -> Tuple[float, float, float]:
+    """
+    Calcs precision, recall, F1 score for textline polygons.
+
+    Textline is considered as detected if IoU is above threshold.
+    Also textline predictions are considerd as correct if IoU is above threshold.
+
+    Args:
+        prediction: List of predicted textlines.
+        target: List of ground truth textlines.
+        threshold: Threshold for IoU.
+    """
+    matrix = torch.zeros((len(prediction), len(target)))
     intersects = []
     unions = []
 
-    for a, b in product(set1, set2):
-        intersects.append(intersection(a, b).area)
-        unions.append(union(a, b).area)
+    for pred, tar in product(prediction, target):
+        intersects.append(intersection(pred, tar).area)
+        unions.append(union(pred, tar).area)
 
-    ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(set1), len(set2))
+    ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(prediction), len(target))
 
     pred_iuo = ious.amax(dim=1)
     target_iuo = ious.amax(dim=0)
@@ -96,11 +115,13 @@ def evaluation(prediction_file: str, ground_truth_file: str):
     set1 = [Polygon(poly) for poly in pred_polygons]
     set2 = [Polygon(poly) for poly in truth_polygons]
 
-    precision, recall, f1_score = iou_matrix(set1, set2)
+    precision, recall, f1_score = textline_detection_metrics(set1, set2)
 
     # dist = distance(pred_baselines, truth_baselines)
 
 
 if __name__ == '__main__':
-    evaluation(prediction_file='../../data/pero_lines_bonn_regions/Koelnische Zeitung 1866.06-1866.09 - 0046.xml',
-               ground_truth_file='../../data/pero_lines_bonn_regions/Koelnische Zeitung 1866.06-1866.09 - 0046.xml')
+    evaluation(prediction_file='../../data/pero_lines_bonn_regions/'
+                               'Koelnische Zeitung 1866.06-1866.09 - 0046.xml',
+               ground_truth_file='../../data/pero_lines_bonn_regions/'
+                                 'Koelnische Zeitung 1866.06-1866.09 - 0046.xml')

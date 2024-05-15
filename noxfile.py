@@ -21,10 +21,17 @@ def run_test_fast(session):
 @nox.session(name="lint")
 def lint(session):
     """Check code conventions."""
-    session.install("-r", "requirements.txt")
-    session.install("pylint")
-    session.run("pylint", "src", "tests", "script")
-
+    session.install("flake8")
+    session.install(
+        "flake8-black",
+        "flake8-docstrings",
+        "flake8-bugbear",
+        "flake8-broken-line",
+        "pep8-naming",
+        "pydocstyle",
+        "darglint",
+    )
+    session.run("flake8", "src/baseline_detection")
 
 @nox.session(name="typing")
 def mypy(session):

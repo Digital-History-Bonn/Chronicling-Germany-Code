@@ -178,14 +178,14 @@ class Trainer:
 
             self.optimizer.zero_grad()
             output = model(images)
-            loss, ascender_loss, descender_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
+            loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
             loss.backward()
             self.optimizer.step()
 
             loss_lst.append(loss.cpu().detach())
             baseline_loss_lst.append(baseline_loss.cpu().detach())
-            ascender_loss_lst.append(ascender_loss.cpu().detach())
-            descender_loss_lst.append(descender_loss.cpu().detach())
+            ascender_loss_lst.append(asc_loss.cpu().detach())
+            descender_loss_lst.append(desc_loss.cpu().detach())
             limits_loss_lst.append(limits_loss.cpu().detach())
 
             del (images,
@@ -193,8 +193,8 @@ class Trainer:
                  output,
                  loss,
                  baseline_loss,
-                 ascender_loss,
-                 descender_loss,
+                 asc_loss,
+                 desc_loss,
                  limits_loss)
 
         self.log_loss('Training',
@@ -225,12 +225,12 @@ class Trainer:
 
             self.optimizer.zero_grad()
             output = model(images)
-            loss, ascender_loss, descender_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
+            loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
 
             loss_lst.append(loss.cpu().detach())
             baseline_loss_lst.append(baseline_loss.cpu().detach())
-            ascender_loss_lst.append(ascender_loss.cpu().detach())
-            descender_loss_lst.append(descender_loss.cpu().detach())
+            ascender_loss_lst.append(asc_loss.cpu().detach())
+            descender_loss_lst.append(desc_loss.cpu().detach())
             limits_loss_lst.append(limits_loss.cpu().detach())
 
             del (images,
@@ -238,8 +238,8 @@ class Trainer:
                  output,
                  loss,
                  baseline_loss,
-                 ascender_loss,
-                 descender_loss,
+                 asc_loss,
+                 desc_loss,
                  limits_loss)
 
         self.log_loss('Valid',
