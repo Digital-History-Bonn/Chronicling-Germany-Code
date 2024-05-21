@@ -64,8 +64,8 @@ def baseline_to_textline(baseline: np.ndarray, heights: List[float, float]) -> n
 def order_lines_vertical(baselines: List[np.ndarray],
                          heights: List[List[float]],
                          textlines: List[np.ndarray]) -> Tuple[List[np.ndarray],
-                                                               List[List[float]],
-                                                               List[np.ndarray]]:
+List[List[float]],
+List[np.ndarray]]:
     """
     From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py.
 
@@ -176,6 +176,34 @@ def get_textregions(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tenso
     return textregions, mask_regions
 
 
+def preprocess_image(image: torch.Tensor,
+                     mask_regions: List[torch.Tensor]) -> torch.Tensor:
+    """
+    Preprocesses the image for prediction.
+
+    Args:
+        image: input image as torch tensor
+        mask_regions: List of torch tensors, each representing region to mask
+
+    Returns:
+        preprocessed image
+    """
+    _, width, height = image.shape
+    mask = torch.ones(width, height)  # mask to filter regions
+
+    # draw mask
+    for mask_region in mask_regions:
+        # draw mask to remove not text regions
+        if len(mask_region) >= 3:
+            rr, cc = draw.polygon(mask_region[:, 1], mask_region[:, 0], shape=(width, height))
+            mask[rr, cc] = 0
+
+    # preprocess image
+    image *= mask
+    resize = transforms.Resize((width // 2, height // 2))
+    return resize(image)
+
+
 class BaselineEngine:
     """Class to predict baselines using approach from: https://arxiv.org/abs/2102.11838."""
 
@@ -226,33 +254,6 @@ class BaselineEngine:
         self.to_tensor = transforms.ToTensor()
         self.softmax = nn.Softmax(dim=1)
 
-    def preprocess_image(self, image: torch.Tensor,
-                         mask_regions: List[torch.Tensor]) -> torch.Tensor:
-        """
-        Preprocesses the image for prediction.
-
-        Args:
-            image: input image as torch tensor
-            mask_regions: List of torch tensors, each representing region to mask
-
-        Returns:
-            preprocessed image
-        """
-        _, width, height = image.shape
-        mask = torch.ones(width, height)  # mask to filter regions
-
-        # draw mask
-        for mask_region in mask_regions:
-            # draw mask to remove not text regions
-            if len(mask_region) >= 3:
-                rr, cc = draw.polygon(mask_region[:, 1], mask_region[:, 0], shape=(width, height))
-                mask[rr, cc] = 0
-
-        # preprocess image
-        image *= mask
-        resize = transforms.Resize((width // 2, height // 2))
-        return resize(image)
-
     def draw_textregions(self, textregions: List[torch.Tensor],
                          width: int,
                          height: int) -> torch.Tensor:
@@ -282,8 +283,8 @@ class BaselineEngine:
         return self.to_tensor(textregion_img)
 
     def parse(self, out_map: np.ndarray) -> Tuple[List[np.ndarray],
-                                                  List[List[float]],
-                                                  List[np.ndarray]]:
+    List[List[float]],
+    List[np.ndarray]]:
         """
         From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
 
@@ -383,7 +384,7 @@ class BaselineEngine:
         # extract layout information
         textregions, mask_regions = get_textregions(layout)
         maps[4] = self.draw_textregions(textregions, width, height)
-        input_image = self.preprocess_image(image, mask_regions)
+        input_image = preprocess_image(image, mask_regions)
 
         # predict
         pred = self.model(input_image[None].to(self.device))
