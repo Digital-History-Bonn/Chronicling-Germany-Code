@@ -1,7 +1,7 @@
 """Newspaper Class for newspaper mask R-CNN."""
 
 import glob
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 import torch
@@ -17,7 +17,7 @@ class CustomDataset(Dataset):  # type: ignore
 
     def __init__(self, path: str,
                  scaling: int,
-                 augmentations: Module = None,
+                 augmentations: Optional[Module] = None,
                  cropping: bool = True) -> None:
         """
         Newspaper Class for training.

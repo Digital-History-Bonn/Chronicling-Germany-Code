@@ -1,7 +1,7 @@
 """Prediction script for Mask R-CNN baseline detection."""
 
 from pathlib import Path
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Tuple
 
 import torch
 from shapely import Polygon, LineString, Geometry
@@ -19,7 +19,7 @@ from monai.networks.nets import BasicUNet
 from src.baseline_detection.xml_conversion import add_baselines
 
 
-def prior(size: int):
+def prior(size: int) -> torch.Tensor:
     """
     Creates a prior map for the baseline in the bounding box.
 
@@ -51,14 +51,15 @@ def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor) -
         LineString of baseline in bounding box
     """
     line_region = map * mask[0]
-    line_region = line_region[box[1]:box[3], box[0]:box[2]] * prior((box[3] - box[1]).item())
+    line_region = line_region[box[1]:box[3], box[0]:box[2]]
+    line_region *= prior((box[3] - box[1]).item())  # type: ignore
     line_region = line_region[:, None]
 
     y_pos = torch.argmax(line_region, dim=0)
     y_values = torch.amax(line_region, dim=0)
 
-    line = torch.vstack([box[1] + y_pos,
-                         torch.arange(box[0], box[0] + len(y_pos))]).T[y_values > 0.5]
+    line = torch.vstack([box[1] + y_pos, torch.arange(box[0], box[0] + len(y_pos))])  # type: ignore
+    line = line.T[y_values > 0.5]
 
     return LineString(line.int()).simplify(tolerance=1)
 
@@ -82,7 +83,7 @@ def get_polygon(mask: torch.Tensor) -> Polygon:
 def predict_image(textline_model: MaskRCNN,
                   baseline_model: BasicUNet,
                   image: torch.Tensor,
-                  device: torch.device) -> Dict[str, Union[torch.Tensor, Geometry]]:
+                  device: torch.device) -> Tuple[List[Polygon], List[LineString]]:
     """
     Predicts textlines and baselines in given image.
 
@@ -93,54 +94,46 @@ def predict_image(textline_model: MaskRCNN,
         device (torch.device): Device used for prediction
 
     Returns:
-        Dict with predictions for:
-            boxes: textline bounding boxes
-            scores: probabilities of textlines
-            textlines: polygons of textlines
-            baselines: Linestrings of textlines
+        textline and baseline predictions
     """
     gauss_filter = GaussianBlur(kernel_size=5, sigma=2.0)
     image = image.to(device)
 
     # predict example form training set
-    pred: Dict[str, Union[torch.Tensor,
-                          List[torch.Tensor],
-                          List[Polygon],
-                          List[LineString]]] = textline_model([image])[0]
+    pred = textline_model([image])[0]
+
+    del pred['labels']
 
     # move predictions to cpu
     pred["boxes"] = pred["boxes"].detach().cpu()
-    pred["labels"] = pred["labels"].detach().cpu()
     pred["scores"] = pred["scores"].detach().cpu()
     pred["masks"] = pred["masks"].detach().cpu()
 
     # postprecess image (non maxima supression)
     pred = postprocess(pred, method='iom', threshold=.6)
 
+    # baseline predictions
     baseline_probability_map = baseline_model(image[None])[0, 1]
-
     baseline_probability_map = baseline_probability_map.detach().cpu()
     baseline_probability_map = gauss_filter(baseline_probability_map[None])[0]
 
-    pred['lines'] = []
+    baselines = []
     for box, mask in zip(pred["boxes"], pred["masks"]):
-        pred['lines'].append(predict_baseline(box, mask, baseline_probability_map))
+        baselines.append(predict_baseline(box, mask, baseline_probability_map))
 
-    pred['textline'] = [get_polygon(mask[0].numpy()) for mask in pred['masks']]
-    del pred['masks']
-    del pred['labels']
-
-    return pred
+    return [get_polygon(mask[0].numpy()) for mask in pred['masks']], baselines
 
 
-def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tensor]]]):
+def predict_page(image: torch.Tensor,
+                 bounding_boxes: List[torch.Tensor],
+                 reading_order: List[int]
+                 ) -> Tuple[List[Polygon], List[LineString]]:
     """
     Predicts textlines and baselines in given image (complete page).
 
     Args:
-        image (torch.Tensor): Image of complete page
-        annotation (List[Dict[str, List[torch.Tensor]]]): annotations of page layout,
-                                                          containing TextRegions
+        image: Image of complete page
+        bounding_boxes: bounding boxes of textregions form layout segmentation
 
     Returns:
         Prediction dict with boundingboxes, probability score, textlines,
@@ -161,38 +154,26 @@ def predict_page(image: torch.Tensor, annotation: List[Dict[str, List[torch.Tens
     baseline_model.to(device)
     baseline_model.eval()
 
-    prediction = {"boxes": torch.zeros((0, 4)),
-                  "scores": torch.zeros((0,)),
-                  "textline": [],
-                  "lines": [],
-                  "region": [],
-                  "readingOrder": []}
+    textlines = []
+    baselines = []
 
     # iterate over regions and predict lines
-    for region in sorted(annotation, key=lambda anno: anno['readingOrder']):
-        subimage = image[:, region['part'][0]: region['part'][2],
-                         region['part'][1]: region['part'][3]]
+    for i in reading_order:
+        box = bounding_boxes[i]
+        pred_textlines, pred_baselines = predict_image(textline_model,
+                                                       baseline_model,
+                                                       image[:, box[0]: box[2], box[1]: box[3]],
+                                                       device)
 
-        pred = predict_image(textline_model, baseline_model, subimage, device)
+        baselines.extend([translate(line, xoff=box[0], yoff=box[1])
+                         for line in pred_baselines])
+        textlines.extend([translate(mask, xoff=box[0], yoff=box[1])
+                         for mask in pred_textlines])
 
-        shift = torch.tensor([region['part'][1], region['part'][0],
-                              region['part'][1], region['part'][0]])
-        prediction["boxes"] = torch.vstack([prediction["boxes"], pred["boxes"] + shift])
-        prediction["scores"] = torch.hstack([prediction["scores"], pred["scores"]])
-
-        length = len(pred['lines'])
-        shift = torch.tensor([region['part'][0], region['part'][1]])
-        prediction["lines"].extend([translate(line, xoff=shift[0], yoff=shift[1])
-                                    for line in pred["lines"]])
-        prediction["textline"].extend([translate(mask, xoff=shift[0], yoff=shift[1])
-                                       for mask in pred["textline"]])
-        prediction["region"].extend([region['readingOrder']] * length)
-        prediction["readingOrder"].extend([i for i in range(length)])
-
-    return prediction
+    return textlines, baselines
 
 
-def main(image_path: str, layout_xml_path: str, output_file: str):
+def main(image_path: str, layout_xml_path: str, output_file: str) -> None:
     """
     Predicts textlines and baselines in given image and writes into a annotation xml file.
 
@@ -205,14 +186,16 @@ def main(image_path: str, layout_xml_path: str, output_file: str):
     image = image.to(torch.device('cuda:0'))
     image = image.float()
 
-    anno, _ = extract(layout_xml_path)
-    pred = predict_page(image, anno)
+    annotations, _ = extract(layout_xml_path)
+    textlines, baselines = predict_page(image,
+                                        [a['part'] for a in annotations],           # type: ignore
+                                        [a['readingOrder'] for a in annotations])   # type: ignore
 
     add_baselines(
         layout_xml_path,
         output_file,
-        pred['textline'],
-        pred['lines']
+        textlines,
+        baselines
     )
 
 

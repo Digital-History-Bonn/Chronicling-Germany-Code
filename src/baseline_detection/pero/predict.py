@@ -1,6 +1,7 @@
 """Prediction script for Pero baseline detection."""
 
 from pathlib import Path
+import random
 from typing import List, Tuple
 
 import numpy as np
@@ -19,15 +20,50 @@ from skimage import draw, io
 
 from monai.networks.nets import BasicUNet
 
-from src.baseline_detection.pero.preprocess import get_tag
-from src.baseline_detection.pero import layout_helpers as helpers
+from src.baseline_detection.utils import get_tag
 from src.baseline_detection.xml_conversion import add_baselines
+
+
+def baseline_to_textline(baseline: np.ndarray, heights: List[float, float]) -> np.ndarray:
+    """
+    From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py.
+
+    Convert baseline coords and its respective heights to a textline polygon.
+
+    Args:
+        baseline: baseline coords
+        heights: textline heights
+
+    Returns:
+        textline polygon
+    """
+    heights = np.array([max(1, heights[0]), max(1, heights[1])]).astype(np.float32)  # type: ignore
+
+    x_diffs = np.diff(baseline[:, 0])
+    x_diffs = np.concatenate((x_diffs, x_diffs[-1:]), axis=0)
+    y_diffs = np.diff(baseline[:, 1])
+    y_diffs = np.concatenate((y_diffs, y_diffs[-1:]), axis=0)
+
+    alfas = np.pi / 2 + np.arctan2(y_diffs, x_diffs)
+    y_up_diffs = np.sin(alfas) * heights[0]
+    x_up_diffs = np.cos(alfas) * heights[0]
+    y_down_diffs = np.sin(alfas) * heights[1]
+    x_down_diffs = np.cos(alfas) * heights[1]
+
+    pos_up = baseline.copy().astype(np.float32)
+    pos_up[:, 1] -= y_up_diffs
+    pos_up[:, 0] -= x_up_diffs
+    pos_down = baseline.copy().astype(np.float32)
+    pos_down[:, 1] += y_down_diffs
+    pos_down[:, 0] += x_down_diffs
+    pos_t = np.concatenate([pos_up, pos_down[::-1, :]], axis=0)
+
+    return pos_t
 
 
 def nonmaxima_suppression(input: np.ndarray, element_size: Tuple[int, int] = (7, 1)) -> np.ndarray:
     """
-    Function from
-    https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
+    From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
 
     Vertical non-maxima suppression.
 
@@ -47,6 +83,33 @@ def nonmaxima_suppression(input: np.ndarray, element_size: Tuple[int, int] = (7,
         dilated = ndimage.grey_dilation(input, size=element_size)
 
     return input * (input == dilated)
+
+
+def order_lines_vertical(baselines: List[np.ndarray],
+                         heights: List[List[float]],
+                         textlines: List[np.ndarray]) -> Tuple[List[np.ndarray],
+                                                               List[List[float]],
+                                                               List[np.ndarray]]:
+    """
+    From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py.
+
+    Order lines according to their vertical position.
+
+    Args:
+        baselines: list of baselines to order
+        heights: list of respective textline heights
+        textlines: list of respective textline polygons
+
+    Returns:
+        ordered baselines, heights and textlines
+    """
+    # adding random number to order to prevent swapping when two lines are on same y-coord
+    baselines_order = [baseline[0][1] + random.uniform(0.001, 0.999) for baseline in baselines]
+    baselines = [baseline for _, baseline in sorted(zip(baselines_order, baselines))]
+    heights = [height for _, height in sorted(zip(baselines_order, heights))]
+    textlines = [textline for _, textline in sorted(zip(baselines_order, textlines))]
+
+    return baselines, heights, textlines
 
 
 def plot_lines_on_image(image: torch.Tensor,
@@ -188,7 +251,7 @@ class BaselineEngine:
         self.softmax = nn.Softmax(dim=1)
 
     def preprocess_image(self, image: torch.Tensor,
-                         mask_regions: List[torch.Tensor]) -> torch.Tensor():
+                         mask_regions: List[torch.Tensor]) -> torch.Tensor:
         """
         Preprocesses the image for prediction.
 
@@ -242,12 +305,11 @@ class BaselineEngine:
 
         return self.to_tensor(textregion_img)
 
-    def parse(self,
-              out_map: np.ndarray
-              ) -> Tuple[List[np.ndarray], List[List[float]],  List[np.ndarray]]:
+    def parse(self, out_map: np.ndarray) -> Tuple[List[np.ndarray],
+                                                  List[List[float]],
+                                                  List[np.ndarray]]:
         """
-        Function from
-        https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
+        From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
 
         Parse input baseline, height and region map into list of baselines
         coords, list of heights and region map
@@ -324,7 +386,7 @@ class BaselineEngine:
         b_list = [b for _, b in sorted(zip(x_inds, b_list))]
         h_list = [h for _, h in sorted(zip(x_inds, h_list))]
 
-        t_list = [helpers.baseline_to_textline(b, h) for b, h in zip(b_list, h_list)]
+        t_list = [baseline_to_textline(b, h) for b, h in zip(b_list, h_list)]
 
         return b_list, h_list, t_list
 
@@ -369,7 +431,7 @@ class BaselineEngine:
         # clusters_array = make_clusters(b_list, h_list, t_list, maps[:, :, 4], 2)
         # p_list = clustered_lines_to_polygons(t_list, clusters_array)
 
-        b_list, h_list, t_list = helpers.order_lines_vertical(b_list, h_list, t_list)
+        b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
         # p_list, b_list, t_list = rotate_layout(p_list, b_list, t_list, rot, image.shape)
 
         baselines = [LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list]

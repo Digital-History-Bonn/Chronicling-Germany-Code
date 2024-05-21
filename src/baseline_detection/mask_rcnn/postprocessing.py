@@ -7,7 +7,7 @@ from torchvision.ops.boxes import box_area, _box_inter_union
 from skimage.measure import regionprops
 
 
-def finetune_bboxes(masks: torch.Tensor, threshold=.5) -> torch.Tensor:
+def finetune_bboxes(masks: torch.Tensor, threshold: float = .5) -> torch.Tensor:
     """
     Recalculates bounding boxes from the masks.
 
@@ -18,10 +18,11 @@ def finetune_bboxes(masks: torch.Tensor, threshold=.5) -> torch.Tensor:
     Returns:
         new bounding boxes
     """
-    masks = (masks > threshold).to(int).numpy()
-    new_bboxes = torch.zeros((len(masks), 4))
-    for i, mask in enumerate(masks):
-        new_bboxes[i] = torch.tensor(list(regionprops(mask[0])[0].bbox))[torch.tensor([1, 0, 3, 2])]
+    np_masks = (masks > threshold).to(int).numpy()  # type: ignore
+    new_bboxes = torch.zeros((len(np_masks), 4))
+    for i, mask in enumerate(np_masks):
+        new_bboxes[i] = torch.tensor(list(regionprops(np_masks[0])[0].bbox))
+        new_bboxes[i] = new_bboxes[i][torch.tensor([1, 0, 3, 2])]
     return new_bboxes
 
 
@@ -63,8 +64,7 @@ def postprocess(prediction: Dict[str, torch.Tensor],
     values = scores[indices]
     drop_indices = indices[torch.arange(len(indices)), torch.argmin(values, dim=1)]
     keep_indices = torch.tensor(list(set(range(len(scores))) - set(drop_indices.tolist())))
-    keep_indices = keep_indices.to(int)
-
+    keep_indices = keep_indices.to(int)     # type: ignore
     # remove non maxima
     reduced_prediction = {
         'boxes': boxes[keep_indices],

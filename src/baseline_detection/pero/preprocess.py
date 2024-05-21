@@ -76,7 +76,7 @@ def calc_heights(polygon: Polygon,
     shape = (int(bbox[3] - bbox[1]), int(bbox[2] - bbox[0]))
 
     # draw polygon
-    polygon_image = torch.zeros(shape, dtype=int)
+    polygon_image = torch.zeros(size=shape, dtype=torch.int)
     rr, cc = draw.polygon(relative_polygon[:, 1], relative_polygon[:, 0], shape=shape)
     polygon_image[rr, cc] = 1
 
@@ -90,20 +90,20 @@ def calc_heights(polygon: Polygon,
         x_coords.extend(rr)
         y_coords.extend(cc)
 
-    x_coords = torch.tensor(x_coords)
-    y_coords = torch.tensor(y_coords)
+    baseline_x = torch.tensor(x_coords)
+    baseline_y = torch.tensor(y_coords)
 
-    indices = (y_coords - torch.tensor([bbox[0]])).long().clip(min=0, max=shape[1] - 1)
+    indices = (baseline_y - torch.tensor([bbox[0]])).long().clip(min=0, max=shape[1] - 1)
     values = torch.sum(polygon_image, dim=0)[indices]
 
-    return x_coords, y_coords, values
+    return baseline_x, baseline_y, values
 
 
 def draw_baseline_target(shape: Tuple[int, int],
                          baselines: List[torch.Tensor],
                          textlines: List[torch.Tensor],
                          mask_regions: List[torch.Tensor],
-                         textregions: List[List[torch.Tensor]],
+                         textregions: List[torch.Tensor],
                          name: str,
                          width: int = 3) -> np.ndarray:
     """
@@ -175,7 +175,10 @@ def draw_baseline_target(shape: Tuple[int, int],
 
     # draw textregions
     for textregion in textregions:
-        textregion_draw.polygon([(x[1], x[0]) for x in textregion], fill=0, outline=1, width=width)
+        textregion_draw.polygon([(int(x[1]), int(x[0])) for x in textregion],
+                                fill=0,
+                                outline=1,
+                                width=width)
 
     target[:, :, 4] = np.array(textregion_img)
 
@@ -188,7 +191,8 @@ def draw_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[torch.Tensor]]:
+def extract(xml_path: str) -> Tuple[List[Dict[str, Union[List[torch.Tensor], torch.Tensor]]],
+                                    List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.
 
@@ -262,8 +266,6 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
                         # add mask to data
                         region_dict['masks'].append(polygon_pt)  # type: ignore
 
-            if region_dict['bboxes']:
-                region_dict['bboxes'] = torch.stack(region_dict['bboxes'])  # type: ignore
                 paragraphs.append(region_dict)
 
     return paragraphs, mask_regions
@@ -297,8 +299,8 @@ def rename_files(folder_path: str) -> None:
 
 def plot_target(image: np.ndarray,
                 target: np.ndarray,
-                figsize=(50, 10),
-                dpi=500):
+                figsize: Tuple[int, int] = (50, 10),
+                dpi: int = 500) -> None:
     """
     Creates and saves an Image of the targets on the image.
 
@@ -367,20 +369,23 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
 
         # open image, check orientation, convert to tensor
         image = Image.open(img_path)
-        image = ImageOps.exif_transpose(image)
-        image = to_tensor(image).permute(1, 2, 0).to(torch.uint8)
+        image = ImageOps.exif_transpose(image)  # type: ignore
+        torch_image = to_tensor(image).permute(1, 2, 0).to(torch.uint8)
 
         # create a list for masks, baselines, bboxes and textregion information
-        masks, baselines, bboxes, textregion = [], [], [], []
+        masks: List[torch.Tensor] = []
+        baselines: List[torch.Tensor] = []
+        bboxes: List[torch.Tensor] = []
+        textregion: List[torch.Tensor] = []
         for region in regions:
             # save target information
             masks.extend(region['masks'])
             baselines.extend(region['baselines'])
             bboxes.extend(region['bboxes'])
-            textregion.append(region['textregion'])
+            textregion.append(region['textregion'])     # type: ignore
 
         # create target as numpy array and save it in a compressed file
-        target = draw_baseline_target(image.shape[:2],
+        target = draw_baseline_target(torch_image.shape[:2],
                                       baselines,
                                       masks,
                                       mask_regions,

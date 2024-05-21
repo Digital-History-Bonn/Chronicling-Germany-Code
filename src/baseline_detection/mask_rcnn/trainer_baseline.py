@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 import argparse
-from typing import Union
+from typing import Union, Dict
 
 import numpy as np
 import torch
@@ -175,7 +175,7 @@ class Trainer:
 
         return np.mean(loss_lst)
 
-    def log_examples(self, dataset: str):
+    def log_examples(self, dataset: str) -> None:
         """
         Predicts and logs a example image form the training- and from the validation set.
 
@@ -195,7 +195,7 @@ class Trainer:
 
         self.model.train()
 
-    def log_image(self, dataset: str, **kwargs) -> None:
+    def log_image(self, dataset: str, **kwargs: Dict[str, torch.Tensor]) -> None:
         """
         Logs a given images under the given dataset label.
 
@@ -207,13 +207,13 @@ class Trainer:
             # log in tensorboard
             self.writer.add_image(
                 f"{dataset}/{key}",
-                image[:, ::2, ::2],
+                image[:, ::2, ::2],    # type: ignore
                 global_step=self.epoch
             )  # type: ignore
 
         self.writer.flush()  # type: ignore
 
-    def log_loss(self, dataset: str, **kwargs) -> None:
+    def log_loss(self, dataset: str, **kwargs: Dict[str, float]) -> None:
         """
         Logs the loss values to tensorboard.
 

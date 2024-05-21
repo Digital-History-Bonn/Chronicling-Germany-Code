@@ -18,6 +18,7 @@ import re
 
 from src.baseline_detection.utils import get_bbox, is_valid
 
+
 def create_baseline_target(shape: Tuple[int, int],
                            baselines: List[torch.Tensor],
                            mask_regions: List[torch.Tensor]) -> np.ndarray:
@@ -57,7 +58,7 @@ def create_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def get_tag(textregion: PageElement):
+def get_tag(textregion: PageElement) -> str:
     """
     Returns the tag of the given textregion.
 
@@ -74,7 +75,7 @@ def get_tag(textregion: PageElement):
     return match.group()[6:-2]
 
 
-def get_reading_order_idx(textregion: PageElement):
+def get_reading_order_idx(textregion: PageElement) -> int:
     """
     Extracts reading order from textregion PageElement.
 
@@ -91,7 +92,10 @@ def get_reading_order_idx(textregion: PageElement):
     return int(match.group(1))
 
 
-def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[torch.Tensor]]:
+def extract(xml_path: str
+            ) -> Tuple[
+                       List[Dict[str, Union[torch.Tensor, List[torch.Tensor], int]]],
+                       List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.
 
@@ -100,6 +104,7 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
 
     Returns:
         A list of dictionary representing all Textregions in the given document
+        A list of polygons as torch tensors for masking areas
     """
     with open(xml_path, "r", encoding="utf-8") as file:
         data = file.read()
@@ -126,7 +131,7 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
                                  point in coords['points'].split()])[:, torch.tensor([1, 0])]
             part = torch.tensor(get_bbox(part))
 
-            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {
+            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
                 'part': part,
                 'bboxes': [],
                 'masks': [],
@@ -166,9 +171,7 @@ def extract(xml_path: str) -> Tuple[List[Dict[str, List[torch.Tensor]]], List[to
                         # add mask to data
                         region_dict['masks'].append(polygon_pt)  # type: ignore
 
-            if region_dict['bboxes']:
-                region_dict['bboxes'] = torch.stack(region_dict['bboxes'])  # type: ignore
-                paragraphs.append(region_dict)
+            paragraphs.append(region_dict)
 
     return paragraphs, mask_regions
 
@@ -228,16 +231,16 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
         regions, mask_regions = extract(tar_path)
 
         image = Image.open(img_path)
-        image = ImageOps.exif_transpose(image)
-        image = to_tensor(image).permute(1, 2, 0).to(torch.uint8)
+        image = ImageOps.exif_transpose(image)  # type: ignore
+        torch_image = to_tensor(image).permute(1, 2, 0).to(torch.uint8)
 
         for i, region in enumerate(regions):
             # create dict for subimage
             os.makedirs(f"{output_path}/{document_name}/region_{i}", exist_ok=True)
 
             # save subimage
-            subimage = image[region['part'][0]: region['part'][2],
-                             region['part'][1]: region['part'][3]]
+            subimage = torch_image[region['part'][0]: region['part'][2],    # type: ignore
+                                   region['part'][1]: region['part'][3]]    # type: ignore
 
             io.imsave(f"{output_path}/{document_name}/region_{i}/image.jpg",
                       subimage.to(torch.uint8))
@@ -250,8 +253,9 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
             torch.save(region['bboxes'],
                        f"{output_path}/{document_name}/region_{i}/bboxes.pt")
 
-            target = create_baseline_target(subimage.shape[:2], region['baselines'],
-                                            region['masks'])
+            target = create_baseline_target(subimage.shape[:2],
+                                            region['baselines'],    # type: ignore
+                                            region['masks'])        # type: ignore
             np.savez_compressed(f"{output_path}/{document_name}/region_{i}/baselines",
                                 array=target)
 

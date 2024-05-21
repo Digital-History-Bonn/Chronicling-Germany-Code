@@ -246,7 +246,7 @@ class Trainer:
 
         self.model.train()
 
-    def log_loss(self, dataset: str, **kwargs) -> None:
+    def log_loss(self, dataset: str, **kwargs: Dict[str, float]) -> None:
         """
         Logs the loss values to tensorboard.
 
@@ -291,7 +291,7 @@ def get_model(load_weights: Optional[str] = None) -> MaskRCNN:
     return model
 
 
-def draw_prediction(image: torch.Tensor, prediction: Dict[str, torch.Tensor]):
+def draw_prediction(image: torch.Tensor, prediction: Dict[str, torch.Tensor]) -> torch.Tensor:
     """
     Draws a visualisation of the prediction.
 

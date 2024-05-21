@@ -10,18 +10,18 @@ from shapely.geometry import Polygon
 from src.baseline_detection.utils import get_tag
 
 
-def extract(file: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+def extract(file_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     """
     Extracts predicted textlines and baseline from the xml file.
 
     Args:
-        file: path to the xml file.
+        file_path: path to the xml file.
 
     Returns:
         textlines: List of predicted textlines.
         baselines: List of baseline predicted textlines.
     """
-    with open(file, "r", encoding="utf-8") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         data = file.read()
 
     # Parse the XML data
