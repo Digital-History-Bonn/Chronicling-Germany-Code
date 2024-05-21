@@ -138,8 +138,9 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
             os.makedirs(f"{output_path}/{document_name}/region_{i}", exist_ok=True)
 
             # save subimage
-            subimage = torch_image[region['part'][0]: region['part'][2],    # type: ignore
-                                   region['part'][1]: region['part'][3]]    # type: ignore
+            subimage = torch_image[
+                        region['region_bbox'][0]: region['region_bbox'][2],  # type: ignore
+                        region['region_bbox'][1]: region['region_bbox'][3]]  # type: ignore
 
             io.imsave(f"{output_path}/{document_name}/region_{i}/image.jpg",
                       subimage.to(torch.uint8))

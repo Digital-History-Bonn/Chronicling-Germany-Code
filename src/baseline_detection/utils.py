@@ -115,19 +115,19 @@ def extract(xml_path: str
     for region in text_regions:
         tag = get_tag(region)
         coords = region.find('Coords')
-        part = torch.tensor([tuple(map(int, point.split(','))) for
-                             point in coords['points'].split()])[:, torch.tensor([1, 0])]
+        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
+                                       point in coords['points'].split()])[:, torch.tensor([1, 0])]
 
         if tag in ['table', 'header']:
-            if is_valid(torch.tensor(get_bbox(part))):
-                mask_regions.append(part)
+            if is_valid(torch.tensor(get_bbox(region_polygon))):
+                mask_regions.append(region_polygon)
 
         if tag in ['heading', 'article_', 'caption', 'paragraph']:
-            part = torch.tensor(get_bbox(part))
+            region_bbox = torch.tensor(get_bbox(region_polygon))
 
-            if is_valid(part):
+            if is_valid(region_bbox):
                 region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
-                    'part': part,
+                    'region_bbox': region_bbox,
                     'bboxes': [],
                     'masks': [],
                     'baselines': [],
@@ -143,7 +143,7 @@ def extract(xml_path: str
                                              point in baseline['points'].split()])
                         line = line[:, torch.tensor([1, 0])]
 
-                        line -= part[:2].unsqueeze(0)
+                        line -= region_polygon[:2].unsqueeze(0)
 
                         region_dict['baselines'].append(line)  # type: ignore
 
@@ -153,7 +153,7 @@ def extract(xml_path: str
                         polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
 
                         # move mask to be in subimage
-                        polygon_pt -= part[:2].unsqueeze(0)
+                        polygon_pt -= region_polygon[:2].unsqueeze(0)
 
                         # calc bbox for line
                         box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
