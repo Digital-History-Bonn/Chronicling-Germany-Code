@@ -298,7 +298,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
         textregion: List[torch.Tensor] = []
         for region in regions:
             # save target information
-            masks.extend(region['masks'])
+            masks.extend(region['textline_polygone'])
             baselines.extend(region['baselines'])
             bboxes.extend(region['bboxes'])
             textregion.append(region['textregion'])     # type: ignore

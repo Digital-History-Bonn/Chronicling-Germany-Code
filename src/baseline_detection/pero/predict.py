@@ -20,7 +20,7 @@ from skimage import draw, io
 
 from monai.networks.nets import BasicUNet
 
-from src.baseline_detection.utils import get_tag
+from src.baseline_detection.utils import get_tag, nonmaxima_suppression
 from src.baseline_detection.xml_conversion import add_baselines
 
 
@@ -59,30 +59,6 @@ def baseline_to_textline(baseline: np.ndarray, heights: List[float, float]) -> n
     pos_t = np.concatenate([pos_up, pos_down[::-1, :]], axis=0)
 
     return pos_t
-
-
-def nonmaxima_suppression(input: np.ndarray, element_size: Tuple[int, int] = (7, 1)) -> np.ndarray:
-    """
-    From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
-
-    Vertical non-maxima suppression.
-
-    Args:
-        input: input array
-        element_size: structure element for greyscale dilations
-
-    Returns:
-        non maxima suppression of baseline input image
-    """
-    if len(input.shape) == 3:
-        dilated = np.zeros_like(input)
-        for i in range(input.shape[0]):
-            dilated[i, :, :] = ndimage.grey_dilation(
-                input[i, :, :], size=element_size)
-    else:
-        dilated = ndimage.grey_dilation(input, size=element_size)
-
-    return input * (input == dilated)
 
 
 def order_lines_vertical(baselines: List[np.ndarray],

@@ -16,6 +16,7 @@ from src.baseline_detection.mask_rcnn.preprocess import extract
 from src.baseline_detection.mask_rcnn.trainer_textline import get_model
 from monai.networks.nets import BasicUNet
 
+from src.baseline_detection.utils import nonmaxima_suppression
 from src.baseline_detection.xml_conversion import add_baselines
 
 
@@ -81,8 +82,7 @@ def get_polygon(mask: torch.Tensor) -> Polygon:
 
 def predict_image(textline_model: MaskRCNN,
                   baseline_model: BasicUNet,
-                  image: torch.Tensor,
-                  device: torch.device) -> Tuple[List[Polygon], List[LineString]]:
+                  image: torch.Tensor) -> Tuple[List[Polygon], List[LineString]]:
     """
     Predicts textlines and baselines in given image.
 
@@ -96,7 +96,15 @@ def predict_image(textline_model: MaskRCNN,
         textline and baseline predictions
     """
     gauss_filter = GaussianBlur(kernel_size=(25, 3), sigma=5.0)
-    image = image.to(device)
+
+    # baseline predictions
+    baseline_probability_map = torch.softmax(baseline_model(image[None]), dim=1)[0, 1]
+    baseline_probability_map = baseline_probability_map.detach().cpu()
+    baseline_map = torch.tensor(nonmaxima_suppression(baseline_probability_map.numpy()) > .5)
+
+    image[0][baseline_map] = 256.0
+    image[1][baseline_map] = 0.0
+    image[2][baseline_map] = 0.0
 
     # predict example form training set
     pred = textline_model([image])[0]
@@ -111,9 +119,6 @@ def predict_image(textline_model: MaskRCNN,
     # postprecess image (non maxima supression)
     pred = postprocess(pred, method='iom', threshold=.6)
 
-    # baseline predictions
-    baseline_probability_map = baseline_model(image[None])[0, 1]
-    baseline_probability_map = baseline_probability_map.detach().cpu()
     baseline_probability_map = gauss_filter(baseline_probability_map[None])[0]
 
     baselines = []
@@ -187,7 +192,7 @@ def main(image_path: str, layout_xml_path: str, output_file: str) -> None:
 
     annotations, _ = extract(layout_xml_path)
     textlines, baselines = predict_page(image,
-                                        [a['part'] for a in annotations],           # type: ignore
+                                        [a['region_bbox'] for a in annotations],    # type: ignore
                                         [a['readingOrder'] for a in annotations])   # type: ignore
 
     add_baselines(

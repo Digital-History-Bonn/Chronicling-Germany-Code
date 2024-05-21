@@ -58,23 +58,6 @@ def create_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def get_tag(textregion: PageElement) -> str:
-    """
-    Returns the tag of the given textregion.
-
-    Args:
-        textregion: PageElement of Textregion
-
-    Returns:
-        Given tag of that Textregion
-    """
-    desc = textregion['custom']
-    match = re.search(r"\{type:.*;\}", desc)
-    if match is None:
-        return 'UnknownRegion'
-    return match.group()[6:-2]
-
-
 def rename_files(folder_path: str) -> None:
     """
     Renames all files and folders in given folder by replacing 'ö' with 'oe'.
@@ -146,7 +129,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
                       subimage.to(torch.uint8))
 
             # save target information
-            torch.save(region['masks'],
+            torch.save(region['textline_polygone'],
                        f"{output_path}/{document_name}/region_{i}/masks.pt")
             torch.save(region['baselines'],
                        f"{output_path}/{document_name}/region_{i}/baselines.pt")

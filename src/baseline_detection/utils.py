@@ -5,6 +5,7 @@ from typing import Tuple, Union, List, Dict
 import numpy as np
 import torch
 from bs4 import PageElement, BeautifulSoup
+from scipy import ndimage
 
 
 def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
@@ -129,7 +130,7 @@ def extract(xml_path: str
                 region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
                     'region_bbox': region_bbox,
                     'bboxes': [],
-                    'masks': [],
+                    'textline_polygone': [],
                     'baselines': [],
                     'readingOrder': get_reading_order_idx(region)}
 
@@ -164,8 +165,34 @@ def extract(xml_path: str
                             region_dict['bboxes'].append(box)  # type: ignore
 
                             # add mask to data
-                            region_dict['masks'].append(polygon_pt)  # type: ignore
+                            region_dict['textline_polygone'].append(polygon_pt)  # type: ignore
 
-                paragraphs.append(region_dict)
+                # only adding regions with at least one textline
+                if (region_dict['textline_polygone']) > 0:
+                    paragraphs.append(region_dict)
 
     return paragraphs, mask_regions
+
+
+def nonmaxima_suppression(input_array: np.ndarray, element_size: Tuple[int, int] = (7, 1)) -> np.ndarray:
+    """
+    From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
+
+    Vertical non-maxima suppression.
+
+    Args:
+        input_array: input array
+        element_size: structure element for greyscale dilations
+
+    Returns:
+        non maxima suppression of baseline input image
+    """
+    if len(input_array.shape) == 3:
+        dilated = np.zeros_like(input_array)
+        for i in range(input_array.shape[0]):
+            dilated[i, :, :] = ndimage.grey_dilation(
+                input_array[i, :, :], size=element_size)
+    else:
+        dilated = ndimage.grey_dilation(input_array, size=element_size)
+
+    return input_array * (input_array == dilated)
