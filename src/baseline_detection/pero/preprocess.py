@@ -3,20 +3,19 @@
 import glob
 import os
 from pathlib import Path
-from typing import List, Dict, Union, Tuple
+from typing import List, Tuple
 
 import torch
 from torchvision import transforms
 import numpy as np
 from PIL import Image, ImageOps, ImageDraw
 from skimage import draw
-from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
 
-from src.baseline_detection.utils import get_tag, get_bbox, is_valid, extract
+from src.baseline_detection.utils import extract
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
@@ -185,7 +184,7 @@ def draw_baseline_target(shape: Tuple[int, int],
     # draw masks
     for mask_region in mask_regions:
         if len(mask_region) >= 3:
-            rr, cc = draw.polygon(mask_region[:, 1], mask_region[:, 0], shape=shape)
+            rr, cc = draw.polygon(mask_region[:, 0], mask_region[:, 1], shape=shape)
             target[rr, cc, 5] = 0
 
     return np.array(target)

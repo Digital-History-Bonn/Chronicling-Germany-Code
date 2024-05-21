@@ -114,59 +114,58 @@ def extract(xml_path: str
     text_regions = page.find_all('TextRegion')
     for region in text_regions:
         tag = get_tag(region)
+        coords = region.find('Coords')
+        part = torch.tensor([tuple(map(int, point.split(','))) for
+                             point in coords['points'].split()])[:, torch.tensor([1, 0])]
 
         if tag in ['table', 'header']:
-            coords = region.find('Coords')
-            part = torch.tensor([tuple(map(int, point.split(','))) for
-                                 point in coords['points'].split()])
-            mask_regions.append(part)
+            if is_valid(torch.tensor(get_bbox(part))):
+                mask_regions.append(part)
 
         if tag in ['heading', 'article_', 'caption', 'paragraph']:
-            coords = region.find('Coords')
-            part = torch.tensor([tuple(map(int, point.split(','))) for
-                                 point in coords['points'].split()])[:, torch.tensor([1, 0])]
             part = torch.tensor(get_bbox(part))
 
-            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
-                'part': part,
-                'bboxes': [],
-                'masks': [],
-                'baselines': [],
-                'readingOrder': get_reading_order_idx(region)}
+            if is_valid(part):
+                region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
+                    'part': part,
+                    'bboxes': [],
+                    'masks': [],
+                    'baselines': [],
+                    'readingOrder': get_reading_order_idx(region)}
 
-            text_region = region.find_all('TextLine')
-            for text_line in text_region:
-                polygon = text_line.find('Coords')
-                baseline = text_line.find('Baseline')
-                if baseline:
-                    # get and shift baseline
-                    line = torch.tensor([tuple(map(int, point.split(','))) for
-                                         point in baseline['points'].split()])
-                    line = line[:, torch.tensor([1, 0])]
+                text_region = region.find_all('TextLine')
+                for text_line in text_region:
+                    polygon = text_line.find('Coords')
+                    baseline = text_line.find('Baseline')
+                    if baseline:
+                        # get and shift baseline
+                        line = torch.tensor([tuple(map(int, point.split(','))) for
+                                             point in baseline['points'].split()])
+                        line = line[:, torch.tensor([1, 0])]
 
-                    line -= part[:2].unsqueeze(0)
+                        line -= part[:2].unsqueeze(0)
 
-                    region_dict['baselines'].append(line)  # type: ignore
+                        region_dict['baselines'].append(line)  # type: ignore
 
-                    # get mask
-                    polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
-                                               point in polygon['points'].split()])
-                    polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
+                        # get mask
+                        polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
+                                                   point in polygon['points'].split()])
+                        polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
 
-                    # move mask to be in subimage
-                    polygon_pt -= part[:2].unsqueeze(0)
+                        # move mask to be in subimage
+                        polygon_pt -= part[:2].unsqueeze(0)
 
-                    # calc bbox for line
-                    box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
-                    box = box.clip(min=0)
+                        # calc bbox for line
+                        box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
+                        box = box.clip(min=0)
 
-                    # add bbox to data
-                    if is_valid(box):
-                        region_dict['bboxes'].append(box)  # type: ignore
+                        # add bbox to data
+                        if is_valid(box):
+                            region_dict['bboxes'].append(box)  # type: ignore
 
-                        # add mask to data
-                        region_dict['masks'].append(polygon_pt)  # type: ignore
+                            # add mask to data
+                            region_dict['masks'].append(polygon_pt)  # type: ignore
 
-            paragraphs.append(region_dict)
+                paragraphs.append(region_dict)
 
     return paragraphs, mask_regions

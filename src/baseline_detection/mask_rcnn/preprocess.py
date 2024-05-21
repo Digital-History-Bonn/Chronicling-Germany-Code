@@ -52,7 +52,7 @@ def create_baseline_target(shape: Tuple[int, int],
     for mask_region in mask_regions:
         # draw mask to remove not text regions
         if len(mask_region) >= 3:
-            rr, cc = draw.polygon(mask_region[:, 1], mask_region[:, 0], shape=shape)
+            rr, cc = draw.polygon(mask_region[:, 0], mask_region[:, 1], shape=shape)
             target[rr, cc, 1] = 0
 
     return np.array(target)
