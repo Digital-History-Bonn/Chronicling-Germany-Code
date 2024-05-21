@@ -4,7 +4,9 @@ import os
 import re
 from typing import Dict, List
 
+import numpy as np
 from bs4 import BeautifulSoup
+from shapely import Polygon, centroid
 
 from src.news_seg.class_config import LABEL_NAMES, REGION_TYPES
 
@@ -135,6 +137,9 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
     )
     for key, order in reading_order_dict.items():
         region = bs_data.find(attrs={'id': f'{id_list[int(key)]}'})
+
+        sort_lines(region)
+
         custom_match = re.search(
             r"(structure \{type:.+?;})", region["custom"]
         )
@@ -149,3 +154,19 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
             )
         )
         page.append(region)
+
+
+def sort_lines(region: BeautifulSoup) -> None:
+    """Sort lines by ascending height."""
+    lines = region.find_all("TextLine")
+    height_list = []
+    for line in lines:
+        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        height_list.append(centroid(line_polygon).y)
+    sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
+    for i, line in enumerate(lines):
+        custom_match = re.search(
+            r"(structure \{type:.+?;})", region["custom"]
+        )
+        class_info = "" if custom_match is None else custom_match.group(1)
+        line.attrs['custom'] = f"readingOrder {{index:{sorted_heights[i]};}} {class_info}"
