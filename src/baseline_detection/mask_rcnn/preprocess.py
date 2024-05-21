@@ -93,8 +93,7 @@ def get_reading_order_idx(textregion: PageElement) -> int:
 
 
 def extract(xml_path: str
-            ) -> Tuple[
-                       List[Dict[str, Union[torch.Tensor, List[torch.Tensor], int]]],
+            ) -> Tuple[List[Dict[str, Union[torch.Tensor, List[torch.Tensor], int]]],
                        List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.

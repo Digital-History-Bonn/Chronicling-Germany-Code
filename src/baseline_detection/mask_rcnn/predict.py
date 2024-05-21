@@ -1,10 +1,10 @@
 """Prediction script for Mask R-CNN baseline detection."""
 
 from pathlib import Path
-from typing import Dict, Union, List, Tuple
+from typing import List, Tuple
 
 import torch
-from shapely import Polygon, LineString, Geometry
+from shapely import Polygon, LineString
 from shapely.affinity import translate
 from skimage.measure import find_contours
 from torchvision.transforms import GaussianBlur
@@ -134,6 +134,7 @@ def predict_page(image: torch.Tensor,
     Args:
         image: Image of complete page
         bounding_boxes: bounding boxes of textregions form layout segmentation
+        reading_order: Reading order of textregions
 
     Returns:
         Prediction dict with boundingboxes, probability score, textlines,
