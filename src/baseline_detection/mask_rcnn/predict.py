@@ -52,8 +52,7 @@ def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor) -
     """
     line_region = map * mask[0]
     line_region = line_region[box[1]:box[3], box[0]:box[2]]
-    line_region *= prior((box[3] - box[1]).item())  # type: ignore
-    line_region = line_region[:, None]
+    line_region = prior((box[3] - box[1]).item())[:, None] * line_region     # type: ignore
 
     y_pos = torch.argmax(line_region, dim=0)
     y_values = torch.amax(line_region, dim=0)
@@ -96,7 +95,7 @@ def predict_image(textline_model: MaskRCNN,
     Returns:
         textline and baseline predictions
     """
-    gauss_filter = GaussianBlur(kernel_size=5, sigma=2.0)
+    gauss_filter = GaussianBlur(kernel_size=(25, 3), sigma=5.0)
     image = image.to(device)
 
     # predict example form training set
@@ -159,8 +158,7 @@ def predict_page(image: torch.Tensor,
     baselines = []
 
     # iterate over regions and predict lines
-    for i in reading_order:
-        box = bounding_boxes[i]
+    for _, box in sorted(zip(reading_order, bounding_boxes)):
         pred_textlines, pred_baselines = predict_image(textline_model,
                                                        baseline_model,
                                                        image[:, box[0]: box[2], box[1]: box[3]],

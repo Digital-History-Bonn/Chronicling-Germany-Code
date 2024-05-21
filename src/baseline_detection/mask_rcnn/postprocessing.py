@@ -21,7 +21,7 @@ def finetune_bboxes(masks: torch.Tensor, threshold: float = .5) -> torch.Tensor:
     np_masks = (masks > threshold).to(int).numpy()  # type: ignore
     new_bboxes = torch.zeros((len(np_masks), 4))
     for i, mask in enumerate(np_masks):
-        new_bboxes[i] = torch.tensor(list(regionprops(np_masks[0])[0].bbox))
+        new_bboxes[i] = torch.tensor(list(regionprops(mask[0])[0].bbox))
         new_bboxes[i] = new_bboxes[i][torch.tensor([1, 0, 3, 2])]
     return new_bboxes
 
