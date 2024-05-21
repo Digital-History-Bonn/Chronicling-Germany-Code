@@ -16,7 +16,7 @@ from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
 
-from src.baseline_detection.utils import get_tag, get_bbox, is_valid
+from src.baseline_detection.utils import get_tag, get_bbox, is_valid, extract
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
@@ -189,86 +189,6 @@ def draw_baseline_target(shape: Tuple[int, int],
             target[rr, cc, 5] = 0
 
     return np.array(target)
-
-
-def extract(xml_path: str) -> Tuple[List[Dict[str, Union[List[torch.Tensor], torch.Tensor]]],
-                                    List[torch.Tensor]]:
-    """
-    Extracts the annotation from the xml file.
-
-    Args:
-        xml_path: path to the xml file.
-
-    Returns:
-        A list of dictionary representing all Textregions in the given document
-    """
-    with open(xml_path, "r", encoding="utf-8") as file:
-        data = file.read()
-
-    # Parse the XML data
-    soup = BeautifulSoup(data, 'xml')
-    page = soup.find('Page')
-    paragraphs = []
-    mask_regions = []
-
-    text_regions = page.find_all('TextRegion')
-    for region in text_regions:
-        tag = get_tag(region)
-
-        if tag in ['table', 'header']:
-            coords = region.find('Coords')
-            bbox = torch.tensor([tuple(map(int, point.split(','))) for
-                                 point in coords['points'].split()])
-            mask_regions.append(bbox)
-
-        if tag in ['heading', 'article_', 'caption', 'paragraph']:
-            coords = region.find('Coords')
-            textregion = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in coords['points'].split()])[:, torch.tensor([1, 0])]
-            bbox = torch.tensor(get_bbox(textregion))
-
-            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor]]] = {
-                'part': bbox,
-                'textregion': textregion,
-                'bboxes': [],
-                'masks': [],
-                'baselines': []
-            }
-
-            text_region = region.find_all('TextLine')
-            for text_line in text_region:
-                polygon = text_line.find('Coords')
-                baseline = text_line.find('Baseline')
-                if baseline:
-                    # get and shift baseline
-                    line = torch.tensor([tuple(map(int, point.split(','))) for
-                                         point in baseline['points'].split()])
-                    line = line[:, torch.tensor([1, 0])]
-                    line -= bbox[:2].unsqueeze(0)
-                    region_dict['baselines'].append(line)  # type: ignore
-
-                    # get mask
-                    polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
-                                               point in polygon['points'].split()])
-                    polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
-
-                    # move mask to be in subimage
-                    polygon_pt -= bbox[:2].unsqueeze(0)
-
-                    # calc bbox for line
-                    box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
-                    box = box.clip(min=0)
-
-                    # add bbox to data
-                    if is_valid(box):
-                        region_dict['bboxes'].append(box)  # type: ignore
-
-                        # add mask to data
-                        region_dict['masks'].append(polygon_pt)  # type: ignore
-
-                paragraphs.append(region_dict)
-
-    return paragraphs, mask_regions
 
 
 def rename_files(folder_path: str) -> None:

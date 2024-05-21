@@ -1,10 +1,10 @@
 """Utility functions for baseline detection."""
 import re
-from typing import Tuple, Union
+from typing import Tuple, Union, List, Dict
 
 import numpy as np
 import torch
-from bs4 import PageElement
+from bs4 import PageElement, BeautifulSoup
 
 
 def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
@@ -70,3 +70,103 @@ def get_tag(textregion: PageElement) -> str:
     if match is None:
         return 'UnknownRegion'
     return match.group()[6:-2]
+
+
+def get_reading_order_idx(textregion: PageElement) -> int:
+    """
+    Extracts reading order from textregion PageElement.
+
+    Args:
+        textregion: PageElement of Textregion
+
+    Returns:
+         Reading Order Index as int
+    """
+    desc = textregion['custom']
+    match = re.search(r"readingOrder\s*\{index:(\d+);\}", desc)
+    if match is None:
+        return -1
+    return int(match.group(1))
+
+
+def extract(xml_path: str
+            ) -> Tuple[List[Dict[str, Union[torch.Tensor, List[torch.Tensor], int]]],
+                       List[torch.Tensor]]:
+    """
+    Extracts the annotation from the xml file.
+
+    Args:
+        xml_path: path to the xml file.
+
+    Returns:
+        A list of dictionary representing all Textregions in the given document
+        A list of polygons as torch tensors for masking areas
+    """
+    with open(xml_path, "r", encoding="utf-8") as file:
+        data = file.read()
+
+    # Parse the XML data
+    soup = BeautifulSoup(data, 'xml')
+    page = soup.find('Page')
+    paragraphs = []
+    mask_regions = []
+
+    text_regions = page.find_all('TextRegion')
+    for region in text_regions:
+        tag = get_tag(region)
+
+        if tag in ['table', 'header']:
+            coords = region.find('Coords')
+            part = torch.tensor([tuple(map(int, point.split(','))) for
+                                 point in coords['points'].split()])
+            mask_regions.append(part)
+
+        if tag in ['heading', 'article_', 'caption', 'paragraph']:
+            coords = region.find('Coords')
+            part = torch.tensor([tuple(map(int, point.split(','))) for
+                                 point in coords['points'].split()])[:, torch.tensor([1, 0])]
+            part = torch.tensor(get_bbox(part))
+
+            region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
+                'part': part,
+                'bboxes': [],
+                'masks': [],
+                'baselines': [],
+                'readingOrder': get_reading_order_idx(region)}
+
+            text_region = region.find_all('TextLine')
+            for text_line in text_region:
+                polygon = text_line.find('Coords')
+                baseline = text_line.find('Baseline')
+                if baseline:
+                    # get and shift baseline
+                    line = torch.tensor([tuple(map(int, point.split(','))) for
+                                         point in baseline['points'].split()])
+                    line = line[:, torch.tensor([1, 0])]
+
+                    line -= part[:2].unsqueeze(0)
+
+                    region_dict['baselines'].append(line)  # type: ignore
+
+                    # get mask
+                    polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
+                                               point in polygon['points'].split()])
+                    polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
+
+                    # move mask to be in subimage
+                    polygon_pt -= part[:2].unsqueeze(0)
+
+                    # calc bbox for line
+                    box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
+                    box = box.clip(min=0)
+
+                    # add bbox to data
+                    if is_valid(box):
+                        region_dict['bboxes'].append(box)  # type: ignore
+
+                        # add mask to data
+                        region_dict['masks'].append(polygon_pt)  # type: ignore
+
+            paragraphs.append(region_dict)
+
+    return paragraphs, mask_regions
