@@ -168,7 +168,7 @@ def extract(xml_path: str
                             region_dict['textline_polygone'].append(polygon_pt)  # type: ignore
 
                 # only adding regions with at least one textline
-                if (region_dict['textline_polygone']) > 0:
+                if len(region_dict['textline_polygone']) > 0:
                     paragraphs.append(region_dict)
 
     return paragraphs, mask_regions
