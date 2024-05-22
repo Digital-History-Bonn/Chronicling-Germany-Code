@@ -58,10 +58,10 @@ class Trainer:
         self.model = model.to(self.device)
         self.optimizer = optimizer
         self.trainloader = DataLoader(
-            traindataset, batch_size=1, shuffle=True, num_workers=16
+            traindataset, batch_size=1, shuffle=True, num_workers=4
         )
         self.testloader = DataLoader(
-            testdataset, batch_size=1, shuffle=False, num_workers=16
+            testdataset, batch_size=1, shuffle=False, num_workers=4
         )
 
         self.bestavrgloss: Union[float, None] = None
@@ -234,7 +234,7 @@ class Trainer:
         pred["masks"] = pred["masks"].detach().cpu()
 
         # postprecess image (non maxima supression)
-        pred = postprocess(pred, method='iom', threshold=.6)
+        # pred = postprocess(pred, method='iom', threshold=.6)
 
         # draw image and log it to tensorboard
         result = draw_prediction(example, pred)

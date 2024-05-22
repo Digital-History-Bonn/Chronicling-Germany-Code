@@ -41,16 +41,8 @@ class CustomDataset(Dataset):  # type: ignore
 
         """
         # load image and draw baselines on it
-        pil_image = Image.open(f"{self.data[index]}/image.jpg").convert('RGB')
-        baselines = torch.load(f"{self.data[index]}/baselines.pt")
-        baseline_draw = ImageDraw.Draw(pil_image)
-
-        # Draw baselines
-        # for baseline in baselines:
-        #     line = LineString(torch.flip(baseline, dims=[1]))
-        #     baseline_draw.line(line.coords, fill=(255, 0, 0), width=1)
-
-        image = self.to_tensor(pil_image)
+        image = torch.tensor(io.imread(f"{self.data[index]}/image.jpg")).permute(2, 0, 1)
+        boxes = torch.load(f"{self.data[index]}/bboxes.pt")
 
         # load mask polygon targets and create tensors with it
         masks = []
@@ -66,7 +58,7 @@ class CustomDataset(Dataset):  # type: ignore
         return (
             image.float(),
             {
-                "boxes": torch.load(f"{self.data[index]}/bboxes.pt"),
+                "boxes": boxes,
                 "labels": torch.ones(len(masks), dtype=torch.int64),
                 "masks": torch.stack(masks),
             },
