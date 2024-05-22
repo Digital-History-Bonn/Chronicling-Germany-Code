@@ -6,7 +6,7 @@ from typing import Tuple, Dict, Optional
 import torch
 from PIL import Image, ImageDraw
 from shapely import LineString
-from skimage import draw
+from skimage import draw, io
 from torch.nn import Module
 from torch.utils.data import Dataset
 from torchvision.transforms import ToPILImage, ToTensor
@@ -46,9 +46,9 @@ class CustomDataset(Dataset):  # type: ignore
         baseline_draw = ImageDraw.Draw(pil_image)
 
         # Draw baselines
-        for baseline in baselines:
-            line = LineString(torch.flip(baseline, dims=[1]))
-            baseline_draw.line(line.coords, fill=(255, 0, 0), width=1)
+        # for baseline in baselines:
+        #     line = LineString(torch.flip(baseline, dims=[1]))
+        #     baseline_draw.line(line.coords, fill=(255, 0, 0), width=1)
 
         image = self.to_tensor(pil_image)
 
@@ -86,6 +86,7 @@ class CustomDataset(Dataset):  # type: ignore
 if __name__ == '__main__':
     from pathlib import Path
     from matplotlib import pyplot as plt
+    from src.baseline_detection.mask_rcnn.trainer_textline import draw_prediction
 
     traindataset = CustomDataset(
         f"{Path(__file__).parent.absolute()}/../../../data/train_mask"
@@ -93,5 +94,7 @@ if __name__ == '__main__':
 
     image, target = traindataset[3]
 
-    plt.imshow(image.permute(1, 2, 0))
+    pred = draw_prediction(image, target)
+
+    plt.imshow(pred.permute(1, 2, 0))
     plt.savefig('imageTest.png', dpi=1000)

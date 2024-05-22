@@ -148,7 +148,7 @@ def predict_page(image: torch.Tensor,
     device = torch.device('cuda:0')
 
     # init and load model for textline detection
-    textline_model = get_model(load_weights='MaskRCCNLineDetection2_Newspaper_textlines_e25_es')
+    textline_model = get_model(load_weights='BaselineInput1_aug_e25_es')
     textline_model.to(device)
     textline_model.eval()
 
@@ -166,8 +166,7 @@ def predict_page(image: torch.Tensor,
     for _, box in sorted(zip(reading_order, bounding_boxes)):
         pred_textlines, pred_baselines = predict_image(textline_model,
                                                        baseline_model,
-                                                       image[:, box[0]: box[2], box[1]: box[3]],
-                                                       device)
+                                                       image[:, box[0]: box[2], box[1]: box[3]])
 
         baselines.extend([translate(line, xoff=box[0], yoff=box[1])
                          for line in pred_baselines])

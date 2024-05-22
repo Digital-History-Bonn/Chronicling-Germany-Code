@@ -64,8 +64,8 @@ def baseline_to_textline(baseline: np.ndarray, heights: List[float, float]) -> n
 def order_lines_vertical(baselines: List[np.ndarray],
                          heights: List[List[float]],
                          textlines: List[np.ndarray]) -> Tuple[List[np.ndarray],
-List[List[float]],
-List[np.ndarray]]:
+                                                               List[List[float]],
+                                                               List[np.ndarray]]:
     """
     From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py.
 
