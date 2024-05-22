@@ -249,11 +249,13 @@ def tag_to_label_dict(id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[L
     # Valid tags
     for key, label in LABEL_ASSIGNMENTS.items():
         if label != 0 and key in tags_dict:
-            bbox_dict[label] = []
-            id_align_dict[label] = []
+            if not label in bbox_dict:
+                bbox_dict[label] = []
+                id_align_dict[label] = []
             for coord, region_id in zip(tags_dict[key], id_dict[key]):
-                bbox_dict[label].append(Polygon(coord).bounds)
-                id_align_dict[label].append(region_id)
+                if len(coord) > 2:
+                    bbox_dict[label].append(Polygon(coord).bounds)
+                    id_align_dict[label].append(region_id)
 
     if len(bbox_dict) == 1 and len(bbox_dict[1]) == 0:
         return {}, {}

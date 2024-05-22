@@ -166,7 +166,7 @@ def sort_lines(region: BeautifulSoup) -> None:
     sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
     for i, line in enumerate(lines):
         custom_match = re.search(
-            r"(structure \{type:.+?;})", region["custom"]
+            r"(structure \{type:.+?;})", line["custom"]
         )
         class_info = "" if custom_match is None else custom_match.group(1)
         line.attrs['custom'] = f"readingOrder {{index:{sorted_heights[i]};}} {class_info}"

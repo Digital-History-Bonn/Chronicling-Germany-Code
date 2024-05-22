@@ -32,7 +32,7 @@ TOLERANCE = [
     10.0,  # "UnknownRegion"
     5.0,  # "caption"
     5.0,  # "table"
-    5.0,  # "article"
+    5.0,  # "article, paragraph"
     1.0,  # "heading"
     10.0,  # "header"
     2.0,  # "separator_vertical"
@@ -55,6 +55,7 @@ LABEL_ASSIGNMENTS = {
     "table": 3,
     "article": 4,
     "article_": 4,
+    "paragraph": 4,
     "heading": 5,
     "header": 6,
     "separator_fancy": 7,
@@ -67,7 +68,7 @@ LABEL_NAMES = [
     "UnknownRegion",
     "caption",
     "table",
-    "article",
+    "paragraph",
     "heading",
     "header",
     "separator_vertical",
@@ -81,7 +82,7 @@ REGION_TYPES = {
     "UnknownRegion": "UnknownRegion",
     "caption": "TextRegion",
     "table": "TableRegion",
-    "article": "TextRegion",
+    "paragraph": "TextRegion",
     "heading": "TextRegion",
     "header": "TextRegion",
     "separator_vertical": "SeparatorRegion",
@@ -96,6 +97,7 @@ VALID_TAGS = [
     'advertisement',
     'article_',
     'article',
+    "paragraph,"
     'caption',
     'heading',
     'header',
