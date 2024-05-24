@@ -19,3 +19,5 @@ positional-encodings
 torchmetrics
 opencv-python
 tikzplotlib
+kraken
+lightning
