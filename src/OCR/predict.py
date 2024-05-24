@@ -19,6 +19,9 @@ from tqdm import tqdm
 from utils import pad_xml, pad_image
 
 
+multiprocessing.set_start_method('spawn')
+
+
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
                                                List[PageElement],
                                                List[List[BaselineLine]]]:
@@ -109,7 +112,7 @@ def predict(model, image_path: str, anno_path: str, out_path: str) -> None:
 
         # single model recognition
         pred_it = rpred.rpred(model, im, baseline_seg)
-        lines = [line for line in pred_it]
+        lines = list(pred_it)
 
         textlines = region.find_all('TextLine')
         for pred_line, textline in zip(lines, textlines):
@@ -179,15 +182,23 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main(args: argparse.Namespace) -> None:
+def main() -> None:
     """
     Predicts OCR for all images with xml annotations in given folder.
 
     Args:
         args: Namespace object containing arguments
     """
+    args = get_args()
+
+    if args.input is None:
+        raise ValueError("Please provide an input folder with images and xml files.")
+
+    if args.output is None:
+        raise ValueError("Please provide an output folder with prediction xml files.")
+
     # get file names
-    images = [x for x in glob.glob(f'{args.input}/*.jpg')]
+    images = list(glob.glob(f'{args.input}/*.jpg'))
     annotations = [x[:-4] + '.xml' for x in images]
 
     if args.multiprocess:
@@ -228,15 +239,4 @@ def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == '__main__':
-    # Ensure we use the 'spawn' start method
-    multiprocessing.set_start_method('spawn')
-
-    args = get_args()
-
-    if args.input is None:
-        raise ValueError("Please provide an input folder with images and xml files.")
-
-    if args.output is None:
-        raise ValueError("Please provide an output folder with prediction xml files.")
-
-    main(args)
+    main()

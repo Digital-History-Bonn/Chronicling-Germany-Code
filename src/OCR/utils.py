@@ -110,7 +110,7 @@ def plot_boxes_on_image(image, baselines, polygons, name) -> None:
         name: name of the file to be saved.
     """
     # Create figure and axes
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
 
     # Display the image
     ax.imshow(image, cmap='gray')

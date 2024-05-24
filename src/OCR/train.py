@@ -30,8 +30,8 @@ def main(name: str) -> None:
     os.makedirs(f'models/{name}', exist_ok=False)
 
     # create training- and evaluation set
-    training_files = [x for x in glob.glob('data/train/*.xml')]
-    evaluation_files = [x for x in glob.glob('data/valid/*.xml')]
+    training_files = list(glob.glob('data/train/*.xml'))
+    evaluation_files = list(glob.glob('data/valid/*.xml'))
 
     # set some hyperparameters
     hparams = default_specs.RECOGNITION_HYPER_PARAMS.copy()
