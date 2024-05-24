@@ -41,7 +41,7 @@ class CustomDataset(Dataset):  # type: ignore
 
         """
         # load image and draw baselines on it
-        image = torch.tensor(io.imread(f"{self.data[index]}/image.jpg")).permute(2, 0, 1)
+        image = torch.tensor(io.imread(f"{self.data[index]}/image.jpg")).permute(2, 0, 1) / 256
         boxes = torch.load(f"{self.data[index]}/bboxes.pt")
 
         # load mask polygon targets and create tensors with it
@@ -58,7 +58,7 @@ class CustomDataset(Dataset):  # type: ignore
         return (
             image.float(),
             {
-                "boxes": boxes,
+                "boxes": torch.stack(boxes),
                 "labels": torch.ones(len(masks), dtype=torch.int64),
                 "masks": torch.stack(masks),
             },
@@ -85,6 +85,8 @@ if __name__ == '__main__':
     )
 
     image, target = traindataset[3]
+    
+    print(target['boxes'])
 
     pred = draw_prediction(image, target)
 
