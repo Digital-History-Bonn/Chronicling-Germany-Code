@@ -253,7 +253,7 @@ class Trainer:
         self.log_examples('Training')
         self.log_examples('Valid')
 
-        return np.mean(loss_lst)
+        return np.mean(loss_lst)  # type: ignore
 
     def log_examples(self, dataset: str) -> None:
         """
@@ -402,13 +402,13 @@ def main():
             transforms.RandomAdjustSharpness(sharpness_factor=1.5, p=0.1),
             transforms.RandomGrayscale(p=0.1))
 
-    traindataset: Dataset = Dataset(
+    traindataset = Dataset(
         f"{Path(__file__).parent.absolute()}/../../../data/images",
         f"{Path(__file__).parent.absolute()}/../../../data/train_pero",
         augmentations=transform,
     )
 
-    validdataset: Dataset = Dataset(
+    validdataset = Dataset(
         f"{Path(__file__).parent.absolute()}/../../../data/images",
         f"{Path(__file__).parent.absolute()}/../../../data/valid_pero",
         cropping=False

@@ -174,7 +174,7 @@ def draw_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def draw_limiter(limiter_draw: ImageDraw, polygon: Polygon, width: int):
+def draw_limiter(limiter_draw: ImageDraw.ImageDraw, polygon: Polygon, width: int):
     """
     Draw limiter on given polygon.
 
@@ -315,9 +315,9 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
         textregion: List[torch.Tensor] = []
         for region in regions:
             # save target information
-            masks.extend(region['textline_polygone'])
-            baselines.extend(region['baselines'])
-            bboxes.extend(region['bboxes'])
+            masks.extend(region['textline_polygone'])  # type: ignore
+            baselines.extend(region['baselines'])  # type: ignore
+            bboxes.extend(region['bboxes'])  # type: ignore
             textregion.append(region['textregion'])     # type: ignore
 
         # create target as numpy array and save it in a compressed file

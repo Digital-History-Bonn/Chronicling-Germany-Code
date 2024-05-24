@@ -130,7 +130,7 @@ List[torch.Tensor]]:
                 region_dict = extract_region(region, region_bbox)
 
                 # only adding regions with at least one textline
-                if len(region_dict['textline_polygone']) > 0:
+                if len(region_dict['textline_polygone']) > 0:  # type: ignore
                     paragraphs.append(region_dict)
 
     return paragraphs, mask_regions
@@ -211,4 +211,4 @@ def nonmaxima_suppression(input_array: np.ndarray,
     else:
         dilated = ndimage.grey_dilation(input_array, size=element_size)
 
-    return input_array * (input_array == dilated)
+    return input_array * (input_array == dilated)  # type: ignore

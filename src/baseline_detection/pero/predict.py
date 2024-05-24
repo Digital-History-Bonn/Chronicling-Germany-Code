@@ -58,7 +58,7 @@ def baseline_to_textline(baseline: np.ndarray, heights: List[float, float]) -> n
     pos_down[:, 0] += x_down_diffs
     pos_t = np.concatenate([pos_up, pos_down[::-1, :]], axis=0)
 
-    return pos_t
+    return pos_t    # type: ignore
 
 
 def order_lines_vertical(baselines: List[np.ndarray],
@@ -201,7 +201,7 @@ def preprocess_image(image: torch.Tensor,
     # preprocess image
     image *= mask
     resize = transforms.Resize((width // 2, height // 2))
-    return resize(image)
+    return resize(image)  # type: ignore
 
 
 class BaselineEngine:
@@ -280,7 +280,7 @@ class BaselineEngine:
                                     outline=255,
                                     width=3)
 
-        return self.to_tensor(textregion_img)
+        return self.to_tensor(textregion_img)  # type: ignore
 
     def parse(self, out_map: np.ndarray) -> Tuple[List[np.ndarray],
                                                   List[List[float]],

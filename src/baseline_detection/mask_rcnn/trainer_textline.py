@@ -212,7 +212,7 @@ class Trainer:
         self.log_examples('Training')
         self.log_examples('Valid')
 
-        return np.mean(loss)
+        return np.mean(loss)  # type: ignore
 
     def log_examples(self, dataset: str) -> None:
         """
