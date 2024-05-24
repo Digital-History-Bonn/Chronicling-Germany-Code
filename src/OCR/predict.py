@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup, PageElement
 from kraken import rpred
 from kraken.containers import Segmentation, BaselineLine
 from kraken.lib import models
+from kraken.lib.models import TorchSeqRecognizer
 from tqdm import tqdm
 
 from src.OCR.utils import pad_xml, pad_image
@@ -77,7 +78,7 @@ def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
     return soup, text_regions, baselines
 
 
-def predict(model, image_path: str, anno_path: str, out_path: str) -> None:
+def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path: str) -> None:
     """
     Predicts OCR on given image using given baseline annotations and model.
 

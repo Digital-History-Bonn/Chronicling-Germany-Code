@@ -89,7 +89,7 @@ def preprocess(train_paths: List[str], valid_paths: List[str], test_paths: List[
         copy_and_pad_xml(f'{base_path}.xml', 'data/test')
 
 
-def main():
+def main() -> None:
     """Starts the preprocessing process."""
     np.random.seed(42)
     files = [x[:-4] for x in glob.glob('data/xml_files/*.jpg')]

@@ -30,7 +30,7 @@ def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
     return soup
 
 
-def pad_points(points: str, pad_value: int = 10):
+def pad_points(points: str, pad_value: int = 10) -> str:
     """
     Pads each point in the points string by the given pad value.
 
@@ -99,7 +99,8 @@ def convert_coord(element: PageElement) -> np.ndarray:
                      point in coords['points'].split()])[:, np.array([1, 0])]
 
 
-def plot_boxes_on_image(image, baselines, polygons, name) -> None:
+def plot_boxes_on_image(image: Image.Image, baselines: torch.Tensor, polygons: torch.Tensor,
+                        name: str) -> None:
     """
     Plots baselines and textline polygons on image.
 
