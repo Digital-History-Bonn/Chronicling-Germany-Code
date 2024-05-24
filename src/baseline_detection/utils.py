@@ -92,7 +92,7 @@ def get_reading_order_idx(textregion: PageElement) -> int:
 
 def extract(xml_path: str
             ) -> Tuple[List[Dict[str, Union[torch.Tensor, List[torch.Tensor], int]]],
-                       List[torch.Tensor]]:
+List[torch.Tensor]]:
     """
     Extracts the annotation from the xml file.
 
@@ -127,45 +127,7 @@ def extract(xml_path: str
             region_bbox = torch.tensor(get_bbox(region_polygon))
 
             if is_valid(region_bbox):
-                region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
-                    'region_bbox': region_bbox,
-                    'bboxes': [],
-                    'textline_polygone': [],
-                    'baselines': [],
-                    'readingOrder': get_reading_order_idx(region)}
-
-                text_region = region.find_all('TextLine')
-                for text_line in text_region:
-                    polygon = text_line.find('Coords')
-                    baseline = text_line.find('Baseline')
-                    if baseline:
-                        # get and shift baseline
-                        line = torch.tensor([tuple(map(int, point.split(','))) for
-                                             point in baseline['points'].split()])
-                        line = line[:, torch.tensor([1, 0])]
-
-                        line -= region_bbox[:2].unsqueeze(0)
-
-                        region_dict['baselines'].append(line)  # type: ignore
-
-                        # get mask
-                        polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
-                                                   point in polygon['points'].split()])
-                        polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
-
-                        # move mask to be in subimage
-                        polygon_pt -= region_bbox[:2].unsqueeze(0)
-
-                        # calc bbox for line
-                        box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
-                        box = box.clip(min=0)
-
-                        # add bbox to data
-                        if is_valid(box):
-                            region_dict['bboxes'].append(box)  # type: ignore
-
-                            # add mask to data
-                            region_dict['textline_polygone'].append(polygon_pt)  # type: ignore
+                region_dict = extract_region(region, region_bbox)
 
                 # only adding regions with at least one textline
                 if len(region_dict['textline_polygone']) > 0:
@@ -174,7 +136,61 @@ def extract(xml_path: str
     return paragraphs, mask_regions
 
 
-def nonmaxima_suppression(input_array: np.ndarray, element_size: Tuple[int, int] = (7, 1)) -> np.ndarray:
+def extract_region(region: BeautifulSoup, region_bbox: torch.Tensor) -> Dict[
+    str, Union[torch.Tensor, List[torch.Tensor], int]]:
+    """
+    Extracts the annotation data for a given region.
+
+    Args:
+        region: BeautifulSoup object representing a Textregion
+        region_bbox: torch tensor of shape (N, 2) containing a list of coordinates
+
+    Returns:
+        Region dict with annotation data of region.
+    """
+    region_dict: Dict[str, Union[torch.Tensor, List[torch.Tensor], int]] = {
+        'region_bbox': region_bbox,
+        'bboxes': [],
+        'textline_polygone': [],
+        'baselines': [],
+        'readingOrder': get_reading_order_idx(region)}
+    text_region = region.find_all('TextLine')
+    for text_line in text_region:
+        polygon = text_line.find('Coords')
+        baseline = text_line.find('Baseline')
+        if baseline:
+            # get and shift baseline
+            line = torch.tensor([tuple(map(int, point.split(','))) for
+                                 point in baseline['points'].split()])
+            line = line[:, torch.tensor([1, 0])]
+
+            line -= region_bbox[:2].unsqueeze(0)
+
+            region_dict['baselines'].append(line)  # type: ignore
+
+            # get mask
+            polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
+                                       point in polygon['points'].split()])
+            polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
+
+            # move mask to be in subimage
+            polygon_pt -= region_bbox[:2].unsqueeze(0)
+
+            # calc bbox for line
+            box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]
+            box = box.clip(min=0)
+
+            # add bbox to data
+            if is_valid(box):
+                region_dict['bboxes'].append(box)  # type: ignore
+
+                # add mask to data
+                region_dict['textline_polygone'].append(polygon_pt)  # type: ignore
+    return region_dict
+
+
+def nonmaxima_suppression(input_array: np.ndarray,
+                          element_size: Tuple[int, int] = (7, 1)) -> np.ndarray:
     """
     From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
 

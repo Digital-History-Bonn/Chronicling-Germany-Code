@@ -1,4 +1,4 @@
-"""Postprocessing for R-CNN prediction."""
+"""Postprocessing for mask R-CNN prediction."""
 
 from typing import Dict
 
@@ -84,26 +84,3 @@ def postprocess(prediction: Dict[str, torch.Tensor],
     reduced_prediction['masks'] = reduced_prediction['masks'][order]
 
     return reduced_prediction
-
-
-if __name__ == '__main__':
-    import torch
-
-    # Example vector and indices (as PyTorch tensors)
-    vector = torch.tensor([5, 3, 8, 2, 7])
-    indices = torch.tensor([[0, 1], [2, 4], [3, 0]])
-
-    # Extract values from vector using indices
-    values = vector[indices]
-
-    # Find the index of the minimum value along the second axis (axis=1)
-    min_index = torch.argmin(values, dim=1)
-
-    # Get the original indices
-    original_indices = indices[torch.arange(len(indices)), min_index]
-
-    # Get positions not in original_indices
-    not_in_original_indices = torch.tensor(list(set(range(len(vector))) -
-                                                set(original_indices.tolist())))
-
-    print("Positions of the vector not in original_indices:", not_in_original_indices)

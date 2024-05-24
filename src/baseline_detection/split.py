@@ -38,7 +38,7 @@ def split_dataset(folder: str, split: Tuple[float, float, float]) -> None:
     random.seed(42)
 
     # get folder with datapoints form train dataset
-    files = [x for x in glob.glob(f"{folder}/*")]
+    files = list(glob.glob(f"{folder}/*"))
     print(f"{folder}/*")
     print(f"{len(files)=}")
 

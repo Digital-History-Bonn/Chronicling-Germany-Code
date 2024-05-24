@@ -4,18 +4,17 @@ from pathlib import Path
 from typing import List, Tuple
 
 import torch
+from monai.networks.nets import BasicUNet
 from shapely import Polygon, LineString
 from shapely.affinity import translate
-from skimage.measure import find_contours
-from torchvision.transforms import GaussianBlur
 from skimage import io
+from skimage.measure import find_contours
 from torchvision.models.detection import MaskRCNN
+from torchvision.transforms import GaussianBlur
 
 from src.baseline_detection.mask_rcnn.postprocessing import postprocess
 from src.baseline_detection.mask_rcnn.preprocess import extract
 from src.baseline_detection.mask_rcnn.trainer_textline import get_model
-from monai.networks.nets import BasicUNet
-
 from src.baseline_detection.utils import nonmaxima_suppression
 from src.baseline_detection.xml_conversion import add_baselines
 
@@ -39,19 +38,19 @@ def prior(size: int) -> torch.Tensor:
                          torch.linspace(1, 0.0, size - p3)])
 
 
-def predict_baseline(box: torch.Tensor, mask: torch.Tensor, map: torch.Tensor) -> LineString:
+def predict_baseline(box: torch.Tensor, mask: torch.Tensor, baseline_map: torch.Tensor) -> LineString:
     """
     Predicts baseline in bounding box using the mask and probability map.
 
     Args:
         box (torch.Tensor): Bounding box of textline
         mask (torch.Tensor): Mask of textline
-        map (torch.Tensor): Probability map of baseline inside bounding box
+        baseline_map (torch.Tensor): Probability map of baseline inside bounding box
 
     Returns:
         LineString of baseline in bounding box
     """
-    line_region = map * mask[0]
+    line_region = baseline_map * mask[0]
     line_region = line_region[box[1]:box[3], box[0]:box[2]]
     line_region = prior((box[3] - box[1]).item())[:, None] * line_region     # type: ignore
 
@@ -90,7 +89,6 @@ def predict_image(textline_model: MaskRCNN,
         textline_model (MaskRCNN): Mask R-CNN model for textline detection
         baseline_model (BasicUNet): Mask R-CNN model for baseline prediction
         image (torch.Tensor): Image of paragraph of page
-        device (torch.device): Device used for prediction
 
     Returns:
         textline and baseline predictions

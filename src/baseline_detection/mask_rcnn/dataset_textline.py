@@ -4,8 +4,6 @@ import glob
 from typing import Tuple, Dict, Optional
 
 import torch
-from PIL import Image, ImageDraw
-from shapely import LineString
 from skimage import draw, io
 from torch.nn import Module
 from torch.utils.data import Dataset
@@ -24,7 +22,7 @@ class CustomDataset(Dataset):  # type: ignore
             transformation: torchvision transforms for on-the-fly augmentations
         """
         super().__init__()
-        self.data = [x for x in glob.glob(f"{path}/*/*")]
+        self.data = list(glob.glob(f"{path}/*/*"))
         self.to_pil = ToPILImage()
         self.to_tensor = ToTensor()
         self.transforms = transformation
@@ -73,22 +71,3 @@ class CustomDataset(Dataset):  # type: ignore
 
         """
         return len(self.data)
-
-
-if __name__ == '__main__':
-    from pathlib import Path
-    from matplotlib import pyplot as plt
-    from src.baseline_detection.mask_rcnn.trainer_textline import draw_prediction
-
-    traindataset = CustomDataset(
-        f"{Path(__file__).parent.absolute()}/../../../data/train_mask"
-    )
-
-    image, target = traindataset[3]
-    
-    print(target['boxes'])
-
-    pred = draw_prediction(image, target)
-
-    plt.imshow(pred.permute(1, 2, 0))
-    plt.savefig('imageTest.png', dpi=1000)

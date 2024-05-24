@@ -3,7 +3,7 @@
 import glob
 import os
 from pathlib import Path
-from typing import List, Dict, Union, Tuple
+from typing import List, Tuple
 
 import torch
 from shapely import LineString
@@ -11,10 +11,8 @@ from torchvision import transforms
 import numpy as np
 from PIL import Image, ImageOps, ImageDraw
 from skimage import draw
-from bs4 import PageElement
 from skimage import io
 from tqdm import tqdm
-import re
 
 from src.baseline_detection.utils import extract
 
@@ -95,7 +93,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
     """
     to_tensor = transforms.PILToTensor()
 
-    target_paths = [x for x in glob.glob(f"{target_folder}/*.xml")]
+    target_paths = list(glob.glob(f"{target_folder}/*.xml"))
     image_paths = [f"{image_folder}/{x.split(os.sep)[-1][:-4]}.jpg" for x in target_paths]
 
     print(f"{len(image_paths)=}")
@@ -122,8 +120,9 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
 
             # save subimage
             subimage = torch_image[
-                        region['region_bbox'][0]: region['region_bbox'][2],  # type: ignore
-                        region['region_bbox'][1]: region['region_bbox'][3]]  # type: ignore
+                       region['region_bbox'][0]: region['region_bbox'][2],  # type: ignore
+                       region['region_bbox'][1]: region['region_bbox'][3]  # type: ignore
+                                   ]
 
             io.imsave(f"{output_path}/{document_name}/region_{i}/image.jpg",
                       subimage.to(torch.uint8))
@@ -137,8 +136,8 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
                        f"{output_path}/{document_name}/region_{i}/bboxes.pt")
 
             target = create_baseline_target(subimage.shape[:2],
-                                            region['baselines'],    # type: ignore
-                                            mask_regions)        # type: ignore
+                                            region['baselines'],  # type: ignore
+                                            mask_regions)  # type: ignore
             np.savez_compressed(f"{output_path}/{document_name}/region_{i}/baselines",
                                 array=target)
 

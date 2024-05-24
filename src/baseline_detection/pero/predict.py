@@ -231,7 +231,7 @@ class BaselineEngine:
         """
         self.downsample = downsample
         self.smooth_line_predictions = smooth_line_predictions
-        self.line_end_weight = line_end_weight,
+        self.line_end_weight = line_end_weight
         self.line_detection_threshold = line_detection_threshold
         self.vertical_line_connection_range = vertical_line_connection_range
         self.paragraph_line_threshold = paragraph_line_threshold
@@ -283,10 +283,11 @@ class BaselineEngine:
         return self.to_tensor(textregion_img)
 
     def parse(self, out_map: np.ndarray) -> Tuple[List[np.ndarray],
-    List[List[float]],
-    List[np.ndarray]]:
+                                                  List[List[float]],
+                                                  List[np.ndarray]]:
         """
-        From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
+        From
+        https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
 
         Parse input baseline, height and region map into list of baselines
         coords, list of heights and region map
@@ -387,7 +388,7 @@ class BaselineEngine:
         input_image = preprocess_image(image, mask_regions)
 
         # predict
-        pred = self.model(input_image[None].to(self.device))
+        pred = self.model(input_image[None].to(self.device))    # pylint: disable=not-callable
         pred = pred.cpu().detach()
         ascenders = pred[0, 0]
         descenders = pred[0, 1]
@@ -405,11 +406,7 @@ class BaselineEngine:
             print('fail!')
             return [], []
 
-        # clusters_array = make_clusters(b_list, h_list, t_list, maps[:, :, 4], 2)
-        # p_list = clustered_lines_to_polygons(t_list, clusters_array)
-
         b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
-        # p_list, b_list, t_list = rotate_layout(p_list, b_list, t_list, rot, image.shape)
 
         baselines = [LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list]
         textlines = [Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list]

@@ -1,21 +1,21 @@
 """Module to train baseline models."""
 
+import argparse
 import os
 from pathlib import Path
-import argparse
 from typing import Union, Dict
 
 import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
+from monai.losses import DiceLoss
+from monai.networks.nets import BasicUNet
+from torch import nn
 from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
+from torchvision import transforms
 from tqdm import tqdm
-
-from monai.losses import DiceLoss
-from monai.networks.nets import BasicUNet
 
 from src.baseline_detection.mask_rcnn.dataset_baseline import CustomDataset
 
@@ -130,7 +130,7 @@ class Trainer:
             targets = targets.to(self.device)
 
             self.optimizer.zero_grad()
-            output = model(images)
+            output = self.model(images)
             loss = self.loss_fn(output, targets)
             loss.backward()
             self.optimizer.step()
@@ -157,7 +157,7 @@ class Trainer:
             targets = targets.to(self.device)
 
             self.optimizer.zero_grad()
-            output = model(images)
+            output = self.model(images)
             loss = self.loss_fn(output, targets)
 
             loss_lst.append(loss.cpu().detach())
@@ -278,9 +278,8 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    from torchvision import transforms
-
+def main():
+    """Trains baseline model with given parameters."""
     args = get_args()
 
     # check args
@@ -342,3 +341,7 @@ if __name__ == "__main__":
                       name,
                       cuda=args.cuda)
     trainer.train(args.epochs)
+
+
+if __name__ == "__main__":
+    main()

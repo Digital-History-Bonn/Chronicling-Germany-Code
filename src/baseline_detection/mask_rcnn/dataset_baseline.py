@@ -31,9 +31,9 @@ class CustomDataset(Dataset):  # type: ignore
         super().__init__()
         self.path = path
         self.scaling = scaling
-        self.data = [x for x in glob.glob(f"{path}/*/*")]
+        self.data = list(glob.glob(f"{path}/*/*"))
         self.cropping = cropping
-        self.crop = RandomCropAndResize(size=(256, 256))
+        self.crop_size = (256, 256)
         self.augmentations = augmentations
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -58,8 +58,8 @@ class CustomDataset(Dataset):  # type: ignore
         # pad image to ensure size is big enough for cropping
         width_pad = max(self.scaling * 256 - image.shape[1], 0)
         height_pad = max(self.scaling * 256 - image.shape[2], 0)
-        image = F.pad(image, (0, height_pad, 0, width_pad))
-        target = F.pad(target, (0, height_pad, 0, width_pad))
+        image = F.pad(image, (0, height_pad, 0, width_pad))     # pylint: disable=not-callable
+        target = F.pad(target, (0, height_pad, 0, width_pad))   # pylint: disable=not-callable
 
         _, width, height = image.shape
         resize = transforms.Resize((width // self.scaling, height // self.scaling))
@@ -68,7 +68,9 @@ class CustomDataset(Dataset):  # type: ignore
 
         # crop image and target
         if self.cropping:
-            image, target = self.crop(image, target)
+            i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.crop_size)
+            image = transforms.functional.crop(image, i, j, h, w)
+            target = transforms.functional.crop(target, i, j, h, w)
 
         # augment image
         if self.augmentations:
@@ -84,34 +86,3 @@ class CustomDataset(Dataset):  # type: ignore
             length of the dataset
         """
         return len(self.data)
-
-
-class RandomCropAndResize(Module):
-    """Random cropping module."""
-
-    def __init__(self, size: Tuple[int, int]):
-        """
-        Random cropping module.
-
-        Args:
-            size: size of the crop
-        """
-        super().__init__()
-        self.size = size
-
-    def __call__(self, image: torch.Tensor,
-                 target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Randomly crop the image and mask.
-
-        Args:
-            image: input image
-            target: target of same size
-
-        Returns:
-            cropped image and target
-        """
-        i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.size)
-        image = transforms.functional.crop(image, i, j, h, w)
-        target = transforms.functional.crop(target, i, j, h, w)
-        return image, target

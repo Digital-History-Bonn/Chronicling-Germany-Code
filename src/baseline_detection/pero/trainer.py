@@ -1,21 +1,21 @@
 """Module to train baseline models."""
 
+import argparse
 import os
 from pathlib import Path
-import argparse
 from typing import Union, Tuple, Dict
 
 import numpy as np
 import torch
+from monai.losses import DiceLoss
+from monai.networks.nets import BasicUNet
 from torch import nn
+from torch.nn import MSELoss
 from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
+from torchvision import transforms
 from tqdm import tqdm
-
-from torch.nn import MSELoss
-from monai.losses import DiceLoss
-from monai.networks.nets import BasicUNet
 
 from src.baseline_detection.pero.dataset import CustomDataset as Dataset
 
@@ -36,7 +36,7 @@ class MultiTargetLoss(nn.Module):
         Args:
             scaling: waiting between ascender- and descender loss and baseline- and limit loss
         """
-        super(MultiTargetLoss, self).__init__()
+        super().__init__()
         self.scaling = scaling
         self.dice = DiceLoss(include_background=False,
                              to_onehot_y=True,
@@ -178,7 +178,7 @@ class Trainer:
             targets = targets.to(self.device)
 
             self.optimizer.zero_grad()
-            output = model(images)
+            output = self.model(images)
             loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
             loss.backward()
             self.optimizer.step()
@@ -225,7 +225,7 @@ class Trainer:
             targets = targets.to(self.device)
 
             self.optimizer.zero_grad()
-            output = model(images)
+            output = self.model(images)
             loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
 
             loss_lst.append(loss.cpu().detach())
@@ -364,9 +364,8 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    from torchvision import transforms
-
+def main():
+    """Trains a model with given parameters."""
     args = get_args()
 
     # check args
@@ -427,3 +426,7 @@ if __name__ == "__main__":
                       name,
                       cuda=args.cuda)
     trainer.train(args.epochs)
+
+
+if __name__ == "__main__":
+    main()

@@ -50,8 +50,7 @@ def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Pol
             descender = parts.geoms[0]
         return ascender, descender
 
-    else:
-        raise ValueError('Baseline and polygone not intersecting!')
+    raise ValueError('Baseline and polygone not intersecting!')
 
 
 def calc_heights(polygon: Polygon,
@@ -136,14 +135,11 @@ def draw_baseline_target(shape: Tuple[int, int],
 
     # Draw targets
     for baseline, textline in zip(baselines, textlines):
-        # calc ascender and descender
         line = LineString(torch.flip(baseline, dims=[1]))
         polygon = Polygon(torch.flip(textline, dims=[1]))
 
         # draw limiter
-        min_x, min_y, max_x, max_y = polygon.bounds
-        limiter_draw.line([(min_x, min_y), (min_x, max_y)], fill=1, width=width)
-        limiter_draw.line([(max_x, min_y), (max_x, max_y)], fill=1, width=width)
+        draw_limiter(limiter_draw, polygon, width)
 
         # draw baseline
         baseline_draw.line(line.coords, fill=1, width=1)
@@ -153,21 +149,9 @@ def draw_baseline_target(shape: Tuple[int, int],
         except ValueError as e:
             print(f"{e} in image {name}\n")
             continue
-        # draw ascender
-        x_coords, y_coords, values = calc_heights(ascender, baseline)
-        x_coords = x_coords[y_coords < shape[1]]
-        values = values[y_coords < shape[1]]
-        y_coords = y_coords[y_coords < shape[1]]
-
-        target[x_coords, y_coords, 0] = values
-
-        # draw descender
-        x_coords, y_coords, values = calc_heights(descender, baseline)
-        x_coords = x_coords[y_coords < shape[1]]
-        values = values[y_coords < shape[1]]
-        y_coords = y_coords[y_coords < shape[1]]
-
-        target[x_coords, y_coords, 1] = values
+        # draw ascender/descender
+        draw_ascender_descender(ascender, baseline, shape, target, dim=0)
+        draw_ascender_descender(descender, baseline, shape, target, dim=1)
 
     target[:, :, 3] = np.array(limiter_img)
     target[:, :, 2] = np.array(baseline_img)
@@ -188,6 +172,42 @@ def draw_baseline_target(shape: Tuple[int, int],
             target[rr, cc, 5] = 0
 
     return np.array(target)
+
+
+def draw_limiter(limiter_draw: ImageDraw, polygon: Polygon, width: int):
+    """
+    Draw limiter on given polygon.
+
+    Args:
+        limiter_draw: ImageDraw object to draw limiter on
+        polygon: shapely Polygon representing the textline polygon
+        width: width of the drawn limiter
+    """
+    min_x, min_y, max_x, max_y = polygon.bounds
+    limiter_draw.line([(min_x, min_y), (min_x, max_y)], fill=1, width=width)
+    limiter_draw.line([(max_x, min_y), (max_x, max_y)], fill=1, width=width)
+
+
+def draw_ascender_descender(polygon: Polygon,
+                            baseline: torch.Tensor,
+                            shape: Tuple[int, int],
+                            target: np.ndarray,
+                            dim: int):
+    """
+    Draws the given ascender oder descender as height values on the baseline positions.
+
+    Args:
+        polygon: shapely Polygon of ascender or descender
+        baseline: torch Tensor representing the baseline
+        shape: shape of target
+        target: np array representing the target
+        dim: dimension where to draw ascender/descender in target
+    """
+    x_coords, y_coords, values = calc_heights(polygon, baseline)
+    x_coords = x_coords[y_coords < shape[1]]
+    values = values[y_coords < shape[1]]
+    y_coords = y_coords[y_coords < shape[1]]
+    target[x_coords, y_coords, dim] = values
 
 
 def rename_files(folder_path: str) -> None:
@@ -233,10 +253,7 @@ def plot_target(image: np.ndarray,
     attributes = ['ascenders', 'descenders', 'baselines', 'marker', 'textregion']
     image = image * target[:, :, 5, None]
 
-    # image = image[500:1500, 500:1500]
-    # target = target[500:1500, 500:1500]
-
-    fig, axes = plt.subplots(1, len(attributes), figsize=figsize)  # Adjust figsize as needed
+    _, axes = plt.subplots(1, len(attributes), figsize=figsize)
 
     print(f"{target.shape=}")
     for i, attribute in enumerate(attributes):
@@ -268,7 +285,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
     """
     to_tensor = transforms.PILToTensor()
 
-    target_paths = [x for x in glob.glob(f"{target_folder}/*.xml")]
+    target_paths = list(glob.glob(f"{target_folder}/*.xml"))
     image_paths = [f"{image_folder}/{x.split(os.sep)[-1][:-4]}.jpg" for x in target_paths]
 
     print(f"{len(image_paths)=}")

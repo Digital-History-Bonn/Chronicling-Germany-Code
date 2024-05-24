@@ -1,28 +1,27 @@
 """Module to train Mask R-CNN Model."""
 
+import argparse
 import os
 from pathlib import Path
-import argparse
 from typing import Optional, Union, Dict
-from tqdm import tqdm
 
 import numpy as np
 import torch
 from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
+from torchvision import transforms
 from torchvision.models.detection import (
     maskrcnn_resnet50_fpn,
     MaskRCNN_ResNet50_FPN_Weights,
     MaskRCNN
 )
 from torchvision.utils import draw_segmentation_masks, draw_bounding_boxes
+from tqdm import tqdm
 
 from src.baseline_detection.mask_rcnn.dataset_textline import CustomDataset
-from src.baseline_detection.mask_rcnn.postprocessing import postprocess
 
 LR = 0.00001
-
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -138,7 +137,7 @@ class Trainer:
             target["masks"] = target["masks"][0].to(self.device)
 
             self.optimizer.zero_grad()
-            output = model([img[0]], [target])
+            output = self.model([img[0]], [target])
             loss = sum(v for v in output.values())
             loss.backward()
             self.optimizer.step()
@@ -378,9 +377,8 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    from torchvision import transforms
-
+def main():
+    """Trains Mask R-CNN model to detect textlines."""
     args = get_args()
 
     # check args
@@ -438,3 +436,7 @@ if __name__ == "__main__":
                       name,
                       cuda=args.cuda)
     trainer.train(args.epochs)
+
+
+if __name__ == "__main__":
+    main()

@@ -13,39 +13,6 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
-class RandomCropAndResize(Module):
-    """Crops the given image and target at a random position."""
-
-    def __init__(self, size: Tuple[int, int]):
-        """
-        Crops the given image and target at a random position.
-
-        Args:
-            size: Size of the crop
-        """
-        super().__init__()
-        self.size = size
-
-    def __call__(self, image: torch.Tensor,
-                 target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Crops the given image and target at a random position.
-
-        Args:
-            image: torch Tensor representation of the image (channel, width, height)
-            target: torch Tensor representation of the target (channel, width, height)
-
-        Returns:
-            cropped image: torch Tensor representation of the image (channel, size[0], size[1])
-            cropped target torch Tensor representation of the target (channel, size[0], size[1])
-        """
-        # Randomly crop the image and mask
-        i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.size)
-        image = transforms.functional.crop(image, i, j, h, w)
-        target = transforms.functional.crop(target, i, j, h, w)
-        return image, target
-
-
 class CustomDataset(Dataset):  # type: ignore
     """Newspaper Class for training."""
 
@@ -67,7 +34,7 @@ class CustomDataset(Dataset):  # type: ignore
         self.target_path = target_path
         self.data = [x.split(os.sep)[-1][:-4] for x in glob.glob(f"{target_path}/*")]
         self.cropping = cropping
-        self.crop = RandomCropAndResize(size=(256, 256))
+        self.crop_size = (256, 256)
         self.augmentations = augmentations
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -92,8 +59,8 @@ class CustomDataset(Dataset):  # type: ignore
         # pad image to ensure size is big enough for cropping
         width_pad = max(256 - image.shape[1], 0)
         height_pad = max(256 - image.shape[2], 0)
-        image = F.pad(image, (0, height_pad, 0, width_pad))
-        target = F.pad(target, (0, height_pad, 0, width_pad))
+        image = F.pad(image, (0, height_pad, 0, width_pad))     # pylint: disable=not-callable
+        target = F.pad(target, (0, height_pad, 0, width_pad))   # pylint: disable=not-callable
 
         _, width, height = image.shape
         resize = transforms.Resize((width // 2, height // 2))
@@ -102,7 +69,9 @@ class CustomDataset(Dataset):  # type: ignore
 
         # crop image and target
         if self.cropping:
-            image, target = self.crop(image, target)
+            i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.crop_size)
+            image = transforms.functional.crop(image, i, j, h, w)
+            target = transforms.functional.crop(target, i, j, h, w)
         else:
             i, j = image.shape[-2:]
             i = i // 2 - 512
