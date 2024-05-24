@@ -8,16 +8,13 @@ from typing import Tuple, List
 
 import torch
 from PIL import Image
-
-from kraken import rpred
-from kraken.lib import models
-from kraken.containers import Segmentation, BaselineLine
-
 from bs4 import BeautifulSoup, PageElement
+from kraken import rpred
+from kraken.containers import Segmentation, BaselineLine
+from kraken.lib import models
 from tqdm import tqdm
 
-from utils import pad_xml, pad_image
-
+from src.OCR.utils import pad_xml, pad_image
 
 multiprocessing.set_start_method('spawn')
 

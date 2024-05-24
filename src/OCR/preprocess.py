@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 from bs4 import BeautifulSoup
 
-from utils import pad_xml, pad_image
+from src.OCR.utils import pad_xml, pad_image
 
 
 def copy_and_pad_xml(input_path: str, output_dir: str, pad_value: int = 10) -> None:

@@ -1,14 +1,12 @@
 """Model to train kraken OCR model."""
 import glob
-from pprint import pprint
 import os
+from pprint import pprint
 
 import torch
-
-from lightning.pytorch.loggers import TensorBoardLogger
-
-from kraken.lib.train import RecognitionModel, KrakenTrainer
 from kraken.lib import default_specs
+from kraken.lib.train import RecognitionModel, KrakenTrainer
+from lightning.pytorch.loggers import TensorBoardLogger
 
 torch.set_float32_matmul_precision('medium')
 
