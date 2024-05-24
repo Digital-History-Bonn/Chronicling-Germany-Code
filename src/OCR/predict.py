@@ -10,7 +10,7 @@ import torch
 from PIL import Image
 from bs4 import BeautifulSoup, PageElement
 from kraken import rpred
-from kraken.containers import Segmentation, BaselineLine    # pylint: disable=no-name-in-module
+from kraken.containers import Segmentation, BaselineLine    # pylint: disable=no-name-in-module, import-error
 from kraken.lib import models
 from kraken.lib.models import TorchSeqRecognizer
 from tqdm import tqdm
