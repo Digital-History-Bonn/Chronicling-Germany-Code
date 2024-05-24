@@ -12,7 +12,6 @@ from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torchvision.models.detection import (
-    FasterRCNN,
     maskrcnn_resnet50_fpn,
     MaskRCNN_ResNet50_FPN_Weights,
     MaskRCNN
@@ -25,12 +24,15 @@ from src.baseline_detection.mask_rcnn.postprocessing import postprocess
 LR = 0.00001
 
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
+
 class Trainer:
     """Class to train models."""
 
     def __init__(
             self,
-            model: FasterRCNN,
+            model: MaskRCNN,
             traindataset: CustomDataset,
             testdataset: CustomDataset,
             optimizer: Optimizer,
@@ -58,10 +60,10 @@ class Trainer:
         self.model = model.to(self.device)
         self.optimizer = optimizer
         self.trainloader = DataLoader(
-            traindataset, batch_size=1, shuffle=True, num_workers=4
+            traindataset, batch_size=1, shuffle=True, num_workers=16
         )
         self.testloader = DataLoader(
-            testdataset, batch_size=1, shuffle=False, num_workers=4
+            testdataset, batch_size=1, shuffle=False, num_workers=16
         )
 
         self.bestavrgloss: Union[float, None] = None
@@ -69,7 +71,7 @@ class Trainer:
         self.name = name
 
         # setup tensor board
-        train_log_dir = f"{Path(__file__).parent.absolute()}/../../logs/runs/{self.name}"
+        train_log_dir = f"{Path(__file__).parent.absolute()}/../../../logs/runs/{self.name}"
         print(f"{train_log_dir=}")
         self.writer = SummaryWriter(train_log_dir)  # type: ignore
 
@@ -83,10 +85,10 @@ class Trainer:
         Args:
             name: name of the model
         """
-        os.makedirs(f"{Path(__file__).parent.absolute()}/../../models/", exist_ok=True)
+        os.makedirs(f"{Path(__file__).parent.absolute()}/../../../models/", exist_ok=True)
         torch.save(
             self.model.state_dict(),
-            f"{Path(__file__).parent.absolute()}/../../models/{name}",
+            f"{Path(__file__).parent.absolute()}/../../../models/{name}",
         )
 
     def load(self, name: str = "") -> None:
@@ -97,7 +99,7 @@ class Trainer:
             name: name of the model
         """
         self.model.load_state_dict(
-            torch.load(f"{Path(__file__).parent.absolute()}/../../models/{name}.pt")
+            torch.load(f"{Path(__file__).parent.absolute()}/../../../models/{name}.pt")
         )
 
     def train(self, epoch: int) -> None:
