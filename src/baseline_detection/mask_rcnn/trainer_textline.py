@@ -377,7 +377,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Trains Mask R-CNN model to detect textlines."""
     args = get_args()
 

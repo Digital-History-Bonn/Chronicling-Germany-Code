@@ -364,7 +364,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Trains a model with given parameters."""
     args = get_args()
 

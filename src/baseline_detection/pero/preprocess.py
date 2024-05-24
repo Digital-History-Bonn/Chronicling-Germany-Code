@@ -174,7 +174,7 @@ def draw_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def draw_limiter(limiter_draw: ImageDraw.ImageDraw, polygon: Polygon, width: int):
+def draw_limiter(limiter_draw: ImageDraw.ImageDraw, polygon: Polygon, width: int) -> None:
     """
     Draw limiter on given polygon.
 
@@ -192,7 +192,7 @@ def draw_ascender_descender(polygon: Polygon,
                             baseline: torch.Tensor,
                             shape: Tuple[int, int],
                             target: np.ndarray,
-                            dim: int):
+                            dim: int) -> None:
     """
     Draws the given ascender oder descender as height values on the baseline positions.
 
