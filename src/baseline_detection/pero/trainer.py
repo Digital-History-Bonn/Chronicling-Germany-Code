@@ -404,13 +404,13 @@ def main() -> None:
 
     traindataset = Dataset(
         f"{Path(__file__).parent.absolute()}/../../../data/images",
-        f"{Path(__file__).parent.absolute()}/../../../data/train_pero",
+        f"{Path(__file__).parent.absolute()}/../../../data/data-24-05-2024/anzeigen_baseline_train",
         augmentations=transform,
     )
 
     validdataset = Dataset(
         f"{Path(__file__).parent.absolute()}/../../../data/images",
-        f"{Path(__file__).parent.absolute()}/../../../data/valid_pero",
+        f"{Path(__file__).parent.absolute()}/../../../data/data/data-24-05-2024/anzeigen_baseline_valid",
         cropping=False
     )
 

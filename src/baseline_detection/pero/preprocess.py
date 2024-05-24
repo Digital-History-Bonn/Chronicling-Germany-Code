@@ -283,6 +283,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
         target_folder: path to xml files
         output_path: path to save folder
     """
+    os.makedirs(output_path, exist_ok=True)
     to_tensor = transforms.PILToTensor()
 
     target_paths = list(glob.glob(f"{target_folder}/*.xml"))

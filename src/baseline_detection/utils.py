@@ -128,6 +128,7 @@ List[torch.Tensor]]:
 
             if is_valid(region_bbox):
                 region_dict = extract_region(region, region_bbox)
+                region_dict['textregion'] = region_polygon
 
                 # only adding regions with at least one textline
                 if len(region_dict['textline_polygone']) > 0:  # type: ignore
