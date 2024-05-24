@@ -58,10 +58,10 @@ def main(name: str) -> None:
 
     # init logger and training
     logger = TensorBoardLogger("logs", name=name)
-    trainer = KrakenTrainer(pl_logger=logger)               # pylint: disable=unexpected-keyword-arg
+    trainer = KrakenTrainer(pl_logger=logger)  # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
 
     # start training
-    trainer.fit(model)
+    trainer.fit(model)  # pylint: disable=no-member
 
 
 if __name__ == '__main__':
