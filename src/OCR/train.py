@@ -4,8 +4,8 @@ import os
 from pprint import pprint
 
 import torch
-from kraken.lib import default_specs
-from kraken.lib.train import RecognitionModel, KrakenTrainer
+from kraken.lib import default_specs                            # pylint: disable=no-name-in-module
+from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module
 from lightning.pytorch.loggers import TensorBoardLogger
 
 torch.set_float32_matmul_precision('medium')
@@ -58,7 +58,7 @@ def main(name: str) -> None:
 
     # init logger and training
     logger = TensorBoardLogger("logs", name=name)
-    trainer = KrakenTrainer(pl_logger=logger)
+    trainer = KrakenTrainer(pl_logger=logger)               # pylint: disable=unexpected-keyword-arg
 
     # start training
     trainer.fit(model)
