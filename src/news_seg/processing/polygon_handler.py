@@ -41,8 +41,6 @@ def create_mask_polygons(sub_mask: ndarray, label: int, tolerance: List[float], 
     If this is not the case, polygon simplification ist not necessary.
     :return:
     """
-    if label == 5:
-        bbox_size = bbox_size//5
 
     contours = measure.find_contours(sub_mask, 0.5, positive_orientation="low")
     segmentations: List[List[float]] = []
@@ -115,7 +113,7 @@ def prediction_to_region_polygons(pred: ndarray, tolerance: List[float], bbox_si
     segmentations = {}
     bbox_dict = {}
     for label, mask in masks.items():
-        if (export or label == 4 or label == 9) and not label == 1:
+        if export or label == 3 or label == 7: # for sclice export only paragraph and separator are processed (obsolete)
             segment, bbox = create_mask_polygons(np.array(mask), label, tolerance, bbox_size, export)
             segmentations[label], bbox_dict[label] = segment, bbox
             print(f"label: {label}, length: {len(segment)}")

@@ -124,8 +124,7 @@ def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = Fals
     :return: prediction ndarray [B, H, W]
     """
     if reduce:
-        collapse_prediction(pred)
-    # TODO: do this after max
+        pred = collapse_prediction(pred)
 
     max_tensor, argmax = torch.max(pred, dim=1)
     argmax = argmax.type(torch.uint8)
@@ -133,15 +132,19 @@ def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = Fals
     return argmax.detach().cpu().numpy()  # type: ignore
 
 
-def collapse_prediction(pred: torch.Tensor) -> None:
+def collapse_prediction(pred: torch.Tensor) -> torch.Tensor:
     """
     Collapses classes in the prediction tensor after softmax activation.
     This is used to make models with different classes compatible. This does not change the total number of classes.
     """
+    # TODO: remove when old model is predicted
+    pred = pred[:, 1:, :, :]
+
     for replace_label, label_list in REDUCE_CLASSES.items():
         for label in label_list:
             pred[:, replace_label, :, :] += pred[:, label, :, :]
             pred[:, label, :, :] = 0
+    return pred
 
 
 def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:

@@ -10,7 +10,7 @@ from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 
 from src.news_seg.class_config import LABEL_NAMES, REDUCE_CLASSES
-from src.news_seg.class_config import cmap_12 as cmap
+from src.news_seg.class_config import cmap
 
 
 def draw_prediction(img: ndarray, path: str) -> None:

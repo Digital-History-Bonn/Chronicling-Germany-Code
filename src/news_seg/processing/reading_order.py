@@ -37,7 +37,7 @@ def median(properties: ndarray) -> int:
     :return: text region x mean
     """
     labels = properties[:, 1]
-    text_regions = properties[(labels == 3) + (labels == 4)]
+    text_regions = properties[(labels == 2) + (labels == 3)] # table and paragraph
     if len(text_regions) == 0:
         warnings.warn("Reading Order has not found any paragraphs in this Page. "
                       "Resulting reading order ist not meaningful in this case.")

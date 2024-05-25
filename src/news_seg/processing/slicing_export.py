@@ -86,20 +86,11 @@ def create_mask(bbox: List[float], index: int, mask_bbox_list: List[List[float]]
     """
     Draw mask into empyt image and cut out the bbox area. Masks, as well as reading order and bboxes are appended to
     their respective lists for further processing
-    :param bbox:
-    :param index:
-    :param mask_bbox_list:
-    :param masks:
-    :param reading_order:
-    :param reading_order_list:
-    :param shape:
-    :param x_coords:
-    :param y_coords:
     """
     # temp_image = np.zeros(shape, dtype="uint8")
     # temp_image[x_coords, y_coords] = 1
     mask = pred[int(bbox[1]): int(bbox[3]), int(bbox[0]): int(bbox[2])]
-    mask = (mask == 4).astype(np.uint8)
+    mask = (mask == 3).astype(np.uint8) # only paragraphs should be sliced
     masks.append(mask)
     reading_order_list.append(reading_order[index])
     mask_bbox_list.append(bbox)
