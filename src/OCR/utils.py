@@ -82,6 +82,7 @@ def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
     x_max, x_min = points[:, 0].max(), points[:, 0].min()
     y_max, y_min = points[:, 1].max(), points[:, 1].min()
     return x_min, y_min, x_max, y_max  # type: ignore
+    # TODO: merge this with baseline bbox function
 
 
 def convert_coord(element: PageElement) -> np.ndarray:

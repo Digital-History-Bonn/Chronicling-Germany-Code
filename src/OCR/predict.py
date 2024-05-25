@@ -72,6 +72,7 @@ def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
                         [tuple(map(int, point.split(','))) for point in
                          polygon['points'].split()])  # type: ignore
                 )
+                # TODO: merge this with news seg utility function
 
         baselines.append(region_baselines)
 
