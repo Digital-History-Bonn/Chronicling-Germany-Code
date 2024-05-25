@@ -12,6 +12,7 @@ from torchvision.transforms import ToPILImage, ToTensor
 
 class CustomDataset(Dataset):  # type: ignore
     """Newspaper Class for training."""
+    # TODO: rename Dataset and doc string
 
     def __init__(self, path: str, transformation: Optional[Module] = None) -> None:
         """
@@ -38,6 +39,9 @@ class CustomDataset(Dataset):  # type: ignore
             image, target
 
         """
+        #TODO: is this returning all polygons from one image? shouldnt those be randomly assambled in a minibatch
+        # over multiple images?
+
         # load image and draw baselines on it
         image = torch.tensor(io.imread(f"{self.data[index]}/image.jpg")).permute(2, 0, 1) / 256
         boxes = torch.load(f"{self.data[index]}/bboxes.pt")

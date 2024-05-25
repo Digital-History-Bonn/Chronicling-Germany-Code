@@ -217,6 +217,7 @@ def rename_files(folder_path: str) -> None:
     Args:
         folder_path: path to folder
     """
+    # TODO: should be obsolete
     # Get the list of files in the folder
     files = os.listdir(folder_path)
 

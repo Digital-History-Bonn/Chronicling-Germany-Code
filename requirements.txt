@@ -17,3 +17,6 @@ shapely
 ml_collections
 positional-encodings
 torchmetrics
+monai
+
+#TODO add requirements

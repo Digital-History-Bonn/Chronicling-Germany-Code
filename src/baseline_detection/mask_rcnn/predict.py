@@ -8,7 +8,7 @@ from monai.networks.nets import BasicUNet
 from shapely import Polygon, LineString
 from shapely.affinity import translate
 from skimage import io
-from skimage.measure import find_contours
+from skimage.measure import find_contours # pylint: disable=no-name-in-module
 from torchvision.models.detection import MaskRCNN
 from torchvision.transforms import GaussianBlur
 
@@ -118,6 +118,7 @@ def predict_image(textline_model: MaskRCNN,
     pred = postprocess(pred, method='iom', threshold=.6)
 
     baseline_probability_map = gauss_filter(baseline_probability_map[None])[0]
+    #TODO: why gauss blur?
 
     baselines = []
     for box, mask in zip(pred["boxes"], pred["masks"]):

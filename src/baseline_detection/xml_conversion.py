@@ -40,6 +40,7 @@ def polygon_to_string(input_list: List[float]) -> str:
     Returns:
          Coordinates as a string
     """
+    #TODO: merge this with news_seg utility function
     generator_expression = (
         f"{int(input_list[index])},{int(input_list[index + 1])}"
         for index in range(0, len(input_list), 2)

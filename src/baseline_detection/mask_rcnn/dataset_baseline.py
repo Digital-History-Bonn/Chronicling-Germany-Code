@@ -14,6 +14,7 @@ from torchvision import transforms
 
 class CustomDataset(Dataset):  # type: ignore
     """Newspaper Class for training."""
+    #TODO: rename Dataset and doc string
 
     def __init__(self, path: str,
                  scaling: int,

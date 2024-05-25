@@ -1,5 +1,5 @@
 """Newspaper Class for newspaper mask R-CNN."""
-
+#TODO: update doc strings
 import os
 import glob
 from typing import Tuple, Optional

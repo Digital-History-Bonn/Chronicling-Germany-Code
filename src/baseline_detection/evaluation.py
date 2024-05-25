@@ -44,6 +44,7 @@ def extract(file_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
                 baseline = text_line.find('Baseline')
                 line = torch.tensor([tuple(map(int, point.split(','))) for
                                      point in baseline['points'].split()])[:, torch.tensor([1, 0])]
+                # TODO: both cases: use string splitting utils function already present in news_segs
                 baselines.append(line)
 
     return textlines, baselines
@@ -60,6 +61,7 @@ def distance(pred: torch.Tensor, target: torch.Tensor) -> float:
     Returns:
         Distance between the predicted and target baselines.
     """
+    #TODO: implement
     return 1.0
 
 
@@ -92,6 +94,7 @@ def textline_detection_metrics(prediction: List[Polygon],
 
     pred_iuo = ious.amax(dim=1)
     target_iuo = ious.amax(dim=0)
+    #TODO: just use torch metrics for iou? Or already build iou and recall, precision method in news_seg utils.
 
     tp = torch.sum(pred_iuo >= threshold).item()
     fp = len(matrix) - tp
