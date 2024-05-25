@@ -6,8 +6,8 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from src.news_seg.news_dataset import NewsDataset
-from src.news_seg.preprocessing import (
+from src.news_seg.datasets.train_dataset import TrainDataset
+from src.news_seg.processing.preprocessing import (
     Preprocessing,
 )
 
@@ -66,9 +66,9 @@ def validate(args):
 def count_classes(args: argparse.Namespace):
     """Load data with increasing amount of workers"""
     preprocessing = Preprocessing(scale=0.5, crop_factor=1, crop_size=512)
-    dataset = NewsDataset(preprocessing, image_path=f"{args.data_path}images/",
-                          target_path=f"{args.data_path}targets/",
-                          dataset=args.dataset)
+    dataset = TrainDataset(preprocessing, image_path=f"{args.data_path}images/",
+                           target_path=f"{args.data_path}targets/",
+                           dataset=args.dataset)
     dataset.augmentations = False
 
     loader = DataLoader(dataset, shuffle=False, num_workers=args.num_workers, batch_size=args.batch_size)

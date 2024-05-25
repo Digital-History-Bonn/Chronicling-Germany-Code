@@ -9,7 +9,7 @@ import os
 import warnings
 from multiprocessing.pool import ThreadPool
 from time import time
-from typing import Tuple, Union, Any
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -19,175 +19,17 @@ from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmRestarts
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
-from torchmetrics import JaccardIndex
-from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 from tqdm import tqdm
 
+from src.news_seg.train_config import BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS, \
+    EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT
+from src.news_seg.helper.train_helper import init_model, load_score, focal_loss, calculate_scores, initiate_datasets, \
+    initiate_dataloader
 from src.news_seg.utils import split_batches
-from src.news_seg.models.dh_segment import DhSegment
-from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
-from src.news_seg.models.dh_segment_small import DhSegmentSmall
-from src.news_seg.models.trans_unet import VisionTransformer
-from src.news_seg.news_dataset import NewsDataset
-from src.news_seg.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE, Preprocessing
-from src.news_seg.utils import multi_class_csi, multi_precison_recall
-
-EPOCHS = 1
-DATALOADER_WORKER = 1
-IN_CHANNELS, OUT_CHANNELS = 3, 10
-VAL_NUMBER = 3
-
-BATCH_SIZE = 32
-LEARNING_RATE = 1e-5  # 1e-5 from Paper .001 Standard 0,0001 seems to work well
-WEIGHT_DECAY = 1e-6  # 1e-6 from Paper
-LOSS_WEIGHTS: torch.Tensor = torch.tensor([
-    2.0,
-    10.0,
-    10.0,
-    10.0,
-    4.0,
-    20.0,
-    10.0,
-    10.0,
-    10.0,
-    20.0,
-]) / 20
-
-
-# set random seed for reproducibility
-# torch.manual_seed(42)
-
-def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
-               skip_cbam: bool = False) -> Any:
-    """
-    Initialise model
-    :param args:
-    :param load: contains path to load the model from. If False, the model will be initialised randomly
-    :param freeze: activates encoder freezing
-    :param skip_cbam: activates cbam skip connection
-    :return: loaded model
-    """
-    if model_str == "dh_segment":
-        # create model
-        model: Any = DhSegment(
-            [3, 4, 6, 4],
-            in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
-            load_resnet_weights=True,
-        )
-        model = setup_dh_segment(device, load, model, freeze)
-    elif model_str == "trans_unet":
-        load_backbone = not load
-        model = VisionTransformer(
-            load_backbone=load_backbone,
-            in_channels=IN_CHANNELS,
-            out_channel=OUT_CHANNELS,
-            load_resnet_weights=True,
-        )
-
-        model = model.float()
-        if freeze:
-            model.encoder.freeze_encoder()
-        # load model if argument is None, it does nothing
-        model.load(load, device)
-
-        model.encoder.means = torch.tensor((0.485, 0.456, 0.406))
-        model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
-    elif model_str == "dh_segment_cbam":
-        model = DhSegmentCBAM(
-            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True, cbam_skip_connection=skip_cbam
-        )
-        model = setup_dh_segment(device, load, model, freeze)
-    elif model_str == "dh_segment_small":
-        model = DhSegmentSmall(
-            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
-        )
-        model = setup_dh_segment(device, load, model, freeze)
-    assert model, "No valid model string supplied in model parameter"
-    return model
-
-
-def setup_dh_segment(
-        device: str, load: Union[str, None], model: Any, freeze: bool
-) -> Any:
-    """
-    Setup function for dh_segment and dh_segment_cbam
-    :param device:
-    :param load: contains path to load the model from. If False, the model will be initialised randomly
-    :param model:
-    :return:
-    """
-    model = model.float()
-    if freeze:
-        model.freeze_encoder()
-    # load model if argument is None, it does nothing
-    model.load(load, device)
-    # set mean and std in a model for normalization
-    model.means = torch.tensor((0.485, 0.456, 0.406))
-    model.stds = torch.tensor((0.229, 0.224, 0.225))
-    return model
-
-
-def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float, int, int]:
-    """
-    Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
-    """
-    best_score = 1000
-    step = 0
-    epoch = 1
-    if args.load_score and load:
-        with open(f"scores/model_{args.load}.json", "r", encoding="utf-8") as file:
-            best_score, step, epoch = json.load(file)
-    return best_score, step, epoch
-
-
-def focal_loss(
-        prediction: torch.Tensor,
-        target: torch.Tensor,
-        weights: torch.Tensor,
-        gamma: float = 2.0
-) -> torch.Tensor:
-    """
-    Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
-    :param weights: tensor of size num_classes with weights between 0 and 1
-    :param prediction: Unnormalized log probabilities, with shape `[batch, num_classes, ...]`.
-    :param target: Valid probability distributions (non-negative, sum to 1), e.g a
-      one hot encoding specifying the correct class for each input
-    :param gamma: Focusing parameter `>=0`. It controls the contribution of higher confidence predictions.
-      Defaults to 2.
-    :return: loss tensor [batches, ...]"""
-    probalbilites = torch.nn.functional.softmax(prediction, dim=1)
-    focus = torch.pow(1 - probalbilites, gamma)
-    loss = 1 - target * weights[None, :, None, None] * focus * probalbilites
-    return torch.sum(loss, dim=1) / OUT_CHANNELS  # type: ignore
-
-
-def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
-    """
-    Applies argmax on the channel dimension of the prediction to obtain int class values.
-    Then computes jaccard, accuracy and multi class csi score (critical sucess index)
-    :param data: Combined and flattened prediction and Target with shape [P, C] P being number of pixels.
-    The last Channel contains target data.
-    """
-    pred = data[:, : -1]
-    targets = torch.squeeze(data[:, -1].to(torch.uint8))
-
-    jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
-        pred.get_device())  # type: ignore
-    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.get_device())
-    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.get_device())
-
-    pred = torch.argmax(pred, dim=1).type(torch.uint8)
-
-    # pylint: disable=not-callable
-    jaccard = jaccard_fun(pred.flatten(), targets.flatten()).item()
-    accuracy = accuracy_fun(pred.flatten(), targets.flatten()).item()
-    batch_class_acc = multi_class_csi(pred, targets, confusion_metric)
-
-    return jaccard, accuracy, batch_class_acc
+from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
+from src.news_seg.helper.train_helper import multi_precison_recall
 
 
 class Trainer:
@@ -227,82 +69,33 @@ class Trainer:
         self.num_scores_splits = args.num_scores_splits
         self.amp = args.amp
         self.clip = args.clip
-        self.use_scheduler = args.scheduler
+        self.scheduler_type = args.scheduler
 
         # check for cuda
         self.device = args.cuda_device if torch.cuda.is_available() else "cpu"
         print(f"Using {self.device} device")
 
-        self.model = DataParallel(init_model(load, self.device, args.model, args.freeze, args.skip_cbam))
+        self.model = DataParallel(
+            init_model(load, self.device, args.model, args.freeze, args.skip_cbam, args.override_load_channels))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 9)
 
-        # load data
-        preprocessing = Preprocessing(
-            scale=args.scale,
-            crop_factor=args.crop_factor,
-            crop_size=args.crop_size,
-            pad=args.pad,
-            reduce_classes=args.reduce_classes
-        )
-        dataset = NewsDataset(
-            preprocessing,
-            image_path=f"{args.data_path}images/",
-            target_path=f"{args.data_path}targets/",
-            limit=args.limit,
-            dataset=args.dataset,
-            scale_aug=args.scale_aug
-        )
-
-        train_set, validation_set, test_set = dataset.random_split((0.9, 0.05, 0.05))
-        print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
-
-        # Turn of augmentations on Validation-set
-        validation_set.augmentations = False
-        test_set.augmentations = False
-
-        # init dataloader
-        self.train_loader = DataLoader(
-            train_set,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=args.num_workers,
-            drop_last=True,
-            prefetch_factor=args.prefetch_factor,
-            persistent_workers=True,
-            pin_memory=True,
-
-        )
-        self.val_loader = DataLoader(
-            validation_set,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=args.num_workers,
-            drop_last=True,
-            prefetch_factor=args.prefetch_factor,
-            persistent_workers=True,
-            pin_memory=True,
-        )
-        self.test_loader = DataLoader(
-            test_set,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=args.num_workers,
-            drop_last=True,
-        )
-
-        assert (
-                len(self.train_loader) > 0
-                and len(self.val_loader) > 0
-                and len(self.test_loader) > 0
-        ), "At least one Dataset is to small to assemble at least one batch"
+        if args.scheduler == 'reduce_on_plateau':
+            self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 15)
+        elif args.scheduler == 'cosine_annealing':
+            self.scheduler = CosineAnnealingWarmRestarts(self.optimizer, 5, 1, eta_min=0, last_epoch=-1)  # type: ignore
 
         self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
+
+        # load data
+        train_set, validation_set, test_set = initiate_datasets(args)
+
+        self.train_loader, self.val_loader, self.test_loader = initiate_dataloader(args, batch_size, test_set,
+                                                                                   train_set, validation_set)
 
     def train(self, epochs: int = 1) -> float:
         """
@@ -321,21 +114,25 @@ class Trainer:
             with tqdm(
                     total=(len(self.train_loader)),
                     desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batche(s)",
+                    unit="batch(es)",
             ) as pbar:
                 for images, targets in self.train_loader:
+                    # transfer = time()
+                    images = images.to(self.device, non_blocking=True)
+                    targets = targets.to(self.device, non_blocking=True)
+                    # transfer_end = time()
+                    # print(f"Transfer takes:{transfer_end - transfer}")
+
                     start = time()
                     print(f"Batch Start takes:{start - end}")
 
-                    self.optimizer.zero_grad(set_to_none=True)
-
                     with torch.autocast(self.device, enabled=self.amp):
-                        preds = self.model(images.to(self.device))
-                        pred = time()
-                        print(f"prediction takes:{pred - start}")
-                        loss = self.apply_loss(preds, targets.to(self.device))
-                    loss_time = time()
-                    print(f"loss takes:{loss_time - pred}")
+                        preds = self.model(images.to(self.device, non_blocking=True))
+                        # pred = time()
+                        # print(f"prediction takes:{pred - start}")
+                        loss = self.apply_loss(preds, targets.to(self.device, non_blocking=True))
+                    # loss_time = time()
+                    # print(f"loss takes:{loss_time - pred}")
 
                     # Backpropagation
                     self.scaler.scale(loss).backward()
@@ -343,8 +140,10 @@ class Trainer:
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
 
-                    end = time()
-                    print(f"backwards step takes:{end - pred}")
+                    self.optimizer.zero_grad(set_to_none=True)
+
+                    backward = time()
+                    print(f"backwards step takes:{backward - start}")
 
                     # update tensor board logs
                     self.step += 1
@@ -366,17 +165,27 @@ class Trainer:
                     pbar.update(1)
                     pbar.set_postfix(**{"loss (batch)": loss.item()})
 
+                    # cache = time()
                     # delete data from gpu cache
                     del images, loss, targets, preds
-                    torch.cuda.empty_cache()
+                    # torch.cuda.empty_cache()
+                    # cache_end = time()
+                    # print(f"cache takes:{cache_end - cache}")
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        val_loss, acc, jac, _ = self.validation()
+                        _, _, _, class_acc = self.validation()
 
                         # early stopping
-                        score: float = val_loss + (1 - acc) + (1 - jac)  # type: ignore
-                        if self.use_scheduler:
-                            self.scheduler.step(val_loss)
+                        score: float = (1 - np.mean(np.nan_to_num(class_acc)))  # type: ignore
+
+                        if self.scheduler_type:
+                            if self.scheduler_type == "reduced_on_plateau":
+                                self.scheduler.step(score)
+                            else:
+                                self.scheduler.step(self.epoch)
+                            self.summary_writer.add_scalar(
+                                "lr", self.scheduler.get_last_lr(), global_step=self.step
+                            )  # type:ignore
 
                         if score < self.best_score:
                             # update cur_best value
@@ -393,6 +202,8 @@ class Trainer:
                     self.summary_writer.add_scalar(
                         "current best", self.best_step, global_step=self.step
                     )  # type:ignore
+                    end = time()
+                    print(f"rest takes:{end - backward}")
 
             # save model at end of epoch
             self.model.module.save(self.save_model)  # type: ignore
@@ -477,7 +288,7 @@ class Trainer:
             print(f"Val scores take:{scores - loss_time}")
 
             del images, targets, pred, batch_loss
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
 
         loss = loss / size
         accuracy = accuracy / (size * self.num_scores_splits)
@@ -639,12 +450,7 @@ class Trainer:
         )  # type:ignore
         self.summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[
-            None,
-            :,
-            :,
-            ]
-            / OUT_CHANNELS,
+            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
             global_step=self.step,
         )  # type:ignore
         self.summary_writer.add_image(
@@ -658,7 +464,7 @@ class Trainer:
         print(f"average jaccard score: {jaccard}")  # Intersection over Union
 
         del size, image, target, pred
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
     def get_test_score(self, model_path: str) -> Tuple[float, float]:
         """
@@ -674,10 +480,12 @@ class Trainer:
 
         self.model.to(self.device)
 
+        self.step += 1
+
         _, acc, jac, class_acc = self.validation(True)
 
         score = np.mean(np.array([acc, jac]))
-        class_score = np.mean(class_acc)
+        class_score = np.mean(np.nan_to_num(class_acc))
 
         return round(float(score), ndigits=4), round(float(class_score), ndigits=4)
 
@@ -777,7 +585,7 @@ def get_args() -> argparse.Namespace:
         "--limit",
         type=int,
         default=None,
-        help="limit quantity of loaded images for testing purposes",
+        help="Limit quantity of loaded images for the train dataset. ",
     )
     parser.add_argument(
         "--crop-size", type=int, default=CROP_SIZE, help="Window size of image cropping"
@@ -791,8 +599,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=str,
-        default="transcribus",
-        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
+        default="transkribus",
+        help="which dataset to expect. Options are 'transkribus' and 'HLNA2013' "
              "(europeaner newspaper project)",
     )
     parser.add_argument(
@@ -803,8 +611,9 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--scheduler",
-        action="store_true",
-        help="Activates Scheduler",
+        type=str,
+        default=None,
+        help="Select scheduler [reduce_on_plateau, cosine_annealing].",
     )
     parser.add_argument(
         "--amp",
@@ -855,7 +664,7 @@ def get_args() -> argparse.Namespace:
         "--prefetch-factor",
         "-pf",
         type=int,
-        default=2,
+        default=None,
         help="Number of batches that will be loaded by each worker in advance.",
     )
     parser.add_argument(
@@ -883,13 +692,13 @@ def get_args() -> argparse.Namespace:
         help="Which loss function to use. Available are [cross_entropy, focal_loss]",
     )
     parser.add_argument(
-        "--pad",
-        "-p",
-        type=int,
+        "--split-ratio",
+        type=float,
         nargs="+",
-        default=None,
-        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-             "Has to be grater or equal to actual image after scaling",
+        default=DEFAULT_SPLIT,
+        help="Takes 3 float values for a custom dataset split ratio. The ratio have to sum up to one and the Dataset "
+             "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
+             "and validation in this order.",
     )
     parser.add_argument(
         "--reduce-classes",
@@ -897,6 +706,21 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="If activated, classes are merged into 3 categories. Those being Text, normal "
              "separators and big separators.",
+    )
+    parser.add_argument(
+        "--custom-split-path",
+        type=str,
+        default=None,
+        help="Provide path for folder with custom-split.json. This should contain a list with file stems "
+             "of train, validation and test images. File stems is the file name without the extension.",
+    )
+    parser.add_argument(
+        "--override-load-channels",
+        type=int,
+        default=OUT_CHANNELS,
+        help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
+             "loaded with this number of output classes instead of the configured number. This is necessary if a "
+             "pretrained model is intended to be used for a task with a different number of output classes.",
     )
 
     return parser.parse_args()
@@ -955,10 +779,10 @@ def main() -> None:
     model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.result_path}{name}_{parameter_args.num_workers}.json",
+    with open(f"logs/{parameter_args.result_path}{name}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.batch_size, parameter_args.num_workers, score, multi_class_score, duration), file)
+        json.dump((parameter_args.batch_size, parameter_args.lr, score, multi_class_score, duration), file)
 
 
 if __name__ == "__main__":

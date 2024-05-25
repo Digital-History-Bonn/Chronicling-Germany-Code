@@ -1,91 +1,39 @@
 """Utility Module"""
-import warnings
-from typing import Dict, List, Tuple
+import os
+from typing import Dict, List, Tuple, Callable
 
-import numpy as np
 import torch
-from PIL import Image
-from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
+# from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type:ignore
+from matplotlib import pyplot as plt
 from numpy import ndarray
-from torchmetrics.classification import MulticlassConfusionMatrix
+from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 
+from src.news_seg.class_config import LABEL_NAMES, REDUCE_CLASSES
+from src.news_seg.class_config import cmap_12 as cmap
 
-def multi_class_csi(
-        pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
-) -> torch.Tensor:
-    """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
-    Csi score is used as substitute for accuracy, calculated separately for each class.
-    Returns numpy array with an entry for every class. If every prediction is a true negative,
-    the score cant be calculated and the array will contain nan. These cases should be completely ignored.
-    :param pred: prediction tensor
-    :param target: target tensor
-    :return:
+
+def draw_prediction(img: ndarray, path: str) -> None:
     """
-    pred = pred.flatten()
-    target = target.flatten()
-
-    matrix: torch.Tensor = metric(pred, target)
-    true_positive = torch.diagonal(matrix)
-    false_positive = torch.sum(matrix, dim=1) - true_positive
-    false_negative = torch.sum(matrix, dim=0) - true_positive
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        csi = torch.tensor(
-            true_positive / (true_positive + false_negative + false_positive)
-        )
-    return csi
-
-def multi_precison_recall(
-        pred: torch.Tensor, target: torch.Tensor, out_channels: int) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Calculate precision and recall using true positives, true negatives and false negatives from confusion matrix.
-    Returns numpy array with an entry for every class. If every prediction is a true negative,
-    the score cant be calculated and the array will contain nan. These cases should be completely ignored.
-    :param pred: prediction tensor
-    :param target: target tensor
-    :return:
+    Draw prediction with legend. And save it.
+    :param img: prediction ndarray
+    :param path: path for the prediction to be saved.
     """
 
-    pred = torch.argmax(pred, dim=1).type(torch.uint8)
-
-    metric: MulticlassConfusionMatrix = MulticlassConfusionMatrix(num_classes=out_channels).to(pred.get_device())
-
-    pred = pred.flatten()
-    target = target.flatten()
-
-    # pylint: disable=not-callable
-    matrix: torch.Tensor = metric(pred, target)
-    true_positive = torch.diagonal(matrix)
-    false_positive = torch.sum(matrix, dim=1) - true_positive
-    false_negative = torch.sum(matrix, dim=0) - true_positive
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        precision = torch.tensor(
-            true_positive / (true_positive + false_positive)
-        )
-        recall = torch.tensor(
-            true_positive / (true_positive + false_negative)
-        )
-    return precision, recall
-
-
-def get_file(file: str, scale: float = 0.25) -> torch.Tensor:
-    """
-    loads a image as tensor
-    :param file: path to file
-    :param scale: scale
-    :return: image as torch.Tensor
-    """
-    img = Image.open(file).convert("RGB")
-    shape = int(img.size[0] * scale), int(img.size[1] * scale)
-    img = img.resize(shape, resample=BICUBIC)
-
-    w_pad, h_pad = (32 - (shape[0] % 32)), (32 - (shape[1] % 32))
-    img_np = np.pad(
-        np.asarray(img), ((0, h_pad), (0, w_pad), (0, 0)), "constant", constant_values=0
-    )
-    img_t = np.transpose(torch.tensor(img_np), (2, 0, 1))
-    return torch.unsqueeze(torch.tensor(img_t / 255, dtype=torch.float), dim=0)  # type: ignore
+    # unique, counts = np.unique(img, return_counts=True)
+    # print(dict(zip(unique, counts)))
+    values = LABEL_NAMES
+    for i in range(len(values)):
+        img[-1][-(i + 1)] = i + 1
+    plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
+    plt.axis("off")
+    # create a patch (proxy artist) for every color
+    # patches = [mpatches.Patch(color=cmap[i], label=f"{values[i]}") for i in range(len(LABEL_NAMES))]
+    # put those patched as legend-handles into the legend
+    # plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
+    plt.autoscale(tight=True)
+    plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
+    # plt.show()
 
 
 def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
@@ -97,35 +45,6 @@ def replace_substrings(string: str, replacements: Dict[str, str]) -> str:
     for substring, replacement in replacements.items():
         string = string.replace(substring, replacement)
     return string
-
-
-def correct_shape(image: torch.Tensor) -> torch.Tensor:
-    """
-    If one of the dimension has an uneven number of pixels, the last row/ column is remove to achieve an
-    even pixel number.
-    :param image: input image
-    :return: corrected image
-    """
-    if image.shape[2] % 2 != 0:
-        image = image[:, :, :-1]
-    if image.shape[1] % 2 != 0:
-        image = image[:, :-1, :]
-    return image
-
-
-def create_bbox_ndarray(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
-    """
-    Takes Dict with label keys and bbox List and converts it to bbox ndarray.
-    :param bbox_dict: Label keys and bbox Lists
-    :return: 2d ndarray with n x 7 values. Containing id, label, 2 bbox corners and x-axis center.
-    """
-    index = 0
-    result = []
-    for label, bbox_list in bbox_dict.items():
-        for bbox in bbox_list:
-            result.append([index, label] + bbox)
-            index += 1
-    return np.array(result, dtype=int)
 
 
 def calculate_x_axis_center(bbox: List[float]) -> float:
@@ -151,8 +70,7 @@ def split_batches(tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores
 
 def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
     """
-    Calculate padding values to be added to the right and bottom of the image. It will make shure, that the
-    padded image is divisible by crop size.
+    Calculate padding values to be added to the right and bottom of the image.
     :param image: tensor image
     :return: padding tuple for right and bottom
     """
@@ -194,3 +112,54 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     # debug shape
     # print(image.shape)
     return image
+
+
+def get_file_stems(extension: str, image_path: str) -> List[str]:
+    """
+    Returns file name without extension.
+    :param extension: extension of the files to be loaded
+    :param image_path: path of image folder
+    :return: List of file names.
+    """
+    file_names = [
+        f[:-4] for f in os.listdir(image_path) if f.endswith(extension)
+    ]
+    assert len(file_names) > 0, (
+        f"No Images in {image_path} with extension{extension} found. Make sure the "
+        f"specified dataset and path are correct."
+    )
+    return file_names
+
+
+def prepare_file_loading(dataset: str) -> Tuple[str, Callable]:
+    """Depending on the dataset this returns the correct extension string, as well as a function to get the
+    file names for loading."""
+    if dataset == "transkribus":
+        # pylint: disable=duplicate-code
+        extension = ".jpg"
+
+        def get_file_name(name: str) -> str:
+            return f"{name}.npy"
+
+    elif dataset == "HLNA2013":
+        extension = ".tif"
+
+        def get_file_name(name: str) -> str:
+            return f"pc-{name}.npy"
+
+    else:
+        extension = ".png"
+
+        def get_file_name(name: str) -> str:
+            return f"{name}.npy"
+    return extension, get_file_name
+
+
+def replace_labels(target: torch.Tensor) -> torch.Tensor:
+    """
+    Replace labels to reduce classes
+    """
+    for replace_label, label_list in REDUCE_CLASSES.items():
+        for label in label_list:
+            target[target == label] = replace_label
+    return target

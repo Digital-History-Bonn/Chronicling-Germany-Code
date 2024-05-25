@@ -29,7 +29,7 @@ Depending on your setup, you may require `PYTHONPATH=.` in front of the commands
 Before starting the training process all data has to be converted.
 This command loads xml annotation data and converts it to .npy files.
 ````
-python script/convert_xml.py -a annotations/ -o targets/
+python src/news_seg/convert_xml.py -a annotations/ -o targets/
 ````
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.
@@ -45,3 +45,11 @@ python src/news_seg/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -l
 ## Slurm
 
 In the slurm/ folder are examples of the used slurm files.
+
+## Debug
+To analyse the models predictions we added a --debug option to the prediction function. With this option the predict
+function does not output the prediction, instead it outputs the areas of uncertainty of the models. This areas are all 
+pixels that have a predicted probability under the given threshold for the ground truth class.
+````
+python src/news_seg/predict.py -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --debug
+````

@@ -17,6 +17,10 @@ shapely
 ml_collections
 positional-encodings
 torchmetrics
+opencv-python
+tikzplotlib
+kraken
+lightning
 monai
 
 #TODO add requirements
