@@ -27,6 +27,8 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
                skip_cbam: bool = False, overwrite_load_channels: int = OUT_CHANNELS) -> Any:
     """
     Initialise model
+    :param overwrite_load_channels: overwrites standart output channels, if a loaded model has a different size than
+    intended for training or prediction
     :param args:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
     :param freeze: activates encoder freezing

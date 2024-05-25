@@ -1,5 +1,6 @@
 """Module for determining reading order. Contains PageProperties Class, as well as code to determine reading order
 from region properties."""
+import warnings
 from typing import List, Dict, Tuple, Union
 
 import numpy as np
@@ -8,7 +9,6 @@ from numpy import ndarray
 
 def get_region_properties(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
     """
-
     Takes Dict with label keys and bbox List and converts it to a property ndarray.
     :param bbox_dict: Label keys and bbox Lists with minx, miny, maxx, maxy
     :return: 2d ndarray with n x 8 values. Containing id, label, minx, maxx, meanx and meany, width, height.
@@ -38,6 +38,10 @@ def median(properties: ndarray) -> int:
     """
     labels = properties[:, 1]
     text_regions = properties[(labels == 3) + (labels == 4)]
+    if len(text_regions) == 0:
+        warnings.warn("Reading Order has not found any paragraphs in this Page. "
+                      "Resulting reading order ist not meaningful in this case.")
+        return 1
     return np.median(text_regions[:, 3] - text_regions[:, 2])  # type: ignore
 
 

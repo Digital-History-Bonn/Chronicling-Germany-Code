@@ -20,6 +20,7 @@ from src.news_seg.processing.polygon_handler import prediction_to_region_polygon
 from src.news_seg.processing.reading_order import PageProperties
 from src.news_seg.processing.slicing_export import export_slices
 from src.news_seg.processing.transkribus_export import export_xml
+from src.news_seg.train_config import OUT_CHANNELS
 from src.news_seg.utils import draw_prediction
 
 DATA_PATH = "../../data/newspaper/input/"
@@ -85,7 +86,7 @@ def image_level_export(file: str, pred: ndarray, image: ndarray, args: argparse.
                 args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
             )
         if args.export:
-            export_xml(args, file, reading_order_dict, segmentations)
+            export_xml(args, file, reading_order_dict, segmentations, image.shape)
 
 
 def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
@@ -116,12 +117,15 @@ def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
 def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = False) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
+    :param reduce: if true, this will load the reduce dictionary from class_config.py to combine probability values
+    from specified classes. For example, heading and paragraphs are combined to paragraphs.
     :param threshold: confidence threshold for prediction
     :param pred: prediction [B, C, H, W]
     :return: prediction ndarray [B, H, W]
     """
     if reduce:
         collapse_prediction(pred)
+    # TODO: do this after max
 
     max_tensor, argmax = torch.max(pred, dim=1)
     argmax = argmax.type(torch.uint8)
@@ -136,8 +140,8 @@ def collapse_prediction(pred: torch.Tensor) -> None:
     """
     for replace_label, label_list in REDUCE_CLASSES.items():
         for label in label_list:
-            pred[:, replace_label:, :] += pred[:, label:, :]
-            pred[:, label:, :] = 0
+            pred[:, replace_label, :, :] += pred[:, label, :, :]
+            pred[:, label, :, :] = 0
 
 
 def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:
@@ -305,11 +309,23 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Activates automated mixed precision",
     )
-
+    parser.add_argument(
+        "--reduce",
+        action="store_true",
+        help="Activates class reduction after softmax.",
+    )
     parser.add_argument(
         "--debug",
         action="store_true",
         help="Activates the debug mode, and returns the models uncertainties",
+    )
+    parser.add_argument(
+        "--override-load-channels",
+        type=int,
+        default=OUT_CHANNELS,
+        help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
+             "loaded with this number of output classes instead of the configured number. This is necessary if a "
+             "pretrained model is intended to be used for a task with a different number of output classes.",
     )
     return parser.parse_args()
 
@@ -340,20 +356,22 @@ def predict(args: argparse.Namespace) -> None:
 
     pred_loader = DataLoader(
         dataset,
-        batch_size=cuda_count,
+        batch_size=cuda_count if torch.cuda.is_available() else 1,
         shuffle=False,
         num_workers=args.worker_factor * cuda_count,
-        prefetch_factor=2,
-        persistent_workers=True,
+        prefetch_factor=2 if args.worker_factor * cuda_count > 1 else None,
+        persistent_workers=args.worker_factor * cuda_count > 1,
         pin_memory=True,
         collate_fn=collate_fn
     )
     if device != 'cpu':
         print(f"Using {device} device")
-        model = DataParallel(init_model(args.model_path, device, args.model_architecture, args.skip_cbam))
+        model = DataParallel(
+            init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
     else:
         print(f"Using {device} device with {cuda_count} gpus")
-        model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam)
+        model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
+                           overwrite_load_channels=args.override_load_channels)
 
     model.to(device)
     model.eval()

@@ -2,7 +2,7 @@
 import argparse
 import os
 import re
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 from bs4 import BeautifulSoup
@@ -12,20 +12,36 @@ from src.news_seg.class_config import LABEL_NAMES, REGION_TYPES
 
 
 def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
-               segmentations: Dict[int, List[List[float]]]) -> None:
+               segmentations: Dict[int, List[List[float]]], shape: Tuple[int, int]) -> None:
     """
-    Open pre created transkribus xml files and save polygon xml data.
+    Open pre created transkribus xml files and save polygon xml data. If xml files already exist, the regions are
+    overwritten. Otherwise, it will be created from template.
     :param args: args
     :param file: xml path
     :param reading_order_dict: reading order value for each index
     :param segmentations: polygon dictionary sorted by labels
     """
-    with open(
-            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
-            "r",
-            encoding="utf-8",
-    ) as xml_file:
-        xml_data = create_xml(xml_file.read(), segmentations, reading_order_dict, args.scale)
+    if not os.path.exists(f"{args.data_path}page/"):
+        os.makedirs(f"{args.data_path}page/")
+    if os.path.exists(f"{args.data_path}page/{os.path.splitext(file)[0]}.xml"):
+        with open(
+                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                "r",
+                encoding="utf-8",
+        ) as xml_file:
+            xml_data = BeautifulSoup(xml_file, "xml")
+            page = xml_data.find("Page")
+            page.clear()
+            xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
+    else:
+        with open("src/news_seg/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
+            data = f.read()
+        xml_data = BeautifulSoup(data, "xml")
+        page = xml_data.find("Page")
+        page["imageFilename"] = f"{file}"
+        page["imageHeight"] = f"{shape[1]}"
+        page["imageWidth"] = f"{shape[2]}"
+        xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     with open(
             f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
             "w",
@@ -35,8 +51,8 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
 
 
 def create_xml(
-        xml_file: str, segmentations: Dict[int, List[List[float]]], reading_order: Dict[int, int], scale: float
-) -> BeautifulSoup:
+        xml_data: BeautifulSoup, segmentations: Dict[int, List[List[float]]], reading_order: Dict[int, int],
+        scale: float) -> BeautifulSoup:
     """
     Creates a soup object containing Page Tag and Regions
     :param xml_file: xml file, to which the page data will be written
@@ -44,9 +60,7 @@ def create_xml(
     :param file_name: image file name
     :param size: image size
     """
-    xml_data = BeautifulSoup(xml_file, "xml")
     page = xml_data.find("Page")
-    page.clear()
     order = xml_data.new_tag("ReadingOrder")
     order_group = xml_data.new_tag(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
@@ -113,7 +127,7 @@ def polygon_to_string(input_list: List[float], scale: float) -> str:
     :return: string
     """
     generator_expression = (
-        f"{int(input_list[index] * scale**-1)},{int(input_list[index + 1] * scale**-1)}"
+        f"{int(input_list[index] * scale ** -1)},{int(input_list[index + 1] * scale ** -1)}"
         for index in range(0, len(input_list), 2)
     )
     string = " ".join(generator_expression)
