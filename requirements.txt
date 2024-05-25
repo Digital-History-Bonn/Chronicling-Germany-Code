@@ -21,3 +21,6 @@ opencv-python
 tikzplotlib
 kraken
 lightning
+monai
+
+#TODO add requirements
