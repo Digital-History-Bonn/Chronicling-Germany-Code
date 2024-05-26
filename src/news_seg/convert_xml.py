@@ -5,6 +5,8 @@ take polygon data and convert it to xml.
 import argparse
 import os
 import warnings
+from multiprocessing import Process
+from typing import List
 
 import numpy as np
 from skimage import io
@@ -15,53 +17,78 @@ from src.news_seg.processing import read_xml
 
 from src.news_seg.utils import draw_prediction, adjust_path
 
-INPUT = "../data/newspaper/annotations/"
-OUTPUT = "../data/newspaper/targets/"
+INPUT = "../../data/newspaper/annotations/"
+OUTPUT = "../../data/newspaper/targets/"
 
 
 def main(parsed_args: argparse.Namespace) -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
+    annotations_path = adjust_path(parsed_args.annotations_path)
+    output_path = adjust_path(parsed_args.output_path)
+
+    paths = [
+        f[:-4] for f in os.listdir(annotations_path) if f.endswith(".xml")
+    ]
+
+    if not os.path.exists(output_path):
+        print(f"creating {output_path}.")
+        os.makedirs(output_path)
+
+    target_paths = [
+        f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
+    ]
+
+    processes = []
+    for i, path in enumerate(tqdm(paths)):
+        processes.append(
+            Process(target=convert_file, args=(path, parsed_args, target_paths)))
+        processes[i].start()
+
+        if i % 32 == 0:
+            for process in processes:
+                process.join()
+    for process in processes:
+        process.join()
+
+
+def convert_file(path: str, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:
+    """
+    Reads and converts xml data, if that file has not been converted at the start of the script.
+    If an image output path is provided, this creates images of the targets and saves them.
+    npy files of targets are always saved.
+    """
+    annotations_path = adjust_path(parsed_args.annotations_path)
+    image_path = adjust_path(parsed_args.image_path) if parsed_args.image_path else None
+    output_path = adjust_path(parsed_args.output_path)
+    log_path = adjust_path(parsed_args.log_path) if parsed_args.log_path else None
+
     read = (
         # pylint: disable=unnecessary-lambda-assignment
-        lambda file: read_xml.read_transkribus(path=file, log_path=parsed_args.log_path)
+        lambda file: read_xml.read_transkribus(path=file, log_path=log_path)
         if parsed_args.dataset == "transkribus"
         else read_xml.read_hlna2013
     )
-    paths = [
-        f[:-4] for f in os.listdir(parsed_args.annotations_path) if f.endswith(".xml")
-    ]
 
-    if not os.path.exists(parsed_args.output_path):
-        print(f"creating {parsed_args.output_path}.")
-        os.makedirs(parsed_args.output_path)
+    if path in target_paths:
+        return
+    annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
+    if len(annotation) < 1:
+        return
+    img = draw_img(annotation)
 
-    target_paths = [
-        f[:-4] for f in os.listdir(parsed_args.output_path) if f.endswith(".npy")
-    ]
-    annotations_path = adjust_path(parsed_args.annotations_path)
-    image_path = adjust_path(parsed_args.image_path)
-    output_path = adjust_path(parsed_args.v)
-    for path in tqdm(paths):
-        if path in target_paths:
-            continue
-        annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
-        if len(annotation) < 1:
-            continue
-        img = draw_img(annotation)
+    # Debug
+    if image_path:
+        if not os.path.exists(image_path):
+            print(f"creating {image_path}.")
+            os.makedirs(image_path)
+        draw_prediction(img, f"{image_path}{path}.png")
 
-        # Debug
-        if image_path:
-            if not os.path.exists(image_path):
-                print(f"creating {image_path}.")
-                os.makedirs(image_path)
-            draw_prediction(img, f"{image_path}{path}.png")
+    # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
+    #     json.dump(annotation, file)
 
-        # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
-        #     json.dump(annotation, file)
-
-        # save ndarray
-        np_save(f"{output_path}{path}", img)
+    # save ndarray
+    np_save(f"{output_path}{path}", img)
 
 
 def np_save(file: str, img: np.ndarray) -> None:
@@ -131,7 +158,7 @@ def get_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = get_args()
 
-    if args.output_path:
+    if args.image_path:
         warnings.warn("Image output slows down the prediction significantly. "
                       "--image-path should not be activated in production environment.")
 
