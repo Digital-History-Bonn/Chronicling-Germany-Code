@@ -169,7 +169,7 @@ def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, thr
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="predict")
+    parser = argparse.ArgumentParser(description="Newspaper Layout Prediction")
     parser.add_argument(
         "--data-path",
         "-d",
@@ -183,7 +183,7 @@ def get_args() -> argparse.Namespace:
         "-tp",
         type=str,
         default="targets/",
-        help="Path for folder with targets for debugging. Need to be .npy files.",
+        help="Path for folder with targets for uncertainty prediction. Have to be .npy files.",
     )
     parser.add_argument(
         "--output-path",
@@ -318,9 +318,10 @@ def get_args() -> argparse.Namespace:
         help="Activates class reduction after softmax.",
     )
     parser.add_argument(
-        "--debug",
+        "--uncertainty-predict",
         action="store_true",
-        help="Activates the debug mode, and returns the models uncertainties",
+        help="Activates the uncertainty prediction. This writes regions into the xml file, which correspond to false "
+             "classified regions. Class 1 (caption) = false class 2 (table) = true.",
     )
     parser.add_argument(
         "--override-load-channels",
@@ -350,7 +351,7 @@ def predict(args: argparse.Namespace) -> None:
     device = args.cuda if torch.cuda.is_available() else "cpu"
     cuda_count = torch.cuda.device_count()
 
-    target_path = adjust_path(args.target_path if args.debug else None)
+    target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
     dataset = PredictDataset(adjust_path(args.data_path),
                              args.scale, args.pad,
                              target_path=adjust_path(target_path))
@@ -385,7 +386,7 @@ def predict(args: argparse.Namespace) -> None:
             pred_loader, desc="predicting images", total=len(pred_loader), unit="batches"
     ):
         batch += 1
-        threads += predict_batch(args, device, path, image, target, model, args.debug)
+        threads += predict_batch(args, device, path, image, target, model, args.uncertainty_predict)
 
         if batch % 10 == 0:
             for thread in threads:

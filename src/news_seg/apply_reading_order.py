@@ -58,7 +58,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 def get_args() -> argparse.Namespace:
     """defines arguments"""
     # pylint: disable=locally-disabled, duplicate-code
-    parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
+    parser = argparse.ArgumentParser(description="Load regions from xml file and apply reading order.")
     parser.add_argument(
         "--data-path",
         "-d",

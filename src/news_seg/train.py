@@ -56,6 +56,7 @@ class Trainer:
         """
 
         # init params
+        self.time_debug = args.durations_debug
         self.summary_writer = summary
         batch_size = args.gpu_count * batch_size
         self.best_score, self.step, self.epoch = load_score(load, args)
@@ -124,7 +125,8 @@ class Trainer:
                     # print(f"Transfer takes:{transfer_end - transfer}")
 
                     start = time()
-                    print(f"Batch Start takes:{start - end}")
+                    if self.time_debug:
+                        print(f"Batch Start takes:{start - end}")
 
                     with torch.autocast(self.device, enabled=self.amp):
                         preds = self.model(images.to(self.device, non_blocking=True))
@@ -143,7 +145,8 @@ class Trainer:
                     self.optimizer.zero_grad(set_to_none=True)
 
                     backward = time()
-                    print(f"backwards step takes:{backward - start}")
+                    if self.time_debug:
+                        print(f"backwards step takes:{backward - start}")
 
                     # update tensor board logs
                     self.step += 1
@@ -152,50 +155,15 @@ class Trainer:
                     self.summary_writer.add_scalar(
                         "train loss", loss.item(), global_step=self.step
                     )  # type:ignore
-                    # self.summary_writer.add_scalar('batch mean', images.detach().cpu().mean(),
-                    # global_step=self.step) #type:ignore
-                    # self.summary_writer.add_scalar('batch std', images.detach().cpu().std(),
-                    # global_step=self.step) #type:ignore
-                    # self.summary_writer.add_scalar('target batch mean', targets.detach().cpu().float().mean(),
-                    # global_step=self.step) #type:ignore
-                    # self.summary_writer.add_scalar('target batch std', targets.detach().cpu().float().std(),
-                    # global_step=self.step) #type:ignore
 
                     # update description
                     pbar.update(1)
                     pbar.set_postfix(**{"loss (batch)": loss.item()})
 
-                    # cache = time()
-                    # delete data from gpu cache
                     del images, loss, targets, preds
-                    # torch.cuda.empty_cache()
-                    # cache_end = time()
-                    # print(f"cache takes:{cache_end - cache}")
 
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
-                        _, _, _, class_acc = self.validation()
-
-                        # early stopping
-                        score: float = (1 - np.mean(np.nan_to_num(class_acc)))  # type: ignore
-
-                        if self.scheduler_type:
-                            if self.scheduler_type == "reduced_on_plateau":
-                                self.scheduler.step(score)
-                            else:
-                                self.scheduler.step(self.epoch)
-                            self.summary_writer.add_scalar(
-                                "lr", self.scheduler.get_last_lr(), global_step=self.step
-                            )  # type:ignore
-
-                        if score < self.best_score:
-                            # update cur_best value
-                            self.best_score = score
-                            self.best_step = self.step
-                            print(
-                                f"saved model because of early stopping with value {score}"
-                            )
-
-                            self.model.module.save(self.save_model + "_best")  # type: ignore
+                        score = self.val_round()
 
                     # log the step of current best model
                     # pylint: disable-next=not-context-manager
@@ -203,7 +171,8 @@ class Trainer:
                         "current best", self.best_step, global_step=self.step
                     )  # type:ignore
                     end = time()
-                    print(f"rest takes:{end - backward}")
+                    if self.time_debug:
+                        print(f"rest takes:{end - backward}")
 
             # save model at end of epoch
             self.model.module.save(self.save_model)  # type: ignore
@@ -214,6 +183,33 @@ class Trainer:
         self.validation(test_validation=True)
         training_end = time()
         return round(training_end - training_start, ndigits=2)
+
+    def val_round(self) -> float:
+        """
+        Calls validation function and handles early stopping as well as scheduler.
+        :return: current score
+        """
+        _, _, _, class_acc = self.validation()
+        # early stopping
+        score: float = (1 - np.mean(np.nan_to_num(class_acc)))  # type: ignore
+        if self.scheduler_type:
+            if self.scheduler_type == "reduced_on_plateau":
+                self.scheduler.step(score)
+            else:
+                self.scheduler.step(self.epoch)
+            self.summary_writer.add_scalar(
+                "lr", self.scheduler.get_last_lr(), global_step=self.step
+            )  # type:ignore
+        if score < self.best_score:
+            # update cur_best value
+            self.best_score = score
+            self.best_step = self.step
+            print(
+                f"saved model because of early stopping with value {score}"
+            )
+
+            self.model.module.save(self.save_model + "_best")  # type: ignore
+        return score
 
     def apply_loss(self, preds: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -264,20 +260,24 @@ class Trainer:
         end = time()
 
         pstart_time = time()
-        print(f"process start take:{pstart_time - end}")
+        if self.time_debug:
+            print(f"process start take:{pstart_time - end}")
 
         for images, targets in tqdm(
                 loader, desc="validation_round", total=size, unit="batch(es)"
         ):
             start = time()
-            print(f"Val Start takes:{start - end}")
+            if self.time_debug:
+                print(f"Val Start takes:{start - end}")
             with torch.autocast(self.device, enabled=self.amp):
                 pred = self.model(images.to(self.device))
                 end = time()
-                print(f"Val prediction takes:{end - start}")
+                if self.time_debug:
+                    print(f"Val prediction takes:{end - start}")
                 batch_loss = self.apply_loss(pred, targets.to(self.device)).item()
             loss_time = time()
-            print(f"Val loss takes:{loss_time - end}")
+            if self.time_debug:
+                print(f"Val loss takes:{loss_time - end}")
 
             accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum = self.evaluate_batch(
                 accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision, precision_sum,
@@ -285,7 +285,8 @@ class Trainer:
 
             loss += batch_loss
             scores = time()
-            print(f"Val scores take:{scores - loss_time}")
+            if self.time_debug:
+                print(f"Val scores take:{scores - loss_time}")
 
             del images, targets, pred, batch_loss
             # torch.cuda.empty_cache()
@@ -310,7 +311,8 @@ class Trainer:
 
         self.model.train()
         logging = time()
-        print(f"Val logging takes:{logging - scores}")
+        if self.time_debug:
+            print(f"Val logging takes:{logging - scores}")
 
         return loss, accuracy, jaccard, class_acc_ndarray
 
@@ -706,6 +708,11 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="If activated, classes are merged into 3 categories. Those being Text, normal "
              "separators and big separators.",
+    )
+    parser.add_argument(
+        "--durations-debug",
+        action="store_true",
+        help="Activates time measurement console output.",
     )
     parser.add_argument(
         "--custom-split-file",

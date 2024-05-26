@@ -12,8 +12,7 @@ from tqdm import tqdm
 from src.news_seg.processing.draw_img_from_polygons import draw_img
 from src.news_seg.processing import read_xml
 
-from src.news_seg.utils import draw_prediction
-
+from src.news_seg.utils import draw_prediction, adjust_path
 
 INPUT = "../data/newspaper/annotations/"
 OUTPUT = "../data/newspaper/targets/"
@@ -23,7 +22,8 @@ def main(parsed_args: argparse.Namespace) -> None:
     """Load xml files and save result image.
     Calls read and draw functions"""
     read = (
-        lambda file: read_xml.read_transkribus(path=file, log_path=parsed_args.log_path)  # pylint: disable=unnecessary-lambda-assignment
+        # pylint: disable=unnecessary-lambda-assignment
+        lambda file: read_xml.read_transkribus(path=file, log_path=parsed_args.log_path)
         if parsed_args.dataset == "transkribus"
         else read_xml.read_hlna2013
     )
@@ -38,26 +38,29 @@ def main(parsed_args: argparse.Namespace) -> None:
     target_paths = [
         f[:-4] for f in os.listdir(parsed_args.output_path) if f.endswith(".npy")
     ]
+    annotations_path = adjust_path(parsed_args.annotations_path)
+    image_path = adjust_path(parsed_args.image_path)
+    output_path = adjust_path(parsed_args.v)
     for path in tqdm(paths):
         if path in target_paths:
             continue
-        annotation: dict = read(f"{parsed_args.annotations_path}{path}.xml")  # type: ignore
+        annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
         if len(annotation) < 1:
             continue
         img = draw_img(annotation)
 
         # Debug
-        if parsed_args.image_path:
-            if not os.path.exists(parsed_args.image_path):
-                print(f"creating {parsed_args.image_path}.")
-                os.makedirs(parsed_args.image_path)
-            draw_prediction(img, f"{parsed_args.image_path}{path}.png")
+        if image_path:
+            if not os.path.exists(image_path):
+                print(f"creating {image_path}.")
+                os.makedirs(image_path)
+            draw_prediction(img, f"{image_path}{path}.png")
 
         # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
         #     json.dump(annotation, file)
 
         # save ndarray
-        np_save(f"{parsed_args.output_path}{path}", img)
+        np_save(f"{output_path}{path}", img)
 
 
 def np_save(file: str, img: np.ndarray) -> None:
@@ -84,7 +87,6 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="creates targets from annotation xmls")
     parser.add_argument(
         "--dataset",
-        "-d",
         type=str,
         default="transkribus",
         help="select dataset to load " "(transkribus, HLNA2013)",
@@ -106,8 +108,8 @@ def get_args() -> argparse.Namespace:
         help="path for output folder",
     )
     parser.add_argument(
-        "--image-path",
-        "-i",
+        "--data-path",
+        "-d",
         type=str,
         dest="image_path",
         default=None,
