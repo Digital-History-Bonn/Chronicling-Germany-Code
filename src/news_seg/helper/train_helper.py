@@ -178,8 +178,8 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
     target_path = f"{adjust_path(args.data_path)}targets/"
     page_dataset = PageDataset(image_path, args.dataset)
 
-    if args.custom_split_path:
-        with open(args.custom_split_path, "r", encoding="utf-8") as file:
+    if args.custom_split_file:
+        with open(args.custom_split_file, "r", encoding="utf-8") as file:
             split = json.load(file)
             train_file_stems = split[0]
             val_file_stems = split[1]
