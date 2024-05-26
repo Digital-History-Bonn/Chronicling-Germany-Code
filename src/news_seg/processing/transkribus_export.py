@@ -9,23 +9,25 @@ from bs4 import BeautifulSoup
 from shapely import Polygon, centroid
 
 from src.news_seg.class_config import LABEL_NAMES, REGION_TYPES
+from src.news_seg.utils import adjust_path
 
 
 def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
-               segmentations: Dict[int, List[List[float]]], shape: Tuple[int, int]) -> None:
+               segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]) -> None:
     """
     Open pre created transkribus xml files and save polygon xml data. If xml files already exist, the regions are
     overwritten. Otherwise, it will be created from template.
+    :param shape: image shape that will be written into xml file, if it doesn't exist.
     :param args: args
     :param file: xml path
     :param reading_order_dict: reading order value for each index
     :param segmentations: polygon dictionary sorted by labels
     """
-    if not os.path.exists(f"{args.data_path}page/"):
-        os.makedirs(f"{args.data_path}page/")
-    if os.path.exists(f"{args.data_path}page/{os.path.splitext(file)[0]}.xml"):
+    if not os.path.exists(f"{adjust_path(args.data_path)}page/"):
+        os.makedirs(f"{adjust_path(args.data_path)}page/")
+    if os.path.exists(f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml"):
         with open(
-                f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+                f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
                 "r",
                 encoding="utf-8",
         ) as xml_file:
@@ -43,7 +45,7 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
         page["imageWidth"] = f"{shape[2]}"
         xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     with open(
-            f"{args.data_path}page/{os.path.splitext(file)[0]}.xml",
+            f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
             "w",
             encoding="utf-8",
     ) as xml_file:

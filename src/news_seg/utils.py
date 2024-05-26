@@ -13,6 +13,12 @@ from src.news_seg.class_config import LABEL_NAMES, REDUCE_CLASSES
 from src.news_seg.class_config import cmap
 
 
+def adjust_path(path: str) -> str:
+    """
+    Make sure, there is a slash at the end of a (folder) spath string.
+    """
+    return path if path[-1] == '/' else path + '/'
+
 def draw_prediction(img: ndarray, path: str) -> None:
     """
     Draw prediction with legend. And save it.

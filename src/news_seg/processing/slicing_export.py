@@ -7,6 +7,8 @@ import numpy as np
 from PIL import Image
 from numpy import ndarray
 
+from src.news_seg.utils import adjust_path
+
 
 def export_slices(args: argparse.Namespace, file: str, image: ndarray,
                   reading_order_dict: Dict[int, int], segmentations: Dict[int, List[List[float]]],
@@ -22,8 +24,8 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray,
     :param segmentations: polygons
     :param pred: prediction 2d ndarray uint8
     """
-    if not os.path.exists(f"{args.slices_path}{os.path.splitext(file)[0]}"):
-        os.makedirs(f"{args.slices_path}{os.path.splitext(file)[0]}")
+    if not os.path.exists(f"{adjust_path(args.slices_path)}{os.path.splitext(file)[0]}"):
+        os.makedirs(f"{adjust_path(args.slices_path)}{os.path.splitext(file)[0]}")
 
     mask_list, reading_order_list, mask_bbox_list = get_slicing(segmentations, bbox_list,
                                                                 reading_order_dict,
@@ -39,7 +41,7 @@ def export_slices(args: argparse.Namespace, file: str, image: ndarray,
         slice_image[slice_image[:, :, ] == (0, 0, 0)] = mean
 
         Image.fromarray((slice_image * 255).astype(np.uint8)).save(
-            f"{args.slices_path}{os.path.splitext(file)[0]}/{reading_order_dict[index]}.png")
+            f"{adjust_path(args.slices_path)}{os.path.splitext(file)[0]}/{reading_order_dict[index]}.png")
 
 
 def area_sufficient(bbox: List[float], size: int) -> bool:

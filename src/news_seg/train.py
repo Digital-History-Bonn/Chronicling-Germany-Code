@@ -27,7 +27,7 @@ from src.news_seg.train_config import BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, L
     EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT
 from src.news_seg.helper.train_helper import init_model, load_score, focal_loss, calculate_scores, initiate_datasets, \
     initiate_dataloader
-from src.news_seg.utils import split_batches
+from src.news_seg.utils import split_batches, adjust_path
 from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
 from src.news_seg.helper.train_helper import multi_precison_recall
 
@@ -492,7 +492,7 @@ class Trainer:
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="train")
+    parser = argparse.ArgumentParser(description="Train scipt for Newspaper Layout Models.")
     parser.add_argument(
         "--epochs",
         "-e",
@@ -708,10 +708,10 @@ def get_args() -> argparse.Namespace:
              "separators and big separators.",
     )
     parser.add_argument(
-        "--custom-split-path",
+        "--custom-split-file",
         type=str,
         default=None,
-        help="Provide path for folder with custom-split.json. This should contain a list with file stems "
+        help="Provide path for custom split json file. This should contain a list with file stems "
              "of train, validation and test images. File stems is the file name without the extension.",
     )
     parser.add_argument(
@@ -730,13 +730,14 @@ def main() -> None:
     """Main method creates directories if not already present, sets up Trainer and handels top level logging.
     """
     parameter_args = get_args()
+    result_path = adjust_path(parameter_args.result_path)
 
     if not os.path.exists("models"):
         os.makedirs("models")
     if not os.path.exists("scores"):
         os.makedirs("scores")
-    if not os.path.exists(f"logs/{parameter_args.result_path}"):
-        os.makedirs(f"logs/{parameter_args.result_path}")
+    if not os.path.exists(f"logs/{result_path}"):
+        os.makedirs(f"logs/{result_path}")
 
     torch.manual_seed(parameter_args.torch_seed)
 
@@ -779,7 +780,7 @@ def main() -> None:
     model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
-    with open(f"logs/{parameter_args.result_path}{name}_{parameter_args.lr}.json",
+    with open(f"logs/{result_path}{name}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
         json.dump((parameter_args.batch_size, parameter_args.lr, score, multi_class_score, duration), file)

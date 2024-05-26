@@ -21,7 +21,7 @@ from src.news_seg.processing.reading_order import PageProperties
 from src.news_seg.processing.slicing_export import export_slices
 from src.news_seg.processing.transkribus_export import export_xml
 from src.news_seg.train_config import OUT_CHANNELS
-from src.news_seg.utils import draw_prediction
+from src.news_seg.utils import draw_prediction, adjust_path
 
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
@@ -59,7 +59,7 @@ def predict_batch(args: argparse.Namespace, device: str, paths: List[str], image
     for i in range(pred_ndarray.shape[0]):
         threads.append(Thread(target=image_level_export, args=(paths[i], pred_ndarray[i], image_ndarray[i], args)))
         if args.output_path:
-            draw_prediction(pred_ndarray[i], args.output_path + os.path.splitext(paths[i])[0] + ".png")
+            draw_prediction(pred_ndarray[i], adjust_path(args.output_path) + os.path.splitext(paths[i])[0] + ".png")
         threads[i].start()
 
     return threads
@@ -83,7 +83,7 @@ def image_level_export(file: str, pred: ndarray, image: ndarray, args: argparse.
             polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
             draw_prediction(
                 polygon_pred,
-                args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".png",
+                adjust_path(args.output_path) + f"{os.path.splitext(file)[0]}_polygons" + ".png",
             )
         if args.export:
             export_xml(args, file, reading_order_dict, segmentations, image.shape)
@@ -350,10 +350,10 @@ def predict(args: argparse.Namespace) -> None:
     device = args.cuda if torch.cuda.is_available() else "cpu"
     cuda_count = torch.cuda.device_count()
 
-    target_path = args.target_path if args.debug else None
-    dataset = PredictDataset(args.data_path,
+    target_path = adjust_path(args.target_path if args.debug else None)
+    dataset = PredictDataset(adjust_path(args.data_path),
                              args.scale, args.pad,
-                             target_path=target_path)
+                             target_path=adjust_path(target_path))
 
     print(f"{len(dataset)=}")
 

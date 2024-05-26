@@ -21,6 +21,7 @@ from src.news_seg.models.trans_unet import VisionTransformer
 from src.news_seg.processing.preprocessing import Preprocessing
 
 from src.news_seg.train_config import IN_CHANNELS, OUT_CHANNELS
+from src.news_seg.utils import adjust_path
 
 
 def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
@@ -173,12 +174,12 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
         crop_size=args.crop_size,
         reduce_classes=args.reduce_classes
     )
-    image_path = f"{args.data_path}images/"
-    target_path = f"{args.data_path}targets/"
+    image_path = f"{adjust_path(args.data_path)}images/"
+    target_path = f"{adjust_path(args.data_path)}targets/"
     page_dataset = PageDataset(image_path, args.dataset)
 
     if args.custom_split_path:
-        with open(args.custom_split_path + "custom-split.json", "r", encoding="utf-8") as file:
+        with open(args.custom_split_path, "r", encoding="utf-8") as file:
             split = json.load(file)
             train_file_stems = split[0]
             val_file_stems = split[1]
