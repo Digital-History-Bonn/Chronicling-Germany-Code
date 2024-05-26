@@ -38,15 +38,15 @@
                 <RegionRefIndexed index="43" regionRef="region_1666963095164_355"/>
             </OrderedGroup>
         </ReadingOrder>
-        <TextRegion id="region_1667474143077_318" custom="readingOrder {index:0;} structure {type:article_;}">
+        <TextRegion id="region_1667474143077_318" custom="readingOrder {index:0;} structure {type:inverted_text;}">
             <Coords points="3498,5612 4581,5626 4594,6971 3506,6955"/>
         </TextRegion>
         <SeparatorRegion id="Separator_1667474121191_313" custom="readingOrder {index:1;} structure {type:separator_short;}">
             <Coords points="3904,5602 4178,5605 4177,5613 3901,5612"/>
         </SeparatorRegion>
-        <TextRegion type="heading" id="region_1667474001019_266" custom="readingOrder {index:4;} structure {type:article;}">
-            <Coords points="3786,4688 4281,4702 4284,4741 3785,4736"/>
-        </TextRegion>
+        <GraphicRegion type="heading" id="region_1667474001019_266" custom="readingOrder {index:4;} structure {type:image;}">
+            <Coords points="3786,4688 4281,4702 4284,4741 3000,4736"/>
+        </GraphicRegion>
         <TextRegion type="heading" id="region_1667474001019_266" custom="readingOrder {index:4;} structure {type:heading;}">
             <Coords points="3786,4688 4281,4702 4284,4741 3785,4736"/>
         </TextRegion>
@@ -77,7 +77,7 @@
         <TextRegion id="region_1667473917832_255" custom="readingOrder {index:13;} structure {type:table;}">
             <Coords points="3499,3966 4585,3966 4583,4664"/>
         </TextRegion>
-        <TextRegion orientation="0.0" id="region_1666954192157_198" custom="readingOrder {index:4;} structure {type:article;}">
+        <TextRegion orientation="0.0" id="region_1666954192157_198" custom="readingOrder {index:4;} structure {type:paragraph;}">
             <Coords points="3969,2512 5049,2517 5044,3627 3965,3614"/>
             <TextLine id="region_1666954192157_198l1" custom="readingOrder {index:0;}">
                 <Coords points="3972,2540 4025,2540 4078,2542 4131,2542 4185,2544 4238,2544 4291,2544 4345,2546 4398,2546 4451,2546 4505,2546 4558,2548 4611,2548 4664,2548 4718,2550 4771,2550 4824,2550 4878,2552 4931,2552 4984,2552 5038,2554 5038,2524 4984,2522 4931,2522 4878,2522 4824,2520 4771,2520 4718,2520 4664,2518 4611,2518 4558,2518 4505,2516 4451,2516 4398,2516 4345,2516 4291,2514 4238,2514 4185,2514 4131,2512 4078,2512 4025,2510 3972,2510"/>

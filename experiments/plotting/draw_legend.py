@@ -5,7 +5,7 @@ import numpy as np
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 
 from src.news_seg.class_config import LABEL_NAMES
-from src.news_seg.class_config import cmap_12 as cmap
+from src.news_seg.class_config import cmap
 
 # unique, counts = np.unique(img, return_counts=True)
 # print(dict(zip(unique, counts)))

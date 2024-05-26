@@ -23,5 +23,6 @@ class TestClassReadXML:
         """tests draw function of newspaper and HLNA Data"""
         with open(DATA_PATH + "newspaper/test-target.json", encoding="utf-8") as file:
             result = draw_img(json.load(file))
+        # draw_prediction(result, f"{DATA_PATH}newspaper/test-img.png")
         ground_truth = np.load(DATA_PATH + "newspaper/test-target.npy")
         assert (result == ground_truth).all()
