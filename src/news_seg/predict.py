@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import warnings
 from threading import Thread
 from typing import Dict, List, Tuple, Any
 
@@ -401,6 +402,11 @@ def predict(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parameter_args = get_args()
+
+    if parameter_args.output_path:
+        warnings.warn("Image output slows down the prediction significantly. "
+                      "--output-path should not be activated in production environment.")
+
     if not os.path.exists(f"{parameter_args.output_path}"):
         os.makedirs(f"{parameter_args.output_path}")
     if not os.path.exists(f"{parameter_args.slices_path}"):

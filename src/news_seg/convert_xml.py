@@ -4,6 +4,7 @@ take polygon data and convert it to xml.
 """
 import argparse
 import os
+import warnings
 
 import numpy as np
 from skimage import io
@@ -108,8 +109,8 @@ def get_args() -> argparse.Namespace:
         help="path for output folder",
     )
     parser.add_argument(
-        "--data-path",
-        "-d",
+        "--image-path",
+        "-i",
         type=str,
         dest="image_path",
         default=None,
@@ -129,4 +130,9 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = get_args()
+
+    if args.output_path:
+        warnings.warn("Image output slows down the prediction significantly. "
+                      "--image-path should not be activated in production environment.")
+
     main(args)
