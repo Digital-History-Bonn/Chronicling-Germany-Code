@@ -5,7 +5,7 @@ take polygon data and convert it to xml.
 import argparse
 import os
 import warnings
-from threading import Thread
+from multiprocessing import Process, Queue
 from typing import List
 
 import numpy as np
@@ -39,20 +39,17 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
     ]
 
-    threads = []
-    for i, path in enumerate(tqdm(paths)):
-        threads.append(
-            Thread(target=convert_file, args=(path, parsed_args, target_paths)))
-        threads[i].start()
-
-        if i % 32 == 0:
-            for thread in threads:
-                thread.join()
-    for thread in threads:
-        thread.join()
+    path_queue: Queue = Queue()
+    processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
+    for process in processes:
+        process.start()
+    for path in tqdm(paths):
+        path_queue.put(path)
+    for process in processes:
+        process.join()
 
 
-def convert_file(path: str, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:
+def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:
     """
     Reads and converts xml data, if that file has not been converted at the start of the script.
     If an image output path is provided, this creates images of the targets and saves them.
@@ -63,32 +60,34 @@ def convert_file(path: str, parsed_args: argparse.Namespace, target_paths: List[
     output_path = adjust_path(parsed_args.output_path)
     log_path = adjust_path(parsed_args.log_path) if parsed_args.log_path else None
 
-    read = (
-        # pylint: disable=unnecessary-lambda-assignment
-        lambda file: read_xml.read_transkribus(path=file, log_path=log_path)
-        if parsed_args.dataset == "transkribus"
-        else read_xml.read_hlna2013
-    )
+    while True:
+        path = path_queue.get()
+        read = (
+            # pylint: disable=unnecessary-lambda-assignment
+            lambda file: read_xml.read_transkribus(path=file, log_path=log_path)
+            if parsed_args.dataset == "transkribus"
+            else read_xml.read_hlna2013
+        )
 
-    if path in target_paths:
-        return
-    annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
-    if len(annotation) < 1:
-        return
-    img = draw_img(annotation)
+        if path in target_paths:
+            return
+        annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
+        if len(annotation) < 1:
+            return
+        img = draw_img(annotation)
 
-    # Debug
-    if image_path:
-        if not os.path.exists(image_path):
-            print(f"creating {image_path}.")
-            os.makedirs(image_path)
-        draw_prediction(img, f"{image_path}{path}.png")
+        # Debug
+        if image_path:
+            if not os.path.exists(image_path):
+                print(f"creating {image_path}.")
+                os.makedirs(image_path)
+            draw_prediction(img, f"{image_path}{path}.png")
 
-    # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
-    #     json.dump(annotation, file)
+        # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
+        #     json.dump(annotation, file)
 
-    # save ndarray
-    np_save(f"{output_path}{path}", img)
+        # save ndarray
+        np_save(f"{output_path}{path}", img)
 
 
 def np_save(file: str, img: np.ndarray) -> None:
