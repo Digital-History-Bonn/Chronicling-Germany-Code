@@ -5,7 +5,7 @@ take polygon data and convert it to xml.
 import argparse
 import os
 import warnings
-from multiprocessing import Process
+from threading import Thread
 from typing import List
 
 import numpy as np
@@ -39,17 +39,17 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
     ]
 
-    processes = []
+    threads = []
     for i, path in enumerate(tqdm(paths)):
-        processes.append(
-            Process(target=convert_file, args=(path, parsed_args, target_paths)))
-        processes[i].start()
+        threads.append(
+            Thread(target=convert_file, args=(path, parsed_args, target_paths)))
+        threads[i].start()
 
         if i % 32 == 0:
-            for process in processes:
-                process.join()
-    for process in processes:
-        process.join()
+            for thread in threads:
+                thread.join()
+    for thread in threads:
+        thread.join()
 
 
 def convert_file(path: str, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:
