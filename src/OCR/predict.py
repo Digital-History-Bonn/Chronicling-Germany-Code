@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 from src.OCR.utils import pad_xml, pad_image
 
+
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
                                                List[PageElement],
                                                List[List[BaselineLine]]]:
@@ -146,6 +147,15 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images and xml files with baselines. Images need to be jpg."
     )
+
+    parser.add_argument(
+        "--layout_dir",
+        "-l",
+        type=str,
+        default=None,
+        help="path for folder with layout xml files."
+    )
+
     parser.add_argument(
         "--output",
         "-o",
@@ -192,7 +202,7 @@ def main() -> None:
 
     # get file names
     images = list(glob.glob(f'{args.input}/*.jpg'))
-    annotations = [x[:-4] + '.xml' for x in images]
+    annotations = [f'{args.layout_dir }{os.path.basename(x)[:-4]}.xml' for x in images]
 
     if args.multiprocess:
         num_gpus = torch.cuda.device_count()
