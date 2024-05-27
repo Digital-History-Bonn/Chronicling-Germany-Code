@@ -46,9 +46,11 @@ def main(parsed_args: argparse.Namespace) -> None:
         process.start()
     for path in tqdm(paths, desc="Put paths in queue"):
         path_queue.put(path)
-    with tqdm(total=path_queue.qsize(), desc="Waiting for the queue to empty", unit="paths in queue") as pbar:
+    total = len(paths)
+    with tqdm(total=path_queue.qsize(), desc="Page converting", unit="pages") as pbar:
         while not path_queue.empty():
-            pbar.update(path_queue.qsize())
+            pbar.n = total - path_queue.qsize()
+            pbar.refresh()
             sleep(1)
     for process in tqdm(processes, desc="Terminating Processes"):
         process.terminate()
