@@ -1,4 +1,7 @@
 """Evaluation script for baseline detection."""
+import argparse
+import glob
+import os.path
 from typing import Tuple, List
 from itertools import product
 
@@ -6,11 +9,12 @@ import torch
 from bs4 import BeautifulSoup
 from shapely import intersection, union
 from shapely.geometry import Polygon
+from tqdm import tqdm
 
 from src.baseline_detection.utils import get_tag
 
 
-def extract(file_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+def extract(file_path: str) -> List[torch.Tensor]:
     """
     Extracts predicted textlines and baseline from the xml file.
 
@@ -28,7 +32,6 @@ def extract(file_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
     textlines = []
-    baselines = []
 
     text_regions = page.find_all('TextRegion')
     for region in text_regions:
@@ -41,33 +44,13 @@ def extract(file_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
                 polygon = polygon[:, torch.tensor([1, 0])]
                 textlines.append(polygon)
 
-                baseline = text_line.find('Baseline')
-                line = torch.tensor([tuple(map(int, point.split(','))) for
-                                     point in baseline['points'].split()])[:, torch.tensor([1, 0])]
-                # TODO: both cases: use string splitting utils function already present in news_segs
-                baselines.append(line)
-
-    return textlines, baselines
-
-
-def distance(pred: torch.Tensor, target: torch.Tensor) -> float:
-    """
-    Not implemented yet.
-
-    Args:
-        pred: Predicted baselines.
-        target: Target baselines.
-
-    Returns:
-        Distance between the predicted and target baselines.
-    """
-    #TODO: implement
-    return 1.0
+    return textlines
 
 
 def textline_detection_metrics(prediction: List[Polygon],
                                target: List[Polygon],
-                               threshold: float = .7) -> Tuple[float, float, float]:
+                               threshold: float = .7) -> Tuple[
+    float, float, float, float, float, float]:
     """
     Calcs precision, recall, F1 score for textline polygons.
 
@@ -82,7 +65,6 @@ def textline_detection_metrics(prediction: List[Polygon],
     Returns:
         precision, recall, F1 score
     """
-    matrix = torch.zeros((len(prediction), len(target)))
     intersects = []
     unions = []
 
@@ -92,22 +74,49 @@ def textline_detection_metrics(prediction: List[Polygon],
 
     ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(prediction), len(target))
 
-    pred_iuo = ious.amax(dim=1)
-    target_iuo = ious.amax(dim=0)
-    #TODO: just use torch metrics for iou? Or already build iou and recall, precision method in news_seg utils.
+    results = calc_metrics(ious, threshold=threshold)
 
-    tp = torch.sum(pred_iuo >= threshold).item()
-    fp = len(matrix) - tp
-    fn = torch.sum(target_iuo < threshold).item()
+    return results
+
+
+def calc_metrics(ious: torch.Tensor,
+                 threshold: float = .7) -> Tuple[float, float, float, float, float, float]:
+    """
+    calculates precision, recall and f1_score for iou matrix.
+
+    Args:
+        ious: matrix with intersection over union of textline polygons
+
+    Returns:
+        precision, recall and f1_score
+    """
+    tp = 0
+    while True:
+        max_index = torch.argmax(ious)
+        max_row = max_index // ious.size(1)
+        max_col = max_index % ious.size(1)
+        max_value = ious[max_row, max_col]
+
+        if max_value < threshold:
+            break
+
+        ious[max_row, :] = 0
+        ious[:, max_col] = 0
+
+        tp += 1
+
+    fp = ious.shape[0] - tp
+    fn = ious.shape[1] - tp
 
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
     f1_score = 2 * (precision * recall) / (precision + recall)
 
-    return precision, recall, f1_score
+    return tp, fp, fn, precision, recall, f1_score
 
 
-def evaluation(prediction_file: str, ground_truth_file: str) -> None:
+def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[
+    float, float, float, float, float, float]:
     """
     Evaluates the baseline detection.
 
@@ -115,19 +124,75 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> None:
         prediction_file: Path to the prediction file.
         ground_truth_file: Path to the ground truth file.
     """
-    pred_polygons, pred_baselines = extract(prediction_file)
-    truth_polygons, truth_baselines = extract(ground_truth_file)
+    pred = extract(prediction_file)
+    ground_truth = extract(ground_truth_file)
 
-    set1 = [Polygon(poly) for poly in pred_polygons]
-    set2 = [Polygon(poly) for poly in truth_polygons]
+    pred_polygons = [Polygon(poly) for poly in pred]
+    truth_polygons = [Polygon(poly) for poly in ground_truth]
 
-    precision, recall, f1_score = textline_detection_metrics(set1, set2)
+    results = textline_detection_metrics(pred_polygons, truth_polygons)
 
-    # dist = distance(pred_baselines, truth_baselines)
+    return results
+
+
+def get_args() -> argparse.Namespace:
+    """
+    Defines arguments.
+
+    Returns:
+        Namespace with parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="Baseline evaluation")
+    parser.add_argument(
+        "--prediction_dir",
+        "-p",
+        type=str,
+        default=None,
+        help="path for folder with prediction xml files."
+    )
+
+    parser.add_argument(
+        "--ground_truth_dir",
+        "-g",
+        type=str,
+        default=None,
+        help="path for folder with ground truth xml files."
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+
+    targets = list(glob.glob(f"{args.prediction_dir}/*.xml"))
+    predictions = [f"{args.prediction_dir}/{os.path.basename(x)}" for x in targets]
+
+    all_tp, all_fp, all_fn = 0, 0, 0
+    precisions, recalls, f1_scores = [], [], []
+
+    for target, prediction in tqdm(zip(targets, predictions), total=len(targets),
+                                   desc='evaluation'):
+        tp, fp, fn, precision, recall, f1_score = evaluation(target, prediction)
+
+        precisions.append(precision)
+        recalls.append(recall)
+        f1_scores.append(f1_score)
+
+        all_tp += tp
+        all_fp += fp
+        all_fn += fn
+
+    print(f"average precision: {torch.mean(torch.tensor([precisions]))}")
+    print(f"average recall: {torch.mean(torch.tensor([recalls]))}")
+    print(f"average f1_score: {torch.mean(torch.tensor([f1_scores]))}")
+
+    all_precision = all_tp / (all_tp + all_fp)
+    all_recall = all_tp / (all_tp + all_fn)
+    print(f"overall precision: {all_precision}")
+    print(f"overall recall: {all_recall}")
+    print(f"overall f1_score: {2 * (all_precision * all_recall) / (all_precision + all_recall)}")
 
 
 if __name__ == '__main__':
-    evaluation(prediction_file='../../data/pero_lines_bonn_regions/'
-                               'Koelnische Zeitung 1866.06-1866.09 - 0046.xml',
-               ground_truth_file='../../data/pero_lines_bonn_regions/'
-                                 'Koelnische Zeitung 1866.06-1866.09 - 0046.xml')
+    main()
