@@ -1,5 +1,7 @@
 """Prediction script for Pero baseline detection."""
-
+import argparse
+import glob
+import os
 from pathlib import Path
 import random
 from typing import List, Tuple
@@ -19,12 +21,13 @@ from bs4 import BeautifulSoup
 from skimage import draw, io
 
 from monai.networks.nets import BasicUNet
+from tqdm import tqdm
 
 from src.baseline_detection.utils import get_tag, nonmaxima_suppression
 from src.baseline_detection.xml_conversion import add_baselines
 
 
-def baseline_to_textline(baseline: np.ndarray, heights: List[float, float]) -> np.ndarray:
+def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarray:
     """
     From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py.
 
@@ -249,6 +252,7 @@ class BaselineEngine:
                 map_location=self.device
             )
         )
+        self.model.eval()
 
         # Define transformations
         self.to_tensor = transforms.ToTensor()
@@ -388,8 +392,11 @@ class BaselineEngine:
         input_image = preprocess_image(image, mask_regions)
 
         # predict
-        pred = self.model(input_image[None].to(self.device))    # pylint: disable=not-callable
-        pred = pred.cpu().detach()
+        print(f"{input_image.shape=}")
+        input_image = input_image[None].to(self.device)
+        pred_gpu = self.model(input_image)    # pylint: disable=not-callable
+        pred = pred_gpu.cpu().detach()
+
         ascenders = pred[0, 0]
         descenders = pred[0, 1]
         baselines = self.softmax(pred[:, 2:4])[0, 1]
@@ -411,12 +418,65 @@ class BaselineEngine:
         baselines = [LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list]
         textlines = [Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list]
 
+        del pred_gpu, input_image
+        torch.cuda.empty_cache()
+
         return textlines, baselines
 
 
-def main(image_path: str, layout_xml_path: str, output_file: str) -> None:
+def get_args() -> argparse.Namespace:
     """
-    Predicts textlines and baselines in given image and writes into an annotation xml file.
+    Defines arguments.
+
+    Returns:
+        Namespace with parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="predict")
+    parser.add_argument(
+        "--input_dir",
+        "-i",
+        type=str,
+        default=None,
+        help="path for folder with images. Images need to be jpg."
+    )
+
+    parser.add_argument(
+        "--layout_dir",
+        "-l",
+        type=str,
+        default=None,
+        help="path for folder with layout xml files."
+    )
+
+    parser.add_argument(
+        "--output_dir",
+        "-o",
+        type=str,
+        default=None,
+        help="path to the folder where to save the preprocessed files",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Predicts textlines and baselines for all files in given folder."""
+    args = get_args()
+
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    image_paths = list(glob.glob(f"{args.input_dir}/*.jpg"))
+    layout_xml_paths = [f"{args.layout_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
+    output_files = [f"{args.output_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
+
+    for image, layout, output_file in tqdm(zip(image_paths, layout_xml_paths, output_files),
+                                           desc='predicting baseline', total=len(image_paths)):
+        predict(image, layout, output_file)
+
+
+def predict(image_path, layout_xml_path, output_file):
+    """
+    Predicts baselines for given image with given layout and writes into outputfile.
 
     Args:
         image_path (str): Path to image
@@ -424,10 +484,8 @@ def main(image_path: str, layout_xml_path: str, output_file: str) -> None:
         output_file (str): Path to output xml file
     """
     baseline_engine = BaselineEngine(model_name='height2_baseline_e250_es', cuda=0)
-
     image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
     textlines, baselines = baseline_engine.predict(image, layout_xml_path)
-
     add_baselines(
         layout_xml=layout_xml_path,
         textlines=textlines,
@@ -437,11 +495,4 @@ def main(image_path: str, layout_xml_path: str, output_file: str) -> None:
 
 
 if __name__ == '__main__':
-    main(
-        image_path=f"{Path(__file__).parent.absolute()}/../../../"
-                   f"data/images/Koelnische_Zeitung_1924 - 0085.jpg",
-        layout_xml_path=f"{Path(__file__).parent.absolute()}/../../../"
-                        f"data/pero_lines_bonn_regions/Koelnische_Zeitung_1924 - 0085.xml",
-        output_file=f"{Path(__file__).parent.absolute()}/../../../"
-                    f"data/predictionExample.xml'"
-    )
+    main()
