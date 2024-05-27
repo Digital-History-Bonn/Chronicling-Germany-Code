@@ -27,7 +27,7 @@ from src.news_seg.train_config import BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, L
     EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT
 from src.news_seg.helper.train_helper import init_model, load_score, focal_loss, calculate_scores, initiate_datasets, \
     initiate_dataloader
-from src.news_seg.utils import split_batches, adjust_path
+from src.news_seg.utils import split_batches, adjust_path, collapse_prediction
 from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
 from src.news_seg.helper.train_helper import multi_precison_recall
 
@@ -54,8 +54,8 @@ class Trainer:
         :param batch_size: size of batches
         :param learningrate: learning-rate
         """
-
         # init params
+        self.reduce = args.reduce_classes
         self.time_debug = args.durations_debug
         self.summary_writer = summary
         batch_size = args.gpu_count * batch_size
@@ -275,6 +275,8 @@ class Trainer:
                 if self.time_debug:
                     print(f"Val prediction takes:{end - start}")
                 batch_loss = self.apply_loss(pred, targets.to(self.device)).item()
+                if self.reduce:
+                    pred = collapse_prediction(pred)
             loss_time = time()
             if self.time_debug:
                 print(f"Val loss takes:{loss_time - end}")
@@ -706,13 +708,17 @@ def get_args() -> argparse.Namespace:
         "--reduce-classes",
         "-r",
         action="store_true",
-        help="If activated, classes are merged into 3 categories. Those being Text, normal "
-             "separators and big separators.",
+        help="If activated, classes are being reduced according to configuration",
     )
     parser.add_argument(
         "--durations-debug",
         action="store_true",
         help="Activates time measurement console output.",
+    )
+    parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Evaluate the loaded model without training.",
     )
     parser.add_argument(
         "--custom-split-file",
@@ -748,8 +754,8 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    name = f"{parameter_args.name}_{parameter_args.torch_seed}"
-    # name = f"{parameter_args.name}"
+    name = f"{parameter_args.name}" if parameter_args.evaluate else f"{parameter_args.name}_{parameter_args.torch_seed}"
+    epochs = 0 if parameter_args.evaluate else parameter_args.epochs
 
     # setup tensor board
     train_log_dir = "logs/runs/" + name
@@ -783,7 +789,7 @@ def main() -> None:
     print(f"amp:  {parameter_args.amp}")
     print(f"skip cbam: {parameter_args.skip_cbam}")
 
-    duration = trainer.train(epochs=parameter_args.epochs)
+    duration = trainer.train(epochs=epochs)
     model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
         f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)

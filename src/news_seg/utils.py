@@ -169,3 +169,18 @@ def replace_labels(target: torch.Tensor) -> torch.Tensor:
         for label in label_list:
             target[target == label] = replace_label
     return target
+
+
+def collapse_prediction(pred: torch.Tensor) -> torch.Tensor:
+    """
+    Collapses classes in the prediction tensor after softmax activation.
+    This is used to make models with different classes compatible. This does not change the total number of classes.
+    """
+    # TODO: remove when old model is predicted
+    pred = pred[:, 1:, :, :]
+
+    for replace_label, label_list in REDUCE_CLASSES.items():
+        for label in label_list:
+            pred[:, replace_label, :, :] += pred[:, label, :, :]
+            pred[:, label, :, :] = 0
+    return pred

@@ -6,6 +6,7 @@ import argparse
 import os
 import warnings
 from multiprocessing import Process, Queue
+from time import sleep
 from typing import List
 
 import numpy as np
@@ -43,10 +44,14 @@ def main(parsed_args: argparse.Namespace) -> None:
     processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
     for process in processes:
         process.start()
-    for path in tqdm(paths):
+    for path in tqdm(paths, desc="Put paths in queue"):
         path_queue.put(path)
-    for process in processes:
-        process.join()
+    with tqdm(total=path_queue.qsize(), desc="Waiting for the queue to empty", unit="paths in queue") as pbar:
+        while not path_queue.empty():
+            pbar.update(path_queue.qsize())
+            sleep(1)
+    for process in tqdm(processes, desc="Terminating Processes"):
+        process.terminate()
 
 
 def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:

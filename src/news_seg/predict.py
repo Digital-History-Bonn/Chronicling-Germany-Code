@@ -13,7 +13,7 @@ from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.news_seg.class_config import TOLERANCE, REDUCE_CLASSES
+from src.news_seg.class_config import TOLERANCE
 from src.news_seg.datasets.predict_dataset import PredictDataset
 from src.news_seg.helper.train_helper import init_model
 from src.news_seg.processing.draw_img_from_polygons import draw_polygons_into_image
@@ -22,7 +22,7 @@ from src.news_seg.processing.reading_order import PageProperties
 from src.news_seg.processing.slicing_export import export_slices
 from src.news_seg.processing.transkribus_export import export_xml
 from src.news_seg.train_config import OUT_CHANNELS
-from src.news_seg.utils import draw_prediction, adjust_path
+from src.news_seg.utils import draw_prediction, adjust_path, collapse_prediction
 
 DATA_PATH = "../../data/newspaper/input/"
 RESULT_PATH = "../../data/output/"
@@ -131,21 +131,6 @@ def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = Fals
     argmax = argmax.type(torch.uint8)
     argmax[max_tensor < threshold] = 0
     return argmax.detach().cpu().numpy()  # type: ignore
-
-
-def collapse_prediction(pred: torch.Tensor) -> torch.Tensor:
-    """
-    Collapses classes in the prediction tensor after softmax activation.
-    This is used to make models with different classes compatible. This does not change the total number of classes.
-    """
-    # TODO: remove when old model is predicted
-    pred = pred[:, 1:, :, :]
-
-    for replace_label, label_list in REDUCE_CLASSES.items():
-        for label in label_list:
-            pred[:, replace_label, :, :] += pred[:, label, :, :]
-            pred[:, label, :, :] = 0
-    return pred
 
 
 def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:
