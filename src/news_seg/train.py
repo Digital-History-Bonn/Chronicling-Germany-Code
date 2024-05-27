@@ -754,7 +754,8 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    name = f"{parameter_args.name}" if parameter_args.evaluate else f"{parameter_args.name}_{parameter_args.torch_seed}"
+    name = f"{parameter_args.name}" if parameter_args.evaluate else \
+        f"{parameter_args.name}_{int(parameter_args.torch_seed)}"
     epochs = 0 if parameter_args.evaluate else parameter_args.epochs
 
     # setup tensor board
