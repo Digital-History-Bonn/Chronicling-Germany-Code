@@ -73,8 +73,8 @@ TAGS = ['current+best',
 # ]
 
 RUNS = [
-    ['reduced_dh_segment_newspaper_A'],
-    ['final_reduced_1.0']
+    ['final_dh_segment_1.0_best', 'final_dh_segment_2.0_best', 'final_dh_segment_3.0_best'],
+    ['neurips_dh_segment_1.0', 'neurips_dh_segment_1.0', 'neurips_dh_segment_1.0']
 ]
 
 # RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
@@ -84,16 +84,16 @@ RUNS = [
 # RUNS = [['final_dh_segment_1.0', 'final_dh_segment_2.0', 'final_dh_segment_3.0'],
 #         ['final_cbam_1.0', 'final_cbam_2.0', 'final_cbam_3.0']]
 
-# XTICKS = [np.arange(1, 11) + 0.375, ["Background",
-#                                      "UnknownRegion",
-#                                      "Caption",
-#                                      "Table",
-#                                      "Article",
-#                                      "Heading",
-#                                      "Header",
-#                                      "Separator Vertical",
-#                                      "Separator Short",
-#                                      "Separator Horizontal"]]
+XTICKS = [np.arange(1, 11) + 0.375, ["Background",
+                                     "Caption",
+                                     "Table",
+                                     "Paragraph",
+                                     "Heading",
+                                     "Header",
+                                     "Separator",
+                                     "Separator Vertical",
+                                     "Inverted Text",
+                                     "Image"]]
 
 # XTICKS = [np.arange(1, 9) + 0.375, ["Background",
 #                                      "Caption",
@@ -109,10 +109,10 @@ RUNS = [
 #                                      "Heading",
 #                                      "Separator"]]
 
-XTICKS = [np.arange(1, 5) + 0.375, ["Background",
-                                     "Text",
-                                     "Separator",
-                                     "Separator Big"]]
+# XTICKS = [np.arange(1, 5) + 0.375, ["Background",
+#                                      "Text",
+#                                      "Separator",
+#                                      "Separator Big"]]
 
 plt.rcParams["figure.figsize"] = (30, 20)
 plt.rcParams["font.size"] = 35
@@ -180,7 +180,7 @@ def plot_bar(data: ndarray, stds: ndarray, name: str, ticks: Any, labels: List[s
     fig, axplt = plt.subplots()
     axplt.set_ylabel(ylabel)
 
-    for i in range(3):
+    for i in range(2):
         axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", yerr=stds[:, i], label=labels[i])
         # axplt.bar(xdata + i / 4, data[:, i], 0.25, align="center", label=labels[i])
     # axplt.bar(xdata, data, align="center", yerr=stds)
@@ -331,26 +331,26 @@ def graph():
 
 
 def class_sci():
-    # tags = ['multi-acc-test/class 0',
-    #         'multi-acc-test/class 1',
-    #         'multi-acc-test/class 2',
-    #         'multi-acc-test/class 3',
-    #         'multi-acc-test/class 4',
-    #         'multi-acc-test/class 5',
-    #         'multi-acc-test/class 6',
-    #         'multi-acc-test/class 7',
-    #         'multi-acc-test/class 8',
-    #         'multi-acc-test/class 9']
+    tags = ['multi-acc-test/class 0',
+            'multi-acc-test/class 1',
+            'multi-acc-test/class 2',
+            'multi-acc-test/class 3',
+            'multi-acc-test/class 4',
+            'multi-acc-test/class 5',
+            'multi-acc-test/class 6',
+            'multi-acc-test/class 7',
+            'multi-acc-test/class 8',
+            'multi-acc-test/class 9']
 
     # tags = ['multi-acc-test/class 0',
     #         'multi-acc-test/class 4',
     #         'multi-acc-test/class 5',
     #         'multi-acc-test/class 7',]
 
-    tags = ['multi-acc-test/class 0',
-            'multi-acc-test/class 4',
-            'multi-acc-test/class 7',
-            'multi-acc-test/class 9',]
+    # tags = ['multi-acc-test/class 0',
+    #         'multi-acc-test/class 4',
+    #         'multi-acc-test/class 7',
+    #         'multi-acc-test/class 9',]
 
     # tags = ['multi-acc-test/class 0',
     #         'multi-acc-test/class 2',
@@ -366,37 +366,37 @@ def class_sci():
     # labels = ["DhSegment", "CBAM", "Trans Unet"]
     # labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
     # labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
-    labels = ["DhSegment", "reduced"]
+    labels = ["old version", "new version"]
 
     name = "pre-class-csi"
-    title = "Multi Class CSI"
-    ylabel = 'Critical Sucess Index'
+    title = "Multi Class IoU"
+    ylabel = 'IoU'
 
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
     plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
 
 
 def class_precision():
-    # tags = ['multi-precision-test/class 0',
-    #         'multi-precision-test/class 1',
-    #         'multi-precision-test/class 2',
-    #         'multi-precision-test/class 3',
-    #         'multi-precision-test/class 4',
-    #         'multi-precision-test/class 5',
-    #         'multi-precision-test/class 6',
-    #         'multi-precision-test/class 7',
-    #         'multi-precision-test/class 8',
-    #         'multi-precision-test/class 9']
+    tags = ['multi-precision-test/class 0',
+            'multi-precision-test/class 1',
+            'multi-precision-test/class 2',
+            'multi-precision-test/class 3',
+            'multi-precision-test/class 4',
+            'multi-precision-test/class 5',
+            'multi-precision-test/class 6',
+            'multi-precision-test/class 7',
+            'multi-precision-test/class 8',
+            'multi-precision-test/class 9']
 
     # tags = ['multi-precision-test/class 0',
     #         'multi-precision-test/class 4',
     #         'multi-precision-test/class 5',
     #         'multi-precision-test/class 7']
-
-    tags = ['multi-precision-test/class 0',
-            'multi-precision-test/class 4',
-            'multi-precision-test/class 7',
-            'multi-precision-test/class 9']
+    #
+    # tags = ['multi-precision-test/class 0',
+    #         'multi-precision-test/class 4',
+    #         'multi-precision-test/class 7',
+    #         'multi-precision-test/class 9']
 
     # tags = ['multi-precision-test/class 0',
     #         'multi-precision-test/class 2',
@@ -409,7 +409,7 @@ def class_precision():
 
     mean, std = get_data_bar(tags)
 
-    labels = ["DhSegment", "reduced"]
+    labels = ["old version", "new version"]
     name = "final-class-precision"
     title = "Multi Class Precision"
     ylabel = 'Precision'
@@ -424,8 +424,8 @@ def get_data_bar(tags):
         _, values = get_timeseries(tag)
         tag_data = []
 
-        for i in range(3):
-            tag_data.append([values[i][j][-1] for j in range(3)])
+        for i in range(len(values)):
+            tag_data.append([values[i][j][-1] for j in range(len(values[i]))])
 
         # data.append([values[i][0][-1] for i in range(3)])
         # data.append(values[0][0][-1])
@@ -437,26 +437,26 @@ def get_data_bar(tags):
 
 
 def class_recall():
-    # tags = ['multi-recall-test/class 0',
-    #         'multi-recall-test/class 1',
-    #         'multi-recall-test/class 2',
-    #         'multi-recall-test/class 3',
-    #         'multi-recall-test/class 4',
-    #         'multi-recall-test/class 5',
-    #         'multi-recall-test/class 6',
-    #         'multi-recall-test/class 7',
-    #         'multi-recall-test/class 8',
-    #         'multi-recall-test/class 9']
+    tags = ['multi-recall-test/class 0',
+            'multi-recall-test/class 1',
+            'multi-recall-test/class 2',
+            'multi-recall-test/class 3',
+            'multi-recall-test/class 4',
+            'multi-recall-test/class 5',
+            'multi-recall-test/class 6',
+            'multi-recall-test/class 7',
+            'multi-recall-test/class 8',
+            'multi-recall-test/class 9']
 
     # tags = ['multi-recall-test/class 0',
     #         'multi-recall-test/class 4',
     #         'multi-recall-test/class 5',
     #         'multi-recall-test/class 7',]
 
-    tags = ['multi-recall-test/class 0',
-            'multi-recall-test/class 4',
-            'multi-recall-test/class 7',
-            'multi-recall-test/class 9',]
+    # tags = ['multi-recall-test/class 0',
+    #         'multi-recall-test/class 4',
+    #         'multi-recall-test/class 7',
+    #         'multi-recall-test/class 9',]
 
     # tags = ['multi-recall-test/class 0',
     #         'multi-recall-test/class 2',
@@ -470,7 +470,7 @@ def class_recall():
     mean, std = get_data_bar(tags)
 
     # labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
-    labels = ["DhSegment", "DhSegment CBAM"]
+    labels = ["old version", "new version"]
     name = "final-class-recall"
     title = "Multi Class Recall"
     ylabel = "Recall"
@@ -489,9 +489,9 @@ def results():
     xticks = [np.arange(1, 4) + 0.375, ["Loss",
                                         "Accuracy",
                                         "Jaccard Score"]]
-    labels = ["DhSegment", "DhSegment CBAM", "Trans Unet"]
+    labels = ["old version", "new version"]
     name = "pre-results"
-    title = "Test Ergenisse"
+    title = "Test Results"
     ylabel = ""
 
     # plot_bar(data, np.zeros(1), name, xticks, labels, title)
@@ -500,14 +500,13 @@ def results():
 
 def bar():
     class_sci()
-    results()
+    # results()
     class_precision()
     class_recall()
 
 def main():
     # graph()
     bar()
-
 
 if __name__ == "__main__":
     main()
