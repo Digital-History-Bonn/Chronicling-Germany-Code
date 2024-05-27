@@ -758,7 +758,7 @@ def main() -> None:
     epochs = 0 if parameter_args.evaluate else parameter_args.epochs
 
     # setup tensor board
-    train_log_dir = "logs/runs/" + name + "eval" if parameter_args.epochs else "logs/runs/" + name
+    train_log_dir = "logs/runs/" + name + "eval" if parameter_args.evaluate else "logs/runs/" + name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
