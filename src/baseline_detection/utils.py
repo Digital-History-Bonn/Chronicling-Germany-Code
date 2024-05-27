@@ -54,7 +54,6 @@ def convert_coord(element: PageElement) -> np.ndarray:
     coords = element.find('Coords')
     return np.array([tuple(map(int, point.split(','))) for
                      point in coords['points'].split()])[:, np.array([1, 0])]
-    #TODO: merge this with news_seg utility function
 
 
 def get_tag(textregion: PageElement) -> str:
@@ -113,7 +112,7 @@ List[torch.Tensor]]:
     paragraphs = []
     mask_regions = []
 
-    text_regions = page.find_all('TextRegion')
+    text_regions = page.find_all(['TextRegion', 'TableRegion'])
     for region in text_regions:
         tag = get_tag(region)
         coords = region.find('Coords')
