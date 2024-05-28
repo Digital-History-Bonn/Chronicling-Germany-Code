@@ -1,6 +1,6 @@
 """Utility Module"""
 import os
-from typing import Dict, List, Tuple, Callable
+from typing import Dict, List, Tuple, Callable, Optional
 
 import torch
 # from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type:ignore
@@ -13,11 +13,11 @@ from src.news_seg.class_config import LABEL_NAMES, REDUCE_CLASSES
 from src.news_seg.class_config import cmap
 
 
-def adjust_path(path: str) -> str:
+def adjust_path(path: Optional[str]) -> Optional[str]:
     """
     Make sure, there is a slash at the end of a (folder) spath string.
     """
-    return path if path[-1] == '/' else path + '/'
+    return path if not path or path[-1] == '/' else path + '/'
 
 def draw_prediction(img: ndarray, path: str) -> None:
     """

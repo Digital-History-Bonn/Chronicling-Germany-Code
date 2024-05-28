@@ -101,7 +101,7 @@ def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
     :return: smoothed prediction ndarray image, reading order and segmentation dictionary
     """
 
-    if args.debug:
+    if args.uncertainty_predict:
         segmentations, bbox_list = uncertainty_to_polygons(pred)
         reading_order_dict = {i: i for i in range(len(segmentations))}
 
