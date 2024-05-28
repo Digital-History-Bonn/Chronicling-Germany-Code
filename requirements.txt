@@ -1,3 +1,6 @@
+kraken
+lightning
+monai
 matplotlib == 3.6
 numpy
 pillow
@@ -12,6 +15,7 @@ pylint
 tensorboard
 torchvision
 nox
+nltk
 lxml
 shapely
 ml_collections
@@ -19,8 +23,6 @@ positional-encodings
 torchmetrics
 opencv-python
 tikzplotlib
-kraken
-lightning
-monai
+Levenshtein
 
 #TODO add requirements
