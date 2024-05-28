@@ -74,7 +74,7 @@ TAGS = ['current+best',
 
 RUNS = [
     ['final_dh_segment_1.0_best', 'final_dh_segment_2.0_best', 'final_dh_segment_3.0_best'],
-    ['neurips_dh_segment_1.0', 'neurips_dh_segment_1.0', 'neurips_dh_segment_1.0']
+    ['neurips_dh_segment_1.0', 'neurips_dh_segment_2.0', 'neurips_dh_segment_3.0', 'neurips_dh_segment_4.0']
 ]
 
 # RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
@@ -90,8 +90,8 @@ XTICKS = [np.arange(1, 11) + 0.375, ["Background",
                                      "Paragraph",
                                      "Heading",
                                      "Header",
-                                     "Separator",
                                      "Separator Vertical",
+                                     "Separator",
                                      "Inverted Text",
                                      "Image"]]
 
@@ -429,11 +429,13 @@ def get_data_bar(tags):
 
         # data.append([values[i][0][-1] for i in range(3)])
         # data.append(values[0][0][-1])
-        data.append(np.array(tag_data))
-    data = np.array(data)
-    mean = np.mean(data, axis=2)
-    std = np.std(data, axis=2)
-    return mean, std
+        data.append(tag_data)
+        mean = []
+        std = []
+    for version in data:
+        mean.append([np.mean(version[i]) for i in range(len(version))])
+        std.append([np.std(version[i]) for i in range(len(version))])
+    return np.array(mean), np.array(std)
 
 
 def class_recall():
@@ -499,10 +501,10 @@ def results():
 
 
 def bar():
-    class_sci()
-    # results()
-    class_precision()
-    class_recall()
+    # class_sci()
+    results()
+    # class_precision()
+    # class_recall()
 
 def main():
     # graph()

@@ -94,8 +94,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=str,
-        default="transcribus",
-        help="which dataset to expect. Options are 'transcribus' and 'HLNA2013' "
+        default="transkribus",
+        help="which dataset to expect. Options are 'transkribus' and 'HLNA2013' "
              "(europeaner newspaper project)",
     )
     parser.add_argument(
