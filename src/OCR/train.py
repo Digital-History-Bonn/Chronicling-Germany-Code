@@ -1,4 +1,5 @@
 """Model to train kraken OCR model."""
+import argparse
 import glob
 import os
 from pprint import pprint
@@ -11,13 +12,52 @@ from lightning.pytorch.loggers import TensorBoardLogger
 torch.set_float32_matmul_precision('medium')
 
 
-def main(name: str) -> None:
+def get_args() -> argparse.Namespace:
     """
-    Trains a OCR model.
+    Defines arguments.
 
-    Args:
-        name: of the model
+    Returns:
+        Namespace with parsed arguments.
     """
+    parser = argparse.ArgumentParser(description="train kraken OCR")
+
+    parser.add_argument(
+        "--name",
+        "-n",
+        type=str,
+        default=None,
+        help="Name of the model and the log files."
+    )
+
+    parser.add_argument(
+        "--train_data",
+        "-t",
+        type=str,
+        default=None,
+        help="path for folder with images jpg files and annotation xml files to train the model."
+    )
+
+    parser.add_argument(
+        "--valid_data",
+        "-v",
+        type=str,
+        default=None,
+        help="path for folder with images jpg files and annotation xml files to validate the model."
+    )
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Trains a OCR model."""
+
+    # get args
+    args = get_args()
+    name = args.name
+
+    train_path = args.train_data
+    valid_path = args.valid_data
+
     # check for cuda device
     if torch.cuda.is_available():
         print("CUDA device is available!")
@@ -28,8 +68,8 @@ def main(name: str) -> None:
     os.makedirs(f'models/{name}', exist_ok=False)
 
     # create training- and evaluation set
-    training_files = list(glob.glob('data/train/*.xml'))
-    evaluation_files = list(glob.glob('data/valid/*.xml'))
+    training_files = list(glob.glob(f"{train_path}/*.xml"))
+    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))
 
     # set some hyperparameters
     hparams = default_specs.RECOGNITION_HYPER_PARAMS.copy()
@@ -39,14 +79,11 @@ def main(name: str) -> None:
     hparams['augment'] = True
     hparams['batch_size'] = 128
     hparams['freeze_backbone'] = 2
-    # hparams['schedule'] = 'exponential'
-    # hparams['step_size'] = 100,
-    # hparams['gamma'] = 0.02,
 
     # init model
     model = RecognitionModel(hyper_params=hparams,
                              output=f'models/{name}/model',
-                             model='load_model/german_newspapers_kraken.mlmodel',
+                             # model='load_model/german_newspapers_kraken.mlmodel',
                              num_workers=23,
                              training_data=training_files,
                              evaluation_data=evaluation_files,
@@ -65,4 +102,4 @@ def main(name: str) -> None:
 
 
 if __name__ == '__main__':
-    main(name='run12')
+    main()
