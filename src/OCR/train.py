@@ -71,6 +71,8 @@ def main() -> None:
     training_files = list(glob.glob(f"{train_path}/*.xml"))
     evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))
 
+    print(f"{len(training_files)} training images and {len(evaluation_files)} validation images.")
+
     # set some hyperparameters
     hparams = default_specs.RECOGNITION_HYPER_PARAMS.copy()
     hparams['epochs'] = 100
