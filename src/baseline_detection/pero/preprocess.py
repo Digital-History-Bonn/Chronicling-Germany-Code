@@ -307,7 +307,7 @@ def main() -> None:
         document_name = img_path.split(os.sep)[-1][:-4]
 
         # check if folder already exists if yes skip this image
-        if os.path.exists(f"{output_path}/target_{document_name}.npz"):
+        if os.path.exists(f"{output_path}/{document_name}.npz"):
             continue
 
         # extract annotation information from annotation xml file
