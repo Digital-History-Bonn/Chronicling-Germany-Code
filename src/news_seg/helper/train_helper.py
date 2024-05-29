@@ -224,7 +224,7 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
         file_stems=test_file_stems,
         name="test"
     )
-    print(f"train size: {len(train_set)}, test size: {len(validation_set)}")
+    print(f"train size: {len(train_set)}, val size: {len(validation_set)}, test size: {len(test_set)}")
 
     # Turn of augmentations on Validation-set
     validation_set.augmentations = False
