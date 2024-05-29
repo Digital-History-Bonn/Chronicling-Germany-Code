@@ -1,5 +1,4 @@
-"""Newspaper Class for newspaper mask R-CNN."""
-#TODO: update doc strings
+"""Dataset class for pero baseline detection model training."""
 import os
 import glob
 from typing import Tuple, Optional
@@ -16,23 +15,21 @@ from torchvision import transforms
 class CustomDataset(Dataset):  # type: ignore
     """Newspaper Class for training."""
 
-    def __init__(self, image_path: str,
-                 target_path: str,
+    def __init__(self, data_path: str,
                  augmentations: Optional[Module] = None,
                  cropping: bool = True) -> None:
         """
         Newspaper Class for training.
 
         Args:
-            image_path: path to folder with images
+            data_path: path to folder with images
             target_path: path to folder with targets
             augmentations: torchvision transforms for on-the-fly augmentations
             cropping: whether to crop images or not
         """
         super().__init__()
-        self.image_path = image_path
-        self.target_path = target_path
-        self.data = [x.split(os.sep)[-1][:-4] for x in glob.glob(f"{target_path}/*")]
+        self.data_path = data_path
+        self.data = [x.split(os.sep)[-1][:-4] for x in glob.glob(f"{data_path}/*.jpg")]
         self.cropping = cropping
         self.crop_size = (256, 256)
         self.augmentations = augmentations
@@ -47,9 +44,9 @@ class CustomDataset(Dataset):  # type: ignore
         Returns:
             image, target
         """
-        image = torch.tensor(io.imread(f"{self.image_path}/{self.data[index]}.jpg"))
+        image = torch.tensor(io.imread(f"{self.data_path}/{self.data[index]}.jpg"))
         image = image.permute(2, 0, 1) / 256
-        target = torch.tensor(np.load(f"{self.target_path}/{self.data[index]}.npz")['array'])
+        target = torch.tensor(np.load(f"{self.data_path}/{self.data[index]}.npz")['array'])
         target = target.permute(2, 0, 1).float()
 
         # mask image

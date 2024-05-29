@@ -1,5 +1,5 @@
 """Preprocess for the Newspaper dataset to predict Textlines."""
-
+import argparse
 import glob
 import os
 from pathlib import Path
@@ -210,33 +210,6 @@ def draw_ascender_descender(polygon: Polygon,
     target[x_coords, y_coords, dim] = values
 
 
-def rename_files(folder_path: str) -> None:
-    """
-    Renames all files and folders in given folder by replacing 'ö' with 'oe'.
-
-    Args:
-        folder_path: path to folder
-    """
-    # TODO: should be obsolete
-    # Get the list of files in the folder
-    files = os.listdir(folder_path)
-
-    # Iterate through each file
-    for filename in files:
-        # Check if the file name contains 'ö'
-        if 'ö' in filename:
-            # Replace 'ö' with 'oe' in the filename
-            new_filename = filename.replace('ö', 'oe')
-
-            # Construct the full old and new paths
-            old_path = os.path.join(folder_path, filename)
-            new_path = os.path.join(folder_path, new_filename)
-
-            # Rename the file
-            os.rename(old_path, new_path)
-            print(f"Renamed {filename} to {new_filename}")
-
-
 def plot_target(image: np.ndarray,
                 target: np.ndarray,
                 figsize: Tuple[int, int] = (50, 10),
@@ -275,15 +248,50 @@ def plot_target(image: np.ndarray,
     plt.show()
 
 
-def main(image_folder: str, target_folder: str, output_path: str) -> None:
+def get_args() -> argparse.Namespace:
     """
-    Preprocesses the complete dataset so it can be used for training.
+    Defines arguments.
 
-    Args:
-        image_folder: path to images
-        target_folder: path to xml files
-        output_path: path to save folder
+    Returns:
+        Namespace with parsed arguments.
     """
+    parser = argparse.ArgumentParser(description="preprocess")
+    parser.add_argument(
+        "--image_dir",
+        "-i",
+        type=str,
+        default=None,
+        help="path for folder with images. Images need to be jpg."
+    )
+
+    parser.add_argument(
+        "--annotation_dir",
+        "-a",
+        type=str,
+        default=None,
+        help="path for folder with layout xml files."
+    )
+
+    parser.add_argument(
+        "--output_dir",
+        "-o",
+        type=str,
+        default=None,
+        help="path to the folder where to save the preprocessed trainings targets",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    """Preprocesses the complete dataset so it can be used for training."""
+
+    # get args
+    args = get_args()
+    target_folder = args.annotation_dir
+    image_folder = args.image_dir
+    output_path = args.output_dir
+
     os.makedirs(output_path, exist_ok=True)
     to_tensor = transforms.PILToTensor()
 
@@ -299,7 +307,7 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
         document_name = img_path.split(os.sep)[-1][:-4]
 
         # check if folder already exists if yes skip this image
-        if os.path.exists(f"{output_path}/target_{document_name}.npz"):
+        if os.path.exists(f"{output_path}/{document_name}.npz"):
             continue
 
         # extract annotation information from annotation xml file
@@ -333,16 +341,4 @@ def main(image_folder: str, target_folder: str, output_path: str) -> None:
 
 
 if __name__ == "__main__":
-    main(f'{Path(__file__).parent.absolute()}/../../../data/images',
-         f'{Path(__file__).parent.absolute()}/../../../data/pero_lines_bonn_regions',
-         f'{Path(__file__).parent.absolute()}/../../../data/preprocessed')
-
-    # test_array = np.load(
-    #     f'{Path(__file__).parent.absolute()}/../../'
-    #     f'data/Newspaper/preprocessed3/'
-    #     f'Koelnische Zeitung 1866.06-1866.09 - 0182/baselines.npz')['array']
-    # image = io.imread(
-    #     f'{Path(__file__).parent.absolute()}/../../'
-    #     f'data/Newspaper/newspaper-dataset-main-images/'
-    #     f'images/Koelnische Zeitung 1866.06-1866.09 - 0182.jpg')
-    # plot_target(image, test_array)
+    main()

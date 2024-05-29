@@ -754,11 +754,12 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    name = f"{parameter_args.name}" if parameter_args.evaluate else f"{parameter_args.name}_{parameter_args.torch_seed}"
+    name = f"{parameter_args.name}" if parameter_args.evaluate else \
+        f"{parameter_args.name}_{int(parameter_args.torch_seed)}"
     epochs = 0 if parameter_args.evaluate else parameter_args.epochs
 
     # setup tensor board
-    train_log_dir = "logs/runs/" + name
+    train_log_dir = "logs/runs/" + name + "eval" if parameter_args.evaluate else "logs/runs/" + name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None

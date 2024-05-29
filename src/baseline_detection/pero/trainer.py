@@ -2,7 +2,6 @@
 
 import argparse
 import os
-from pathlib import Path
 from typing import Union, Tuple, Dict
 
 import numpy as np
@@ -31,7 +30,7 @@ class MultiTargetLoss(nn.Module):
 
     def __init__(self, scaling: float = 0.01):
         """
-        Custom loss for multi task semantic segmentation.
+        Custom loss for multi-task semantic segmentation.
 
         Args:
             scaling: waiting between ascender- and descender loss and baseline- and limit loss
@@ -114,7 +113,7 @@ class Trainer:
         self.name = name
 
         # setup tensorboard
-        train_log_dir = f"{Path(__file__).parent.absolute()}/../../../logs/runs/{self.name}"
+        train_log_dir = f"logs/runs/{self.name}"
         print(f"{train_log_dir=}")
         self.writer = SummaryWriter(train_log_dir)  # type: ignore
 
@@ -128,10 +127,10 @@ class Trainer:
         Args:
             name: name of the model
         """
-        os.makedirs(f"{Path(__file__).parent.absolute()}/../../../models/", exist_ok=True)
+        os.makedirs("models/", exist_ok=True)
         torch.save(
             self.model.state_dict(),
-            f"{Path(__file__).parent.absolute()}/../../../models/{name}",
+            f"models/{name}",
         )
 
     def load(self, name: str = "") -> None:
@@ -142,7 +141,7 @@ class Trainer:
             name: name of the model
         """
         self.model.load_state_dict(
-            torch.load(f"{Path(__file__).parent.absolute()}/../../../models/{name}.pt")
+            torch.load(f"models/{name}.pt")
         )
 
     def train(self, epoch: int) -> None:
@@ -269,11 +268,6 @@ class Trainer:
         # predict example form training set
         pred = self.model(example[None].to(self.device))
 
-        # result = draw_segmentation_masks(image=example,
-        #                                  masks=pred[0, 1] > 0.5,
-        #                                  alpha=0.5,
-        #                                  colors='red')
-
         ascenders = pred[:, 0, :, :].clip(min=0) / pred[:, 0, :, :].max()
         descenders = pred[:, 1, :, :].clip(min=0) / pred[:, 1, :, :].max()
         baselines = self.softmax(pred[:, 2:4, :, :])
@@ -333,7 +327,7 @@ def get_args() -> argparse.Namespace:
         Namespace with call arguments
     """
     parser = argparse.ArgumentParser(description="training")
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--name",
         "-n",
@@ -350,6 +344,22 @@ def get_args() -> argparse.Namespace:
         help="Number of epochs",
     )
 
+    parser.add_argument(
+        "--train_data",
+        "-t",
+        type=str,
+        default=None,
+        help="path for folder with images jpg files and annotation xml files to train the model."
+    )
+
+    parser.add_argument(
+        "--valid_data",
+        "-v",
+        type=str,
+        default=None,
+        help="path for folder with images jpg files and annotation xml files to validate the model."
+    )
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--cuda",
         "-c",
@@ -403,14 +413,12 @@ def main() -> None:
             transforms.RandomGrayscale(p=0.1))
 
     traindataset = Dataset(
-        f"{Path(__file__).parent.absolute()}/../../../data/images",
-        f"{Path(__file__).parent.absolute()}/../../../data/data-24-05-2024/anzeigen_baseline_train",
+        args.train_data,
         augmentations=transform,
     )
 
     validdataset = Dataset(
-        f"{Path(__file__).parent.absolute()}/../../../data/images",
-        f"{Path(__file__).parent.absolute()}/../../../data/data/data-24-05-2024/anzeigen_baseline_valid",
+        args.valid_data,
         cropping=False
     )
 

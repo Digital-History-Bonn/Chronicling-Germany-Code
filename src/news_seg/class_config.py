@@ -66,25 +66,21 @@ REGION_TYPES = {
     "heading": "TextRegion",
     "header": "TextRegion",
     "separator_vertical": "SeparatorRegion",
-    "separator_short": "SeparatorRegion",
-    "separator_horizontal": "SeparatorRegion",
+    "separator": "SeparatorRegion",
     "image": "GraphicRegion",
     "inverted_text": "TextRegion",
 }
 
 VALID_TAGS = [
-    'TextLine',
-    "paragraph,"
+    "paragraph",
     'caption',
     'heading',
     'header',
-    'Image',
-    'Graphic',
+    'image',
     'table',
     'inverted_text',
-    'separator_horizontal',
     'separator_vertical',
-    'separator_short',
+    'separator',
     'UnknownRegion'
 ]
 

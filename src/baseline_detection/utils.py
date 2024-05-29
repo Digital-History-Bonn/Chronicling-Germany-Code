@@ -54,7 +54,6 @@ def convert_coord(element: PageElement) -> np.ndarray:
     coords = element.find('Coords')
     return np.array([tuple(map(int, point.split(','))) for
                      point in coords['points'].split()])[:, np.array([1, 0])]
-    #TODO: merge this with news_seg utility function
 
 
 def get_tag(textregion: PageElement) -> str:
@@ -113,7 +112,7 @@ List[torch.Tensor]]:
     paragraphs = []
     mask_regions = []
 
-    text_regions = page.find_all('TextRegion')
+    text_regions = page.find_all(['TextRegion', 'TableRegion'])
     for region in text_regions:
         tag = get_tag(region)
         coords = region.find('Coords')
@@ -166,17 +165,12 @@ def extract_region(region: BeautifulSoup, region_bbox: torch.Tensor) -> Dict[
                                  point in baseline['points'].split()])
             line = line[:, torch.tensor([1, 0])]
 
-            line -= region_bbox[:2].unsqueeze(0)
-
             region_dict['baselines'].append(line)  # type: ignore
 
             # get mask
             polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
                                        point in polygon['points'].split()])
             polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
-
-            # move mask to be in subimage
-            polygon_pt -= region_bbox[:2].unsqueeze(0)
 
             # calc bbox for line
             box = torch.tensor(get_bbox(polygon_pt))[torch.tensor([1, 0, 3, 2])]

@@ -17,8 +17,6 @@ from tqdm import tqdm
 
 from src.OCR.utils import pad_xml, pad_image
 
-multiprocessing.set_start_method('spawn')
-
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
                                                List[PageElement],
@@ -72,7 +70,6 @@ def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
                         [tuple(map(int, point.split(','))) for point in
                          polygon['points'].split()])  # type: ignore
                 )
-                # TODO: merge this with news seg utility function
 
         baselines.append(region_baselines)
 
@@ -99,7 +96,7 @@ def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path
 
     for region, baselines in zip(regions, region_baselines):
         baseline_seg = Segmentation(type='baselines',
-                                    imagename=f'../../data/images/{file_name}',
+                                    imagename=file_name,
                                     text_direction='horizontal-lr',
                                     script_detection=False,
                                     lines=baselines,
@@ -143,6 +140,7 @@ def get_args() -> argparse.Namespace:
         Namespace with parsed arguments.
     """
     parser = argparse.ArgumentParser(description="predict")
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--input",
         "-i",
@@ -150,6 +148,15 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images and xml files with baselines. Images need to be jpg."
     )
+    # pylint: disable=duplicate-code
+    parser.add_argument(
+        "--layout_dir",
+        "-l",
+        type=str,
+        default=None,
+        help="path for folder with layout xml files."
+    )
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--output",
         "-o",
@@ -182,12 +189,7 @@ def get_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """
-    Predicts OCR for all images with xml annotations in given folder.
-
-    Args:
-        args: Namespace object containing arguments
-    """
+    """Predicts OCR for all images with xml annotations in given folder."""
     args = get_args()
 
     if args.input is None:
@@ -196,9 +198,12 @@ def main() -> None:
     if args.output is None:
         raise ValueError("Please provide an output folder with prediction xml files.")
 
+    # create output folder if not already existing
+    os.makedirs(args.output, exist_ok=True)
+
     # get file names
     images = list(glob.glob(f'{args.input}/*.jpg'))
-    annotations = [x[:-4] + '.xml' for x in images]
+    annotations = [f'{args.layout_dir }{os.path.basename(x)[:-4]}.xml' for x in images]
 
     if args.multiprocess:
         num_gpus = torch.cuda.device_count()
@@ -238,4 +243,6 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn')
+
     main()

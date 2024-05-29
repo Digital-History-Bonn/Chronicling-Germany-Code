@@ -42,6 +42,21 @@ If the training process has to be intrrupted, training can be continued by execu
 python src/news_seg/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -l model_name -ls -g 4 -w 32
 ````
 
+## Prediction
+
+Prediction takes in images and processes them with a specified model. The image is processed in its entirety. 
+This can lead to cuda out of memory errors, if the resulution is too high.
+Furthermore, one has to specifiy an image size, to which the image will be padded. 
+If the number of pixel on one of the side is not divisible at least 6 times by 2, the prediction will fail.
+
+If an output folder is specified, images of the prediction will be saved in that folder. However, this option seriously
+increases execution time and should only be used for debugging. If the -e option is active, the xml files will be 
+exported to a page folder within the data folder. If there are already xml files, those will be overwritten.
+
+Example for calling the predict script.
+````
+python src/news_seg/predict.py -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
+````
 ## Slurm
 
 In the slurm/ folder are examples of the used slurm files.
