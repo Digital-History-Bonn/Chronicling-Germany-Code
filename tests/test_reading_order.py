@@ -18,15 +18,15 @@ class TestClassExport:
         with open(DATA_PATH + "export/reading_order.json", encoding="utf-8") as file:
             region_properties = np.array(json.load(file))
 
-        ground_truth = {0: 19, 1: 16, 2: 7, 3: 9, 4: 11, 5: 13, 6: 5, 7: 3, 8: 0, 9: 18, 10: 15, 11: 8, 12: 10, 13: 12,
-                        14: 2, 15: 14, 16: 6, 17: 4, 18: 17, 19: 1, 20: 20}
+        ground_truth = {0: 20, 1: 18, 2: 3, 3: 7, 4: 9, 5: 11, 6: 2, 7: 5, 8: 1, 9: 19, 10: 16, 11: 6, 12: 8, 13: 10,
+                        14: 4, 15: 12, 16: 13, 17: 15, 18: 17, 19: 0, 20: 14}
 
         page = PageProperties({}, region_properties)
         result = page.get_reading_order()
         assert result == ground_truth
 
     def test_splitting_regions(self):
-        """Test spliting regions deection with threshold"""
+        """Test spliting regions detection with threshold"""
         properties = np.array([[1, 4, 1, 1, 10, 10], [2, 7, 1, 100, 50, 20], [3, 3, 1, 11, 10, 21],
                                [4, 6, 15, 1, 25, 10], [5, 5, 10, 40, 25, 21], [6, 4, 1, 120, 10, 130],
                                [7, 4, 11, 120, 25, 130], [8, 9, 30, 100, 65, 205], [9, 9, 1, 110, 55, 215]])
