@@ -2,7 +2,6 @@
 import argparse
 import glob
 import os
-from pathlib import Path
 import random
 from typing import List, Tuple
 
@@ -89,52 +88,6 @@ def order_lines_vertical(baselines: List[np.ndarray],
     textlines = [textline for _, textline in sorted(zip(baselines_order, textlines))]
 
     return baselines, heights, textlines
-
-
-def plot_lines_on_image(image: torch.Tensor,
-                        baselines: List[torch.Tensor],
-                        textlines: List[torch.Tensor]) -> None:
-    """
-    Plot lines on the given image.
-
-    Args:
-        image: Torch tensor representing the image.
-        baselines: List of torch tensors, each containing the coordinates of one baseline
-        textlines: List of torch tensors, each containing the coordinates of one textlines polygon
-
-    """
-    # Create a copy of the image to avoid modifying the original
-    _, w, h = image.shape
-    baseline_image = np.zeros((w, h))
-    textline_image = np.zeros((w, h))
-
-    # Iterate through the list of lines and draw each line on the image
-    for line in baselines:
-        for i in range(len(line) - 1):
-            x1, y1 = line[i]
-            x2, y2 = line[i + 1]
-            rr, cc = draw.line(int(y1), int(x1), int(y2), int(x2))
-            baseline_image[rr, cc] = 1  # RGB color for the lines (red)
-
-    for polygon_coords in textlines:
-        # Extract x and y coordinates of the polygon vertices
-        rr, cc = draw.polygon_perimeter(polygon_coords[:, 1], polygon_coords[:, 0], shape=(w, h))
-        textline_image[rr, cc] = 1
-
-    # Plot the image with lines
-    plt.imshow(image.permute(1, 2, 0))
-    plt.imshow(textline_image, cmap='Reds', alpha=0.4)
-    plt.imshow(baseline_image, cmap='Blues', alpha=0.4)
-
-    for i, line in enumerate(baselines):
-        plt.text(line[0][0].item(), line[0][1].item(), str(i), fontsize=1, color='red')
-
-    plt.axis('off')  # Turn off axis
-    plt.tight_layout()
-    plt.savefig(f"{Path(__file__).parent.absolute()}/../../../"
-                f"data/PeroBaselinePrediction7.png", dpi=1000)
-    print(f"saved fig to {Path(__file__).parent.absolute()}/../../../"
-          f"data/PeroBaselinePrediction7.png")
 
 
 def get_textregions(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
@@ -247,9 +200,8 @@ class BaselineEngine:
 
         self.model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=6).to(self.device)
         self.model.load_state_dict(
-            torch.load(
-                f"{Path(__file__).parent.absolute()}/../../../models/{model_name}.pt",
-                map_location=self.device
+            torch.load(f"models/{model_name}.pt",
+                          map_location=self.device
             )
         )
         self.model.eval()
@@ -483,7 +435,7 @@ def predict(image_path, layout_xml_path, output_file):
         layout_xml_path (str): Path to layout xml file
         output_file (str): Path to output xml file
     """
-    baseline_engine = BaselineEngine(model_name='height2_baseline_e250_es', cuda=0)
+    baseline_engine = BaselineEngine(model_name='baselineFinal2_baseline_aug_e200_es', cuda=0)
     image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
     textlines, baselines = baseline_engine.predict(image, layout_xml_path)
     add_baselines(
