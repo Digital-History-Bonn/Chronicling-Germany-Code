@@ -1,6 +1,3 @@
-kraken
-lightning
-monai
 matplotlib == 3.6
 numpy
 pillow
@@ -24,5 +21,8 @@ torchmetrics
 opencv-python
 tikzplotlib
 Levenshtein
+kraken
+lightning
+monai
 
 #TODO add requirements

@@ -140,6 +140,7 @@ def get_args() -> argparse.Namespace:
         Namespace with parsed arguments.
     """
     parser = argparse.ArgumentParser(description="predict")
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--input",
         "-i",
@@ -147,7 +148,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images and xml files with baselines. Images need to be jpg."
     )
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--layout_dir",
         "-l",
@@ -155,7 +156,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with layout xml files."
     )
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--output",
         "-o",

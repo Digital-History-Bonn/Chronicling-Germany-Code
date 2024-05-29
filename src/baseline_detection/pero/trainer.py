@@ -327,7 +327,7 @@ def get_args() -> argparse.Namespace:
         Namespace with call arguments
     """
     parser = argparse.ArgumentParser(description="training")
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--name",
         "-n",
@@ -359,7 +359,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images jpg files and annotation xml files to validate the model."
     )
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--cuda",
         "-c",

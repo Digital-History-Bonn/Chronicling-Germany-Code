@@ -28,7 +28,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="Name of the model and the log files."
     )
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--train_data",
         "-t",

@@ -233,8 +233,13 @@ class PageProperties:
         properties = np.delete(properties, split_index, axis=0)
         local_splitting_bool = np.delete(local_splitting_bool, split_index, axis=0)
 
-        region_bool = (properties[:, 5] < divider_entry[5]) + (properties[:, 4] > divider_entry[3]) + (
-                properties[:, 4] < divider_entry[2])
+        left_region_bool = properties[:, 4] < divider_entry[2]
+        right_region_bool = properties[:, 4] > divider_entry[3]
+        top_region_bool = properties[:, 5] < divider_entry[5]
+        if sum(left_region_bool) > 0 and sum(right_region_bool) > 0:
+            region_bool = np.invert(top_region_bool) + left_region_bool + right_region_bool
+        else:
+            region_bool = top_region_bool + left_region_bool + right_region_bool
 
         self.local_divider_split(properties[region_bool], local_splitting_bool[region_bool], result)
         result.append(divider_entry[0])  # type: ignore

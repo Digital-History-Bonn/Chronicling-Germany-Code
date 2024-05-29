@@ -80,8 +80,8 @@ class TestClassExport:
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
         ground_truth = (
-            {3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
-            {3: [[1.5, -0.5, 4.5, 1.5]]})
+            {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
+            {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
         assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 2], [2, 2, 2, 2, 2]])
@@ -106,9 +106,15 @@ class TestClassExport:
 
     def test_get_label_names(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
-        assert get_label_name(1) == "UnknownRegion"
-        assert get_label_name(4) == "article"
-        assert get_label_name(9) == "separator_horizontal"
+        assert get_label_name(1) == "caption"
+        assert get_label_name(2) == "table"
+        assert get_label_name(3) == "paragraph"
+        assert get_label_name(4) == "heading"
+        assert get_label_name(5) == "header"
+        assert get_label_name(6) == "separator_vertical"
+        assert get_label_name(7) == "separator"
+        assert get_label_name(8) == "image"
+        assert get_label_name(9) == "inverted_text"
 
     def test_center(self):
         """
