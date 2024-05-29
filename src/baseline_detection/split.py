@@ -16,6 +16,7 @@ def get_args() -> argparse.Namespace:
         Namespace with parsed arguments.
     """
     parser = argparse.ArgumentParser(description="preprocess")
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--image_dir",
         "-i",
@@ -23,7 +24,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images. Images need to be jpg."
     )
-
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--annotation_dir",
         "-a",

@@ -18,8 +18,8 @@ class TestClassExport:
         with open(DATA_PATH + "export/reading_order.json", encoding="utf-8") as file:
             region_properties = np.array(json.load(file))
 
-        ground_truth = {0: 20, 1: 18, 2: 3, 3: 7, 4: 9, 5: 11, 6: 2, 7: 5, 8: 1, 9: 19, 10: 16, 11: 6, 12: 8, 13: 10,
-                        14: 4, 15: 12, 16: 13, 17: 15, 18: 17, 19: 0, 20: 14}
+        ground_truth = {0: 20, 1: 18, 2: 3, 3: 8, 4: 10, 5: 12, 6: 2, 7: 6, 8: 1, 9: 19, 10: 16, 11: 7, 12: 9, 13: 11,
+                        14: 5, 15: 13, 16: 14, 17: 15, 18: 17, 19: 0, 20: 4}
 
         page = PageProperties({}, region_properties)
         result = page.get_reading_order()

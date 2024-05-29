@@ -337,7 +337,8 @@ def get_args() -> argparse.Namespace:
     Returns:
         Namespace with call arguments
     """
-    parser = argparse.ArgumentParser(description="training")
+    # pylint: disable=duplicate-code
+    parser = argparse.ArgumentParser(description="training") # TODO: add meaning ful description
 
     parser.add_argument(
         "--name",
