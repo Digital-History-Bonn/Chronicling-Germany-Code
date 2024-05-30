@@ -89,9 +89,9 @@ def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path
     print(f'Predicting {image_path}...')
     # load image and pad image
     im = pad_image(Image.open(image_path))
-    file_name = os.path.basename(image_path)
 
     # preprocess annotations and extract baselines
+    file_name = os.path.basename(image_path)
     soup, regions, region_baselines = extract_baselines(anno_path)
 
     for region, baselines in zip(regions, region_baselines):
@@ -101,10 +101,6 @@ def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path
                                     script_detection=False,
                                     lines=baselines,
                                     line_orders=[])
-
-        # plotline = [np.array([b.baseline]).reshape(-1, 2) for b in baselines]
-        # plotpolygon = [np.array([b.boundary]).reshape(-1, 2) for b in baselines]
-        # plot_boxes_on_image(im, plotline, plotpolygon, f"baselines_{i}")
 
         # single model recognition
         pred_it = rpred.rpred(model, im, baseline_seg)
