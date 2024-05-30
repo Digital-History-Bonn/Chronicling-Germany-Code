@@ -7,6 +7,8 @@ import torch
 from bs4 import PageElement, BeautifulSoup
 from scipy import ndimage
 
+from src.baseline_detection.class_config import TEXT_CLASSES
+
 
 def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
              ) -> Tuple[int, int, int, int]:
@@ -119,11 +121,11 @@ List[torch.Tensor]]:
         region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
                                        point in coords['points'].split()])[:, torch.tensor([1, 0])]
 
-        if tag in ['table', 'header']:
+        if tag in ['table']:
             if is_valid(torch.tensor(get_bbox(region_polygon))):
                 mask_regions.append(region_polygon)
 
-        if tag in ['heading', 'article_', 'caption', 'paragraph']:
+        if tag in TEXT_CLASSES:
             region_bbox = torch.tensor(get_bbox(region_polygon))
 
             if is_valid(region_bbox):

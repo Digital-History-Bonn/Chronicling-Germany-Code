@@ -12,7 +12,6 @@ from torch import nn
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
-import matplotlib.pyplot as plt
 from scipy import ndimage
 from PIL import ImageDraw, Image
 from bs4 import BeautifulSoup
@@ -22,6 +21,7 @@ from skimage import draw, io
 from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
+from src.baseline_detection.class_config import TEXT_CLASSES
 from src.baseline_detection.utils import get_tag, nonmaxima_suppression
 from src.baseline_detection.xml_conversion import add_baselines
 
@@ -112,17 +112,17 @@ def get_textregions(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tenso
     mask_regions = []
     textregions = []
 
-    text_regions = page.find_all('TextRegion')
+    text_regions = page.find_all(['TextRegion', 'TableRegion'])
     for region in text_regions:
         tag = get_tag(region)
 
-        if tag in ['table', 'header']:
+        if tag in ['table']:
             coords = region.find('Coords')
             points = torch.tensor([tuple(map(int, point.split(','))) for
                                    point in coords['points'].split()])
             mask_regions.append(points)
 
-        if tag in ['heading', 'article_', 'caption', 'paragraph']:
+        if tag in TEXT_CLASSES:
             coords = region.find('Coords')
             textregion = torch.tensor([tuple(map(int, point.split(','))) for
                                        point in coords['points'].split()])
