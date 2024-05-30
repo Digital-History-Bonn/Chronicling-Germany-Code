@@ -387,6 +387,7 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     """Trains a model with given parameters."""
     args = get_args()
+    print(f"{args =}")
 
     # set random seed
     set_seed(seed=args.seed)
