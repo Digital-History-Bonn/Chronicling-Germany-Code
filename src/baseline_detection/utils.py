@@ -1,4 +1,5 @@
 """Utility functions for baseline detection."""
+import random
 import re
 from typing import Tuple, Union, List, Dict
 
@@ -210,3 +211,15 @@ def nonmaxima_suppression(input_array: np.ndarray,
         dilated = ndimage.grey_dilation(input_array, size=element_size)
 
     return input_array * (input_array == dilated)  # type: ignore
+
+
+def set_seed(seed: int):
+    """
+    Set random seed for reproducibility.
+
+    Args:
+        seed: random seed for reproducibility
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
