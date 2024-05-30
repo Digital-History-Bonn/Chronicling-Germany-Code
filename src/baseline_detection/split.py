@@ -65,7 +65,7 @@ def main() -> None:
     image_dir = args.image_dir
     annotation_dir = args.annotation_dir
 
-    with open("data/neurips-split.json", 'r',
+    with open("neurips-split.json", 'r',
               encoding='utf-8') as file:
         data = json.load(file)
 
