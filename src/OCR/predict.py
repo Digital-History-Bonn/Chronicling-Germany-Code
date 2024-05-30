@@ -199,7 +199,7 @@ def main() -> None:
 
     # get file names
     images = list(glob.glob(f'{args.input}/*.jpg'))
-    annotations = [f'{args.layout_dir }{os.path.basename(x)[:-4]}.xml' for x in images]
+    annotations = [f'{args.layout_dir }/{os.path.basename(x)[:-4]}.xml' for x in images]
 
     if args.multiprocess:
         num_gpus = torch.cuda.device_count()
