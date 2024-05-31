@@ -210,44 +210,6 @@ def draw_ascender_descender(polygon: Polygon,
     target[x_coords, y_coords, dim] = values
 
 
-def plot_target(image: np.ndarray,
-                target: np.ndarray,
-                figsize: Tuple[int, int] = (50, 10),
-                dpi: int = 500) -> None:
-    """
-    Creates and saves an Image of the targets on the image.
-
-    Args:
-        image: numpy array representation of the image (width, height, channel)
-        target: numpy array representation of the target (width, height, channel)
-        figsize: size of the plot (default: 50, 10)
-        dpi: dpi of the plot
-    """
-    # Plot the first image
-    attributes = ['ascenders', 'descenders', 'baselines', 'marker', 'textregion']
-    image = image * target[:, :, 5, None]
-
-    _, axes = plt.subplots(1, len(attributes), figsize=figsize)
-
-    print(f"{target.shape=}")
-    for i, attribute in enumerate(attributes):
-        axes[i].imshow(image.astype(np.uint8))
-        if attribute in ['ascenders', 'descenders']:
-            axes[i].imshow(target[:, :, i].astype(np.uint8) * 4, alpha=0.5)
-        else:
-            axes[i].imshow(target[:, :, i].astype(np.uint8), cmap='gray', alpha=0.5)
-        axes[i].set_title(attribute, fontsize=26)
-        axes[i].axis('off')
-
-    plt.tight_layout()  # Adjust layout
-    plt.subplots_adjust(wspace=0.05)  # Adjust space between subplots
-
-    # Display the plot with higher DPI
-    plt.savefig(f'{Path(__file__).parent.absolute()}/../../../data/assets/TargetExample.png',
-                dpi=dpi)
-    plt.show()
-
-
 def get_args() -> argparse.Namespace:
     """
     Defines arguments.
@@ -291,6 +253,16 @@ def main() -> None:
     target_folder = adjust_path(args.annotation_dir)
     image_folder = adjust_path(args.image_dir)
     output_path = adjust_path(args.output_dir)
+
+    # check args
+    if target_folder is None:
+        raise ValueError("Please enter a valid path to annotation data!")
+
+    if image_folder is None:
+        raise ValueError("Please enter a valid path to image data!")
+    
+    if output_path is None:
+        raise ValueError("Please enter a valid path to output folder!")
 
     os.makedirs(output_path, exist_ok=True)
     to_tensor = transforms.PILToTensor()

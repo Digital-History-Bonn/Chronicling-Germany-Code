@@ -50,7 +50,7 @@ def extract_textlines(file_path: str) -> List[torch.Tensor]:
 def textline_detection_metrics(prediction: List[Polygon],
                                target: List[Polygon],
                                threshold: float = .7) -> Tuple[
-    float, float, float, float, float, float]:
+    int, int, int, float, float, float]:
     """
     Calcs precision, recall, F1 score for textline polygons.
 

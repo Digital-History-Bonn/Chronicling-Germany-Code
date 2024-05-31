@@ -7,7 +7,7 @@ from pprint import pprint
 import torch
 from kraken.lib import default_specs                            # pylint: disable=no-name-in-module, import-error
 from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module, import-error
-from lightning.pytorch.loggers import TensorBoardLogger         # pyling: disable=import-error
+from lightning.pytorch.loggers import TensorBoardLogger         # pylint: disable=import-error
 
 from src.OCR.utils import set_seed, adjust_path
 
