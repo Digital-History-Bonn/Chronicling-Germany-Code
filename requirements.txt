@@ -21,8 +21,6 @@ torchmetrics
 opencv-python
 tikzplotlib
 Levenshtein
-kraken
-lightning
 monai
 
 #TODO add requirements
