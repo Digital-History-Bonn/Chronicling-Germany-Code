@@ -200,7 +200,7 @@ class BaselineEngine:
 
         self.model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=6).to(self.device)
         self.model.load_state_dict(
-            torch.load(f"models/{model_name}.pt",
+            torch.load(f"{model_name}.pt",
                           map_location=self.device
             )
         )
@@ -408,6 +408,14 @@ def get_args() -> argparse.Namespace:
         help="path to the folder where to save the preprocessed files",
     )
 
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default=None,
+        help="path to the model file",
+    )
+
     return parser.parse_args()
 
 
@@ -427,10 +435,10 @@ def main() -> None:
 
     for image, layout, output_file in tqdm(zip(image_paths, layout_xml_paths, output_files),
                                            desc='predicting baseline', total=len(image_paths)):
-        predict(image, layout, output_file)
+        predict(image, layout, output_file, args.model)
 
 
-def predict(image_path, layout_xml_path, output_file):
+def predict(image_path: str, layout_xml_path: str, output_file: str, model:str):
     """
     Predicts baselines for given image with given layout and writes into outputfile.
 
@@ -438,8 +446,9 @@ def predict(image_path, layout_xml_path, output_file):
         image_path (str): Path to image
         layout_xml_path (str): Path to layout xml file
         output_file (str): Path to output xml file
+        model (str): Path to model file
     """
-    baseline_engine = BaselineEngine(model_name='baselineFinal2_baseline_aug_e200_es', cuda=0)
+    baseline_engine = BaselineEngine(model_name=model, cuda=0)
     image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
     textlines, baselines = baseline_engine.predict(image, layout_xml_path)
     add_baselines(

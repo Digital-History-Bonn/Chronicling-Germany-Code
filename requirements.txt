@@ -22,5 +22,3 @@ opencv-python
 tikzplotlib
 Levenshtein
 monai
-
-#TODO add requirements

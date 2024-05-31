@@ -10,7 +10,8 @@ import torch
 from PIL import Image
 from bs4 import BeautifulSoup, PageElement
 from kraken import rpred
-from kraken.containers import Segmentation, BaselineLine    # pylint: disable=no-name-in-module, import-error
+from kraken.containers import Segmentation, \
+    BaselineLine  # pylint: disable=no-name-in-module, import-error
 from kraken.lib import models
 from kraken.lib.models import TorchSeqRecognizer
 from tqdm import tqdm
@@ -19,8 +20,8 @@ from src.OCR.utils import pad_xml, pad_image, adjust_path
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
-                                               List[PageElement],
-                                               List[List[BaselineLine]]]:
+List[PageElement],
+List[List[BaselineLine]]]:
     """
     Extracts and pads baselines from xml file for prediction.
 
@@ -177,10 +178,6 @@ def get_args() -> argparse.Namespace:
         help="Select cuda device to use. Use -1 for CPU only. (default 0)",
     )
 
-    parser.add_argument('--multiprocess', action='store_true')
-    parser.add_argument('--no-multiprocess', dest='multiprocess', action='store_false')
-    parser.set_defaults(multiprocess=True)
-
     return parser.parse_args()
 
 
@@ -204,41 +201,25 @@ def main() -> None:
     images = list(glob.glob(f'{input_path}/*.jpg'))
     annotations = [f'{layout_path}/{os.path.basename(x)[:-4]}.xml' for x in images]
 
-    if args.multiprocess:
-        num_gpus = torch.cuda.device_count()
-        print(f"Using {num_gpus} device(s).")
+    num_gpus = torch.cuda.device_count()
+    print(f"Using {num_gpus} device(s).")
 
-        model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in range(num_gpus)]
+    model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in range(num_gpus)]
 
-        # Create a pool of worker processes
-        with multiprocessing.Pool(processes=num_gpus) as pool:
-            tasks = []
-            for i, (image_path, annotation_path) in enumerate(zip(images, annotations)):
-                output_path = f'{args.output}/{os.path.basename(annotation_path)}'
-                if os.path.exists(output_path):
-                    continue
-
-                tasks.append((model_list[i % num_gpus],
-                              image_path,
-                              annotation_path,
-                              output_path))
-
-            # Use tqdm to show progress
-            for _ in tqdm(pool.starmap(predict, tasks), total=len(tasks)):
-                pass
-
-    else:
-        device = f"cuda:{args.cuda}" if args.cuda >= 0 and torch.cuda.is_available() else "cpu"
-        print(f"Using {device} device.")
-        model = models.load_any(args.model, device=device)
-
-        for image_path, annotation_path in tqdm(zip(images, annotations), total=len(images)):
+    # Create a pool of worker processes
+    with multiprocessing.Pool(processes=num_gpus) as pool:
+        tasks = []
+        for i, (image_path, annotation_path) in enumerate(zip(images, annotations)):
             output_path = f'{args.output}/{os.path.basename(annotation_path)}'
-            if os.path.exists(output_path):
-                continue
 
-            print(f"OCR for {image_path} using {annotation_path} baselines ...")
-            predict(model, image_path, annotation_path, out_path=output_path)
+            tasks.append((model_list[i % num_gpus],
+                          image_path,
+                          annotation_path,
+                          output_path))
+
+        # Use tqdm to show progress
+        for _ in tqdm(pool.starmap(predict, tasks), total=len(tasks)):
+            pass
 
 
 if __name__ == '__main__':
