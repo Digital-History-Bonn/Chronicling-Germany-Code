@@ -112,6 +112,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images and xml files. Images need to be jpg."
     )
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--output",
         "-o",
@@ -129,8 +130,9 @@ def main() -> None:
 
     input_dir = args.input
     output_dir = args.output
+    # pylint: disable=duplicate-code
 
-    with open("data/neurips-split.json", 'r',
+    with open("neurips-split.json", 'r',
               encoding='utf-8') as file:
         data = json.load(file)
 

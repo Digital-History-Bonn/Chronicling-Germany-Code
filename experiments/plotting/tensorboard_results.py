@@ -92,8 +92,8 @@ XTICKS = [np.arange(1, 11) + 0.375, ["Background",
                                      "Header",
                                      "Separator Vertical",
                                      "Separator Horizontal",
-                                     "Inverted Text",
-                                     "Image"]]
+                                     "Image",
+                                     "Inverted Text"]]
 
 # XTICKS = [np.arange(1, 9) + 0.375, ["Background",
 #                                      "Caption",

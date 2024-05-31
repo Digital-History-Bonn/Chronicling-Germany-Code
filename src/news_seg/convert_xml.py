@@ -3,6 +3,7 @@ Main Module for converting annotation xml files to numpy images. Also contains b
 take polygon data and convert it to xml.
 """
 import argparse
+import json
 import os
 import warnings
 from multiprocessing import Process, Queue
@@ -90,8 +91,9 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
                 os.makedirs(image_path)
             draw_prediction(img, f"{image_path}{path}.png")
 
-        # with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
-        #     json.dump(annotation, file)
+        if args.json:
+             with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
+                 json.dump(annotation, file)
 
         # save ndarray
         np_save(f"{output_path}{path}", img)
@@ -156,6 +158,11 @@ def get_args() -> argparse.Namespace:
         dest="log_path",
         default=None,
         help="path for log file",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Activates json dump of polygon dictionary.",
     )
 
     return parser.parse_args()
