@@ -1,4 +1,4 @@
-"""Splits data into training, validation and test split."""
+"""Splits preprocessed data into training, validation and test split."""
 import argparse
 import json
 import os
