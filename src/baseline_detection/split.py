@@ -7,6 +7,8 @@ from typing import List
 
 from tqdm import tqdm
 
+from src.OCR.utils import adjust_path
+
 
 def get_args() -> argparse.Namespace:
     """
@@ -61,9 +63,9 @@ def copy(folder: str, split: List[str]) -> None:
 def main() -> None:
     """Splits the dataset into training, validation and test split."""
     args = get_args()
-    output_dir = args.output_dir
-    image_dir = args.image_dir
-    annotation_dir = args.annotation_dir
+    output_dir = adjust_path(args.output_dir)
+    image_dir = adjust_path(args.image_dir)
+    annotation_dir = adjust_path(args.annotation_dir)
 
     with open("neurips-split.json", 'r',
               encoding='utf-8') as file:
