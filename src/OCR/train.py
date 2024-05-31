@@ -9,6 +9,8 @@ from kraken.lib import default_specs                            # pylint: disabl
 from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module
 from lightning.pytorch.loggers import TensorBoardLogger
 
+from src.OCR.utils import set_seed, adjust_path
+
 torch.set_float32_matmul_precision('medium')
 
 
@@ -45,18 +47,28 @@ def get_args() -> argparse.Namespace:
         help="path for folder with images jpg files and annotation xml files to validate the model."
     )
 
+    # pylint: disable=duplicate-code
+    parser.add_argument(
+        "--seed",
+        "-s",
+        type=int,
+        default=42,
+        help="Seeding number for random generators.",
+    )
+
     return parser.parse_args()
 
 
 def main() -> None:
     """Trains a OCR model."""
-
     # get args
     args = get_args()
-    name = args.name
+    set_seed(args.seed)
+    print(f"{args =}")
 
-    train_path = args.train_data
-    valid_path = args.valid_data
+    name = args.name
+    train_path = adjust_path(args.train_data)
+    valid_path = adjust_path(args.valid_data)
 
     # check for cuda device
     if torch.cuda.is_available():
@@ -68,8 +80,8 @@ def main() -> None:
     os.makedirs(f'models/{name}', exist_ok=False)
 
     # create training- and evaluation set
-    training_files = list(glob.glob(f"{train_path}/*.xml"))
-    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))
+    training_files = list(glob.glob(f"{train_path}/*.xml"))[:50]
+    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))[:10]
 
     print(f"{len(training_files)} training images and {len(evaluation_files)} validation images.")
 
@@ -79,8 +91,7 @@ def main() -> None:
     hparams['lrate'] = 0.001
     hparams['warmup'] = 1
     hparams['augment'] = True
-    hparams['batch_size'] = 128
-    hparams['freeze_backbone'] = 2
+    hparams['batch_size'] = 16  # <- 32
 
     # init model
     model = RecognitionModel(hyper_params=hparams,

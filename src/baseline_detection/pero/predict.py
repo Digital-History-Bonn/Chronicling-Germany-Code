@@ -12,7 +12,6 @@ from torch import nn
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
-import matplotlib.pyplot as plt
 from scipy import ndimage
 from PIL import ImageDraw, Image
 from bs4 import BeautifulSoup
@@ -22,7 +21,8 @@ from skimage import draw, io
 from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
-from src.baseline_detection.utils import get_tag, nonmaxima_suppression
+from src.baseline_detection.class_config import TEXT_CLASSES
+from src.baseline_detection.utils import get_tag, nonmaxima_suppression, adjust_path
 from src.baseline_detection.xml_conversion import add_baselines
 
 
@@ -112,17 +112,17 @@ def get_textregions(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tenso
     mask_regions = []
     textregions = []
 
-    text_regions = page.find_all('TextRegion')
+    text_regions = page.find_all(['TextRegion', 'TableRegion'])
     for region in text_regions:
         tag = get_tag(region)
 
-        if tag in ['table', 'header']:
+        if tag in ['table']:
             coords = region.find('Coords')
             points = torch.tensor([tuple(map(int, point.split(','))) for
                                    point in coords['points'].split()])
             mask_regions.append(points)
 
-        if tag in ['heading', 'article_', 'caption', 'paragraph']:
+        if tag in TEXT_CLASSES:
             coords = region.find('Coords')
             textregion = torch.tensor([tuple(map(int, point.split(','))) for
                                        point in coords['points'].split()])
@@ -415,11 +415,15 @@ def main() -> None:
     """Predicts textlines and baselines for all files in given folder."""
     args = get_args()
 
+    input_dir = adjust_path(args.input_dir)
+    layout_dir = adjust_path(args.layout_dir)
+    output_dir = adjust_path(args.output_dir)
+
     os.makedirs(args.output_dir, exist_ok=True)
 
-    image_paths = list(glob.glob(f"{args.input_dir}/*.jpg"))
-    layout_xml_paths = [f"{args.layout_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
-    output_files = [f"{args.output_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
+    image_paths = list(glob.glob(f"{input_dir}/*.jpg"))
+    layout_xml_paths = [f"{layout_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
+    output_files = [f"{output_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
 
     for image, layout, output_file in tqdm(zip(image_paths, layout_xml_paths, output_files),
                                            desc='predicting baseline', total=len(image_paths)):

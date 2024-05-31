@@ -15,7 +15,7 @@ from kraken.lib import models
 from kraken.lib.models import TorchSeqRecognizer
 from tqdm import tqdm
 
-from src.OCR.utils import pad_xml, pad_image
+from src.OCR.utils import pad_xml, pad_image, adjust_path
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
@@ -89,9 +89,9 @@ def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path
     print(f'Predicting {image_path}...')
     # load image and pad image
     im = pad_image(Image.open(image_path))
-    file_name = os.path.basename(image_path)
 
     # preprocess annotations and extract baselines
+    file_name = os.path.basename(image_path)
     soup, regions, region_baselines = extract_baselines(anno_path)
 
     for region, baselines in zip(regions, region_baselines):
@@ -101,10 +101,6 @@ def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path
                                     script_detection=False,
                                     lines=baselines,
                                     line_orders=[])
-
-        # plotline = [np.array([b.baseline]).reshape(-1, 2) for b in baselines]
-        # plotpolygon = [np.array([b.boundary]).reshape(-1, 2) for b in baselines]
-        # plot_boxes_on_image(im, plotline, plotpolygon, f"baselines_{i}")
 
         # single model recognition
         pred_it = rpred.rpred(model, im, baseline_seg)
@@ -146,7 +142,7 @@ def get_args() -> argparse.Namespace:
         "-i",
         type=str,
         default=None,
-        help="path for folder with images and xml files with baselines. Images need to be jpg."
+        help="path for folder with images. Need to be jpg."
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
@@ -191,19 +187,22 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     """Predicts OCR for all images with xml annotations in given folder."""
     args = get_args()
+    input_path = adjust_path(args.input)
+    layout_path = adjust_path(args.layout_dir)
+    output_path = adjust_path(args.output)
 
-    if args.input is None:
+    if input_path is None:
         raise ValueError("Please provide an input folder with images and xml files.")
 
-    if args.output is None:
-        raise ValueError("Please provide an output folder with prediction xml files.")
+    if output_path is None:
+        raise ValueError("Please provide an output folder.")
 
     # create output folder if not already existing
-    os.makedirs(args.output, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
 
     # get file names
-    images = list(glob.glob(f'{args.input}/*.jpg'))
-    annotations = [f'{args.layout_dir }{os.path.basename(x)[:-4]}.xml' for x in images]
+    images = list(glob.glob(f'{input_path}/*.jpg'))
+    annotations = [f'{layout_path}/{os.path.basename(x)[:-4]}.xml' for x in images]
 
     if args.multiprocess:
         num_gpus = torch.cuda.device_count()

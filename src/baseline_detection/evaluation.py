@@ -11,10 +11,11 @@ from shapely import intersection, union
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
-from src.baseline_detection.utils import get_tag
+from src.baseline_detection.class_config import TEXT_CLASSES
+from src.baseline_detection.utils import get_tag, adjust_path
 
 
-def extract(file_path: str) -> List[torch.Tensor]:
+def extract_textlines(file_path: str) -> List[torch.Tensor]:
     """
     Extracts predicted textlines and baseline from the xml file.
 
@@ -23,7 +24,6 @@ def extract(file_path: str) -> List[torch.Tensor]:
 
     Returns:
         textlines: List of predicted textlines.
-        baselines: List of baseline predicted textlines.
     """
     with open(file_path, "r", encoding="utf-8") as file:
         data = file.read()
@@ -35,7 +35,7 @@ def extract(file_path: str) -> List[torch.Tensor]:
 
     text_regions = page.find_all('TextRegion')
     for region in text_regions:
-        if get_tag(region) in ['heading', 'article_', 'caption', 'paragraph']:
+        if get_tag(region) in TEXT_CLASSES:
             text_region = region.find_all('TextLine')
             for text_line in text_region:
                 textline = text_line.find('Coords')
@@ -110,7 +110,7 @@ def calc_metrics(ious: torch.Tensor,
 
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
-    f1_score = 2 * (precision * recall) / (precision + recall)
+    f1_score = 0 if precision + recall == 0 else 2 * (precision * recall) / (precision + recall)
 
     return tp, fp, fn, precision, recall, f1_score
 
@@ -124,8 +124,8 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[
         prediction_file: Path to the prediction file.
         ground_truth_file: Path to the ground truth file.
     """
-    pred = extract(prediction_file)
-    ground_truth = extract(ground_truth_file)
+    pred = extract_textlines(prediction_file)
+    ground_truth = extract_textlines(ground_truth_file)
 
     pred_polygons = [Polygon(poly) for poly in pred]
     truth_polygons = [Polygon(poly) for poly in ground_truth]
@@ -163,10 +163,14 @@ def get_args() -> argparse.Namespace:
 
 
 def main():
+    """Evaluates baseline predicts."""
     args = get_args()
 
-    targets = list(glob.glob(f"{args.prediction_dir}/*.xml"))
-    predictions = [f"{args.prediction_dir}/{os.path.basename(x)}" for x in targets]
+    pred_dir = adjust_path(args.prediction_dir)
+    target_dir = adjust_path(args.ground_truth_dir)
+
+    targets = list(glob.glob(f"{target_dir}/*.xml"))
+    predictions = [f"{pred_dir}/{os.path.basename(x)}" for x in targets]
 
     all_tp, all_fp, all_fn = 0, 0, 0
     precisions, recalls, f1_scores = [], [], []
@@ -174,6 +178,14 @@ def main():
     for target, prediction in tqdm(zip(targets, predictions), total=len(targets),
                                    desc='evaluation'):
         tp, fp, fn, precision, recall, f1_score = evaluation(target, prediction)
+
+        print(f"{target=}\n"
+              f"\t{tp=}\n"
+              f"\t{fp=}\n"
+              f"\t{fn=}\n"
+              f"\t{precision=}\n"
+              f"\t{recall=}\n"
+              f"\t{f1_score=}\n\n")
 
         precisions.append(precision)
         recalls.append(recall)

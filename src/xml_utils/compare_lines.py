@@ -28,7 +28,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     if parsed_args.custom_split_file:
         with open(parsed_args.custom_split_file, "r", encoding="utf-8") as file:
             split = json.load(file)
-            gt_paths = split[2]
+            gt_paths = split["Test"]
     else:
         assert len(gt_paths) == len(ocr_paths), (
             f"Found {len(gt_paths)} ground truth files, but ther are {len(ocr_paths)} "
@@ -38,7 +38,6 @@ def main(parsed_args: argparse.Namespace) -> None:
         print(f"creating {parsed_args.output_path}.")
         os.makedirs(parsed_args.output_path)
 
-    multi_page_ratio = 0.0
     multi_page_distance_list: list = []
     multi_page_bad: list = []
     multi_page_correct: list = []
@@ -48,10 +47,9 @@ def main(parsed_args: argparse.Namespace) -> None:
         lev_dis, multi_page_bad_list, multi_page_distance_list = compare_page(confidence_threshold, multi_page_bad,
                                                                               multi_page_bad_list, multi_page_correct,
                                                                               multi_page_distance_list,
-                                                                              multi_page_ratio, parsed_args, path)
+                                                                              parsed_args, path)
 
-    print(f"overall levensthein distance per character: {lev_dis / len(gt_paths)}")
-    print(f"overall levensthein ratio per character: {calculate_ratio(multi_page_distance_list)}")
+    print(f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
     print(f"overall correct lines: {calculate_ratio(multi_page_correct)}")
     print(f"overall bad lines: {calculate_ratio(multi_page_bad)}")
 
@@ -60,7 +58,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 
 
 def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_bad_list: list, multi_page_correct: list,
-                 multi_page_distance_list: list, multi_page_ratio: float, parsed_args: argparse.Namespace,
+                 multi_page_distance_list: list, parsed_args: argparse.Namespace,
                  path: str) -> Tuple[float, list, list]:
     """
 
@@ -79,8 +77,6 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
                                                      confidence=bool(confidence_threshold))
     result = difflib.HtmlDiff().make_file(merge_lists_conf(ocr, confidence_list, confidence_threshold),
                                           merge_lists_conf(ground_truth, confidence_list, confidence_threshold))
-    # result = difflib.HtmlDiff().make_file(merge_lists_conf(ocr, confidence_list, confidence_threshold),
-    #                                       merge_lists_conf(ground_truth, confidence_list, confidence_threshold))
     with open(f"{parsed_args.output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
     lev_dis, lev_med, ratio_list, distance_list, text_list = levensthein_distance(ground_truth, ocr,
@@ -89,11 +85,10 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
     char_ratio = calculate_ratio(distance_list)
     print(f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
     print(f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
-    print(f"{path} normalized levensthein ratio per line: {lev_dis}")
+    print(f"{path} normalized levensthein distance per line: {lev_dis}")
     print(f"{path} normalized levensthein distance per character: {char_ratio}")
     print(f"{path} levensthein median: {lev_med}")
     print(f"{path} levensthein worst line: {min(ratio_list)}")
-    multi_page_ratio += lev_dis
     multi_page_distance_list += distance_list
     multi_page_correct.append((len(np.array(ratio_list)[np.array(ratio_list) == 1.0]), len(ratio_list)))
     multi_page_bad.append((len(np.array(ratio_list)[np.array(ratio_list) < 0.9]), len(ratio_list)))
