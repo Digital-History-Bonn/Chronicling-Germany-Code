@@ -142,7 +142,7 @@ def get_args() -> argparse.Namespace:
         "-i",
         type=str,
         default=None,
-        help="path for folder with images and xml files with baselines. Images need to be jpg."
+        help="path for folder with images. Need to be jpg."
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
