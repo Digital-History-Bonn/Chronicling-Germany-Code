@@ -1,5 +1,6 @@
 """Utility functions for OCR."""
-from typing import Tuple, Union
+import random
+from typing import Tuple, Union, Optional
 
 import numpy as np
 import torch
@@ -124,3 +125,28 @@ def plot_boxes_on_image(image: Image.Image, baselines: torch.Tensor, polygons: t
 
     # save plot
     plt.savefig(f'{name}.png', dpi=750)
+
+
+def adjust_path(path: Optional[str]) -> Optional[str]:
+    """
+    Make sure, there is a slash at the end of a (folder) spath string.
+
+    Args:
+        path: String representation of path
+
+    Returns:
+        path without ending '/'
+    """
+    return path if not path or path[-1] != '/' else path[:-1]
+
+
+def set_seed(seed: int):
+    """
+    Set random seed for reproducibility.
+
+    Args:
+        seed: random seed for reproducibility
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
