@@ -47,17 +47,26 @@ def get_args() -> argparse.Namespace:
         help="path for folder with images jpg files and annotation xml files to validate the model."
     )
 
+    # pylint: disable=duplicate-code
+    parser.add_argument(
+        "--seed",
+        "-s",
+        type=int,
+        default=42,
+        help="Seeding number for random generators.",
+    )
+
     return parser.parse_args()
 
 
 def main() -> None:
     """Trains a OCR model."""
-    set_seed(42)
-
     # get args
     args = get_args()
-    name = args.name
+    set_seed(args.seed)
+    print(f"{args =}")
 
+    name = args.name
     train_path = adjust_path(args.train_data)
     valid_path = adjust_path(args.valid_data)
 
@@ -82,8 +91,7 @@ def main() -> None:
     hparams['lrate'] = 0.001
     hparams['warmup'] = 1
     hparams['augment'] = True
-    hparams['batch_size'] = 16
-    hparams['freeze_backbone'] = 2
+    hparams['batch_size'] = 16  # <- 32
 
     # init model
     model = RecognitionModel(hyper_params=hparams,
