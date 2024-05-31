@@ -354,14 +354,14 @@ def predict(args: argparse.Namespace) -> None:
         pin_memory=True,
         collate_fn=collate_fn
     )
-    if device != 'cpu':
-        print(f"Using {device} device")
-        model = DataParallel(
-            init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
-    else:
-        print(f"Using {device} device with {cuda_count} gpus")
+    if device == 'cpu':
+        print(f"Using {device}")
         model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
                            overwrite_load_channels=args.override_load_channels)
+    else:
+        print(f"Using {device} device with {cuda_count} gpus")
+        model = DataParallel(
+            init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
 
     model.to(device)
     model.eval()
