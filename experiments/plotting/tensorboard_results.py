@@ -73,7 +73,7 @@ TAGS = ['current+best',
 # ]
 
 RUNS = [
-    ['final_dh_segment_1.0_best', 'final_dh_segment_2.0_best', 'final_dh_segment_3.0_best'],
+    ['neurips_dh_segment_scratch_1.0', 'neurips_dh_segment_scratch_2.0', 'neurips_dh_segment_scratch_3.0', 'neurips_dh_segment_scratch_4.0'],
     ['neurips_dh_segment_1.0', 'neurips_dh_segment_2.0', 'neurips_dh_segment_3.0', 'neurips_dh_segment_4.0']
 ]
 
@@ -91,7 +91,7 @@ XTICKS = [np.arange(1, 11) + 0.375, ["Background",
                                      "Heading",
                                      "Header",
                                      "Separator Vertical",
-                                     "Separator",
+                                     "Separator Horizontal",
                                      "Inverted Text",
                                      "Image"]]
 
@@ -366,9 +366,9 @@ def class_sci():
     # labels = ["DhSegment", "CBAM", "Trans Unet"]
     # labels = ["DhSegment", "CBAM skip", "CBAM no Skip"]
     # labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
-    labels = ["old version", "new version"]
+    labels = ["scratch", "pretrained"]
 
-    name = "pre-class-csi"
+    name = "final-class-csi"
     title = "Multi Class IoU"
     ylabel = 'IoU'
 
@@ -409,7 +409,7 @@ def class_precision():
 
     mean, std = get_data_bar(tags)
 
-    labels = ["old version", "new version"]
+    labels = ["scratch", "pretrained"]
     name = "final-class-precision"
     title = "Multi Class Precision"
     ylabel = 'Precision'
@@ -472,7 +472,7 @@ def class_recall():
     mean, std = get_data_bar(tags)
 
     # labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
-    labels = ["old version", "new version"]
+    labels = ["scratch", "pretrained"]
     name = "final-class-recall"
     title = "Multi Class Recall"
     ylabel = "Recall"
@@ -491,8 +491,8 @@ def results():
     xticks = [np.arange(1, 4) + 0.375, ["Loss",
                                         "Accuracy",
                                         "Jaccard Score"]]
-    labels = ["old version", "new version"]
-    name = "pre-results"
+    labels = ["scratch", "pretrained"]
+    name = "final-results"
     title = "Test Results"
     ylabel = ""
 
