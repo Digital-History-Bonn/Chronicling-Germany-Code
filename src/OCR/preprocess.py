@@ -62,7 +62,7 @@ def copy_and_pad_image(input_path: str, output_dir: str, pad_value: int = 10) ->
 
 
 def preprocess(train_paths: List[str], valid_paths: List[str],
-               test_paths: List[str], input_dir: str, output_dir: str) -> None:
+               test_paths: List[str], image_dir: str, annotation_dir: str, output_dir: str) -> None:
     """
     Preprocesses and splits data and saves it.
 
@@ -70,7 +70,8 @@ def preprocess(train_paths: List[str], valid_paths: List[str],
         train_paths: Paths to the training images.
         valid_paths: Paths to the validation images.
         test_paths: Paths to the test images.
-        input_dir: Path to the dataset folder.
+        image_dir: Path to the image folder.
+        annotation_dir: Path to the annotation folder.
         output_dir: Path to output dictionary.
     """
     # Create directories if they don't exist
@@ -84,16 +85,16 @@ def preprocess(train_paths: List[str], valid_paths: List[str],
 
     # Copy file pairs to the respective directories
     for base_path in tqdm(train_paths, desc='Preprocessing Training data'):
-        copy_and_pad_image(f'{input_dir}/images/{base_path}.jpg', train_dir)
-        copy_and_pad_xml(f'{input_dir}/annotations/{base_path}.xml', train_dir)
+        copy_and_pad_image(f'{image_dir}/{base_path}.jpg', train_dir)
+        copy_and_pad_xml(f'{annotation_dir}/{base_path}.xml', train_dir)
 
     for base_path in tqdm(valid_paths, desc='Preprocessing Validation data'):
-        copy_and_pad_image(f'{input_dir}/images/{base_path}.jpg', valid_dir)
-        copy_and_pad_xml(f'{input_dir}/annotations/{base_path}.xml', valid_dir)
+        copy_and_pad_image(f'{image_dir}/{base_path}.jpg', valid_dir)
+        copy_and_pad_xml(f'{annotation_dir}/{base_path}.xml', valid_dir)
 
     for base_path in tqdm(test_paths, desc='Preprocessing Test data'):
-        copy_and_pad_image(f'{input_dir}/images/{base_path}.jpg', test_dir)
-        copy_and_pad_xml(f'{input_dir}/annotations/{base_path}.xml', test_dir)
+        copy_and_pad_image(f'{image_dir}/{base_path}.jpg', test_dir)
+        copy_and_pad_xml(f'{annotation_dir}/{base_path}.xml', test_dir)
 
 
 def get_args() -> argparse.Namespace:
@@ -103,15 +104,24 @@ def get_args() -> argparse.Namespace:
     Returns:
         Namespace with parsed arguments.
     """
+    # pylint: disable=duplicate-code
     parser = argparse.ArgumentParser(description="predict")
     parser.add_argument(
-        "--input",
+        "--images",
         "-i",
         type=str,
         default=None,
-        help="path for folder with images and xml files. Images need to be jpg."
+        help="path for folder with images. Need to be jpg."
     )
-    # pylint: disable=duplicate-code
+
+    parser.add_argument(
+        "--annotations",
+        "-a",
+        type=str,
+        default=None,
+        help="path for folder with annotation xml files."
+    )
+
     parser.add_argument(
         "--output",
         "-o",
@@ -127,10 +137,21 @@ def main() -> None:
     """Starts the preprocessing process."""
     args = get_args()
 
-    input_dir = adjust_path(args.input)
+    images_dir = adjust_path(args.images)
+    annotation_dir = adjust_path(args.annotation)
     output_dir = adjust_path(args.output)
-    # pylint: disable=duplicate-code
 
+    # check args
+    if images_dir is None:
+        raise ValueError("Please enter a valid path to image data!")
+
+    if annotation_dir is None:
+        raise ValueError("Please enter a valid path to annotation data!")
+
+    if output_dir is None:
+        raise ValueError("Please enter a valid output path!")
+
+    # pylint: disable=duplicate-code
     with open("neurips-split.json", 'r',
               encoding='utf-8') as file:
         data = json.load(file)
@@ -143,7 +164,7 @@ def main() -> None:
     print(f"{len(valid_files)=}")
     print(f"{len(test_files)=}")
 
-    preprocess(train_files, valid_files, test_files, input_dir, output_dir)
+    preprocess(train_files, valid_files, test_files, images_dir, annotation_dir, output_dir)
 
 
 if __name__ == '__main__':

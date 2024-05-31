@@ -101,7 +101,7 @@ The OCR is based on Kraken (https://kraken.re/main/index.html).
 Kraken uses the filename in the .xml file to find the image while training. So the image files should always be in the same folder as the annotation files.
 For preprocessing we padded all images and the annotations by 10 pixels. This can be done by:
 ````
-python -m src.OCR.preprocess -i path/to/data  -o path/to/output/folder
+python -m src.OCR.preprocess -i path/to/image/data -a path/to/annotation/data  -o path/to/output/folder
 ````
 
 After that the training can be stared:
