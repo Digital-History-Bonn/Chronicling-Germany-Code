@@ -80,7 +80,7 @@ def textline_detection_metrics(prediction: List[Polygon],
 
 
 def calc_metrics(ious: torch.Tensor,
-                 threshold: float = .7) -> Tuple[float, float, float, float, float, float]:
+                 threshold: float = .7) -> Tuple[int, int, int, float, float, float]:
     """
     calculates precision, recall and f1_score for iou matrix.
 
@@ -116,7 +116,7 @@ def calc_metrics(ious: torch.Tensor,
 
 
 def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[
-    float, float, float, float, float, float]:
+    int, int, int, float, float, float]:
     """
     Evaluates the baseline detection.
 
@@ -162,7 +162,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Evaluates baseline predicts."""
     args = get_args()
 

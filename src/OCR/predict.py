@@ -9,11 +9,11 @@ from typing import Tuple, List
 import torch
 from PIL import Image
 from bs4 import BeautifulSoup, PageElement
-from kraken import rpred
+from kraken import rpred                            # pylint: disable=import-error
 from kraken.containers import Segmentation, \
-    BaselineLine  # pylint: disable=no-name-in-module, import-error
-from kraken.lib import models
-from kraken.lib.models import TorchSeqRecognizer
+    BaselineLine                                    # pylint: disable=no-name-in-module, import-error
+from kraken.lib import models                       # pylint: disable=import-error
+from kraken.lib.models import TorchSeqRecognizer    # pylint: disable=import-error
 from tqdm import tqdm
 
 from src.OCR.utils import pad_xml, pad_image, adjust_path

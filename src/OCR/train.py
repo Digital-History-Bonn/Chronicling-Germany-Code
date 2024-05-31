@@ -5,9 +5,9 @@ import os
 from pprint import pprint
 
 import torch
-from kraken.lib import default_specs                            # pylint: disable=no-name-in-module
-from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module
-from lightning.pytorch.loggers import TensorBoardLogger
+from kraken.lib import default_specs                            # pylint: disable=no-name-in-module, import-error
+from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module, import-error
+from lightning.pytorch.loggers import TensorBoardLogger         # pyling: disable=import-error
 
 from src.OCR.utils import set_seed, adjust_path
 
@@ -87,11 +87,11 @@ def main() -> None:
 
     # set some hyperparameters
     hparams = default_specs.RECOGNITION_HYPER_PARAMS.copy()
-    hparams['epochs'] = 100
+    hparams['epochs'] = 5
     hparams['lrate'] = 0.001
     hparams['warmup'] = 1
     hparams['augment'] = True
-    hparams['batch_size'] = 16  # <- 32
+    hparams['batch_size'] = 32  # <- 32
 
     # init model
     model = RecognitionModel(hyper_params=hparams,

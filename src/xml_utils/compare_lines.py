@@ -44,7 +44,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     multi_page_bad_list: list = []
 
     for path in tqdm(gt_paths):
-        lev_dis, multi_page_bad_list, multi_page_distance_list = compare_page(confidence_threshold, multi_page_bad,
+        multi_page_bad_list, multi_page_distance_list = compare_page(confidence_threshold, multi_page_bad,
                                                                               multi_page_bad_list, multi_page_correct,
                                                                               multi_page_distance_list,
                                                                               parsed_args, path)
@@ -59,7 +59,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 
 def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_bad_list: list, multi_page_correct: list,
                  multi_page_distance_list: list, parsed_args: argparse.Namespace,
-                 path: str) -> Tuple[float, list, list]:
+                 path: str) -> Tuple[list, list]:
     """
 
     :param confidence_threshold:
@@ -93,7 +93,7 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
     multi_page_correct.append((len(np.array(ratio_list)[np.array(ratio_list) == 1.0]), len(ratio_list)))
     multi_page_bad.append((len(np.array(ratio_list)[np.array(ratio_list) < 0.9]), len(ratio_list)))
     multi_page_bad_list += np.array(text_list)[np.array(ratio_list) < 0.9].tolist()
-    return lev_dis, multi_page_bad_list, multi_page_distance_list
+    return multi_page_bad_list, multi_page_distance_list
 
 
 def merge_lists_conf(list_list: List[List[Any]], conf_list: List[List[float]], confidence_threshold: float) -> List[

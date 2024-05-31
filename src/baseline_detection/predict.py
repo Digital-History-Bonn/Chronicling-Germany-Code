@@ -428,7 +428,7 @@ def main() -> None:
         predict(image, layout, output_file, args.model)
 
 
-def predict(image_path: str, layout_xml_path: str, output_file: str, model: str):
+def predict(image_path: str, layout_xml_path: str, output_file: str, model: str) -> None:
     """
     Predicts baselines for given image with given layout and writes into outputfile.
 

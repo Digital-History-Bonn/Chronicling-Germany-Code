@@ -140,7 +140,7 @@ def adjust_path(path: Optional[str]) -> Optional[str]:
     return path if not path or path[-1] != '/' else path[:-1]
 
 
-def set_seed(seed: int):
+def set_seed(seed: int) -> None:
     """
     Set random seed for reproducibility.
 

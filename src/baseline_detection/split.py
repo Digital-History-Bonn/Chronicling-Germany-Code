@@ -17,8 +17,9 @@ def get_args() -> argparse.Namespace:
     Returns:
         Namespace with parsed arguments.
     """
-    parser = argparse.ArgumentParser(description="preprocess")
     # pylint: disable=duplicate-code
+    parser = argparse.ArgumentParser(description="preprocess")
+
     parser.add_argument(
         "--image_dir",
         "-i",
@@ -26,7 +27,7 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with images. Images need to be jpg."
     )
-    # pylint: disable=duplicate-code
+
     parser.add_argument(
         "--annotation_dir",
         "-a",
@@ -54,6 +55,7 @@ def copy(folder: str, split: List[str]) -> None:
         folder: folder to copy the files form
         split: list of files to copy
     """
+    # pylint: disable=duplicate-code
     os.makedirs(folder, exist_ok=True)
 
     for f in tqdm(split, desc="copying"):
@@ -62,6 +64,7 @@ def copy(folder: str, split: List[str]) -> None:
 
 def main() -> None:
     """Splits the dataset into training, validation and test split."""
+    # pylint: disable=duplicate-code
     args = get_args()
     output_dir = adjust_path(args.output_dir)
     image_dir = adjust_path(args.image_dir)
