@@ -80,8 +80,8 @@ def main() -> None:
     os.makedirs(f'models/{name}', exist_ok=False)
 
     # create training- and evaluation set
-    training_files = list(glob.glob(f"{train_path}/*.xml"))[:50]
-    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))[:10]
+    training_files = list(glob.glob(f"{train_path}/*.xml"))
+    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))
 
     print(f"{len(training_files)} training images and {len(evaluation_files)} validation images.")
 
@@ -97,7 +97,7 @@ def main() -> None:
     model = RecognitionModel(hyper_params=hparams,
                              output=f'models/{name}/model',
                              # model='load_model/german_newspapers_kraken.mlmodel',
-                             num_workers=23,
+                             num_workers=16,
                              training_data=training_files,
                              evaluation_data=evaluation_files,
                              resize='new',
