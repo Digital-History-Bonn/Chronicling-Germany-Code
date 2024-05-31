@@ -20,7 +20,7 @@ from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
-from src.news_seg.models.dh_segment import DhSegment
+from src.layout_segmentation.models.dh_segment import DhSegment
 
 logger = logging.getLogger(__name__)
 

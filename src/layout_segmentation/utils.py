@@ -9,8 +9,8 @@ from numpy import ndarray
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 
-from src.news_seg.class_config import LABEL_NAMES, REDUCE_CLASSES
-from src.news_seg.class_config import cmap
+from src.layout_segmentation.class_config import LABEL_NAMES, REDUCE_CLASSES
+from src.layout_segmentation.class_config import cmap
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:
@@ -176,9 +176,6 @@ def collapse_prediction(pred: torch.Tensor) -> torch.Tensor:
     Collapses classes in the prediction tensor after softmax activation.
     This is used to make models with different classes compatible. This does not change the total number of classes.
     """
-    # TODO: remove when old model is predicted
-    pred = pred[:, 1:, :, :]
-
     for replace_label, label_list in REDUCE_CLASSES.items():
         for label in label_list:
             pred[:, replace_label, :, :] += pred[:, label, :, :]

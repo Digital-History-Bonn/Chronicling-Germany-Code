@@ -15,8 +15,8 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.news_seg.utils import get_file_stems, prepare_file_loading
-from src.news_seg.processing.preprocessing import Preprocessing
+from src.layout_segmentation.utils import get_file_stems, prepare_file_loading
+from src.layout_segmentation.processing.preprocessing import Preprocessing
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"

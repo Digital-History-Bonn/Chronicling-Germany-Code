@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from numpy import ndarray
 
-from src.news_seg.utils import adjust_path
+from src.layout_segmentation.utils import adjust_path
 
 
 def export_slices(args: argparse.Namespace, file: str, image: ndarray,

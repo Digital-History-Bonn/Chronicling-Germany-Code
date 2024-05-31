@@ -4,9 +4,9 @@ import json
 import pytest
 import torch
 
-from src.news_seg.datasets.page_dataset import PageDataset
-from src.news_seg.datasets.train_dataset import TrainDataset
-from src.news_seg.processing.preprocessing import Preprocessing
+from src.layout_segmentation.datasets.page_dataset import PageDataset
+from src.layout_segmentation.datasets.train_dataset import TrainDataset
+from src.layout_segmentation.processing.preprocessing import Preprocessing
 
 DATA_PATH = "./tests/data/newsdataset/"
 

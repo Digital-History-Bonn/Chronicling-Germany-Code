@@ -11,17 +11,17 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
-from src.news_seg.datasets.page_dataset import PageDataset
-from src.news_seg.datasets.train_dataset import TrainDataset
+from src.layout_segmentation.datasets.page_dataset import PageDataset
+from src.layout_segmentation.datasets.train_dataset import TrainDataset
 
-from src.news_seg.models.dh_segment import DhSegment, conv1x1
-from src.news_seg.models.dh_segment_cbam import DhSegmentCBAM
-from src.news_seg.models.dh_segment_small import DhSegmentSmall
-from src.news_seg.models.trans_unet import VisionTransformer
-from src.news_seg.processing.preprocessing import Preprocessing
+from src.layout_segmentation.models.dh_segment import DhSegment, conv1x1
+from src.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
+from src.layout_segmentation.models.dh_segment_small import DhSegmentSmall
+from src.layout_segmentation.models.trans_unet import VisionTransformer
+from src.layout_segmentation.processing.preprocessing import Preprocessing
 
-from src.news_seg.train_config import IN_CHANNELS, OUT_CHANNELS
-from src.news_seg.utils import adjust_path
+from src.layout_segmentation.train_config import IN_CHANNELS, OUT_CHANNELS
+from src.layout_segmentation.utils import adjust_path
 
 
 def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,

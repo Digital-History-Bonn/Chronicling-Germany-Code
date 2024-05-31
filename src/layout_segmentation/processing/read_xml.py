@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple, Union, Optional
 from bs4 import BeautifulSoup, ResultSet
 from shapely import Polygon
 
-from src.news_seg.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
+from src.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
 
 
 def read_transkribus(
@@ -35,8 +35,8 @@ def read_transkribus(
 
     page = bs_data.find("Page")
 
-    if log_path is not None:
-        check_tags(log_path, page, tags_dict)
+    if log_path:
+        check_tags(page, tags_dict)
 
     if page:
         return {
@@ -46,7 +46,7 @@ def read_transkribus(
     return {}
 
 
-def check_tags(log_path: str, page: BeautifulSoup, tags_dict:  Dict[str, List[List[List[int]]]]) -> None:
+def check_tags(page: BeautifulSoup, tags_dict:  Dict[str, List[List[List[int]]]]) -> None:
     """
     Logs all occurrences of unknown regions.
     """

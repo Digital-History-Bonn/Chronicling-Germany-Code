@@ -23,13 +23,15 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmResta
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-from src.news_seg.train_config import BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY, LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS, \
-    EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT
-from src.news_seg.helper.train_helper import init_model, load_score, focal_loss, calculate_scores, initiate_datasets, \
-    initiate_dataloader
-from src.news_seg.utils import split_batches, adjust_path, collapse_prediction
-from src.news_seg.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
-from src.news_seg.helper.train_helper import multi_precison_recall
+from src.layout_segmentation.train_config import (BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY,
+                                                  LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS,
+                                                  EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT)
+from src.layout_segmentation.helper.train_helper import (init_model, load_score, focal_loss,
+                                                         calculate_scores, initiate_datasets,
+                                                         initiate_dataloader)
+from src.layout_segmentation.utils import split_batches, adjust_path, collapse_prediction
+from src.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
+from src.layout_segmentation.helper.train_helper import multi_precison_recall
 
 
 class Trainer:
@@ -77,7 +79,8 @@ class Trainer:
         print(f"Using {self.device} device")
 
         self.model = DataParallel(
-            init_model(load, self.device, args.model, args.freeze, args.skip_cbam, args.override_load_channels))
+            init_model(load, self.device, args.model, args.freeze, args.skip_cbam,
+                       args.override_load_channels))
 
         # set optimizer and loss_fn
         self.optimizer = AdamW(
@@ -88,15 +91,18 @@ class Trainer:
         if args.scheduler == 'reduce_on_plateau':
             self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 15)
         elif args.scheduler == 'cosine_annealing':
-            self.scheduler = CosineAnnealingWarmRestarts(self.optimizer, 5, 1, eta_min=0, last_epoch=-1)  # type: ignore
+            self.scheduler = CosineAnnealingWarmRestarts(self.optimizer, 5, 1, eta_min=0,
+                                                         last_epoch=-1)  # type: ignore
 
         self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
         # load data
         train_set, validation_set, test_set = initiate_datasets(args)
 
-        self.train_loader, self.val_loader, self.test_loader = initiate_dataloader(args, batch_size, test_set,
-                                                                                   train_set, validation_set)
+        self.train_loader, self.val_loader, self.test_loader = initiate_dataloader(args, batch_size,
+                                                                                   test_set,
+                                                                                   train_set,
+                                                                                   validation_set)
 
     def train(self, epochs: int = 1) -> float:
         """
@@ -219,7 +225,8 @@ class Trainer:
         :return: loss scalar
         """
         if self.loss == "focal_loss":
-            return focal_loss(preds, self.one_hot_encoding(targets).float(), LOSS_WEIGHTS.to(self.device)).mean()
+            return focal_loss(preds, self.one_hot_encoding(targets).float(),
+                              LOSS_WEIGHTS.to(self.device)).mean()
 
         return self.cross_entropy(preds, targets)  # type: ignore
 
@@ -282,7 +289,8 @@ class Trainer:
                 print(f"Val loss takes:{loss_time - end}")
 
             accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum = self.evaluate_batch(
-                accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision, precision_sum,
+                accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision,
+                precision_sum,
                 recall, recall_sum)
 
             loss += batch_loss
@@ -319,7 +327,8 @@ class Trainer:
         return loss, accuracy, jaccard, class_acc_ndarray
 
     def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
-                       jaccard: float, pred: Tensor, targets: Tensor, test_validation: bool, precision: Tensor,
+                       jaccard: float, pred: Tensor, targets: Tensor, test_validation: bool,
+                       precision: Tensor,
                        precision_sum: Tensor, recall: Tensor, recall_sum: Tensor) -> Tuple[
         float, Tensor, Tensor, float, Tensor, Tensor, Tensor, Tensor]:
         """
@@ -366,7 +375,8 @@ class Trainer:
             accuracy += result[1]
             batch_class_acc += torch.nan_to_num(result[2].detach().cpu())
             batch_class_sum += 1 - torch.isnan(
-                result[2].detach().cpu()).int()  # ignore pylint error. This comparison detects nan values
+                result[
+                    2].detach().cpu()).int()  # ignore pylint error. This comparison detects nan values
 
         class_acc += batch_class_acc
         class_sum += batch_class_sum
@@ -797,7 +807,9 @@ def main() -> None:
     with open(f"logs/{result_path}{name}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
-        json.dump((parameter_args.batch_size, parameter_args.lr, score, multi_class_score, duration), file)
+        json.dump(
+            (parameter_args.batch_size, parameter_args.lr, score, multi_class_score, duration),
+            file)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import numpy as np
 from numpy import ndarray
 from skimage import draw
 
-from src.news_seg.class_config import LABEL_ASSIGNMENTS
+from src.layout_segmentation.class_config import LABEL_ASSIGNMENTS
 
 
 def draw_img(annotation: dict) -> ndarray:

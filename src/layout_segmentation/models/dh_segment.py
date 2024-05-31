@@ -12,7 +12,7 @@ from torch.nn.parameter import Parameter
 from torchvision.transforms.functional import normalize
 
 # pylint: disable=locally-disabled, import-error
-from src.news_seg.utils import replace_substrings
+from src.layout_segmentation.utils import replace_substrings
 
 # pylint: disable=locally-disabled, import-error
 # from utils import replace_substrings

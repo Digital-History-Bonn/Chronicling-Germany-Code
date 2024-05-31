@@ -3,8 +3,8 @@ import json
 
 import numpy as np
 
-from src.news_seg.processing.draw_img_from_polygons import draw_img
-from src.news_seg.processing.read_xml import read_transkribus
+from src.layout_segmentation.processing.draw_img_from_polygons import draw_img
+from src.layout_segmentation.processing.read_xml import read_transkribus
 
 DATA_PATH = "./tests/data/"
 

@@ -6,8 +6,8 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from src.news_seg.datasets.train_dataset import TrainDataset
-from src.news_seg.processing.preprocessing import (
+from src.layout_segmentation.datasets.train_dataset import TrainDataset
+from src.layout_segmentation.processing.preprocessing import (
     Preprocessing,
 )
 

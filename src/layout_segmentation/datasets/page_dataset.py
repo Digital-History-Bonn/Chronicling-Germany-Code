@@ -10,8 +10,8 @@ import torch
 from torch import randperm
 from torch.utils.data import Dataset
 
-from src.news_seg.datasets.train_dataset import IMAGE_PATH
-from src.news_seg.utils import prepare_file_loading, get_file_stems
+from src.layout_segmentation.datasets.train_dataset import IMAGE_PATH
+from src.layout_segmentation.utils import prepare_file_loading, get_file_stems
 
 
 class PageDataset(Dataset):

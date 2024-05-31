@@ -21,8 +21,7 @@ from skimage import draw, io
 from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
-from src.baseline_detection.class_config import TEXT_CLASSES
-from src.baseline_detection.utils import get_tag, nonmaxima_suppression, adjust_path
+from src.baseline_detection.utils import nonmaxima_suppression, adjust_path
 from src.baseline_detection.xml_conversion import add_baselines
 
 
@@ -60,14 +59,14 @@ def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarr
     pos_down[:, 0] += x_down_diffs
     pos_t = np.concatenate([pos_up, pos_down[::-1, :]], axis=0)
 
-    return pos_t    # type: ignore
+    return pos_t  # type: ignore
 
 
 def order_lines_vertical(baselines: List[np.ndarray],
                          heights: List[List[float]],
                          textlines: List[np.ndarray]) -> Tuple[List[np.ndarray],
-                                                               List[List[float]],
-                                                               List[np.ndarray]]:
+List[List[float]],
+List[np.ndarray]]:
     """
     From https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/layout_helpers.py.
 
@@ -90,7 +89,7 @@ def order_lines_vertical(baselines: List[np.ndarray],
     return baselines, heights, textlines
 
 
-def get_textregions(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+def get_tableregions(xml_path: str) -> List[torch.Tensor]:
     """
     Extracts the textregions and regions to mask form xml file.
 
@@ -110,26 +109,15 @@ def get_textregions(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tenso
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
     mask_regions = []
-    textregions = []
 
-    text_regions = page.find_all(['TextRegion', 'TableRegion'])
+    text_regions = page.find_all(['TableRegion'])
     for region in text_regions:
-        tag = get_tag(region)
+        coords = region.find('Coords')
+        points = torch.tensor([tuple(map(int, point.split(','))) for
+                               point in coords['points'].split()])
+        mask_regions.append(points)
 
-        if tag in ['table']:
-            coords = region.find('Coords')
-            points = torch.tensor([tuple(map(int, point.split(','))) for
-                                   point in coords['points'].split()])
-            mask_regions.append(points)
-
-        if tag in TEXT_CLASSES:
-            coords = region.find('Coords')
-            textregion = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in coords['points'].split()])
-            textregion = textregion[:, torch.tensor([1, 0])]
-            textregions.append(textregion)
-
-    return textregions, mask_regions
+    return mask_regions
 
 
 def preprocess_image(image: torch.Tensor,
@@ -201,8 +189,8 @@ class BaselineEngine:
         self.model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=6).to(self.device)
         self.model.load_state_dict(
             torch.load(f"{model_name}.pt",
-                          map_location=self.device
-            )
+                       map_location=self.device
+                       )
         )
         self.model.eval()
 
@@ -239,8 +227,8 @@ class BaselineEngine:
         return self.to_tensor(textregion_img)  # type: ignore
 
     def parse(self, out_map: np.ndarray) -> Tuple[List[np.ndarray],
-                                                  List[List[float]],
-                                                  List[np.ndarray]]:
+    List[List[float]],
+    List[np.ndarray]]:
         """
         From
         https://github.com/DCGM/pero-ocr/blob/master/pero_ocr/layout_engines/cnn_layout_engine.py.
@@ -260,7 +248,6 @@ class BaselineEngine:
         h_list = []
 
         print('MAP RES:', out_map.shape)
-        out_map[:, :, 4][out_map[:, :, 4] < 0] = 0
 
         # expand line heights verticaly
         heights_map = ndimage.grey_dilation(
@@ -336,17 +323,16 @@ class BaselineEngine:
             predicted textlines and baselines
         """
         _, width, height = image.shape
-        maps = torch.zeros((5, width, height))  # tensor to save predictions from networks
+        maps = torch.zeros((4, width, height))  # tensor to save predictions from networks
 
         # extract layout information
-        textregions, mask_regions = get_textregions(layout)
-        maps[4] = self.draw_textregions(textregions, width, height)
+        mask_regions = get_tableregions(layout)
         input_image = preprocess_image(image, mask_regions)
 
         # predict
         print(f"{input_image.shape=}")
         input_image = input_image[None].to(self.device)
-        pred_gpu = self.model(input_image)    # pylint: disable=not-callable
+        pred_gpu = self.model(input_image)  # pylint: disable=not-callable
         pred = pred_gpu.cpu().detach()
 
         ascenders = pred[0, 0]
@@ -356,7 +342,7 @@ class BaselineEngine:
 
         pred = torch.stack([ascenders, descenders, baselines, limits])
         resize = transforms.Resize((width, height), interpolation=InterpolationMode.NEAREST)
-        maps[:4] = resize(pred)
+        maps = resize(pred)
 
         # postprocess from pero
         b_list, h_list, t_list = self.parse(maps.permute(1, 2, 0).numpy())
@@ -384,6 +370,7 @@ def get_args() -> argparse.Namespace:
         Namespace with parsed arguments.
     """
     parser = argparse.ArgumentParser(description="predict")
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--input_dir",
         "-i",
@@ -392,6 +379,7 @@ def get_args() -> argparse.Namespace:
         help="path for folder with images. Images need to be jpg."
     )
 
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--layout_dir",
         "-l",
@@ -400,6 +388,7 @@ def get_args() -> argparse.Namespace:
         help="path for folder with layout xml files."
     )
 
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--output_dir",
         "-o",
@@ -408,6 +397,7 @@ def get_args() -> argparse.Namespace:
         help="path to the folder where to save the preprocessed files",
     )
 
+    # pylint: disable=duplicate-code
     parser.add_argument(
         "--model",
         "-m",
@@ -438,7 +428,7 @@ def main() -> None:
         predict(image, layout, output_file, args.model)
 
 
-def predict(image_path: str, layout_xml_path: str, output_file: str, model:str):
+def predict(image_path: str, layout_xml_path: str, output_file: str, model: str):
     """
     Predicts baselines for given image with given layout and writes into outputfile.
 

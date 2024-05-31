@@ -1,4 +1,4 @@
-# Newspaper Image Segmentation
+# Old News from Cologne: A Historic Newspaper Dataset
 
 Our layout recognition model is divided into three subtasks:
 1. Layout segmentation
@@ -143,6 +143,15 @@ A few of them are specified to be advertisements with "1866-06_1866-09_Anzeigen"
 from 1924, containing "1924" in the file name. Finally, there are a few pages, that have a specific date in their 
 file name like "1865-04-27" these are special editions.
 
-## Slurm
+## Citation
+````
+@misc{schultze2024reading,
+      title={Reading yesterday's news. Layout recognition by segmentation of historical newspaper pages}, 
+      author={Christian Schultze and Niklas Kerkfeld and Kara Kuebart and Princilia Weber and Moritz Wolter and Felix Selgert},
+      year={2024},
+      eprint={2401.16845},
+      archivePrefix={arXiv},
+      primaryClass={cs.DL}
+}
+````
 
-In the slurm/ folder are examples of the used slurm files.

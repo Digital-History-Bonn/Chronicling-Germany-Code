@@ -13,7 +13,7 @@ from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # ty
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
-from src.news_seg.utils import replace_labels
+from src.layout_segmentation.utils import replace_labels
 
 SCALE = 1
 EXPANSION = 5

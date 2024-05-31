@@ -75,6 +75,7 @@ def add_baselines(layout_xml: str,
 
     textregions, polygones = get_textregions(page)
 
+    # adds all predicted textlines to annotation if they have their center inside a text region
     counter_dict = {i: 0 for i in range(len(textregions))}
     for textline, baseline in zip(textlines, baselines):
         for j, (textregion, polygon) in enumerate(zip(textregions, polygones)):

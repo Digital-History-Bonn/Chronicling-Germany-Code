@@ -5,10 +5,10 @@ from typing import List, Dict
 
 from tqdm import tqdm
 
-from src.news_seg.processing.read_xml import read_raw_data, read_regions_for_reading_order
-from src.news_seg.processing.reading_order import PageProperties
-from src.news_seg.processing.transkribus_export import copy_xml
-from src.news_seg.utils import adjust_path
+from src.layout_segmentation.processing.read_xml import read_raw_data, read_regions_for_reading_order
+from src.layout_segmentation.processing.reading_order import PageProperties
+from src.layout_segmentation.processing.transkribus_export import copy_xml
+from src.layout_segmentation.utils import adjust_path
 
 
 def align_ids(id_dict: Dict[int, List[str]]) -> List[str]:

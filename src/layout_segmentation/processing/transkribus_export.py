@@ -8,8 +8,8 @@ import numpy as np
 from bs4 import BeautifulSoup
 from shapely import Polygon, centroid
 
-from src.news_seg.class_config import LABEL_NAMES, REGION_TYPES
-from src.news_seg.utils import adjust_path
+from src.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
+from src.layout_segmentation.utils import adjust_path
 
 
 def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
@@ -36,7 +36,7 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
             page.clear()
             xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     else:
-        with open("src/news_seg/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
+        with open("src/layout_segmentation/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
             data = f.read()
         xml_data = BeautifulSoup(data, "xml")
         page = xml_data.find("Page")

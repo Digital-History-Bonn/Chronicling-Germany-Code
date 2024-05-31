@@ -14,10 +14,10 @@ import numpy as np
 from skimage import io
 from tqdm import tqdm
 
-from src.news_seg.processing.draw_img_from_polygons import draw_img
-from src.news_seg.processing import read_xml
+from src.layout_segmentation.processing.draw_img_from_polygons import draw_img
+from src.layout_segmentation.processing import read_xml
 
-from src.news_seg.utils import draw_prediction, adjust_path
+from src.layout_segmentation.utils import draw_prediction, adjust_path
 
 INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
@@ -92,8 +92,8 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
             draw_prediction(img, f"{image_path}{path}.png")
 
         if args.json:
-             with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
-                 json.dump(annotation, file)
+            with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
+                json.dump(annotation, file)
 
         # save ndarray
         np_save(f"{output_path}{path}", img)
@@ -152,12 +152,11 @@ def get_args() -> argparse.Namespace:
         help="path for debug image folder. If no path is supplied, no debug images will be generated.",
     )
     parser.add_argument(
-        "--log-path",
+        "--log",
         "-l",
-        type=str,
-        dest="log_path",
-        default=None,
-        help="path for log file",
+        action="store_true",
+        dest="log",
+        help="Activates logging.",
     )
     parser.add_argument(
         "--json",

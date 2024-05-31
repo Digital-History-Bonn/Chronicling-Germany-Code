@@ -16,7 +16,7 @@ from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type: ignor
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from src.news_seg.utils import pad_image, calculate_padding
+from src.layout_segmentation.utils import pad_image, calculate_padding
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
