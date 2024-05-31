@@ -17,6 +17,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.baseline_detection.pero.dataset import CustomDataset as Dataset
+from src.baseline_detection.utils import set_seed
 
 LR = 0.0001
 
@@ -368,6 +369,15 @@ def get_args() -> argparse.Namespace:
         help="number of the cuda device (use -1 for cpu)",
     )
 
+    # pylint: disable=duplicate-code
+    parser.add_argument(
+        "--seed",
+        "-s",
+        type=int,
+        default=42,
+        help="Seeding number for random generators.",
+    )
+
     parser.add_argument('--augmentations', "-a", action=argparse.BooleanOptionalAction)
     parser.set_defaults(augmentations=False)
 
@@ -377,6 +387,10 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     """Trains a model with given parameters."""
     args = get_args()
+    print(f"{args =}")
+
+    # set random seed
+    set_seed(seed=args.seed)
 
     # check args
     if args.name == 'model':
@@ -390,10 +404,12 @@ def main() -> None:
           f'\tepochs: {args.epochs}\n'
           f'\tcuda: {args.cuda}\n')
 
+    # init model
     name = (f"{args.name}_baseline"
             f"{'_aug' if args.augmentations else ''}_e{args.epochs}")
     model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=6)
 
+    # init transformations for augmentation
     transform = None
     if args.augmentations:
         transform = torch.nn.Sequential(
@@ -412,6 +428,7 @@ def main() -> None:
             transforms.RandomAdjustSharpness(sharpness_factor=1.5, p=0.1),
             transforms.RandomGrayscale(p=0.1))
 
+    # init datasets
     traindataset = Dataset(
         args.train_data,
         augmentations=transform,
@@ -425,14 +442,16 @@ def main() -> None:
     print(f"{len(traindataset)=}")
     print(f"{len(validdataset)=}")
 
+    # init optimizer and trainer
     optimizer = AdamW(model.parameters(), lr=LR)
-
     trainer = Trainer(model,
                       traindataset,
                       validdataset,
                       optimizer,
                       name,
                       cuda=args.cuda)
+
+    # start training
     trainer.train(args.epochs)
 
 

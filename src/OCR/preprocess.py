@@ -132,7 +132,7 @@ def main() -> None:
     output_dir = args.output
     # pylint: disable=duplicate-code
 
-    with open("data/neurips-split.json", 'r',
+    with open("neurips-split.json", 'r',
               encoding='utf-8') as file:
         data = json.load(file)
 

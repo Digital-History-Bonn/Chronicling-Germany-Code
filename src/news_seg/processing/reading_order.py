@@ -55,7 +55,7 @@ def get_global_splitting_regions(properties: ndarray, x_median: int, columns_per
     :param columns_per_page: estimated columns per page.
     :return: index list of page spanning section divider
     """
-    class_indices, rounded_width = get_width_in_terms_of_column(properties, x_median, [7, 9])
+    class_indices, rounded_width = get_width_in_terms_of_column(properties, x_median, [7])
     splitting_regions = np.zeros(properties.shape[0], dtype=bool)
     splitting_regions[class_indices] = rounded_width >= columns_per_page
     return splitting_regions  # type: ignore
@@ -71,7 +71,7 @@ def get_local_splitting_regions(properties: ndarray, x_median: int, columns_per_
     :param columns_per_page: estimated columns per page.
     :return: index list of page spanning section divider
     """
-    class_indices, rounded_width = get_width_in_terms_of_column(properties, x_median, [5, 7, 9])
+    class_indices, rounded_width = get_width_in_terms_of_column(properties, x_median, [4, 7])
     splitting_regions = np.zeros(properties.shape[0], dtype=bool)
     splitting_regions[class_indices] = (rounded_width < columns_per_page) * (rounded_width > 1)
     return splitting_regions  # type: ignore
@@ -101,7 +101,7 @@ def sort_column(column: ndarray) -> Tuple[ndarray, ...]:
     :param column: all regions belonging to this column.
     :return: sorted ndarrays for left and right border as well as the actual column regions.
     """
-    is_separator = np.where(np.isin(column[:, 1], [7, 8, 9]))[0]
+    is_separator = np.where(np.isin(column[:, 1], [6]))[0]
     column_x_mean = np.mean(column[np.invert(is_separator)][:, 4])
     is_vertical = (
             column[is_separator][:, 6] < column[is_separator][:, 7])

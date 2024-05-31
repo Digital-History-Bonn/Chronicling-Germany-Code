@@ -79,13 +79,13 @@ def main() -> None:
 
     # copy data in 3 new folder
     copy(f"{output_dir}/train", [f"{image_dir}/{x}.jpg" for x in train_files])
-    copy(f"{output_dir}/train", [f"{annotation_dir}/{x}.npz" for x in train_files])
+    copy(f"{output_dir}/train", [f"{annotation_dir}/{x}.xml" for x in train_files])
 
     copy(f"{output_dir}/valid", [f"{image_dir}/{x}.jpg" for x in valid_files])
-    copy(f"{output_dir}/valid", [f"{annotation_dir}/{x}.npz" for x in valid_files])
+    copy(f"{output_dir}/valid", [f"{annotation_dir}/{x}.xml" for x in valid_files])
 
     copy(f"{output_dir}/test", [f"{image_dir}/{x}.jpg" for x in test_files])
-    copy(f"{output_dir}/test", [f"{annotation_dir}/{x}.npz" for x in test_files])
+    copy(f"{output_dir}/test", [f"{annotation_dir}/{x}.xml" for x in test_files])
 
 
 if __name__ == "__main__":
