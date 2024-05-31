@@ -12,7 +12,7 @@ from shapely.geometry import Polygon
 from tqdm import tqdm
 
 from src.baseline_detection.class_config import TEXT_CLASSES
-from src.baseline_detection.utils import get_tag
+from src.baseline_detection.utils import get_tag, adjust_path
 
 
 def extract_textlines(file_path: str) -> List[torch.Tensor]:
@@ -110,7 +110,7 @@ def calc_metrics(ious: torch.Tensor,
 
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
-    f1_score = 2 * (precision * recall) / (precision + recall)
+    f1_score = 0 if precision + recall == 0 else 2 * (precision * recall) / (precision + recall)
 
     return tp, fp, fn, precision, recall, f1_score
 
@@ -163,10 +163,14 @@ def get_args() -> argparse.Namespace:
 
 
 def main():
+    """Evaluates baseline predicts."""
     args = get_args()
 
-    targets = list(glob.glob(f"{args.prediction_dir}/*.xml"))
-    predictions = [f"{args.prediction_dir}/{os.path.basename(x)}" for x in targets]
+    pred_dir = adjust_path(args.prediction_dir)
+    target_dir = adjust_path(args.ground_truth_dir)
+
+    targets = list(glob.glob(f"{target_dir}/*.xml"))
+    predictions = [f"{pred_dir}/{os.path.basename(x)}" for x in targets]
 
     all_tp, all_fp, all_fn = 0, 0, 0
     precisions, recalls, f1_scores = [], [], []

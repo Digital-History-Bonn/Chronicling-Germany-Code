@@ -17,7 +17,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.baseline_detection.pero.dataset import CustomDataset as Dataset
-from src.baseline_detection.utils import set_seed
+from src.baseline_detection.utils import set_seed, adjust_path
 
 LR = 0.0001
 
@@ -387,6 +387,10 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     """Trains a model with given parameters."""
     args = get_args()
+
+    train_data = adjust_path(args.train_data)
+    valid_data = adjust_path(args.valid_data)
+
     print(f"{args =}")
 
     # set random seed
@@ -430,12 +434,12 @@ def main() -> None:
 
     # init datasets
     traindataset = Dataset(
-        args.train_data,
+        train_data,
         augmentations=transform,
     )
 
     validdataset = Dataset(
-        args.valid_data,
+        valid_data,
         cropping=False
     )
 

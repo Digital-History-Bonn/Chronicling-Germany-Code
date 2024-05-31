@@ -15,7 +15,7 @@ from kraken.lib import models
 from kraken.lib.models import TorchSeqRecognizer
 from tqdm import tqdm
 
-from src.OCR.utils import pad_xml, pad_image
+from src.OCR.utils import pad_xml, pad_image, adjust_path
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
@@ -187,19 +187,22 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     """Predicts OCR for all images with xml annotations in given folder."""
     args = get_args()
+    input_path = adjust_path(args.input)
+    layout_path = adjust_path(args.layout_dir)
+    output_path = adjust_path(args.output)
 
-    if args.input is None:
+    if input_path is None:
         raise ValueError("Please provide an input folder with images and xml files.")
 
-    if args.output is None:
-        raise ValueError("Please provide an output folder with prediction xml files.")
+    if output_path is None:
+        raise ValueError("Please provide an output folder.")
 
     # create output folder if not already existing
-    os.makedirs(args.output, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
 
     # get file names
-    images = list(glob.glob(f'{args.input}/*.jpg'))
-    annotations = [f'{args.layout_dir }/{os.path.basename(x)[:-4]}.xml' for x in images]
+    images = list(glob.glob(f'{input_path}/*.jpg'))
+    annotations = [f'{layout_path}/{os.path.basename(x)[:-4]}.xml' for x in images]
 
     if args.multiprocess:
         num_gpus = torch.cuda.device_count()

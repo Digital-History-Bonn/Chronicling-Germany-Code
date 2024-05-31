@@ -1,7 +1,7 @@
 """Utility functions for baseline detection."""
 import random
 import re
-from typing import Tuple, Union, List, Dict
+from typing import Tuple, Union, List, Dict, Optional
 
 import numpy as np
 import torch
@@ -211,6 +211,19 @@ def nonmaxima_suppression(input_array: np.ndarray,
         dilated = ndimage.grey_dilation(input_array, size=element_size)
 
     return input_array * (input_array == dilated)  # type: ignore
+
+
+def adjust_path(path: Optional[str]) -> Optional[str]:
+    """
+    Make sure, there is a slash at the end of a (folder) spath string.
+
+    Args:
+        path: String representation of path
+
+    Returns:
+        path without ending '/'
+    """
+    return path if not path or path[-1] != '/' else path[:-1]
 
 
 def set_seed(seed: int):

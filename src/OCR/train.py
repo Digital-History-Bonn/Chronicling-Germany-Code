@@ -9,6 +9,8 @@ from kraken.lib import default_specs                            # pylint: disabl
 from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module
 from lightning.pytorch.loggers import TensorBoardLogger
 
+from src.OCR.utils import set_seed, adjust_path
+
 torch.set_float32_matmul_precision('medium')
 
 
@@ -50,13 +52,14 @@ def get_args() -> argparse.Namespace:
 
 def main() -> None:
     """Trains a OCR model."""
+    set_seed(42)
 
     # get args
     args = get_args()
     name = args.name
 
-    train_path = args.train_data
-    valid_path = args.valid_data
+    train_path = adjust_path(args.train_data)
+    valid_path = adjust_path(args.valid_data)
 
     # check for cuda device
     if torch.cuda.is_available():
@@ -68,8 +71,8 @@ def main() -> None:
     os.makedirs(f'models/{name}', exist_ok=False)
 
     # create training- and evaluation set
-    training_files = list(glob.glob(f"{train_path}/*.xml"))
-    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))
+    training_files = list(glob.glob(f"{train_path}/*.xml"))[:50]
+    evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))[:10]
 
     print(f"{len(training_files)} training images and {len(evaluation_files)} validation images.")
 
@@ -79,7 +82,7 @@ def main() -> None:
     hparams['lrate'] = 0.001
     hparams['warmup'] = 1
     hparams['augment'] = True
-    hparams['batch_size'] = 128
+    hparams['batch_size'] = 16
     hparams['freeze_backbone'] = 2
 
     # init model

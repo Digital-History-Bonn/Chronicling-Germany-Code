@@ -2,14 +2,13 @@
 import argparse
 import json
 import os
-from pathlib import Path
 from typing import List
 
 from PIL import Image
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from src.OCR.utils import pad_xml, pad_image
+from src.OCR.utils import pad_xml, pad_image, adjust_path
 
 
 def copy_and_pad_xml(input_path: str, output_dir: str, pad_value: int = 10) -> None:
@@ -128,8 +127,8 @@ def main() -> None:
     """Starts the preprocessing process."""
     args = get_args()
 
-    input_dir = args.input
-    output_dir = args.output
+    input_dir = adjust_path(args.input)
+    output_dir = adjust_path(args.output)
     # pylint: disable=duplicate-code
 
     with open("neurips-split.json", 'r',

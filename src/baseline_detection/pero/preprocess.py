@@ -15,7 +15,7 @@ from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
 
-from src.baseline_detection.utils import extract
+from src.baseline_detection.utils import extract, adjust_path
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
@@ -288,9 +288,9 @@ def main() -> None:
 
     # get args
     args = get_args()
-    target_folder = args.annotation_dir
-    image_folder = args.image_dir
-    output_path = args.output_dir
+    target_folder = adjust_path(args.annotation_dir)
+    image_folder = adjust_path(args.image_dir)
+    output_path = adjust_path(args.output_dir)
 
     os.makedirs(output_path, exist_ok=True)
     to_tensor = transforms.PILToTensor()
