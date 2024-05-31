@@ -138,7 +138,7 @@ def main() -> None:
     args = get_args()
 
     images_dir = adjust_path(args.images)
-    annotation_dir = adjust_path(args.annotation)
+    annotation_dir = adjust_path(args.annotations)
     output_dir = adjust_path(args.output)
 
     # check args
