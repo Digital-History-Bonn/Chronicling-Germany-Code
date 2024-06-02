@@ -10,7 +10,8 @@ import Levenshtein
 import numpy as np
 from tqdm import tqdm  # type: ignore
 
-from src.xml_utils import read_xml
+from src.OCR.evaluate import read_xml
+from src.OCR.utils import adjust_path
 
 
 def main(parsed_args: argparse.Namespace) -> None:
@@ -18,11 +19,15 @@ def main(parsed_args: argparse.Namespace) -> None:
 
     confidence_threshold = parsed_args.confidence_threshold
 
+    ground_truth_path = adjust_path(parsed_args.ground_truth_path)
+    ocr_path = adjust_path(parsed_args.ocr_path)
+    output_path = adjust_path(parsed_args.output_path)
+
     gt_paths = [
-        f[:-4] for f in os.listdir(parsed_args.ground_truth_path) if f.endswith(".xml")
+        f[:-4] for f in os.listdir(ground_truth_path) if f.endswith(".xml")
     ]
     ocr_paths = [
-        f[:-4] for f in os.listdir(parsed_args.ocr_path) if f.endswith(".xml")
+        f[:-4] for f in os.listdir(ocr_path) if f.endswith(".xml")
     ]
 
     if parsed_args.custom_split_file:
@@ -34,9 +39,9 @@ def main(parsed_args: argparse.Namespace) -> None:
             f"Found {len(gt_paths)} ground truth files, but ther are {len(ocr_paths)} "
             f"ocr files. Make sure, for every ground truth file exists an ocr file")
 
-    if not os.path.exists(parsed_args.output_path):
-        print(f"creating {parsed_args.output_path}.")
-        os.makedirs(parsed_args.output_path)
+    if output_path and not os.path.exists(output_path):
+        print(f"creating {output_path}.")
+        os.makedirs(output_path)
 
     multi_page_distance_list: list = []
     multi_page_bad: list = []
@@ -53,7 +58,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     print(f"overall correct lines: {calculate_ratio(multi_page_correct)}")
     print(f"overall bad lines: {calculate_ratio(multi_page_bad)}")
 
-    with open(f"{parsed_args.output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
+    with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
         json.dump(multi_page_bad_list, file)
 
 
@@ -61,16 +66,8 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
                  multi_page_distance_list: list, parsed_args: argparse.Namespace,
                  path: str) -> Tuple[list, list]:
     """
-
-    :param confidence_threshold:
-    :param multi_page_bad:
-    :param multi_page_bad_list:
-    :param multi_page_correct:
-    :param multi_page_distance_list:
-    :param multi_page_ratio:
-    :param parsed_args:
-    :param path:
-    :return:
+    Load lines from ground truth and ocr files and compare them directly. This function assumes, that the
+    lines are already assigned from one file to the other, and text can be directly compare.
     """
     ground_truth, _, _, _ = read_xml.read_lines(f"{parsed_args.ground_truth_path}{path}", "TextRegion", "TextLine")
     ocr, _, confidence_list, _ = read_xml.read_lines(f"{parsed_args.ocr_path}{path}", "TextRegion", "TextLine",
