@@ -53,7 +53,7 @@ LABEL_NAMES = [
     "heading",
     "header",
     "separator_vertical",
-    "separator",
+    "separator_horizontal",
     "image",
     "inverted_text",
 ]
@@ -66,7 +66,7 @@ REGION_TYPES = {
     "heading": "TextRegion",
     "header": "TextRegion",
     "separator_vertical": "SeparatorRegion",
-    "separator": "SeparatorRegion",
+    "separator_horizontal": "SeparatorRegion",
     "image": "GraphicRegion",
     "inverted_text": "TextRegion",
 }
@@ -80,21 +80,15 @@ VALID_TAGS = [
     'table',
     'inverted_text',
     'separator_vertical',
-    'separator',
+    'separator_horizontal',
     'UnknownRegion'
 ]
 
-# REDUCE_CLASSES = {
-#     0: [1],
-#     7: [8]
-# }
-#
-# REDUCE_CLASSES = {
-#     0: [1],
-#     4: [2, 5, 6, 11],
-#     7: [8, 9]
-# }
 
 REDUCE_CLASSES = {
     3: [1, 4, 5]
 }
+
+# REDUCE_CLASSES = {
+#     6: [7]
+# }

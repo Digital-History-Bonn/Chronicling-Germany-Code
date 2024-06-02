@@ -29,10 +29,10 @@ class TestClassExport:
     def test_splitting_regions(self):
         """Test spliting regions detection with threshold"""
         properties = np.array([[1, 4, 1, 1, 10, 10], [2, 7, 1, 100, 50, 20], [3, 3, 1, 11, 10, 21],
-                               [4, 6, 15, 1, 25, 10], [5, 5, 10, 40, 25, 21],
-                               [6, 4, 1, 120, 10, 130],
-                               [7, 4, 11, 120, 25, 130], [8, 9, 30, 100, 65, 205],
-                               [9, 9, 1, 110, 55, 215]])
+                               [4, 5, 15, 1, 25, 10], [5, 4, 10, 40, 25, 21],
+                               [6, 3, 1, 120, 10, 130],
+                               [7, 3, 11, 120, 25, 130], [8, 7, 30, 100, 65, 205],
+                               [9, 7, 1, 110, 55, 215]])
         # does not contain width and heigth, as this is not required for this function
 
         global_ground_truth = np.array([1, 8])  # actual indices are 2,9 but list begins with 0
