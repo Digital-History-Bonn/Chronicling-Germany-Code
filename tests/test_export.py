@@ -112,7 +112,7 @@ class TestClassExport:
         assert get_label_name(4) == "heading"
         assert get_label_name(5) == "header"
         assert get_label_name(6) == "separator_vertical"
-        assert get_label_name(7) == "separator"
+        assert get_label_name(7) == "separator_horizontal"
         assert get_label_name(8) == "image"
         assert get_label_name(9) == "inverted_text"
 

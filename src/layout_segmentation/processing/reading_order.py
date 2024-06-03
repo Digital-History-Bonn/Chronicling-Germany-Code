@@ -37,7 +37,7 @@ def median(properties: ndarray) -> int:
     :return: text region x mean
     """
     labels = properties[:, 1]
-    text_regions = properties[(labels == 2) + (labels == 3)] # table and paragraph
+    text_regions = properties[(labels == 2) + (labels == 3)]  # table and paragraph
     if len(text_regions) == 0:
         warnings.warn("Reading Order has not found any paragraphs in this Page. "
                       "Resulting reading order ist not meaningful in this case.")
@@ -127,6 +127,7 @@ def sort_column(column: ndarray) -> Tuple[ndarray, ...]:
 class PageProperties:
     """A class to contain properties of a page. This includes a list with region properties, from which the reading
     order will be determined."""
+
     def __init__(self, bbox_dict: Dict[int, List[List[float]]], region_properties: Union[None, ndarray] = None):
         if region_properties is not None:
             assert region_properties.shape[
