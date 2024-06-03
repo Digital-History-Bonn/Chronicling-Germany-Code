@@ -5,7 +5,7 @@ import re
 from typing import Dict, List, Tuple
 
 import numpy as np
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from shapely import Polygon, centroid
 
 from src.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
@@ -74,7 +74,7 @@ def create_xml(
     return xml_data
 
 
-def add_regions_to_xml(order_group: BeautifulSoup, page: BeautifulSoup, reading_order: Dict[int, int],
+def add_regions_to_xml(order_group: Tag, page: BeautifulSoup, reading_order: Dict[int, int],
                        segmentations: Dict[int, List[List[float]]], xml_data: BeautifulSoup, scale: float) -> None:
     """
     Add ReadingOrder XML and Text Region List to Page

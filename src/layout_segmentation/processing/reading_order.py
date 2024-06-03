@@ -26,7 +26,7 @@ def get_region_properties(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
              bbox_ndarray[:, 3] - bbox_ndarray[:, 1]]).T
         result.append(label_properties)
         index += len(bbox_ndarray)
-    return np.concatenate(result, axis=0)
+    return np.concatenate(result, axis=0) if len(result) > 0 else np.array([])
 
 
 def median(properties: ndarray) -> int:
@@ -136,20 +136,23 @@ class PageProperties:
         else:
             self.region_properties = get_region_properties(bbox_dict)
 
-        self.x_median = median(self.region_properties)
-        self.global_x_min = np.min(self.region_properties[:, 2])
-        self.global_x_max = np.max(self.region_properties[:, 3])
-        self.columns_per_page: int = round((self.global_x_max - self.global_x_min) / self.x_median)
+        if len(self.region_properties) > 0:
+            self.x_median = median(self.region_properties)
+            self.global_x_min = np.min(self.region_properties[:, 2])
+            self.global_x_max = np.max(self.region_properties[:, 3])
+            self.columns_per_page: int = round((self.global_x_max - self.global_x_min) / self.x_median)
 
-        self.global_splitting_bool = get_global_splitting_regions(self.region_properties, self.x_median,
-                                                                  self.columns_per_page)
-        self.local_splitting_bool = get_local_splitting_regions(self.region_properties, self.x_median,
-                                                                self.columns_per_page)
+            self.global_splitting_bool = get_global_splitting_regions(self.region_properties, self.x_median,
+                                                                      self.columns_per_page)
+            self.local_splitting_bool = get_local_splitting_regions(self.region_properties, self.x_median,
+                                                                    self.columns_per_page)
 
     def get_reading_order(self) -> Dict[int, int]:
         """Calculates reading order by splitting the page into sections and columns. All regions in one column
         are then sorted vertically."""
         result: List[int] = []
+        if len(self.region_properties) < 1:
+            return {}
         self.global_divider_split(self.region_properties, self.global_splitting_bool, self.local_splitting_bool, result)
 
         return {int(k): v for v, k in enumerate(result)}

@@ -108,7 +108,6 @@ def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
     else:
         segmentations, bbox_list = prediction_to_region_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
                                                                  args.export or args.output_path)
-
         page = PageProperties(bbox_list)
         reading_order_dict = page.get_reading_order()
 
