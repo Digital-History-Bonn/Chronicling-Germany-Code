@@ -3,6 +3,8 @@ import argparse
 import glob
 import os
 import random
+from multiprocessing import Queue, Process, set_start_method
+from time import sleep
 from typing import List, Tuple
 
 import numpy as np
@@ -423,31 +425,52 @@ def main() -> None:
     layout_xml_paths = [f"{layout_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
     output_files = [f"{output_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
 
-    for image, layout, output_file in tqdm(zip(image_paths, layout_xml_paths, output_files),
-                                           desc='predicting baseline', total=len(image_paths)):
-        predict(image, layout, output_file, args.model)
+    num_gpus = torch.cuda.device_count()
+    print(f"Using {num_gpus} device(s).")
+
+    path_queue: Queue = Queue()
+    # put paths in queue
+    for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
+        path_queue.put((image, layout, output_file))
+
+    device_ids = range(num_gpus) if torch.cuda.is_available() else [0]
+    processes = [Process(target=predict, args=(device_ids[i], path_queue, args.model)) for i in range(num_gpus)]
+    for process in processes:
+        process.start()
+    total = len(image_paths)
+    # pylint: disable=duplicate-code
+    with tqdm(total=path_queue.qsize(), desc="Baseline Prediction", unit="pages") as pbar:
+        while not path_queue.empty():
+            pbar.n = total - path_queue.qsize()
+            pbar.refresh()
+            sleep(1)
+    for process in tqdm(processes, desc="Terminating Processes"):
+        process.terminate()
 
 
-def predict(image_path: str, layout_xml_path: str, output_file: str, model: str) -> None:
+def predict(device: int, path_queue: Queue, model: str) -> None:
     """
     Predicts baselines for given image with given layout and writes into outputfile.
-
+    Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     Args:
         image_path (str): Path to image
         layout_xml_path (str): Path to layout xml file
         output_file (str): Path to output xml file
         model (str): Path to model file
     """
-    baseline_engine = BaselineEngine(model_name=model, cuda=0)
-    image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
-    textlines, baselines = baseline_engine.predict(image, layout_xml_path)
-    add_baselines(
-        layout_xml=layout_xml_path,
-        textlines=textlines,
-        baselines=baselines,
-        output_file=output_file
-    )
+    while True:
+        image_path, layout_xml_path, output_file = path_queue.get()
+        baseline_engine = BaselineEngine(model_name=model, cuda=device)
+        image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
+        textlines, baselines = baseline_engine.predict(image, layout_xml_path)
+        add_baselines(
+            layout_xml=layout_xml_path,
+            textlines=textlines,
+            baselines=baselines,
+            output_file=output_file
+        )
 
 
 if __name__ == '__main__':
+    set_start_method('spawn')
     main()
