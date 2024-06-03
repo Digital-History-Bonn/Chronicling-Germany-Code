@@ -32,7 +32,7 @@ def get_region_properties(bbox_dict: Dict[int, List[List[float]]]) -> ndarray:
 def median(properties: ndarray) -> int:
     """
     Calculates the mean of x width of all text and table regions. This produces an estimation for column size.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+    :param properties: 2d ndarray with n x 8 values. Containing id, label, minx, maxx, meanx, meany, width
         and height.
     :return: text region x mean
     """
@@ -49,7 +49,7 @@ def get_global_splitting_regions(properties: ndarray, x_median: int, columns_per
     """
     Determine divider indices. A region is considered a page divider, if it has the right class and if it
     spans over the whole page. This means, it has to be at least as wide, as x_median * columns_per_page.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+    :param properties: 2d ndarray with n x 8 values. Containing id, label, minx, maxx, meanx, meany, width
         and height.
     :param x_median: estimated column width.
     :param columns_per_page: estimated columns per page.
@@ -65,7 +65,7 @@ def get_local_splitting_regions(properties: ndarray, x_median: int, columns_per_
     """
     Determine divider indices. A region is considered a page divider, if it has the right class and if it
     spans over the whole page. This means, it has to be at least as wide, as x_median * columns_per_page.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+    :param properties: 2d ndarray with n x 8 values. Containing id, label, minx, maxx, meanx, meany, width
         and height.
     :param x_median: estimated column width.
     :param columns_per_page: estimated columns per page.
@@ -82,7 +82,7 @@ def get_width_in_terms_of_column(properties: ndarray, x_median: int, region_clas
     """
     Calculates the width of all regions with specified class in terms of columns. For example a region can be roughly
     2 columns wide.
-    :param properties: 2d ndarray with n x 6 values. Containing id, label, minx, maxx, meanx, meany, width
+    :param properties: 2d ndarray with n x 8 values. Containing id, label, minx, maxx, meanx, meany, width
         and height.
     :param x_median: estimated column width.
     :param region_classes: class numbers to be filtered by.
