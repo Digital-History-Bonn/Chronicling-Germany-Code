@@ -2,7 +2,6 @@
 import argparse
 import glob
 import os
-from pathlib import Path
 from typing import List, Tuple
 
 import torch
@@ -10,7 +9,6 @@ from torchvision import transforms
 import numpy as np
 from PIL import Image, ImageOps, ImageDraw
 from skimage import draw
-from matplotlib import pyplot as plt
 from shapely.ops import split
 from shapely.geometry import LineString, Polygon
 from tqdm import tqdm
@@ -260,7 +258,7 @@ def main() -> None:
 
     if image_folder is None:
         raise ValueError("Please enter a valid path to image data!")
-    
+
     if output_path is None:
         raise ValueError("Please enter a valid path to output folder!")
 

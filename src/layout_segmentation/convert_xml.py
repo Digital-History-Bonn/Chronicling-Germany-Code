@@ -91,7 +91,7 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
                 os.makedirs(image_path)
             draw_prediction(img, f"{image_path}{path}.png")
 
-        if args.json:
+        if parsed_args.json:
             with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
                 json.dump(annotation, file)
 

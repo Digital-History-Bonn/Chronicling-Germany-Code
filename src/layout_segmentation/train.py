@@ -168,6 +168,7 @@ class Trainer:
 
                     del images, loss, targets, preds
 
+                    score = self.best_score
                     if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
                         score = self.val_round()
 
