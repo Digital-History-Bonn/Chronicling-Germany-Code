@@ -86,7 +86,9 @@ def predict(model: TorchSeqRecognizer, path_queue: Queue) -> None:
         path_queue: multiprocessing queue for path tuples.
     """
     while True:
-        image_path, anno_path, out_path = path_queue.get()
+        image_path, anno_path, out_path, done = path_queue.get()
+        if done:
+            break
         print(f'Predicting {image_path}...')
         # load image and pad image
         im = pad_image(Image.open(image_path))
@@ -175,15 +177,6 @@ def get_args() -> argparse.Namespace:
         help="Select cuda device to use. Use -1 for CPU only. (default 0)",
     )
 
-    parser.add_argument(
-        "--batch_size",
-        "-b",
-        type=int,
-        default=16,
-        help="Batch size per cuda device. This states, how many processes will be created for each cuda device. "
-             "Each of those will load the model and predict on the same cuda device.",
-    )
-
     return parser.parse_args()
 
 
@@ -214,19 +207,19 @@ def main() -> None:
 
     path_queue: Queue = Queue()
 
-    num_processes = args.batch_size
     # put paths in queue
     for image_path, annotation_path in zip(images, annotations):
         output_path = f'{args.output}/{os.path.basename(annotation_path)}'
         path_queue.put((image_path,
                         annotation_path,
-                        output_path))
+                        output_path,
+                        False))
 
     model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in
                   range(num_gpus)] if torch.cuda.is_available() else [models.load_any(args.model, device="cpu")]
 
     processes = [Process(target=predict, args=(model_list[i % num_gpus if num_gpus > 0 else 0], path_queue)) for i in
-                 range(num_gpus * num_processes)]
+                 range(num_gpus)]
     for process in processes:
         process.start()
     total = len(images)
@@ -236,8 +229,10 @@ def main() -> None:
             pbar.n = total - path_queue.qsize()
             pbar.refresh()
             sleep(1)
-    for process in tqdm(processes, desc="Terminating Processes"):
-        process.terminate()
+    for _ in processes:
+        path_queue.put(("", "", "", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
 
 
 if __name__ == '__main__':

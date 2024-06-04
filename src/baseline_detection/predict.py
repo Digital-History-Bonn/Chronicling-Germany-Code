@@ -431,7 +431,7 @@ def main() -> None:
     path_queue: Queue = Queue()
     # put paths in queue
     for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
-        path_queue.put((image, layout, output_file))
+        path_queue.put((image, layout, output_file, False))
 
     device_ids = range(num_gpus) if torch.cuda.is_available() else [0]
     processes = [Process(target=predict, args=(device_ids[i], path_queue, args.model)) for i in range(num_gpus)]
@@ -444,8 +444,10 @@ def main() -> None:
             pbar.n = total - path_queue.qsize()
             pbar.refresh()
             sleep(1)
-    for process in tqdm(processes, desc="Terminating Processes"):
-        process.terminate()
+    for _ in processes:
+        path_queue.put(("", "", "", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
 
 
 def predict(device: int, path_queue: Queue, model: str) -> None:
@@ -459,7 +461,9 @@ def predict(device: int, path_queue: Queue, model: str) -> None:
         model (str): Path to model file
     """
     while True:
-        image_path, layout_xml_path, output_file = path_queue.get()
+        image_path, layout_xml_path, output_file, done = path_queue.get()
+        if done:
+            break
         baseline_engine = BaselineEngine(model_name=model, cuda=device)
         image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
         textlines, baselines = baseline_engine.predict(image, layout_xml_path)
