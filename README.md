@@ -28,17 +28,17 @@ Depending on your setup, you may require `PYTHONPATH=.` in front of the commands
 Before starting the training process all data has to be converted.
 This command loads xml annotation data and converts it to .npy files.
 ````
-python src/news_seg/convert_xml.py -a annotations/ -o targets/
+python src/layout_segmentation/convert_xml.py -a annotations/ -o targets/
 ````
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.
 ````
-python src/news_seg/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -g 4 -w 32
+python src/layout_segmentation/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -g 4 -w 32
 ````
 
-If the training process has to be intrrupted, training can be continued by executing this command.
+If the training process has to be interrupted, training can be continued by executing this command.
 ````
-python src/news_seg/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -l model_name -ls -g 4 -w 32
+python src/layout_segmentation/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -l model_name -ls -g 4 -w 32
 ````
 
 ### Prediction
@@ -54,15 +54,25 @@ exported to a page folder within the data folder. If there are already xml files
 
 Example for calling the predict script.
 ````
-python src/news_seg/predict.py -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
+python src/layout_segmentation/predict.py -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
 ````
 
-### Debug
-To analyse the models predictions we added a --debug option to the prediction function. With this option the predict
-function does not output the prediction, instead it outputs the areas of uncertainty of the models. This areas are all 
-pixels that have a predicted probability under the given threshold for the ground truth class.
+### Evaluation
+
+At the end of each training run, the early stopping result is evaluated. 
+For evaluating a model without training it, use -- evaluate.
+
 ````
-python src/news_seg/predict.py -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --debug
+python src/layout_segmentation/train.py -n evaluate -b 64 -d data_folder/ -l model_name -g 4 -w 32 --evaluate
+````
+
+### Uncertainty predict
+To analyse the models predictions we added a --uncertainty-predict option to the prediction function. With this option the predict
+function does not output the prediction, instead it outputs the areas of uncertainty of the models. This areas are all 
+pixels that have a predicted probability under the given threshold for the ground truth class. 
+For this, images and groud truth are required.
+````
+python src/layout_segmentation/predict.py -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --uncertainty-predict
 ````
 
 ## Baseline detection
@@ -133,15 +143,6 @@ or with magic commands in jupiter notebooks
 %load_ext tensorboard
 %tensorboard --logdir logs/runs
 ````
-
-## File names
-File names of xml and jpg are identical. Pages are grouped into different time periods specified with a 
-specific date, a timeframe of a few months or an entire year. The last 4 characters of each file names are a 
-number, that is in the order of publication regarding the specified time period. The number are NOT unique 
-over the entire dataset. Most of the pages are from 1866 and contain "1866-06_1866-09" in their file names. 
-A few of them are specified to be advertisements with "1866-06_1866-09_Anzeigen". Most of the other pages are 
-from 1924, containing "1924" in the file name. Finally, there are a few pages, that have a specific date in their 
-file name like "1865-04-27" these are special editions.
 
 ## Citation
 ````
