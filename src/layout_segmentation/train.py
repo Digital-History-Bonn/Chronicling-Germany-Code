@@ -802,8 +802,8 @@ def main() -> None:
     print(f"skip cbam: {parameter_args.skip_cbam}")
 
     duration = trainer.train(epochs=epochs)
-    model_path = f"models/model_{name}_best.pt" if trainer.best_step != 0 else \
-        f"models/model_{name}.pt"
+    model_path = f"models/model_{parameter_args.load}.pt" if parameter_args.evaluate else \
+        f"models/model_{name}_best.pt" if trainer.best_step != 0 else f"models/model_{name}.pt"
     score, multi_class_score = trainer.get_test_score(model_path)
     with open(f"logs/{result_path}{name}_{parameter_args.lr}.json",
               "w",

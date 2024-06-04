@@ -150,3 +150,15 @@ def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+
+def line_has_text(line: BeautifulSoup):
+    """
+    Checks if line has text in it.
+
+    Args:
+        line: BeautifulSoup object representing line
+
+    Returns:
+        True if the line has TextEquiv and Unicode xml tags"""
+    return bool(line.TextEquiv and line.TextEquiv.Unicode and len(line.TextEquiv.Unicode.contents))

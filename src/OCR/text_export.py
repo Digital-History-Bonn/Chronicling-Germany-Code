@@ -14,7 +14,7 @@ from numpy import ndarray
 from bs4 import BeautifulSoup, ResultSet
 from tqdm import tqdm
 
-from src.OCR.evaluate.read_xml import line_has_text
+from src.OCR.utils import line_has_text
 from src.OCR.utils import adjust_path
 
 

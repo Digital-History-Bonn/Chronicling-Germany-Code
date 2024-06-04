@@ -195,9 +195,21 @@ def main() -> None:
         all_fp += fp
         all_fn += fn
 
-    print(f"average precision: {torch.mean(torch.tensor([precisions]))}")
-    print(f"average recall: {torch.mean(torch.tensor([recalls]))}")
-    print(f"average f1_score: {torch.mean(torch.tensor([f1_scores]))}")
+    print(f"average precision: {torch.mean(torch.tensor([precisions]))}"
+          f" ({torch.median(torch.tensor([precisions]))})"
+          f" +- {torch.std(torch.tensor([precisions]))},"
+          f" min: {torch.min(torch.tensor([precisions]))},"
+          f" max: {torch.max(torch.tensor([precisions]))}")
+    print(f"average recall: {torch.mean(torch.tensor([recalls]))}"
+          f" ({torch.median(torch.tensor([recalls]))})"
+          f" +- {torch.std(torch.tensor([recalls]))},"
+          f" min: {torch.min(torch.tensor([recalls]))},"
+          f" max: {torch.max(torch.tensor([recalls]))}")
+    print(f"average f1_score: {torch.mean(torch.tensor([f1_scores]))}"
+          f" ({torch.median(torch.tensor([f1_scores]))})"
+          f" +- {torch.std(torch.tensor([f1_scores]))},"
+          f" min: {torch.min(torch.tensor([f1_scores]))},"
+          f" max: {torch.max(torch.tensor([f1_scores]))}\n")
 
     all_precision = all_tp / (all_tp + all_fp)
     all_recall = all_tp / (all_tp + all_fn)
