@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup, PageElement
 from shapely import LineString
 from shapely.geometry import Polygon
 
-from src.baseline_detection.utils import convert_coord
+from src.baseline_detection.utils import convert_coord, order_lines
 
 
 def get_textregions(page: PageElement) -> Tuple[List[PageElement], List[Polygon]]:
@@ -99,6 +99,9 @@ def add_baselines(layout_xml: str,
 
                 textregion.append(new_textline)
                 break
+
+    for region in textregions:
+        order_lines(region)
 
     # Write the modified XML back to file with proper formatting
     with open(output_file, 'w', encoding='utf-8') as file:

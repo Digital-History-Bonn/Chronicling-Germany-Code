@@ -154,8 +154,6 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
     for key, order in reading_order_dict.items():
         region = bs_data.find(attrs={'id': f'{id_list[int(key)]}'})
 
-        sort_lines(region)
-
         custom_match = re.search(
             r"(structure \{type:.+?;})", region["custom"]
         )
