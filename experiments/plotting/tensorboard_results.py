@@ -501,7 +501,7 @@ def results():
 
 
 def bar():
-    # class_sci()
+    class_sci()
     results()
     # class_precision()
     # class_recall()

@@ -12,7 +12,7 @@ Tested on Python 3.10.4.
 Two separate environments are needed for layout segmentation and OCR. Layout segmentation and baseline detection use the requirements.txt in the main folder. The OCR uses src/OCR/requirements.txt.
 
 ## Prediction Pipeline
-To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in predict.sh can be used.
+To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used.
 This pipeline needs two conda environments named 'layout' and 'ocr' (see requirements). 
 
 
@@ -146,8 +146,8 @@ or with magic commands in jupiter notebooks
 
 ## Citation
 ````
-@misc{schultze2024reading,
-      title={Reading yesterday's news. Layout recognition by segmentation of historical newspaper pages}, 
+@misc{schultze2024chronicling,
+      title={Chronicling Germany: An Annotated Historical Newspaper Dataset}, 
       author={Christian Schultze and Niklas Kerkfeld and Kara Kuebart and Princilia Weber and Moritz Wolter and Felix Selgert},
       year={2024},
       eprint={2401.16845},

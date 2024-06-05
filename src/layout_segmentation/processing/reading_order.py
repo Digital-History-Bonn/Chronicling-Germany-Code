@@ -95,7 +95,7 @@ def get_width_in_terms_of_column(properties: ndarray, x_median: int, region_clas
 
 def sort_column(column: ndarray) -> Tuple[ndarray, ...]:
     """
-    Splits column regions into left and right border separators, which separatre columns from one another if they
+    Splits column regions into left and right border separators, which separate columns from one another if they
     are present. Those are sorted from left to right. All other column regions are sorted from top to bottom.
     :param columns: all regions in columns
     :param column: all regions belonging to this column.
@@ -269,7 +269,8 @@ class PageProperties:
         columns = np.copy(properties)
 
         while True:
-            in_column: ndarray = columns[:, 4] < estimated_column_border
+            in_column: ndarray = (columns[:, 2] < (estimated_column_border - self.x_median / 2)) + (
+                        columns[:, 4] < estimated_column_border)
 
             if all(np.invert(in_column)):
                 estimated_column_border += self.x_median

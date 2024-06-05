@@ -152,7 +152,7 @@ def set_seed(seed: int) -> None:
     torch.manual_seed(seed)
 
 
-def line_has_text(line: BeautifulSoup):
+def line_has_text(line: BeautifulSoup) -> bool:
     """
     Checks if line has text in it.
 

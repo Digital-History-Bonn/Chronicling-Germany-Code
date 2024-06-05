@@ -7,8 +7,56 @@ import numpy as np
 import torch
 from bs4 import PageElement, BeautifulSoup
 from scipy import ndimage
+from shapely import Polygon
 
 from src.baseline_detection.class_config import TEXT_CLASSES
+
+
+def order_lines(region: PageElement) -> None:
+    """Sort lines by estimating columns and sorting columns from left to right and lines inside a column
+    from top to bottom."""
+    lines = region.find_all("TextLine")
+    if len(lines) == 0:
+        return
+
+    properties_list = []
+    for i, line in enumerate(lines):
+        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        line_centroid = line_polygon.centroid
+        bbox = line_polygon.bounds
+        properties_list.append(
+            [i, bbox[0], bbox[2] - bbox[0], line_centroid.x,
+             line_centroid.y])  # index, minx, width, centroidx, centroidy
+    properties = np.array(properties_list)
+    median_width = np.median(properties[:, 2])
+    global_min_x = np.min(properties[:, 1])
+
+    estimated_column_border = global_min_x + median_width
+    columns = np.copy(properties)
+
+    result = []
+    while True:
+        in_column = (columns[:, 1] < (estimated_column_border - median_width / 2)) + (
+                    columns[:, 3] < estimated_column_border)
+
+        if all(np.invert(in_column)):
+            estimated_column_border += median_width
+            continue
+
+        result += columns[in_column][np.argsort(columns[in_column][:, 4])][:, 0].tolist()
+
+        if all(in_column):
+            break
+        columns = columns[np.invert(in_column)]
+
+    ordered_indices = {int(k): v for v, k in enumerate(result)}
+
+    for i, line in enumerate(lines):
+        custom_match = re.search(
+            r"(structure \{type:.+?;})", line["custom"]
+        )
+        class_info = "" if custom_match is None else custom_match.group(1)
+        line.attrs['custom'] = f"readingOrder {{index:{ordered_indices[i]};}} {class_info}"
 
 
 def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore

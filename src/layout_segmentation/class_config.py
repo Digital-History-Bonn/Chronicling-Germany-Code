@@ -16,7 +16,7 @@ cmap = [
 TOLERANCE = [
     5.0,  # "caption"
     5.0,  # "table"
-    5.0,  # "article, paragraph"
+    2.0,  # "article, paragraph"
     2.0,  # "heading"
     10.0,  # "header"
     1.0,  # "separator_vertical"
