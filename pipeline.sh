@@ -2,8 +2,8 @@
 
 # Assign positional parameters to variables
 DATA_DIR=$1
-MODEL_LAYOUT="models/model_neurips_dh_segment_3.0_best.pt"
-MODEL_BASELINE="models/baselineFinal2_baseline_aug_e200_es"
+MODEL_LAYOUT="models/layout_2024-05-28.pt"
+MODEL_BASELINE="models/baseline_2024-06-01"
 MODEL_OCR="models/ocr_scratch_best.mlmodel"
 LAYOUT_PARAMS="-p 5760 7680 -t 0.6 -a dh_segment -s 0.5 -e -bt 200"
 PAGE_DIR="${DATA_DIR}/page"
