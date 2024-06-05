@@ -368,7 +368,7 @@ def predict(args: argparse.Namespace) -> None:
 
     batch = 0
     for image, target, path in tqdm(
-            pred_loader, desc="predicting images", total=len(pred_loader), unit="batches"
+            pred_loader, desc="layout inference", total=len(pred_loader), unit="batches"
     ):
         batch += 1
         threads += predict_batch(args, device, path, image, target, model, args.uncertainty_predict)
