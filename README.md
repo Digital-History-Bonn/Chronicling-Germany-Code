@@ -7,14 +7,19 @@ Our layout recognition model is divided into three subtasks:
 
 All tasks are trained and evaluated individually, but work together to extract text from a given input document (see Prediction Pipeline).
 
+![An Overview over our pipeline](assets/pipeline.png)
+
 ## Requirements
 Tested on Python 3.10.4.
 Two separate environments are needed for layout segmentation and OCR. Layout segmentation and baseline detection use the requirements.txt in the main folder. The OCR uses src/OCR/requirements.txt.
 
 ## Prediction Pipeline
-To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used.
+To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used with the only argument being the data folder path.
 This pipeline needs two conda environments named 'layout' and 'ocr' (see requirements). 
 
+````
+bash pipeline.sh data/
+````
 
 ## Layout Segmentation
 

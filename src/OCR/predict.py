@@ -2,21 +2,22 @@
 
 import argparse
 import glob
-import multiprocessing
 import os
+from multiprocessing import Process, Queue, set_start_method
+from time import sleep
 from typing import Tuple, List
 
 import torch
 from PIL import Image
 from bs4 import BeautifulSoup, PageElement
-from kraken import rpred                            # pylint: disable=import-error
+from kraken import rpred  # pylint: disable=import-error
 from kraken.containers import Segmentation, \
-    BaselineLine                                    # pylint: disable=no-name-in-module, import-error
-from kraken.lib import models                       # pylint: disable=import-error
-from kraken.lib.models import TorchSeqRecognizer    # pylint: disable=import-error
+    BaselineLine  # pylint: disable=no-name-in-module, import-error
+from kraken.lib import models  # pylint: disable=import-error
+from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
 from tqdm import tqdm
 
-from src.OCR.utils import pad_xml, pad_image, adjust_path
+from src.OCR.utils import pad_image, adjust_path, pad_points
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
@@ -38,12 +39,6 @@ List[List[BaselineLine]]]:
         xml_data = file.read()
 
     soup = BeautifulSoup(xml_data, 'xml')
-    soup = pad_xml(soup)
-
-    # remove all textEquiv elements from annotations
-    textequiv_objects = soup.find_all('TextEquiv')
-    for textequiv_object in textequiv_objects:
-        textequiv_object.decompose()
 
     # init baseline and ground
     baselines: List[List[BaselineLine]] = []
@@ -59,17 +54,22 @@ List[List[BaselineLine]]]:
 
         # Extract Baseline points from each TextLine
         for i, text_line in enumerate(text_lines):
-            polygon = text_line.find('Coords')
+            # remove text, to make place for ocr prediction
+            if text_line.TextEquiv:
+                text_line.TextEquiv.decompose()
+
+            polygon_points = pad_points(text_line.find('Coords')['points'])
             baseline = text_line.find('Baseline')
             if baseline:
+                baseline_points = pad_points(baseline['points'])
                 # Split the points string and convert them to a list of tuples
                 region_baselines.append(
                     BaselineLine(
                         str(i),
                         [tuple(map(int, point.split(','))) for point in
-                         baseline['points'].split()],  # type: ignore
+                         baseline_points.split()],  # type: ignore
                         [tuple(map(int, point.split(','))) for point in
-                         polygon['points'].split()])  # type: ignore
+                         polygon_points.split()])  # type: ignore
                 )
 
         baselines.append(region_baselines)
@@ -77,56 +77,55 @@ List[List[BaselineLine]]]:
     return soup, text_regions, baselines
 
 
-def predict(model: TorchSeqRecognizer, image_path: str, anno_path: str, out_path: str) -> None:
+def predict(model: TorchSeqRecognizer, path_queue: Queue) -> None:
     """
     Predicts OCR on given image using given baseline annotations and model.
-
+    Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     Args:
         model: Model to use for OCR prediction.
-        image_path: Path to image file.
-        anno_path: Path to annotation file.
-        out_path: Path to output directory.
+        path_queue: multiprocessing queue for path tuples.
     """
-    print(f'Predicting {image_path}...')
-    # load image and pad image
-    im = pad_image(Image.open(image_path))
+    while True:
+        image_path, anno_path, out_path, done = path_queue.get()
+        if done:
+            break
+        print(f'Predicting {image_path}...')
+        # load image and pad image
+        im = pad_image(Image.open(image_path))
 
-    # preprocess annotations and extract baselines
-    file_name = os.path.basename(image_path)
-    soup, regions, region_baselines = extract_baselines(anno_path)
+        # preprocess annotations and extract baselines
+        file_name = os.path.basename(image_path)
+        soup, regions, region_baselines = extract_baselines(anno_path)
 
-    for region, baselines in zip(regions, region_baselines):
-        baseline_seg = Segmentation(type='baselines',
-                                    imagename=file_name,
-                                    text_direction='horizontal-lr',
-                                    script_detection=False,
-                                    lines=baselines,
-                                    line_orders=[])
+        for region, baselines in zip(regions, region_baselines):
+            baseline_seg = Segmentation(type='baselines',
+                                        imagename=file_name,
+                                        text_direction='horizontal-lr',
+                                        script_detection=False,
+                                        lines=baselines,
+                                        line_orders=[])
 
-        # single model recognition
-        pred_it = rpred.rpred(model, im, baseline_seg)
-        lines = list(pred_it)
+            # single model recognition
+            pred_it = rpred.rpred(model, im, baseline_seg)
+            lines = list(pred_it)
 
-        textlines = region.find_all('TextLine')
-        for pred_line, textline in zip(lines, textlines):
-            textequiv = soup.new_tag('TextEquiv')
-            if pred_line.confidences:
-                textequiv['conf'] = str(min(pred_line.confidences))
-            else:
-                textequiv['conf'] = '0'
-            unicode = soup.new_tag('Unicode')
-            unicode.string = str(pred_line).strip()
-            textequiv.append(unicode)
-            textline.append(textequiv)
+            textlines = region.find_all('TextLine')
+            for pred_line, textline in zip(lines, textlines):
+                textequiv = soup.new_tag('TextEquiv')
+                if pred_line.confidences:
+                    textequiv['conf'] = str(min(pred_line.confidences))
+                else:
+                    textequiv['conf'] = '0'
+                unicode = soup.new_tag('Unicode')
+                unicode.string = str(pred_line).strip()
+                textequiv.append(unicode)
+                textline.append(textequiv)
 
-    # unpad coordinates in annotation by invert padding
-    soup = pad_xml(soup, pad_value=-10)
-
-    # save results
-    with open(out_path, 'w', encoding='utf-8') as file:
-        file.write(soup.prettify()
-                   .replace("<Unicode>\n      ", "<Unicode>")
-                   .replace("\n     </Unicode>", "</Unicode>"))
+        # save results
+        with open(out_path, 'w', encoding='utf-8') as file:
+            file.write(soup.prettify()
+                       .replace("<Unicode>\n      ", "<Unicode>")
+                       .replace("\n     </Unicode>", "</Unicode>"))
 
 
 def get_args() -> argparse.Namespace:
@@ -201,28 +200,41 @@ def main() -> None:
     images = list(glob.glob(f'{input_path}/*.jpg'))
     annotations = [f'{layout_path}/{os.path.basename(x)[:-4]}.xml' for x in images]
 
+    assert len(images) == len(annotations), "Images and annotations path numbers do not match."
+
     num_gpus = torch.cuda.device_count()
     print(f"Using {num_gpus} device(s).")
 
-    model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in range(num_gpus)]
+    path_queue: Queue = Queue()
 
-    # Create a pool of worker processes
-    with multiprocessing.Pool(processes=num_gpus) as pool:
-        tasks = []
-        for i, (image_path, annotation_path) in enumerate(zip(images, annotations)):
-            output_path = f'{args.output}/{os.path.basename(annotation_path)}'
+    # put paths in queue
+    for image_path, annotation_path in zip(images, annotations):
+        output_path = f'{args.output}/{os.path.basename(annotation_path)}'
+        path_queue.put((image_path,
+                        annotation_path,
+                        output_path,
+                        False))
 
-            tasks.append((model_list[i % num_gpus],
-                          image_path,
-                          annotation_path,
-                          output_path))
+    model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in
+                  range(num_gpus)] if torch.cuda.is_available() else [models.load_any(args.model, device="cpu")]
 
-        # Use tqdm to show progress
-        for _ in tqdm(pool.starmap(predict, tasks), total=len(tasks)):
-            pass
+    processes = [Process(target=predict, args=(model_list[i % num_gpus if num_gpus > 0 else 0], path_queue)) for i in
+                 range(num_gpus)]
+    for process in processes:
+        process.start()
+    total = len(images)
+    # pylint: disable=duplicate-code
+    with tqdm(total=path_queue.qsize(), desc="OCR prediction", unit="pages") as pbar:
+        while not path_queue.empty():
+            pbar.n = total - path_queue.qsize()
+            pbar.refresh()
+            sleep(1)
+    for _ in processes:
+        path_queue.put(("", "", "", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
 
 
 if __name__ == '__main__':
-    multiprocessing.set_start_method('spawn')
-
+    set_start_method('spawn')
     main()

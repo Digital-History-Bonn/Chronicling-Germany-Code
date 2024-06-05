@@ -46,15 +46,17 @@ def main(parsed_args: argparse.Namespace) -> None:
     for process in processes:
         process.start()
     for path in tqdm(paths, desc="Put paths in queue"):
-        path_queue.put(path)
+        path_queue.put((path, False))
     total = len(paths)
     with tqdm(total=path_queue.qsize(), desc="Page converting", unit="pages") as pbar:
         while not path_queue.empty():
             pbar.n = total - path_queue.qsize()
             pbar.refresh()
             sleep(1)
-    for process in tqdm(processes, desc="Terminating Processes"):
-        process.terminate()
+    for _ in processes:
+        path_queue.put(("", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
 
 
 def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:
@@ -69,7 +71,9 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
     log_path = adjust_path(parsed_args.log_path) if parsed_args.log_path else None
 
     while True:
-        path = path_queue.get()
+        path, done = path_queue.get()
+        if done:
+            break
         read = (
             # pylint: disable=unnecessary-lambda-assignment
             lambda file: read_xml.read_transkribus(path=file, log_path=log_path)
