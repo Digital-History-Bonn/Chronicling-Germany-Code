@@ -1,12 +1,27 @@
-eval "$(conda shell.bash hook)"
+#!/bin/bash
 
+# Assign positional parameters to variables
+DATA_DIR=$1
+MODEL_LAYOUT="models/model_neurips_dh_segment_3.0_best.pt"
+MODEL_BASELINE="models/baselineFinal2_baseline_aug_e200_es"
+MODEL_OCR="models/ocr_scratch_best.mlmodel"
+LAYOUT_PARAMS="-p 5760 7680 -t 0.6 -a dh_segment -s 0.5 -e -bt 200"
+PAGE_DIR="${DATA_DIR}/page"
+
+# Activate conda environment and set PYTHONPATH for layout segmentation
+eval "$(conda shell.bash hook)"
 conda activate layout
 export PYTHONPATH=${PYTHONPATH}:
 
-python src/layout_segmentation/predict.py -d data/PipelineTest/test -m models/model_neurips_dh_segment_3.0_best.pt -p 5760 7680 -t 0.6 -a dh_segment -s 0.5 -e -bt 200 --cuda cpu
-python src/baseline_detection/predict.py -i data/PipelineTest/test -l data/PipelineTest/test/page -o data/PipelineTest/test/page -m models/baselineFinal2_baseline_aug_e200_es
+# Run layout segmentation prediction
+python src/layout_segmentation/predict.py -d "$DATA_DIR" -m "$MODEL_LAYOUT" $LAYOUT_PARAMS
 
+# Run baseline detection prediction
+python src/baseline_detection/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_BASELINE"
+
+# Activate conda environment and set PYTHONPATH for OCR
 conda activate ocr
 export PYTHONPATH=${PYTHONPATH}:
-python src/OCR/predict.py -i data/PipelineTest/test -l data/PipelineTest/test/page -o data/PipelineTest/test/page -m models/ocr_scratch_best.mlmodel
 
+# Run OCR prediction
+python src/OCR/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_OCR"
