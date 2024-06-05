@@ -7,6 +7,8 @@ Our layout recognition model is divided into three subtasks:
 
 All tasks are trained and evaluated individually, but work together to extract text from a given input document (see Prediction Pipeline).
 
+![An Overview over our pipeline](assets/pipeline.png)
+
 ## Requirements
 Tested on Python 3.10.4.
 Two separate environments are needed for layout segmentation and OCR. Layout segmentation and baseline detection use the requirements.txt in the main folder. The OCR uses src/OCR/requirements.txt.
