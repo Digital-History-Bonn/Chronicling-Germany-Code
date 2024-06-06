@@ -42,7 +42,7 @@ def mypy(session):
         "--namespace-packages",
         "--implicit-reexport",  # tensorboard is untyped
         "--allow-untyped-calls",  # tensorboard is untyped
-        "src",
+        "src/baseline_detection",
     )
 
 

@@ -5,7 +5,7 @@ import pytest
 from PIL import Image
 import torch
 
-from src.news_seg.preprocessing import Preprocessing
+from src.layout_segmentation.processing.preprocessing import Preprocessing
 
 DATA_PATH = "./tests/data/preprocessing/"
 
@@ -34,6 +34,28 @@ class TestClassPreprocessing:
 
     def test_call(self):
         """Verify entire preprocessing"""
+
+        # not matching crop test
+        size = 100
+        channels = 3
+        crop_size = 75
+        pytest.preprocessing.crop_size = crop_size
+        pytest.preprocessing.crop_factor = 1
+        image = Image.fromarray(
+            (np.random.rand(size, size, channels) * 255).astype("uint8")
+        ).convert("RGB")
+        target = np.random.randint(0, 10, (size, size), dtype=np.uint8)
+
+        result_data = pytest.preprocessing(image, target)
+
+        assert result_data.shape == (
+            4,
+            channels + 1,
+            crop_size,
+            crop_size,
+        )
+        assert result_data.dtype == np.uint8
+
         # standart crop test
         size = 100
         channels = 3
@@ -48,7 +70,7 @@ class TestClassPreprocessing:
         result_data = pytest.preprocessing(image, target)
 
         assert result_data.shape == (
-            int(size / crop_size) ** 2,
+            int(size // crop_size) ** 2,
             channels + 1,
             crop_size,
             crop_size,
@@ -74,7 +96,7 @@ class TestClassPreprocessing:
         pytest.preprocessing.pad = pad_size, pad_size
 
         result_data = pytest.preprocessing(image, target)
-        assert result_data.shape == (1, channels + 1, pad_size, pad_size)
+        assert result_data.shape == (1, channels + 1, size + pad_size, size + pad_size)
         assert result_data.dtype == np.uint8
 
         #uneven size padding test
@@ -88,7 +110,7 @@ class TestClassPreprocessing:
         target = np.random.randint(0, 10, (size, size), dtype=np.uint8)
 
         result_data = pytest.preprocessing(image, target)
-        assert result_data.shape == (1, channels + 1, pad_size, pad_size)
+        assert result_data.shape == (1, channels + 1, size + pad_size, size + pad_size)
         assert result_data.dtype == np.uint8
 
     def test_set_padding(self):
@@ -107,7 +129,7 @@ class TestClassPreprocessing:
         # y greater than cropsize test
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (crop_size, crop_size)
+        assert pytest.preprocessing.pad == (crop_size - size_x, crop_size - size_y)
 
         size_x = 100
         size_y = 166
@@ -118,7 +140,7 @@ class TestClassPreprocessing:
         # x greater than cropsize test
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (crop_size, size_y)
+        assert pytest.preprocessing.pad == (crop_size - size_x, crop_size-(size_y % crop_size))
 
         size_x = 170
         size_y = 142
@@ -129,7 +151,7 @@ class TestClassPreprocessing:
         # both greater than cropsize test
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (size_x, crop_size)
+        assert pytest.preprocessing.pad == (crop_size-(size_x % crop_size), crop_size - size_y)
 
         pytest.preprocessing.pad = None
 
@@ -141,7 +163,17 @@ class TestClassPreprocessing:
 
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad is None
+        assert pytest.preprocessing.pad == (crop_size-(size_x % crop_size),crop_size-(size_y % crop_size))
+
+        size_x = 150
+        size_y = 150
+        image = torch.Tensor(
+            (np.random.rand(channels, size_y, size_x) * 255).astype("uint8")
+        )
+
+        pytest.preprocessing.set_padding(image)
+
+        assert pytest.preprocessing.pad == (0,0)
 
     def test_scale(self):
         """Verify scale function"""

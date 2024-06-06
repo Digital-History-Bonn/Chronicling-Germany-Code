@@ -1,4 +1,4 @@
-matplotlib
+matplotlib == 3.6
 numpy
 pillow
 torch
@@ -12,8 +12,13 @@ pylint
 tensorboard
 torchvision
 nox
+nltk
 lxml
 shapely
 ml_collections
 positional-encodings
 torchmetrics
+opencv-python
+tikzplotlib
+Levenshtein
+monai
