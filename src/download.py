@@ -34,6 +34,8 @@ def download_extract(url: str, target_path: str):
     with zipfile.ZipFile(f"{target_path}/data.zip", 'r') as zipper:
         zipper.extractall(path=target_path)
 
+    os.remove(f"{target_path}/data.zip")
+
 
 def adjust_path(path: Optional[str]) -> Optional[str]:
     """
@@ -93,6 +95,7 @@ def get_args() -> argparse.Namespace:
 
 def main():
     """Downloads dataset and our models."""
+    print('Please be patient downloading process can take a while...')
     args = get_args()
 
     dataset_path = adjust_path(args.dataset_path)
