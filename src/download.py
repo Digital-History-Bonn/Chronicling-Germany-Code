@@ -1,17 +1,17 @@
 """Script for downloading dataset and our models"""
 import argparse
 import os
+import zipfile
 from typing import Optional
 
 import requests
-import zipfile
 
-dataset_url = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
+DATASET_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
                "archive/main/Chronicling-Germany-Dataset-main.zip?path=data")
-models_url = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
-              "archive/main/Chronicling-Germany-Dataset-main.zip?path=models")
-general_url = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
+GENERAL_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
                "archive/main/Chronicling-Germany-Dataset-main.zip?path=generalization")
+MODELS_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
+              "archive/main/Chronicling-Germany-Dataset-main.zip?path=models")
 
 
 def download_extract(url: str, target_path: str):
@@ -102,14 +102,14 @@ def main():
     model_path = adjust_path(args.model_path)
 
     if args.dataset or args.all:
-        print(f"downloading main dataset ...")
-        download_extract(dataset_url, dataset_path)
-        print(f"downloading generalization dataset ...")
-        download_extract(general_url, dataset_path)
+        print("downloading main dataset ...")
+        download_extract(DATASET_URL, dataset_path)
+        print("downloading generalization dataset ...")
+        download_extract(GENERAL_URL, dataset_path)
 
     if args.models or args.all:
-        print(f"downloading models ...")
-        download_extract(models_url, model_path)
+        print("downloading models ...")
+        download_extract(MODELS_URL, model_path)
 
 
 if __name__ == '__main__':
