@@ -26,7 +26,7 @@ def download_extract(url: str, target_path: str):
     os.makedirs(target_path, exist_ok=True)
 
     # download
-    r = requests.get(url)
+    r = requests.get(url, timeout=10)
     with open(f"{target_path}/data.zip", 'wb') as f:
         f.write(r.content)
 
