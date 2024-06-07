@@ -13,6 +13,15 @@ All tasks are trained and evaluated individually, but work together to extract t
 Tested on Python 3.10.4.
 Two separate environments are needed for layout segmentation and OCR. Layout segmentation and baseline detection use the requirements.txt in the main folder. The OCR uses src/OCR/requirements.txt.
 
+## Download
+To download our dataset and our model the download.py script can be used:
+````
+python src/download.py -all
+````
+Use `--all` to download the dataset and the models. With --dataset and --models you can download only 
+one of both. Use `--dataset-path` and `--model-path` to change the folder where the downloaded files are saved.
+Defaults are `data/` and `models/`
+
 ## Prediction Pipeline
 To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used with the only argument being the data folder path.
 This pipeline needs two conda environments named 'layout' and 'ocr' (see requirements). 
