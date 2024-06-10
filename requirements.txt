@@ -22,3 +22,4 @@ opencv-python
 tikzplotlib
 Levenshtein
 monai
+requests
