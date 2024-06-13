@@ -1,4 +1,4 @@
-# Old News from Cologne: A Historic Newspaper Dataset
+# Chronicling-Germany-Code: A Historic Newspaper Dataset
 
 Our layout recognition model is divided into three subtasks:
 1. Layout segmentation
