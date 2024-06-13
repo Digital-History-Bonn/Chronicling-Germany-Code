@@ -1,4 +1,4 @@
-# Chronicling-Germany-Code: A Historic Newspaper Dataset
+# Chronicling-Germany: A Historic Newspaper Dataset
 
 Our layout recognition model is divided into three subtasks:
 1. Layout segmentation
