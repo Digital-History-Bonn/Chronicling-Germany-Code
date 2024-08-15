@@ -68,7 +68,10 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
     annotations_path = adjust_path(parsed_args.annotations_path)
     image_path = adjust_path(parsed_args.image_path) if parsed_args.image_path else None
     output_path = adjust_path(parsed_args.output_path)
-    log_path = adjust_path(parsed_args.log_path) if parsed_args.log_path else None
+    if parsed_args.log:
+        log_path = adjust_path(parsed_args.log_path) 
+    else:
+        log_path = None
 
     while True:
         path, done = path_queue.get()
