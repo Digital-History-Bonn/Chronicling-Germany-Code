@@ -16,7 +16,7 @@ Two separate environments are needed for layout segmentation and OCR. Layout seg
 ## Download
 To download our dataset and our model the download.py script can be used:
 ````
-python src/download.py -all
+python src/download.py --all
 ````
 Use `--all` to download the dataset and the models. With --dataset and --models you can download only 
 one of both. Use `--dataset-path` and `--model-path` to change the folder where the downloaded files are saved.
