@@ -62,7 +62,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     print(f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
     print(f"overall correct lines: {calculate_ratio(multi_page_correct)}")
     print(f"overall bad lines: {calculate_ratio(multi_page_bad)}")
-    print(f"overall bleu score: {bleu_sum}")
+    print(f"overall bleu score: {bleu_sum/len(gt_paths)}")
 
     with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
         json.dump(multi_page_bad_list, file)
