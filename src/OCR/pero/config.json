@@ -1,0 +1,9 @@
+{
+  "dim_model": 512,
+  "dim_ff": 2048,
+  "heads": 8,
+  "encoder_layers": 2,
+  "decoder_layers": 4,
+  "conv_subsampling": [8, 8],
+  "dropout_rate": 0.0
+}
