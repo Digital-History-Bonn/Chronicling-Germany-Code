@@ -60,7 +60,7 @@ class Dataset(torch.utils.data.Dataset):
         self.len = len(self.images)
 
     def get_data(self):
-        image_paths = list(glob.glob(os.path.join(self.image_path, '*.jpg')))[:200]
+        image_paths = list(glob.glob(os.path.join(self.image_path, '*.jpg')))
         xml_paths = [f"{x[:-4]}.xml" for x in image_paths]
 
         for image_path, xml_path in tqdm(zip(image_paths, xml_paths),

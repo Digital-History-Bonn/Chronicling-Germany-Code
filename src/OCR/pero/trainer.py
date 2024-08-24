@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from typing import Union, Dict, Optional
@@ -12,8 +13,7 @@ import Levenshtein
 
 from src.OCR.pero.ocr_engine import transformer
 from src.OCR.pero.dataset import Dataset
-from src.OCR.utils import set_seed
-
+from src.OCR.utils import set_seed, adjust_path
 
 ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
@@ -333,17 +333,77 @@ class Trainer:
         self.writer.flush()  # type: ignore
 
 
-def main():
-    set_seed(42)
+def get_args() -> argparse.Namespace:
+    """
+    Defines arguments.
 
-    trainset = Dataset(image_path='data/preprocessedOCR/train',
-                       target_path='data/preprocessedOCR/train',
+    Returns:
+        Namespace with parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description="train Pero OCR")
+
+    parser.add_argument(
+        "--name",
+        "-n",
+        type=str,
+        default="model",
+        help="Name of the model and the log files."
+    )
+
+    parser.add_argument(
+        "--epochs",
+        "-e",
+        type=int,
+        default=1,
+        help="Number of epochs to train."
+    )
+
+    # pylint: disable=duplicate-code
+    parser.add_argument(
+        "--train_data",
+        "-t",
+        type=str,
+        default=None,
+        help="path for folder with images jpg files and annotation xml files to train the model."
+    )
+
+    parser.add_argument(
+        "--valid_data",
+        "-v",
+        type=str,
+        default=None,
+        help="path for folder with images jpg files and annotation xml files to validate the model."
+    )
+
+    # pylint: disable=duplicate-code
+    parser.add_argument(
+        "--seed",
+        "-s",
+        type=int,
+        default=42,
+        help="Seeding number for random generators.",
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    # get args
+    args = get_args()
+    set_seed(args.seed)
+    print(f"{args =}")
+
+    train_path = adjust_path(args.train_data)
+    valid_path = adjust_path(args.valid_data)
+
+    trainset = Dataset(image_path=train_path,
+                       target_path=train_path,
                        alphabet=ALPHABET,
                        pad=False,
                        cache_images=True)
 
-    validset = Dataset(image_path='data/preprocessedOCR/valid',
-                       target_path='data/preprocessedOCR/valid',
+    validset = Dataset(image_path=valid_path,
+                       target_path=valid_path,
                        alphabet=ALPHABET,
                        pad=False,
                        cache_images=True)
@@ -355,18 +415,18 @@ def main():
         json_data = json.load(file)
 
     net: transformer.TransformerOCR = transformer.build_net(net=json_data,
-                                                input_height=CROP_HEIGHT,
-                                                input_channels=3,
-                                                nb_output_symbols=len(ALPHABET) - 2)
+                                                            input_height=CROP_HEIGHT,
+                                                            input_channels=3,
+                                                            nb_output_symbols=len(ALPHABET) - 2)
     optimizer = AdamW(net.parameters(), lr=LR)
 
     trainer = Trainer(model=net,
                       traindataset=trainset,
                       testdataset=validset,
                       optimizer=optimizer,
-                      name='test29')
+                      name=args.name)
 
-    trainer.train(2)
+    trainer.train(args.epochs)
 
 
 if __name__ == '__main__':
