@@ -411,7 +411,7 @@ def main():
     print(f"training with {len(trainset)} samples for training and {len(validset)} "
           f"samples for validation.")
 
-    with open("train/config.json", "r") as file:
+    with open("src/OCR/pero/config.json", "r") as file:
         json_data = json.load(file)
 
     net: transformer.TransformerOCR = transformer.build_net(net=json_data,
