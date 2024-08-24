@@ -80,7 +80,7 @@ class Trainer:
         self.name = name
 
         # setup tensorboard
-        train_log_dir = f"logs/runs/{self.name}"
+        train_log_dir = f"logs/runs/OCR/{self.name}"
         print(f"{train_log_dir=}")
         self.writer = SummaryWriter(train_log_dir)  # type: ignore
 
