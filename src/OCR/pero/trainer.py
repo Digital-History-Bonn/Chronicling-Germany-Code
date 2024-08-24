@@ -22,12 +22,12 @@ ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
             'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
             'ä', 'ö', 'ü', 'ſ', 'ẞ', 'à', 'è',
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-            ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '(', ')', '[', ']', '{', '}', '%', '$',
+            ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}', '%', '$',
             '\"', '„', '“', '\'', '’', '&', '+', '~']
 
 LR = 1e-4
 CROP_HEIGHT = 64
-VALID_EVERY = 12800
+VALID_EVERY = 25600
 BATCH_SIZE = 128
 
 
@@ -154,7 +154,7 @@ class Trainer:
             if self.step % VALID_EVERY == 0:
                 self.log_loss('Training', step=self.step,
                               step_loss=np.mean(loss_lst[-VALID_EVERY:]))
-                avgloss = self.valid()
+                avgloss = self.valid(part=0.1)
 
                 # early stopping
                 if self.bestavgloss is None or self.bestavgloss > avgloss:
@@ -167,7 +167,7 @@ class Trainer:
 
         del loss_lst
 
-    def valid(self) -> float:
+    def valid(self, part: float = 1.0) -> float:
         """
         Validates current model on validation set.
 
@@ -193,7 +193,7 @@ class Trainer:
 
             del crops, labels, output, loss, pred_text, ratio
 
-            if counter >= int(VALID_EVERY * 0.1):
+            if counter >= int(len(self.testloader) * part):
                 break
 
         self.log_loss('Valid',
