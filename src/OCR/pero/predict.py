@@ -175,7 +175,7 @@ def plot_image_with_text(image, distance, ratio, text, pred_text):
     ax.axis('off')
 
     # Formatting the text to display
-    display_text = f"distance={distance}\nratio={ratio}\ntext={text}\npred_text={pred_text}"
+    display_text = f"text={text}\npred_text={pred_text}\ndistance={distance}\nratio={ratio}"
 
     # Add the text to the right side of the image
     plt.text(
@@ -183,8 +183,8 @@ def plot_image_with_text(image, distance, ratio, text, pred_text):
         y=image.shape[0] + 10,  # vertically centered
         s=display_text,
         fontsize=12,
-        va='center',
-        ha='left'
+        va='bottom',
+        ha='center'
     )
 
     # Create a filename from the text, using only alphabetical letters
