@@ -85,8 +85,7 @@ class Trainer:
         self.writer = SummaryWriter(train_log_dir)  # type: ignore
 
         self.valid_example_image, self.valid_example_label, self.valid_example_text = testdataset[2]
-        self.train_example_image, self.train_example_label, self.train_example_text = traindataset[
-            0]
+        self.train_example_image, self.train_example_label, self.train_example_text = traindataset[0]
 
         self.log_text(dataset='Valid', step=self.step, ground_truth=self.valid_example_text)
         self.log_text(dataset='Training', step=self.step, ground_truth=self.train_example_text)
@@ -174,6 +173,7 @@ class Trainer:
         Returns:
             current loss
         """
+        self.model.eval()
         loss_lst = []
         levenshtein_lst = []
 
@@ -206,6 +206,8 @@ class Trainer:
 
         self.log_examples('Training')
         self.log_examples('Valid')
+
+        self.model.train()
 
         return np.mean(loss_lst)  # type: ignore
 
