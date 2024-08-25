@@ -105,7 +105,15 @@ def get_args() -> argparse.Namespace:
 
 def main():
     args = get_args()
-    print(f"{args =}")
+    print(f"{args=}")
+
+    print(f"{torch.cuda.is_available()=}")
+    device = (
+        torch.device(f"cuda:{0}")
+        if torch.cuda.is_available() and 0 >= 0
+        else torch.device("cpu")
+    )
+    print(f"using {device}")
 
     with open("src/OCR/pero/config.json", "r") as file:
         json_data = json.load(file)
@@ -115,11 +123,12 @@ def main():
                                                               input_channels=3,
                                                               nb_output_symbols=len(ALPHABET) - 2)
     model.load_state_dict(torch.load(f"models/{args.name}.pt"))
+    model.to(device)
 
     tokenizer = Tokenizer(ALPHABET)
 
-    validset = Dataset(image_path='data/OCRTrainingData/valid',
-                       target_path='data/OCRTrainingData/valid',
+    validset = Dataset(image_path=args.data,
+                       target_path=args.data,
                        alphabet=ALPHABET,
                        pad=False,
                        cache_images=True)
@@ -127,7 +136,7 @@ def main():
     for i in range(10):
         image, target, text = validset[i]
 
-        pred_text = predict(model, tokenizer, image)
+        pred_text = predict(model, tokenizer, image[None].to(device))
 
         print()
         print(f"{text=}")
