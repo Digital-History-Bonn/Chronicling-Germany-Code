@@ -2,6 +2,7 @@ import argparse
 import json
 
 import torch
+import Levenshtein
 
 from src.OCR.pero.dataset import Dataset
 from src.OCR.pero.ocr_engine import transformer
@@ -137,8 +138,12 @@ def main():
         image, target, text = validset[i]
 
         pred_text = predict(model, tokenizer, image[None].to(device))
+        distance = Levenshtein.distance(text, pred_text)
+        ratio = distance / max(len(text), len(pred_text))
 
         print()
+        print(f"{distance=}")
+        print(f"{ratio=}")
         print(f"{text=}")
         print(f"{pred_text=}")
         print()
