@@ -179,8 +179,8 @@ def plot_image_with_text(image, distance, ratio, text, pred_text):
 
     # Add the text to the right side of the image
     plt.text(
-        x=image.shape[1] + 10,  # 10 pixels to the right of the image
-        y=image.shape[0] // 2,  # vertically centered
+        x=image.shape[1] // 2,  # 10 pixels to the right of the image
+        y=image.shape[0] + 10,  # vertically centered
         s=display_text,
         fontsize=12,
         va='center',
@@ -200,7 +200,7 @@ def plot_image_with_text(image, distance, ratio, text, pred_text):
     fig.set_size_inches(8, 6)
 
     # Save the plot as a PNG file
-    plt.savefig(filename, bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(filename, bbox_inches='tight', pad_inches=0.1, dpi=500)
 
     # Close the plot to free up memory
     plt.close(fig)
