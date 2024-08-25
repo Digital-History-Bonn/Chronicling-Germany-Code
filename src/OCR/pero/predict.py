@@ -1,8 +1,10 @@
 import argparse
 import json
+from typing import re
 
 import torch
 import Levenshtein
+import matplotlib.pyplot as plt
 
 from src.OCR.pero.dataset import Dataset
 from src.OCR.pero.ocr_engine import transformer
@@ -141,12 +143,67 @@ def main():
         distance = Levenshtein.distance(text, pred_text)
         ratio = distance / max(len(text), len(pred_text))
 
+        plot_image_with_text(image, distance, ratio, text, pred_text)
+
         print()
         print(f"{distance=}")
         print(f"{ratio=}")
         print(f"{text=}")
         print(f"{pred_text=}")
         print()
+
+
+def plot_image_with_text(image, distance, ratio, text, pred_text):
+    """
+    Plots an image and writes the provided texts next to it.
+
+    Parameters:
+    - image: The image to plot (as a NumPy array).
+    - distance: The distance value to display.
+    - ratio: The ratio value to display.
+    - text: The text value to display.
+    - pred_text: The predicted text value to display.
+    """
+
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+
+    # Show the image
+    ax.imshow(image)
+
+    # Hide the axes
+    ax.axis('off')
+
+    # Formatting the text to display
+    display_text = f"distance={distance}\nratio={ratio}\ntext={text}\npred_text={pred_text}"
+
+    # Add the text to the right side of the image
+    plt.text(
+        x=image.shape[1] + 10,  # 10 pixels to the right of the image
+        y=image.shape[0] // 2,  # vertically centered
+        s=display_text,
+        fontsize=12,
+        va='center',
+        ha='left'
+    )
+
+    # Create a filename from the text, using only alphabetical letters
+    clean_filename = re.sub(r'[^a-zA-Z]', '', text)
+    if clean_filename == "":
+        clean_filename = "output"  # Fallback to a default name if the result is empty
+    filename = f"logs/peroimages/{clean_filename}.png"
+
+    # Adjust layout to fit text
+    plt.tight_layout()
+
+    # Adjusting the figure size to accommodate text
+    fig.set_size_inches(8, 6)
+
+    # Save the plot as a PNG file
+    plt.savefig(filename, bbox_inches='tight', pad_inches=0.1)
+
+    # Close the plot to free up memory
+    plt.close(fig)
 
 
 if __name__ == '__main__':
