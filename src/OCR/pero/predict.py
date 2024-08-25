@@ -143,7 +143,7 @@ def main():
         distance = Levenshtein.distance(text, pred_text)
         ratio = distance / max(len(text), len(pred_text))
 
-        plot_image_with_text(image, distance, ratio, text, pred_text)
+        plot_image_with_text(image.permute(1, 2, 0), distance, ratio, text, pred_text)
 
         print()
         print(f"{distance=}")
