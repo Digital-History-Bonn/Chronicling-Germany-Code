@@ -178,10 +178,10 @@ def plot_image_with_text(image, distance, ratio, text, pred_text):
     display_text = f"text={text}\npred_text={pred_text}\ndistance={distance}\nratio={ratio}"
 
     # Add the text to the right side of the image
-    plt.text(
-        x=image.shape[1] // 2,  # 10 pixels to the right of the image
-        y=image.shape[0] + 10,  # vertically centered
-        s=display_text,
+    plt.figtext(
+        0.5,  # Center horizontally
+        0.01,  # Near the bottom of the figure
+        display_text,
         fontsize=12,
         va='bottom',
         ha='center'
