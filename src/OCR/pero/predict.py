@@ -1,6 +1,6 @@
 import argparse
 import json
-from typing import re
+import re
 
 import torch
 import Levenshtein
