@@ -133,7 +133,7 @@ def main():
                        pad=False,
                        cache_images=True)
 
-    for i in range(10):
+    for i in range(100):
         image, target, text = validset[i]
 
         pred_text = predict(model, tokenizer, image[None].to(device))
