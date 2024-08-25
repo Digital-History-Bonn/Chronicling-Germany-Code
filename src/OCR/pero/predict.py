@@ -124,14 +124,15 @@ def main():
                        pad=False,
                        cache_images=True)
 
-    image, target, text = validset[0]
+    for i in range(10):
+        image, target, text = validset[i]
 
-    pred_text = predict(model, tokenizer, image)
+        pred_text = predict(model, tokenizer, image)
 
-    print(f"{pred_text=}")
-    print(f"{target=}")
-    print(f"{text=}")
-    print(f"{pred_text=}")
+        print()
+        print(f"{text=}")
+        print(f"{pred_text=}")
+        print()
 
 
 if __name__ == '__main__':
