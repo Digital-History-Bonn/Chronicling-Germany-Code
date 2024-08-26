@@ -20,10 +20,11 @@ ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
             'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
             'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-            'ä', 'ö', 'ü', 'ſ', 'ß', 'à', 'è',
+            'ä', 'ö', 'ü', 'Ä', 'Ö', 'Ü', 'ſ', 'ß', 'à', 'á', 'è', 'é', 'ò', 'ó', 'ù', 'ú',
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-            ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}', '%', '$',
-            '\"', '„', '“', '\'', '’', '&', '+', '~']
+            ' ', ',', '.', '?', '!', '-', '—', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}',
+            '%', '$', '£', '§', '\"', '„', '“', '»', '«', '\'', '’', '&', '+', '~', '*', '=', '†']
+            # 'ñ', 'ë', 'π', 'ο', 'λ', 'ε', 'ε', 'ç', 'Μ', 'υ', 'η', 'û', 'ê', 'â', 'ô', 'š', 'ι', '�', 'Κ', 'θ', 'î', 'γ', 'ů', '°', 'ξ', 'ρ', 'ꝛ', 'α', 'ς', 'τ', 'ν', 'ω', 'æ', 'œ', 'μ', 'σ', 'δ', 'ꝙ', 'ï', 'κ', 'Ε', 'ζ', 'Π', '·', 'φ', 'ψ', 'β', 'Σ']
 
 LR = 1e-4
 CROP_HEIGHT = 64
@@ -182,6 +183,7 @@ class Trainer:
             counter += 1
             crop = crop.to(self.device)
             target = target.to(self.device)
+            text = text[0]
 
             output = self.model.forward(crop, target[:, :-1]).view(-1, len(ALPHABET))
             loss = self.loss_fn(output, target[:, 1:].view(-1))
@@ -191,11 +193,6 @@ class Trainer:
             distance = Levenshtein.distance(pred_text, text)
             ratio = distance / max(len(pred_text), len(text))
             levenshtein_lst.append(ratio)
-
-            print(f"{len(pred_text)}: {pred_text=}")
-            print(f"{len(text)}: {text=}")
-            print(f"{distance=}")
-            print(f"{ratio=}")
 
             del crop, target, output, loss, pred_text, distance, ratio
 

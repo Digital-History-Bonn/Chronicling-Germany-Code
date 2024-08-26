@@ -100,27 +100,9 @@ class Dataset(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
+    from src.OCR.pero.trainer import ALPHABET
 
-    ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
-                'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
-                'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
-                'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-                'ä', 'ö', 'ü', 'ſ', 'ẞ', 'à',
-                '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-                ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '(', ')',
-                '\"', '\'', '&', '+' '~']
-
-    dataset = Dataset(image_path='../data/preprocessedOCR/train',
-                      target_path='../data/preprocessedOCR/train',
+    dataset = Dataset(image_path='data/preprocessedOCR/train',
+                      target_path='data/preprocessedOCR/train',
                       alphabet=ALPHABET,
                       cache_images=True)
-    crop, text = dataset[0]
-
-    print(f"{crop.shape=}")
-    print(f"{text=}")
-
-    plt.imshow(crop.permute(1, 2, 0).int())
-    plt.title(text)
-    plt.show()

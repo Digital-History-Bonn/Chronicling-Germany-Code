@@ -5,11 +5,15 @@ import torch.nn.functional as F
 
 
 class Tokenizer:
-    def __init__(self, alphabet: List[str], pad: bool=False, max_lenght: int = 512):
+    def __init__(self, alphabet: List[str],
+                 pad: bool=False,
+                 max_lenght: int = 512,
+                 print_nan: bool = False):
         self.alphabet = {token: i for i, token in enumerate(alphabet)}
         self.inverse = {i: token for i, token in enumerate(alphabet)}
         self.pad = pad
         self.max_lenght = max_lenght
+        self.print_nan = print_nan
 
     def __call__(self, text: str) -> torch.Tensor:
         ids = [self.alphabet[t] if t in self.alphabet.keys() else self.alphabet['<NAN>'] for t in text]
@@ -28,5 +32,6 @@ class Tokenizer:
             token = self.inverse[id.item()]
             if token == '<END>':
                 break
-            text += token
+            text += token if self.print_nan or token != '<NAN>' else ' '
+
         return text
