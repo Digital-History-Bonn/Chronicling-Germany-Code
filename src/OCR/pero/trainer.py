@@ -1,3 +1,5 @@
+"""Trainer for the Pero Transformer based OCR."""
+
 import argparse
 import json
 import os
@@ -24,12 +26,14 @@ ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
             ' ', ',', '.', '?', '!', '-', '—', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}',
             '%', '$', '£', '§', '\"', '„', '“', '»', '«', '\'', '’', '&', '+', '~', '*', '=', '†']
-            # 'ñ', 'ë', 'π', 'ο', 'λ', 'ε', 'ε', 'ç', 'Μ', 'υ', 'η', 'û', 'ê', 'â', 'ô', 'š', 'ι', '�', 'Κ', 'θ', 'î', 'γ', 'ů', '°', 'ξ', 'ρ', 'ꝛ', 'α', 'ς', 'τ', 'ν', 'ω', 'æ', 'œ', 'μ', 'σ', 'δ', 'ꝙ', 'ï', 'κ', 'Ε', 'ζ', 'Π', '·', 'φ', 'ψ', 'β', 'Σ']
+            # 'ñ', 'ë', 'π', 'ο', 'λ', 'ε', 'ε', 'ç', 'Μ', 'υ', 'η', 'û', 'ê', 'â', 'ô', 'š', 'ι',
+            # '�', 'Κ', 'θ', 'î', 'γ', 'ů', '°', 'ξ', 'ρ', 'ꝛ', 'α', 'ς', 'τ', 'ν', 'ω', 'æ', 'œ',
+            # 'μ', 'σ', 'δ', 'ꝙ', 'ï', 'κ', 'Ε', 'ζ', 'Π', '·', 'φ', 'ψ', 'β', 'Σ']
 
 LR = 1e-4
 CROP_HEIGHT = 64
-VALID_EVERY = 25600
-BATCH_SIZE = 128
+VALID_EVERY = 51200
+BATCH_SIZE = 256
 
 
 class Trainer:
@@ -69,10 +73,10 @@ class Trainer:
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
         self.trainloader = DataLoader(
-            traindataset, batch_size=1, shuffle=True, num_workers=24
+            traindataset, batch_size=1, shuffle=True, num_workers=32
         )
         self.testloader = DataLoader(
-            testdataset, batch_size=1, shuffle=False, num_workers=24
+            testdataset, batch_size=1, shuffle=False, num_workers=32
         )
 
         self.bestavgloss: Union[float, None] = None
@@ -218,18 +222,18 @@ class Trainer:
                 start_token_idx: int = 1,
                 eos_token_idx: int = 3):
         """
-            Perform autoregressive prediction using the transformer decoder.
+        Perform autoregressive prediction using the transformer decoder.
 
-            Args:
-                images: Input tensor for the encoder, expected shape [batch_size, seq_length].
-                max_length: Maximum len
-                gth of the sequence to be generated.
-                start_token_idx: Index of the start token in the vocabulary.
-                eos_token_idx: Index of the end token in the vocabulary.
+        Args:
+            images: Input tensor for the encoder, expected shape [batch_size, seq_length].
+            max_length: Maximum len
+            gth of the sequence to be generated.
+            start_token_idx: Index of the start token in the vocabulary.
+            eos_token_idx: Index of the end token in the vocabulary.
 
-            Returns:
-                generated_sequences: The predicted sequences, shape [batch_size, max_length].
-            """
+        Returns:
+            generated_sequences: The predicted sequences, shape [batch_size, max_length].
+        """
 
         # Step 1: Encode the input sequence
         encoder_output = self.model.encode(images)
@@ -251,11 +255,8 @@ class Trainer:
             tgt_embs = self.model.dec_embeder(generated_sequences)
             tgt_embs = self.model.pos_encoder(tgt_embs)
 
-            # print(f"{i}: {tgt_embs.shape=}")
-
             # Step 3c: Pass through the decoder
             decoder_output = self.model.trans_decoder(tgt_embs, encoder_output, tgt_mask=dec_mask)
-            # print(f"{i}: {decoder_output.shape=}")
 
             # Step 3d: Project the decoder output to vocabulary size and get the next token
             # Use the last step's output for next token

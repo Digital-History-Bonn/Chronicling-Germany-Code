@@ -1,3 +1,5 @@
+"""Predict function for Pero Transformer based OCR."""
+
 import argparse
 import json
 import re
@@ -8,16 +10,28 @@ import matplotlib.pyplot as plt
 
 from src.OCR.pero.dataset import Dataset
 from src.OCR.pero.ocr_engine import transformer
-from src.OCR.pero.trainer import ALPHABET, CROP_HEIGHT
+from src.OCR.pero.trainer import CROP_HEIGHT
 from src.OCR.pero.utils import Tokenizer
 
+
+ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+            'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+            'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            'ä', 'ö', 'ü', 'ſ', 'ẞ', 'à', 'è',
+            '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+            ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}', '%', '$',
+            '\"', '„', '“', '\'', '’', '&', '+', '~']
 
 def predict(model: transformer.TransformerOCR,
             tokenizer: Tokenizer,
             images: torch.Tensor,
             max_length: int = 100,
             start_token_idx: int = 1,
-            eos_token_idx: int = 3):
+            eos_token_idx: int = 3,
+            nan_token_idx: int= 2,
+            predict_nan: bool = False):
     """
     Perform autoregressive prediction using the transformer decoder.
 
@@ -54,15 +68,15 @@ def predict(model: transformer.TransformerOCR,
         tgt_embs = model.dec_embeder(generated_sequences)
         tgt_embs = model.pos_encoder(tgt_embs)
 
-        # print(f"{i}: {tgt_embs.shape=}")
-
         # Step 3c: Pass through the decoder
         decoder_output = model.trans_decoder(tgt_embs, encoder_output, tgt_mask=dec_mask)
-        # print(f"{i}: {decoder_output.shape=}")
 
         # Step 3d: Project the decoder output to vocabulary size and get the next token
         # Use the last step's output for next token
         output_logits = model.dec_out_proj(decoder_output[-1, :, :])
+        if not predict_nan:
+            output_logits[:, nan_token_idx] = -float('inf')
+
         next_token = output_logits.argmax(dim=-1,
                                           keepdim=True)  # Get the most likely next token
 
@@ -148,8 +162,8 @@ def main():
         print()
         print(f"{distance=}")
         print(f"{ratio=}")
-        print(f"{text=}")
-        print(f"{pred_text=}")
+        print(f"text:\t\t{text}")
+        print(f"prediction:\t{pred_text}")
         print()
 
 
