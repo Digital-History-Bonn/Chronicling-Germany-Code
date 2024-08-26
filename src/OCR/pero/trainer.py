@@ -20,7 +20,7 @@ ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
             'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
             'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-            'ä', 'ö', 'ü', 'ſ', 'ẞ', 'à', 'è',
+            'ä', 'ö', 'ü', 'ſ', 'ß', 'à', 'è',
             '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
             ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}', '%', '$',
             '\"', '„', '“', '\'', '’', '&', '+', '~']
@@ -133,22 +133,22 @@ class Trainer:
         loss_lst = []
 
         process_bar = tqdm(self.trainloader, desc="training")
-        for crops, labels, _ in process_bar:
+        for crop, target, _ in process_bar:
             self.step += 1
-            crops = crops.to(self.device)
-            labels = labels.to(self.device)
+            crop = crop.to(self.device)
+            target = target.to(self.device)
+
+            output = self.model.forward(crop, target[:, :-1])
+            loss = self.loss_fn(output.squeeze(), target[:, 1:].squeeze())
+            loss.backward()
+            loss_lst.append(loss.cpu().detach())
 
             if self.step % BATCH_SIZE == 0:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-            output = self.model.forward(crops, labels[:, :-1])
-            loss = self.loss_fn(output.squeeze(), labels[:, 1:].squeeze())
-            loss.backward()
-
-            loss_lst.append(loss.cpu().detach())
-
-            process_bar.set_description(f"training loss: {loss_lst[-1]}")
+                process_bar.set_description(
+                    f"training loss: {np.mean(loss_lst[-BATCH_SIZE:])}")
 
             if self.step % VALID_EVERY == 0:
                 self.log_loss('Training', step=self.step,
@@ -160,7 +160,7 @@ class Trainer:
                     self.bestavgloss = avgloss
                     self.save(f"{self.name}_es.pt")
 
-            del crops, labels, output, loss
+            del crop, target, output, loss
 
         self.log_loss('Training', loss=np.mean(loss_lst))
 
@@ -178,20 +178,26 @@ class Trainer:
         levenshtein_lst = []
 
         counter = 0
-        for crops, labels, text in tqdm(self.testloader, desc="validation"):
+        for crop, target, text in tqdm(self.testloader, desc="validation"):
             counter += 1
-            crops = crops.to(self.device)
-            labels = labels.to(self.device)
+            crop = crop.to(self.device)
+            target = target.to(self.device)
 
-            output = self.model.forward(crops, labels[:, :-1]).view(-1, len(ALPHABET))
-            loss = self.loss_fn(output, labels[:, 1:].view(-1))
+            output = self.model.forward(crop, target[:, :-1]).view(-1, len(ALPHABET))
+            loss = self.loss_fn(output, target[:, 1:].view(-1))
             loss_lst.append(loss.cpu().detach())
 
-            pred_text = self.predict(crops)
-            ratio = Levenshtein.distance(pred_text, text) / max(len(pred_text), len(text))
+            pred_text = self.predict(crop)
+            distance = Levenshtein.distance(pred_text, text)
+            ratio = distance / max(len(pred_text), len(text))
             levenshtein_lst.append(ratio)
 
-            del crops, labels, output, loss, pred_text, ratio
+            print(f"{len(pred_text)}: {pred_text=}")
+            print(f"{len(text)}: {text=}")
+            print(f"{distance=}")
+            print(f"{ratio=}")
+
+            del crop, target, output, loss, pred_text, distance, ratio
 
             if counter >= int(len(self.testloader) * part):
                 break
