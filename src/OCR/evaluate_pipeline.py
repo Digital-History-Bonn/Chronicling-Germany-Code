@@ -12,9 +12,10 @@ from shapely import intersection, union
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
-from src.OCR.evaluate_ocr import levensthein_distance, calculate_ratio
+from src.OCR.evaluate_ocr import evaluate_lines, calculate_ratio
 from src.baseline_detection.class_config import TEXT_CLASSES
 from src.baseline_detection.utils import get_tag, adjust_path
+
 
 # pylint: disable=duplicate-code
 def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
@@ -104,7 +105,7 @@ def matching(predictions: List[Polygon],
     return mapping
 
 
-def evaluation(prediction_file: str, ground_truth_file: str) -> List[Tuple[int, int]]:
+def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[List[Tuple[int, int]], float]:
     """
     Evaluates the baseline detection.
 
@@ -130,7 +131,7 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> List[Tuple[int, 
     pred_texts = [pred_texts[i] for i, _ in mapping]
     gt_texts = [gt_texts[j] for _, j in mapping]
 
-    lev_dis, lev_med, ratio_list, distance_list, _ = levensthein_distance(
+    lev_dis, lev_med, ratio_list, distance_list, _, bleu_score = evaluate_lines(
         gt=[gt_texts],
         ocr=[pred_texts],
         confidence_list=[[1] * len(pred_texts)]
@@ -144,8 +145,10 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> List[Tuple[int, 
     print(f"{prediction_file} normalized levensthein distance per character: {char_ratio}")
     print(f"{prediction_file} levensthein median: {lev_med}")
     print(f"{prediction_file} levensthein worst line: {min(ratio_list)}\n")
+    print(f"{prediction_file} bleu score normalized per line: {bleu_score}")
 
-    return distance_list
+    return distance_list, bleu_score
+
 
 # pylint: disable=duplicate-code
 def get_args() -> argparse.Namespace:
@@ -174,6 +177,7 @@ def get_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
+
 # pylint: disable=duplicate-code
 def main() -> None:
     """Evaluates baseline predicts."""
@@ -187,17 +191,21 @@ def main() -> None:
 
     overall_distance_list = []
     ratios = []
+    bleu_sum = 0
 
     for prediction, target in tqdm(zip(predictions, targets), total=len(targets),
                                    desc='evaluation'):
-        distance_list = evaluation(prediction, target)
+        distance_list, bleu_score = evaluation(prediction, target)
+        bleu_sum += bleu_score
         overall_distance_list += distance_list
         ratios.append(calculate_ratio(distance_list))
 
-    overall_ratio = calculate_ratio(overall_distance_list)
-    print(f"\n\n{overall_ratio=}")
-    print(f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "
-          f"min:{np.min(ratios)} max: {np.max(ratios)}")
+    if len(targets):
+        overall_ratio = calculate_ratio(overall_distance_list)
+        print(f"\n\n{overall_ratio=}")
+        print(
+            f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: {np.max(ratios)}")
+        print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
 
 
 if __name__ == '__main__':
