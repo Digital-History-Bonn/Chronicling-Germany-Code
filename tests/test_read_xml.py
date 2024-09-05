@@ -14,7 +14,7 @@ class TestClassReadXML:
 
     def test_read(self):
         """tests read function of newspaper and HLNA Data"""
-        result = read_transkribus(DATA_PATH + "newspaper/test-annotation.xml")
+        result = read_transkribus(DATA_PATH + "newspaper/test-annotation.xml", True)
         with open(DATA_PATH + "newspaper/test-target.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
             assert result == ground_truth

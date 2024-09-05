@@ -1,3 +1,4 @@
+import json
 from csv import reader
 from typing import Any, Tuple, List
 import numpy as np
@@ -73,8 +74,9 @@ TAGS = ['current+best',
 # ]
 
 RUNS = [
-    ['neurips_dh_segment_scratch_1.0', 'neurips_dh_segment_scratch_2.0', 'neurips_dh_segment_scratch_3.0', 'neurips_dh_segment_scratch_4.0'],
-    ['neurips_dh_segment_1.0', 'neurips_dh_segment_2.0', 'neurips_dh_segment_3.0', 'neurips_dh_segment_4.0']
+    ['neurips-08-2024_scratch_1.0eval', 'neurips-08-2024_scratch_2.0eval', 'neurips-08-2024_scratch_3.0eval',
+     'neurips-08-2024_scratch_4.0eval'],
+    ['neurips-08-2024_1.0eval', 'neurips-08-2024_2.0eval', 'neurips-08-2024_3.0eval', 'neurips-08-2024_4.0eval']
 ]
 
 # RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
@@ -415,7 +417,8 @@ def class_precision():
     ylabel = 'Precision'
 
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
-    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    return mean.tolist(), std.tolist()
 
 
 def get_data_bar(tags):
@@ -477,8 +480,34 @@ def class_recall():
     title = "Multi Class Recall"
     ylabel = "Recall"
 
+    return mean.tolist(), std.tolist()
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
-    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+
+
+def class_f1():
+    tags = ['multi-f1-test/class 0',
+            'multi-f1-test/class 1',
+            'multi-f1-test/class 2',
+            'multi-f1-test/class 3',
+            'multi-f1-test/class 4',
+            'multi-f1-test/class 5',
+            'multi-f1-test/class 6',
+            'multi-f1-test/class 7',
+            'multi-f1-test/class 8',
+            'multi-f1-test/class 9']
+
+    mean, std = get_data_bar(tags)
+
+    # labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
+    labels = ["scratch", "pretrained"]
+    name = "final-class-recall"
+    title = "Multi Class Recall"
+    ylabel = "Recall"
+
+    return mean.tolist(), std.tolist()
+    # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
 
 
 def results():
@@ -501,14 +530,24 @@ def results():
 
 
 def bar():
-    class_sci()
-    results()
-    # class_precision()
-    # class_recall()
+    # class_sci()
+    # results()
+    results = []
+    results.append(class_precision())
+    print("precision")
+    results.append(class_recall())
+    print("recall")
+    results.append(class_f1())
+    print("f1")
+
+    with open('eval_results.json', 'w', encoding='utf8') as json_file:
+        json.dump(results, json_file)
+
 
 def main():
     # graph()
     bar()
+
 
 if __name__ == "__main__":
     main()

@@ -41,6 +41,9 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
     ]
 
+    print(len(paths))
+    print(len(target_paths))
+
     path_queue: Queue = Queue()
     processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
     for process in processes:
@@ -52,10 +55,11 @@ def main(parsed_args: argparse.Namespace) -> None:
         while not path_queue.empty():
             pbar.n = total - path_queue.qsize()
             pbar.refresh()
-            sleep(1)
+            sleep(0.1)
     for _ in processes:
         path_queue.put(("", True))
     for process in tqdm(processes, desc="Waiting for processes to end"):
+        path_queue.put(("", True))
         process.join()
 
 
@@ -68,7 +72,6 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
     annotations_path = adjust_path(parsed_args.annotations_path)
     image_path = adjust_path(parsed_args.image_path) if parsed_args.image_path else None
     output_path = adjust_path(parsed_args.output_path)
-    log_path = adjust_path(parsed_args.log_path) if parsed_args.log_path else None
 
     while True:
         path, done = path_queue.get()
@@ -76,7 +79,7 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
             break
         read = (
             # pylint: disable=unnecessary-lambda-assignment
-            lambda file: read_xml.read_transkribus(path=file, log_path=log_path)
+            lambda file: read_xml.read_transkribus(path=file, log=parsed_args.log)
             if parsed_args.dataset == "transkribus"
             else read_xml.read_hlna2013
         )

@@ -254,10 +254,13 @@ class Trainer:
         self.model.eval()
         size = len(loader)
 
-        loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum = (
+        (loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum, f1_score,
+         f1_score_sum) = (
             0.0,
             0.0,
             0.0,
+            torch.zeros(OUT_CHANNELS),
+            torch.zeros(OUT_CHANNELS),
             torch.zeros(OUT_CHANNELS),
             torch.zeros(OUT_CHANNELS),
             torch.zeros(OUT_CHANNELS),
@@ -289,10 +292,11 @@ class Trainer:
             if self.time_debug:
                 print(f"Val loss takes:{loss_time - end}")
 
-            accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum = self.evaluate_batch(
+            (accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum,
+             f1_score, f1_score_sum) = self.evaluate_batch(
                 accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision,
                 precision_sum,
-                recall, recall_sum)
+                recall, recall_sum, f1_score, f1_score_sum)
 
             loss += batch_loss
             scores = time()
@@ -308,6 +312,7 @@ class Trainer:
         class_acc_ndarray = (class_acc / class_sum).detach().cpu().numpy()
         precision_ndarray = (precision / precision_sum).detach().cpu().numpy()
         recall_ndarray = (recall / recall_sum).detach().cpu().numpy()
+        f1_score_ndarray = (f1_score / f1_score_sum).detach().cpu().numpy()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.val_logging(
@@ -317,6 +322,7 @@ class Trainer:
                 class_acc_ndarray,
                 precision_ndarray,
                 recall_ndarray,
+                f1_score_ndarray,
                 test_validation,
             )
 
@@ -330,8 +336,9 @@ class Trainer:
     def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
                        jaccard: float, pred: Tensor, targets: Tensor, test_validation: bool,
                        precision: Tensor,
-                       precision_sum: Tensor, recall: Tensor, recall_sum: Tensor) -> Tuple[
-        float, Tensor, Tensor, float, Tensor, Tensor, Tensor, Tensor]:
+                       precision_sum: Tensor, recall: Tensor, recall_sum: Tensor, f1_score: Tensor,
+                       f1_score_sum: Tensor) -> Tuple[
+        float, Tensor, Tensor, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
         Evaluates prediction results of one validation(or test) batch. Updates running score variables. Uses Multi
         Threading to speed up score calculation. Despite threading inside python not being able to run on more than
@@ -361,8 +368,9 @@ class Trainer:
 
         batch_precision = torch.zeros(OUT_CHANNELS)
         batch_recall = torch.zeros(OUT_CHANNELS)
+        batch_f1 = torch.zeros(OUT_CHANNELS)
         if test_validation:
-            batch_precision, batch_recall = multi_precison_recall(pred, targets, OUT_CHANNELS)
+            batch_precision, batch_recall, batch_f1 = multi_precison_recall(pred, targets, OUT_CHANNELS)
 
         pred_batches = split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1),
                                      self.num_scores_splits)
@@ -390,7 +398,12 @@ class Trainer:
         recall_sum += 1 - torch.isnan(
             batch_recall.detach().cpu()).int()
 
-        return accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum
+        f1_score += torch.nan_to_num(batch_f1.detach().cpu())
+        f1_score_sum += 1 - torch.isnan(
+            batch_f1.detach().cpu()).int()
+
+        return (accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum, f1_score,
+                f1_score_sum)
 
     def val_logging(
             self,
@@ -400,6 +413,7 @@ class Trainer:
             class_accs: ndarray,
             precision: ndarray,
             recall: ndarray,
+            f1_score: ndarray,
             test_validation: bool,
     ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
@@ -456,6 +470,12 @@ class Trainer:
                     value = 0
                 self.summary_writer.add_scalar(
                     f"multi-recall-{environment}/class {i}", value, global_step=self.step
+                )
+            for i, value in enumerate(f1_score):
+                if np.isnan(value):
+                    value = 0
+                self.summary_writer.add_scalar(
+                    f"multi-f1-{environment}/class {i}", value, global_step=self.step
                 )
 
         self.summary_writer.add_image(
@@ -770,7 +790,7 @@ def main() -> None:
     epochs = 0 if parameter_args.evaluate else parameter_args.epochs
 
     # setup tensor board
-    train_log_dir = "logs/runs/" + name + "eval" if parameter_args.evaluate else "logs/runs/" + name
+    train_log_dir = "logs/runs/" + name + "_eval" if parameter_args.evaluate else "logs/runs/" + name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
