@@ -153,7 +153,8 @@ def evaluate_lines(gt: List[List[str]], ocr: List[List[str]],
         count += len(gt_region)
         for gt_line, ocr_line, conf in zip(gt_region, ocr_region, conf_region):
             if sufficient_confidence(conf, confidence_threshold):
-                bleu_sum += sentence_bleu([ocr_line.split(" ")], gt_line.split(" "), smoothing_function=chencherry.method1)
+                bleu_sum += sentence_bleu([ocr_line.split(" ")], gt_line.split(" "),
+                                          smoothing_function=chencherry.method1)
                 ratio = Levenshtein.ratio(gt_line, ocr_line)
                 distance = Levenshtein.distance(gt_line, ocr_line)
                 distance_list.append((distance, len(gt_line) + len(ocr_line)))

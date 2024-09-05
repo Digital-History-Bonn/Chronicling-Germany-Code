@@ -200,11 +200,12 @@ def main() -> None:
         overall_distance_list += distance_list
         ratios.append(calculate_ratio(distance_list))
 
-    if len(targets):
+    if len(targets) > 0:
         overall_ratio = calculate_ratio(overall_distance_list)
         print(f"\n\n{overall_ratio=}")
         print(
-            f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: {np.max(ratios)}")
+            f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
+            f"{np.max(ratios)}")
         print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
 
 
