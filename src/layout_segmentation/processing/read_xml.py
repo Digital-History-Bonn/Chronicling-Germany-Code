@@ -18,7 +18,7 @@ def read_transkribus(
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
-    :param log: path to log file
+    :param log: activates tag check logging
     :return: dictionary {height: , width: , tags: {tag_name_1: [], tag_name_2: [], ...}}
     """
     with open(path, "r", encoding="utf-8") as file:

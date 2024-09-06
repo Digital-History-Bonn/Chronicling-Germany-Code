@@ -41,8 +41,6 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
     ]
 
-    print(len(paths))
-    print(len(target_paths))
 
     path_queue: Queue = Queue()
     processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
@@ -55,11 +53,10 @@ def main(parsed_args: argparse.Namespace) -> None:
         while not path_queue.empty():
             pbar.n = total - path_queue.qsize()
             pbar.refresh()
-            sleep(0.1)
+            sleep(1)
     for _ in processes:
         path_queue.put(("", True))
     for process in tqdm(processes, desc="Waiting for processes to end"):
-        path_queue.put(("", True))
         process.join()
 
 
@@ -163,7 +160,8 @@ def get_args() -> argparse.Namespace:
         "-l",
         action="store_true",
         dest="log",
-        help="Activates logging.",
+        help="Activates command line unkown regions logging. This reports all unkown regions and region type "
+             "mismatches for each file.",
     )
     parser.add_argument(
         "--json",
