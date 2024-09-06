@@ -16,11 +16,12 @@ Two separate environments are needed for layout segmentation and OCR. Layout seg
 ## Download
 To download our dataset and our model the download.py script can be used:
 ````
-python src/download.py --all
+python download.py --all
 ````
 Use `--all` to download the dataset and the models. With --dataset and --models you can download only 
 one of both. Use `--dataset-path` and `--model-path` to change the folder where the downloaded files are saved.
-Defaults are `data/` and `models/`
+Defaults are `data/` and `models/`. When Downloading data also the split.json file will be downloaded in an extra 
+folder. It provides a dataset split for train, validation and test.
 
 ## Prediction Pipeline
 To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used with the only argument being the data folder path.
