@@ -49,11 +49,15 @@ def main(parsed_args: argparse.Namespace) -> None:
     for path in tqdm(paths, desc="Put paths in queue"):
         path_queue.put((path, False))
     total = len(paths)
-    with tqdm(total=path_queue.qsize(), desc="Page converting", unit="pages") as pbar:
-        while not path_queue.empty():
-            pbar.n = total - path_queue.qsize()
+    with tqdm(total=total, desc="Page converting", unit="pages") as pbar:
+        done = False
+        while not done:
+            files_number = len([f for f in os.listdir(output_path) if f.endswith(".npy")])
+            pbar.n = files_number
             pbar.refresh()
             sleep(1)
+            if files_number >= total:
+                done = True
     for _ in processes:
         path_queue.put(("", True))
     for process in tqdm(processes, desc="Waiting for processes to end"):
