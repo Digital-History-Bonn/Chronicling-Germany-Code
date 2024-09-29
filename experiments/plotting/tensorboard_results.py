@@ -375,7 +375,8 @@ def class_sci():
     ylabel = 'IoU'
 
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
-    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    return mean.tolist(), std.tolist()
 
 
 def class_precision():
@@ -530,9 +531,10 @@ def results():
 
 
 def bar():
-    # class_sci()
+
     # results()
     results = []
+    results.append(class_sci())
     results.append(class_precision())
     print("precision")
     results.append(class_recall())

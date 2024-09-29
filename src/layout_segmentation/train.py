@@ -20,6 +20,7 @@ from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmRestarts
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
@@ -86,7 +87,7 @@ class Trainer:
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
+        self.scaler = torch.cuda.amp.GradScaler('cuda', enabled=self.amp)
 
         if args.scheduler == 'reduce_on_plateau':
             self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 15)
@@ -96,14 +97,13 @@ class Trainer:
 
         self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
-        # load data
-        dataloader_dict = initiate_dataloader(args, batch_size)
-        self.train_loader = dataloader_dict.pop('train', None)
-        self.val_loader = dataloader_dict["validation"]
-        self.dataloader_dict = dataloader_dict
         if args.evaluate is not None:
             self.dataloader_dict = initiate_evaluation_dataloader(args, batch_size)
-
+        else:
+            dataloader_dict = initiate_dataloader(args, batch_size)
+            self.train_loader = dataloader_dict.pop('Training', None)
+            self.val_loader = dataloader_dict["Validation"]
+            self.dataloader_dict = dataloader_dict
 
     def train(self, epochs: int = 1) -> float:
         """
@@ -251,9 +251,9 @@ class Trainer:
         :return: None
         """
 
-        loader_dict = self.dataloader_dict if test_validation else {"val": self.val_loader}
+        loader_dict = self.dataloader_dict if test_validation else {"Validation": self.val_loader}
         self.model.eval()
-        for key, loader in loader_dict.items():
+        for environment, loader in loader_dict.items():
             size = len(loader)
 
             (loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum, f1_score,
@@ -306,7 +306,6 @@ class Trainer:
                     print(f"Val scores take:{scores - loss_time}")
 
                 del images, targets, pred, batch_loss
-                # torch.cuda.empty_cache()
 
             loss = loss / size
             accuracy = accuracy / (size * self.num_scores_splits)
@@ -325,7 +324,9 @@ class Trainer:
                     precision_ndarray,
                     recall_ndarray,
                     f1_score_ndarray,
-                    test_validation,
+                    loader,
+                    environment,
+                    test_validation
                 )
 
             self.model.train()
@@ -416,7 +417,9 @@ class Trainer:
             precision: ndarray,
             recall: ndarray,
             f1_score: ndarray,
-            test_validation: bool,
+            loader: DataLoader,
+            environment: str,
+            test_validation: bool
     ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
@@ -425,9 +428,11 @@ class Trainer:
         :param jaccard: jaccard score of validation round
         :param accuracy: accuracy of validation round
         :param class_accs: array of accuracy by class
+        :param loader: evaluation dataloader
+        :param environment: evaluation name
+        :param test_validation: test validation calculates more metrics then during training validation rounds.
         """
         # select random image and it's target
-        loader = self.test_loader if test_validation else self.val_loader
         size = len(loader)
         random_idx = np.random.randint(
             0, (size * loader.batch_size if loader.batch_size else 1)
@@ -437,8 +442,6 @@ class Trainer:
 
         # predict image
         pred = torch.nn.functional.softmax(self.model(image.to(self.device))).argmax(dim=1).float()
-
-        environment = "test" if test_validation else "val"
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
@@ -501,7 +504,6 @@ class Trainer:
         print(f"average jaccard score: {jaccard}")  # Intersection over Union
 
         del size, image, target, pred
-        # torch.cuda.empty_cache()
 
     def evaluate_model(self, model_path: str) -> Tuple[float, float]:
         """

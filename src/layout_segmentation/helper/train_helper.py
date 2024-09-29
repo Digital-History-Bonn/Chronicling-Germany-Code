@@ -164,7 +164,7 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     return jaccard, accuracy, batch_class_acc
 
 
-def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[DataLoader]:
+def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, DataLoader]:
     """
     Creates a dictionary of dataloaders depending on the args.evaluate dataset names.
     File stems are read from the supplied custom split json or created randomly.
@@ -189,7 +189,7 @@ def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) ->
     return dataloader_dict
 
 
-def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict: Dict[str: List[str]], image_path: str,
+def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict: Dict[str, List[str]], image_path: str,
                       preprocessing: Preprocessing,
                       target_path: str) -> Dict[str, DataLoader]:
     """
@@ -210,7 +210,7 @@ def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict
             name=key
         )
         print(f"{key} size: {len(dataset)}")
-        if not key == "train":
+        if not key == "Training":
             dataset.augmentations = False
         dataloader_dict[key] = (DataLoader(
             dataset,
@@ -222,12 +222,12 @@ def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict
             persistent_workers=True,
             pin_memory=True,
         ))
-        assert (len(dataloader_dict[key]) > 0,
-                f"Dataset {key} is to small to assemble at least one batch of {batch_size} crops!")
+        assert len(dataloader_dict[key]) > 0, (f"Dataset {key} is to small to assemble at least one batch of "
+                                               f"{batch_size} crops!")
     return dataloader_dict
 
 
-def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[DataLoader]:
+def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, DataLoader]:
     """
     Creates train, val and test datasets according to train.py args.
     """
@@ -252,7 +252,7 @@ def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[DataL
         with open("custom-split.json", "w", encoding="utf8") as file:
             json.dump((train_file_stems, val_file_stems, test_file_stems), file)
 
-    file_stems_dict = {"train": train_file_stems, "val": val_file_stems, "test": test_file_stems}
+    file_stems_dict = {"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}
     dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
 
     return dataloader_dict
