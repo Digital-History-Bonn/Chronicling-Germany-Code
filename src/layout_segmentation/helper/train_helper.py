@@ -249,7 +249,7 @@ def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, 
         val_file_stems = validation_pages.file_stems
         test_file_stems = test_pages.file_stems
 
-        with open("custom-split.json", "w", encoding="utf8") as file:
+        with open(args.custom_split_file, "w", encoding="utf8") as file:
             json.dump((train_file_stems, val_file_stems, test_file_stems), file)
 
     file_stems_dict = {"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}
