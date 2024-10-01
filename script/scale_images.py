@@ -7,6 +7,8 @@ from PIL import Image
 from PIL.Image import BICUBIC # pylint: disable=no-name-in-module
 from tqdm import tqdm
 
+from src.layout_segmentation.utils import adjust_path
+
 
 def rescale(args: argparse.Namespace):
     """Rescale all images according to scaling parameter in the provided directory."""
@@ -22,13 +24,6 @@ def rescale(args: argparse.Namespace):
         shape = int(image.size[0] * args.scale), int(image.size[1] * args.scale)
         image = image.resize(shape, resample=BICUBIC)
         image.save(output_path + name + extension)
-
-
-def adjust_path(path: Optional[str]) -> Optional[str]:
-    """
-    Make sure, there is a slash at the end of a (folder) spath string.
-    """
-    return path if not path or path[-1] == '/' else path + '/'
 
 
 def get_args() -> argparse.Namespace:
