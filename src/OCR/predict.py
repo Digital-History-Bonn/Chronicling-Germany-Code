@@ -202,7 +202,7 @@ def get_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--thread-count",
-        "-tc",
+        "-t",
         type=int,
         default=1,
         help="Select number of threads that are launched per graphics card. This must be used carefully, as it can "
