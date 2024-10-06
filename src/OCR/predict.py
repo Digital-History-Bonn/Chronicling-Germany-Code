@@ -205,7 +205,16 @@ def get_args() -> argparse.Namespace:
         "-t",
         type=int,
         default=1,
-        help="Select number of threads that are launched per graphics card. This must be used carefully, as it can "
+        help="Select number of threads that are launched per process. This must be used carefully, as it can "
+             "lead to a CUDA out of memory error.",
+    )
+
+    parser.add_argument(
+        "--process-count",
+        "-p",
+        type=int,
+        default=1,
+        help="Select number of processes that are launched per graphics card. This must be used carefully, as it can "
              "lead to a CUDA out of memory error.",
     )
 
@@ -247,14 +256,15 @@ def main() -> None:
                         output_path,
                         False))
 
-    model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in
-                  range(num_gpus)] if torch.cuda.is_available() else [models.load_any(args.model, device="cpu")]
+    model_list = [models.load_any(args.model, device=f"cuda:{i % num_gpus}") for i in
+                  range(num_gpus*args.process_count)] if torch.cuda.is_available() else \
+        [models.load_any(args.model, device="cpu")]
 
     processes = [Process(target=predict_batch,
-                         args=(model_list[i % num_gpus if num_gpus > 0 else 0], path_queue, args.thread_count),
+                         args=(model_list[i if num_gpus > 0 else 0], path_queue, args.thread_count),
                          ) for i
                  in
-                 range(num_gpus)]
+                 range(num_gpus*args.process_count)]
     for process in processes:
         process.start()
     total = len(images)

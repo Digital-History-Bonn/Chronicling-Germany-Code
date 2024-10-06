@@ -2,7 +2,8 @@
 
 # Assign positional parameters to variables
 DATA_DIR=$1
-THREAD_COUNT=$2
+PROCESS_COUNT=$2
+THREAD_COUNT=$3
 MODEL_LAYOUT="models/layout_2024-05-28.pt"
 MODEL_BASELINE="models/baseline_2024-06-01"
 MODEL_OCR="models/ocr_2024-06-02.mlmodel"
@@ -25,4 +26,4 @@ conda activate ocr
 export PYTHONPATH=${PYTHONPATH}:
 
 # Run OCR prediction
-python src/OCR/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_OCR" -t $THREAD_COUNT
+python src/OCR/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_OCR" -t $THREAD_COUNT -p $PROCESS_COUNT
