@@ -1,7 +1,6 @@
 """Scipt for rescaling images in a provided directory."""
 import argparse
 import os
-from typing import Optional
 
 from PIL import Image
 from PIL.Image import BICUBIC # pylint: disable=no-name-in-module

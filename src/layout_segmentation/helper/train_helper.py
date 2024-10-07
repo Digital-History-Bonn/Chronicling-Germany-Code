@@ -178,11 +178,11 @@ def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) ->
             split = json.load(file)
             file_stems_dict = {}
             for dataset in args.evaluate:
-                assert dataset in split.keys(), f"'{dataset}' is not a valid key for the custom split json dictionary!"
+                assert dataset in split.keys(), f"'{dataset}' is not a valid key for the custom split dictionary!"
                 file_stems_dict[dataset] = split[dataset]
     else:
-        train_pages, validation_pages, test_pages = page_dataset.random_split(args.split_ratio)
-        file_stems_dict = {"test": test_pages.file_stems}
+        _, _, test_pages = page_dataset.random_split(args.split_ratio)
+        file_stems_dict = {"Test": test_pages.file_stems}
 
     dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
 

@@ -1,3 +1,5 @@
+"""Evaluation script for layout segmentation on object level. This will evaluate each bounding box of a detected
+polygon if it matches a corresponding polygon in the target data. """
 import argparse
 import glob
 import os
@@ -14,7 +16,8 @@ from tqdm import tqdm
 from tabulate import tabulate
 
 
-def read_xml(xml_path):
+def read_xml(xml_path) -> Dict[str, list]:
+    """Reads xml files and returns shapely polygons of all desired regions."""
     data = {"caption": [],
             "table": [],
             "paragraph": [],
@@ -65,6 +68,7 @@ def read_xml(xml_path):
 
 
 def remove_duplicate_points(polygon):
+    """Removes duplicate points inside a shapely polygon."""
     coords = list(polygon.exterior.coords)
     unique_coords = []
     for coord in coords:
@@ -161,7 +165,8 @@ def detection_metrics(prediction: List[Polygon],
     return results
 
 
-def compare(pred_xml: str, gt_xml: str, threshold: float = .5):
+def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, list]:
+    """Compares read xml data and returns comparisons."""
     categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",
                   "separator_horizontal", "image", "inverted_text"]
 
@@ -190,6 +195,7 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5):
 
 
 def print_table(count, tp, fp, fn, precision, recall, f1_score):
+    """Prints markdown table."""
     categories = ["caption", "table", "paragraph", "heading", "header",
                   "separator_vertical", "separator_horizontal", "image", "inverted_text", "all"]
 
@@ -266,6 +272,7 @@ def get_args() -> argparse.Namespace:
 
 
 def main():
+    """Main function of layout object evaluation script. Prepares file paths and concatenates comparison results."""
     args = get_args()
 
     categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",

@@ -28,7 +28,7 @@ from src.layout_segmentation.train_config import (BATCH_SIZE, LEARNING_RATE, WEI
                                                   LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS,
                                                   EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT)
 from src.layout_segmentation.helper.train_helper import (init_model, load_score, focal_loss,
-                                                         calculate_scores, initiate_dataloader,
+                                                         calculate_scores,
                                                          initiate_dataloader, initiate_evaluation_dataloader)
 from src.layout_segmentation.utils import split_batches, adjust_path, collapse_prediction
 from src.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
