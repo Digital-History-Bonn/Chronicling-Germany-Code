@@ -90,6 +90,7 @@ def calc_metrics(ious: torch.Tensor,
     Returns:
         precision, recall and f1_score
     """
+    # pylint: disable=duplicate-code
     tp = 0
     while True:
         max_index = torch.argmax(ious)

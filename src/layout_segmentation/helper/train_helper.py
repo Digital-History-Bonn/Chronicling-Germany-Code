@@ -3,7 +3,7 @@ well as computing metrics for validation and test."""
 import argparse
 import json
 import warnings
-from typing import Union, Any, Tuple
+from typing import Union, Any, Tuple, List, Dict
 
 import torch
 from torch import Tensor
@@ -164,19 +164,75 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     return jaccard, accuracy, batch_class_acc
 
 
-def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
+def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, DataLoader]:
+    """
+    Creates a dictionary of dataloaders depending on the args.evaluate dataset names.
+    File stems are read from the supplied custom split json or created randomly.
+    """
+    preprocessing = create_preprocess(args)
+    image_path, page_dataset, target_path = prepare_paths(args)
+
+    if args.custom_split_file:
+
+        with open(args.custom_split_file, "r", encoding="utf-8") as file:
+            split = json.load(file)
+            file_stems_dict = {}
+            for dataset in args.evaluate:
+                assert dataset in split.keys(), f"'{dataset}' is not a valid key for the custom split json dictionary!"
+                file_stems_dict[dataset] = split[dataset]
+    else:
+        train_pages, validation_pages, test_pages = page_dataset.random_split(args.split_ratio)
+        file_stems_dict = {"test": test_pages.file_stems}
+
+    dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
+
+    return dataloader_dict
+
+
+def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict: Dict[str, List[str]], image_path: str,
+                      preprocessing: Preprocessing,
+                      target_path: str) -> Dict[str, DataLoader]:
+    """
+    Iterates over the file_stems_dict and creates a dataset with dataloader for each file stem list.
+    All datasets that are not named "train" are considered validation/test datsets  and therefore no augmentations
+    are applied, nor will the dataset be shuffled.
+    """
+    dataloader_dict = {}
+    for key, file_stems in file_stems_dict.items():
+        dataset = TrainDataset(
+            preprocessing,
+            image_path=image_path,
+            target_path=target_path,
+            limit=args.limit,
+            dataset=args.dataset,
+            scale_aug=args.scale_aug,
+            file_stems=file_stems,
+            name=key
+        )
+        print(f"{key} size: {len(dataset)}")
+        if not key == "Training":
+            dataset.augmentations = False
+        dataloader_dict[key] = (DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=key == "train",
+            num_workers=args.num_workers,
+            drop_last=True,
+            prefetch_factor=args.prefetch_factor,
+            persistent_workers=True,
+            pin_memory=True,
+        ))
+        assert len(dataloader_dict[key]) > 0, (f"Dataset {key} is to small to assemble at least one batch of "
+                                               f"{batch_size} crops!")
+    return dataloader_dict
+
+
+def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, DataLoader]:
     """
     Creates train, val and test datasets according to train.py args.
     """
-    preprocessing = Preprocessing(
-        scale=args.scale,
-        crop_factor=args.crop_factor,
-        crop_size=args.crop_size,
-        reduce_classes=args.reduce_classes
-    )
-    image_path = f"{adjust_path(args.data_path)}images/"
-    target_path = f"{adjust_path(args.data_path)}targets/"
-    page_dataset = PageDataset(image_path, args.dataset)
+    preprocessing = create_preprocess(args)
+    image_path, page_dataset, target_path = prepare_paths(args)
 
     if args.custom_split_file:
         with open(args.custom_split_file, "r", encoding="utf-8") as file:
@@ -193,85 +249,32 @@ def initiate_datasets(args: argparse.Namespace) -> Tuple[TrainDataset, ...]:
         val_file_stems = validation_pages.file_stems
         test_file_stems = test_pages.file_stems
 
-        with open("custom-split.json", "w", encoding="utf8") as file:
+        with open(args.custom_split_file, "w", encoding="utf8") as file:
             json.dump((train_file_stems, val_file_stems, test_file_stems), file)
 
-    train_set = TrainDataset(
-        preprocessing,
-        image_path=image_path,
-        target_path=target_path,
-        limit=args.limit,
-        dataset=args.dataset,
-        scale_aug=args.scale_aug,
-        file_stems=train_file_stems,
-        name="train"
-    )
-    validation_set = TrainDataset(
-        preprocessing,
-        image_path=image_path,
-        target_path=target_path,
-        dataset=args.dataset,
-        scale_aug=args.scale_aug,
-        file_stems=val_file_stems,
-        name="val"
-    )
-    test_set = TrainDataset(
-        preprocessing,
-        image_path=image_path,
-        target_path=target_path,
-        dataset=args.dataset,
-        scale_aug=args.scale_aug,
-        file_stems=test_file_stems,
-        name="test"
-    )
-    print(f"train size: {len(train_set)}, val size: {len(validation_set)}, test size: {len(test_set)}")
+    file_stems_dict = {"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}
+    dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
 
-    # Turn of augmentations on Validation-set
-    validation_set.augmentations = False
-    test_set.augmentations = False
-    return train_set, validation_set, test_set
+    return dataloader_dict
 
 
-def initiate_dataloader(args: argparse.Namespace, batch_size: int, test_set: TrainDataset, train_set: TrainDataset,
-                        validation_set: TrainDataset) -> Tuple[DataLoader, ...]:
-    """
-    Initiates train val and test dataloaders. Traindataloader is shuffled, while val and test are not.
-    """
-    # init dataloader
-    train_loader = DataLoader(
-        train_set,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=args.num_workers,
-        drop_last=True,
-        prefetch_factor=args.prefetch_factor,
-        persistent_workers=True,
-        pin_memory=True,
-    )
-    val_loader = DataLoader(
-        validation_set,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=args.num_workers,
-        drop_last=True,
-        prefetch_factor=args.prefetch_factor,
-        persistent_workers=True,
-        pin_memory=True,
-    )
-    test_loader = DataLoader(
-        test_set,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=args.num_workers,
-        drop_last=True,
-    )
-    assert (
-            len(train_loader) > 0
-            and len(val_loader) > 0
-            and len(test_loader) > 0
-    ), "At least one Dataset is to small to assemble at least one batch"
+def prepare_paths(args: argparse.Namespace) -> Tuple[str, PageDataset, str]:
+    "Adjust paths and create page_dataset."
+    image_path = f"{adjust_path(args.data_path)}images/"
+    target_path = f"{adjust_path(args.data_path)}targets/"
+    page_dataset = PageDataset(image_path, args.dataset)
+    return image_path, page_dataset, target_path
 
-    return train_loader, val_loader, test_loader
+
+def create_preprocess(args: argparse.Namespace) -> Preprocessing:
+    "Initializes preprocessing Object"
+    preprocessing = Preprocessing(
+        scale=args.scale,
+        crop_factor=args.crop_factor,
+        crop_size=args.crop_size,
+        reduce_classes=args.reduce_classes
+    )
+    return preprocessing
 
 
 def multi_class_csi(
@@ -329,6 +332,6 @@ def multi_precison_recall(
             true_positive / (true_positive + false_negative)
         )
         f1_score = torch.tensor(
-            2 * true_positive / ( 2 * true_positive + false_negative + false_positive)
+            2 * true_positive / (2 * true_positive + false_negative + false_positive)
         )
     return precision, recall, f1_score

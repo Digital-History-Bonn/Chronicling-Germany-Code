@@ -20,6 +20,7 @@ from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmRestarts
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
@@ -27,8 +28,8 @@ from src.layout_segmentation.train_config import (BATCH_SIZE, LEARNING_RATE, WEI
                                                   LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS,
                                                   EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT)
 from src.layout_segmentation.helper.train_helper import (init_model, load_score, focal_loss,
-                                                         calculate_scores, initiate_datasets,
-                                                         initiate_dataloader)
+                                                         calculate_scores, initiate_dataloader,
+                                                         initiate_dataloader, initiate_evaluation_dataloader)
 from src.layout_segmentation.utils import split_batches, adjust_path, collapse_prediction
 from src.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
 from src.layout_segmentation.helper.train_helper import multi_precison_recall
@@ -86,7 +87,7 @@ class Trainer:
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
+        self.scaler = torch.cuda.amp.GradScaler('cuda', enabled=self.amp)
 
         if args.scheduler == 'reduce_on_plateau':
             self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 15)
@@ -96,13 +97,13 @@ class Trainer:
 
         self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
 
-        # load data
-        train_set, validation_set, test_set = initiate_datasets(args)
-
-        self.train_loader, self.val_loader, self.test_loader = initiate_dataloader(args, batch_size,
-                                                                                   test_set,
-                                                                                   train_set,
-                                                                                   validation_set)
+        if args.evaluate is not None:
+            self.dataloader_dict = initiate_evaluation_dataloader(args, batch_size)
+        else:
+            dataloader_dict = initiate_dataloader(args, batch_size)
+            self.train_loader = dataloader_dict.pop('Training', None)
+            self.val_loader = dataloader_dict["Validation"]
+            self.dataloader_dict = dataloader_dict
 
     def train(self, epochs: int = 1) -> float:
         """
@@ -250,86 +251,88 @@ class Trainer:
         :return: None
         """
 
-        loader = self.test_loader if test_validation else self.val_loader
+        loader_dict = self.dataloader_dict if test_validation else {"Validation": self.val_loader}
         self.model.eval()
-        size = len(loader)
+        for environment, loader in loader_dict.items():
+            size = len(loader)
 
-        (loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum, f1_score,
-         f1_score_sum) = (
-            0.0,
-            0.0,
-            0.0,
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-            torch.zeros(OUT_CHANNELS),
-        )
-        end = time()
-
-        pstart_time = time()
-        if self.time_debug:
-            print(f"process start take:{pstart_time - end}")
-
-        for images, targets in tqdm(
-                loader, desc="validation_round", total=size, unit="batch(es)"
-        ):
-            start = time()
-            if self.time_debug:
-                print(f"Val Start takes:{start - end}")
-            with torch.autocast(self.device, enabled=self.amp):
-                pred = self.model(images.to(self.device))
-                end = time()
-                if self.time_debug:
-                    print(f"Val prediction takes:{end - start}")
-                batch_loss = self.apply_loss(pred, targets.to(self.device)).item()
-                if self.reduce:
-                    pred = collapse_prediction(pred)
-            loss_time = time()
-            if self.time_debug:
-                print(f"Val loss takes:{loss_time - end}")
-
-            (accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum,
-             f1_score, f1_score_sum) = self.evaluate_batch(
-                accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision,
-                precision_sum,
-                recall, recall_sum, f1_score, f1_score_sum)
-
-            loss += batch_loss
-            scores = time()
-            if self.time_debug:
-                print(f"Val scores take:{scores - loss_time}")
-
-            del images, targets, pred, batch_loss
-            # torch.cuda.empty_cache()
-
-        loss = loss / size
-        accuracy = accuracy / (size * self.num_scores_splits)
-        jaccard = jaccard / (size * self.num_scores_splits)
-        class_acc_ndarray = (class_acc / class_sum).detach().cpu().numpy()
-        precision_ndarray = (precision / precision_sum).detach().cpu().numpy()
-        recall_ndarray = (recall / recall_sum).detach().cpu().numpy()
-        f1_score_ndarray = (f1_score / f1_score_sum).detach().cpu().numpy()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self.val_logging(
-                loss,
-                accuracy,
-                jaccard,
-                class_acc_ndarray,
-                precision_ndarray,
-                recall_ndarray,
-                f1_score_ndarray,
-                test_validation,
+            (loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum, f1_score,
+             f1_score_sum) = (
+                0.0,
+                0.0,
+                0.0,
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
+                torch.zeros(OUT_CHANNELS),
             )
+            end = time()
 
-        self.model.train()
-        logging = time()
-        if self.time_debug:
-            print(f"Val logging takes:{logging - scores}")
+            pstart_time = time()
+            if self.time_debug:
+                print(f"process start take:{pstart_time - end}")
+
+            for images, targets in tqdm(
+                    loader, desc="validation_round", total=size, unit="batch(es)"
+            ):
+                start = time()
+                if self.time_debug:
+                    print(f"Val Start takes:{start - end}")
+                with torch.autocast(self.device, enabled=self.amp):
+                    pred = self.model(images.to(self.device))
+                    end = time()
+                    if self.time_debug:
+                        print(f"Val prediction takes:{end - start}")
+                    batch_loss = self.apply_loss(pred, targets.to(self.device)).item()
+                    if self.reduce:
+                        pred = collapse_prediction(pred)
+                loss_time = time()
+                if self.time_debug:
+                    print(f"Val loss takes:{loss_time - end}")
+
+                (accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum,
+                 f1_score, f1_score_sum) = self.evaluate_batch(
+                    accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision,
+                    precision_sum,
+                    recall, recall_sum, f1_score, f1_score_sum)
+
+                loss += batch_loss
+                scores = time()
+                if self.time_debug:
+                    print(f"Val scores take:{scores - loss_time}")
+
+                del images, targets, pred, batch_loss
+
+            loss = loss / size
+            accuracy = accuracy / (size * self.num_scores_splits)
+            jaccard = jaccard / (size * self.num_scores_splits)
+            class_acc_ndarray = (class_acc / class_sum).detach().cpu().numpy()
+            precision_ndarray = (precision / precision_sum).detach().cpu().numpy()
+            recall_ndarray = (recall / recall_sum).detach().cpu().numpy()
+            f1_score_ndarray = (f1_score / f1_score_sum).detach().cpu().numpy()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.val_logging(
+                    loss,
+                    accuracy,
+                    jaccard,
+                    class_acc_ndarray,
+                    precision_ndarray,
+                    recall_ndarray,
+                    f1_score_ndarray,
+                    loader,
+                    environment,
+                    test_validation
+                )
+
+            self.model.train()
+            logging = time()
+            if self.time_debug:
+                print(f"Val logging takes:{logging - scores}")
 
         return loss, accuracy, jaccard, class_acc_ndarray
 
@@ -414,7 +417,9 @@ class Trainer:
             precision: ndarray,
             recall: ndarray,
             f1_score: ndarray,
-            test_validation: bool,
+            loader: DataLoader,
+            environment: str,
+            test_validation: bool
     ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
@@ -423,9 +428,11 @@ class Trainer:
         :param jaccard: jaccard score of validation round
         :param accuracy: accuracy of validation round
         :param class_accs: array of accuracy by class
+        :param loader: evaluation dataloader
+        :param environment: evaluation name
+        :param test_validation: test validation calculates more metrics then during training validation rounds.
         """
         # select random image and it's target
-        loader = self.test_loader if test_validation else self.val_loader
         size = len(loader)
         random_idx = np.random.randint(
             0, (size * loader.batch_size if loader.batch_size else 1)
@@ -435,8 +442,6 @@ class Trainer:
 
         # predict image
         pred = torch.nn.functional.softmax(self.model(image.to(self.device))).argmax(dim=1).float()
-
-        environment = "test" if test_validation else "val"
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
@@ -499,9 +504,8 @@ class Trainer:
         print(f"average jaccard score: {jaccard}")  # Intersection over Union
 
         del size, image, target, pred
-        # torch.cuda.empty_cache()
 
-    def get_test_score(self, model_path: str) -> Tuple[float, float]:
+    def evaluate_model(self, model_path: str) -> Tuple[float, float]:
         """
         After Training has finished, load best model and run test-dataset validation on it.
         :param model_path: name of model to be evaluated.
@@ -748,15 +752,20 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--evaluate",
-        action="store_true",
-        help="Evaluate the loaded model without training.",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Evaluate the loaded model without training on the specified dataset. Dataset name has to match the name "
+             "inside the file specified through --custom-split-file, otherwise a random split is applied. "
+             "Multiple dataset names can be supplied. "
+             "A dataset named 'train', will still be shuffled and augmented, as for training.",
     )
     parser.add_argument(
         "--custom-split-file",
         type=str,
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
-             "of train, validation and test images. File stems is the file name without the extension.",
+             "of train, validation and test images. File stem is the file name without the extension.",
     )
     parser.add_argument(
         "--override-load-channels",
@@ -785,12 +794,12 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    name = f"{parameter_args.name}" if parameter_args.evaluate else \
+    name = f"{parameter_args.name}" if parameter_args.evaluate is not None else \
         f"{parameter_args.name}_{int(parameter_args.torch_seed)}"
-    epochs = 0 if parameter_args.evaluate else parameter_args.epochs
+    epochs = 0 if parameter_args.evaluate is not None else parameter_args.epochs
 
     # setup tensor board
-    train_log_dir = "logs/runs/" + name + "_eval" if parameter_args.evaluate else "logs/runs/" + name
+    train_log_dir = "logs/runs/" + name + "_eval" if parameter_args.evaluate is not None else "logs/runs/" + name
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
@@ -822,9 +831,9 @@ def main() -> None:
     print(f"skip cbam: {parameter_args.skip_cbam}")
 
     duration = trainer.train(epochs=epochs)
-    model_path = f"models/model_{parameter_args.load}.pt" if parameter_args.evaluate else \
+    model_path = f"models/model_{parameter_args.load}.pt" if parameter_args.evaluate is not None else \
         f"models/model_{name}_best.pt" if trainer.best_step != 0 else f"models/model_{name}.pt"
-    score, multi_class_score = trainer.get_test_score(model_path)
+    score, multi_class_score = trainer.evaluate_model(model_path)
     with open(f"logs/{result_path}{name}_{parameter_args.lr}.json",
               "w",
               encoding="utf-8") as file:
