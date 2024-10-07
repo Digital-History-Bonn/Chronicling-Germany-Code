@@ -25,10 +25,11 @@ folder. It provides a dataset split for train, validation and test.
 
 ## Prediction Pipeline
 To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used with the only argument being the data folder path.
-This pipeline needs two conda environments named 'layout' and 'ocr' (see requirements). 
+This pipeline needs two conda environments named 'layout' and 'ocr' (see requirements). Depending on the computational 
+ressources available, the ocr prediction can be multiprocessed and multithreaded.
 
 ````
-bash pipeline.sh data/
+bash scipt/pipeline.sh data/ 1 1
 ````
 
 ## Layout Segmentation
