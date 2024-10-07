@@ -48,7 +48,7 @@ def read_xml(xml_path) -> Dict[str, list]:
             type_value = custom_attr[type_start:type_end]
 
             # Check if this type is in the list of desired types
-            if type_value in data.keys():
+            if type_value in data:
                 # Extract Coords element and get the points
                 coords = text_region.find('Coords')
                 if coords:
