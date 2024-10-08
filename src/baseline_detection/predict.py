@@ -426,15 +426,18 @@ def main() -> None:
     output_files = [f"{output_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
 
     num_gpus = torch.cuda.device_count()
-    print(f"Using {num_gpus} device(s).")
+    if num_gpus > 0:
+        print(f"Using {num_gpus} gpu device(s).")
+    else:
+        print(f"Using cpu.")
 
     path_queue: Queue = Queue()
     # put paths in queue
     for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
         path_queue.put((image, layout, output_file, False))
 
-    device_ids = range(num_gpus) if torch.cuda.is_available() else [0]
-    processes = [Process(target=predict, args=(device_ids[i], path_queue, args.model)) for i in range(num_gpus)]
+    device_ids: List[int] = list(range(num_gpus)) if (torch.cuda.is_available() and num_gpus > 0) else [-1]
+    processes = [Process(target=predict, args=(device_ids[i], path_queue, args.model)) for i in range(len(device_ids))]
     for process in processes:
         process.start()
     total = len(image_paths)
@@ -460,11 +463,12 @@ def predict(device: int, path_queue: Queue, model: str) -> None:
         output_file (str): Path to output xml file
         model (str): Path to model file
     """
+    baseline_engine = BaselineEngine(model_name=model, cuda=device)
     while True:
         image_path, layout_xml_path, output_file, done = path_queue.get()
         if done:
             break
-        baseline_engine = BaselineEngine(model_name=model, cuda=device)
+
         image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
         textlines, baselines = baseline_engine.predict(image, layout_xml_path)
         add_baselines(
