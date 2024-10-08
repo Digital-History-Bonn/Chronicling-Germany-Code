@@ -460,17 +460,20 @@ def main() -> None:
 
     num_gpus = torch.cuda.device_count()
     num_processes = args.processes
-    print(f"Using {num_gpus} device(s).")
+    if num_gpus > 0:
+        print(f"Using {num_gpus} gpu device(s).")
+    else:
+        print(f"Using cpu.")
 
     # create queue
     path_queue: Queue = Queue()
     for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
         path_queue.put((image, layout, output_file, False))
 
-    device_ids = range(num_gpus) if torch.cuda.is_available() else [0]
+    device_ids = list(range(num_gpus) if torch.cuda.is_available() else [-1])
     models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus])
-              for i in range(num_gpus * num_processes)]
-    processes = [Process(target=predict, args=(models[i], path_queue)) for i in range(num_gpus * num_processes)]
+              for i in range(len(device_ids) * num_processes)]
+    processes = [Process(target=predict, args=(models[i], path_queue)) for i in range(len(models))]
     for process in processes:
         process.start()
     total = len(image_paths)
