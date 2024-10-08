@@ -244,6 +244,7 @@ def main() -> None:
     assert len(images) == len(annotations), "Images and annotations path numbers do not match."
 
     num_gpus = torch.cuda.device_count()
+    # pylint: disable=duplicate-code
     if num_gpus > 0:
         print(f"Using {num_gpus} gpu device(s).")
     else:
