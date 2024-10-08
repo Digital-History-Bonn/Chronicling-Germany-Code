@@ -10,6 +10,7 @@ import Levenshtein
 import numpy as np
 from bs4 import BeautifulSoup
 from tqdm import tqdm  # type: ignore
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
 from src.OCR.utils import adjust_path
 from src.OCR.utils import line_has_text
@@ -48,18 +49,20 @@ def main(parsed_args: argparse.Namespace) -> None:
     multi_page_bad: list = []
     multi_page_correct: list = []
     multi_page_bad_list: list = []
+    bleu_sum = 0.0
 
     for path in tqdm(gt_paths):
-        multi_page_bad_list, multi_page_distance_list = compare_page(confidence_threshold,
+        multi_page_bad_list, multi_page_distance_list, bleu_sum = compare_page(confidence_threshold,
                                                                      multi_page_bad,
                                                                      multi_page_bad_list,
                                                                      multi_page_correct,
                                                                      multi_page_distance_list,
-                                                                     parsed_args, path)
+                                                                     parsed_args, path, bleu_sum)
 
     print(f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
     print(f"overall correct lines: {calculate_ratio(multi_page_correct)}")
     print(f"overall bad lines: {calculate_ratio(multi_page_bad)}")
+    print(f"overall bleu score: {bleu_sum/len(gt_paths)}")
 
     with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
         json.dump(multi_page_bad_list, file)
@@ -68,7 +71,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_bad_list: list,
                  multi_page_correct: list,
                  multi_page_distance_list: list, parsed_args: argparse.Namespace,
-                 path: str) -> Tuple[list, list]:
+                 path: str, bleu_sum: float) -> Tuple[list, list, float]:
     """
     Load lines from ground truth and ocr files and compare them directly. This function assumes, that the
     lines are already assigned from one file to the other, and text can be directly compare.
@@ -83,9 +86,9 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
         merge_lists_conf(ground_truth, confidence_list, confidence_threshold))
     with open(f"{parsed_args.output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
-    lev_dis, lev_med, ratio_list, distance_list, text_list = levensthein_distance(ground_truth, ocr,
-                                                                                  confidence_list,
-                                                                                  confidence_threshold)
+    lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = evaluate_lines(ground_truth, ocr,
+                                                                            confidence_list,
+                                                                            confidence_threshold)
 
     char_ratio = calculate_ratio(distance_list)
     print(f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
@@ -94,13 +97,15 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
     print(f"{path} normalized levensthein distance per character: {char_ratio}")
     print(f"{path} levensthein median: {lev_med}")
     print(f"{path} levensthein worst line: {min(ratio_list)}\n")
+    print(f"{path} bleu score: {bleu_score}\n")
 
     multi_page_distance_list += distance_list
     multi_page_correct.append((len(np.array(ratio_list)[np.array(ratio_list) == 1.0]), len(ratio_list)))
     multi_page_bad.append((len(np.array(ratio_list)[np.array(ratio_list) < 0.9]), len(ratio_list)))
     multi_page_bad_list += np.array(text_list)[np.array(ratio_list) < 0.9].tolist()
+    bleu_sum += bleu_score
 
-    return multi_page_bad_list, multi_page_distance_list
+    return multi_page_bad_list, multi_page_distance_list, bleu_sum
 
 
 def merge_lists_conf(list_list: List[List[Any]], conf_list: List[List[float]],
@@ -130,22 +135,26 @@ def calculate_ratio(data_list: List[Tuple[int, int]]) -> float:
     return ratio
 
 
-def levensthein_distance(gt: List[List[str]], ocr: List[List[str]],
-                         confidence_list: List[List[float]],
-                         confidence_threshold: Optional[float] = None) -> Tuple[
-    float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]]]:
+def evaluate_lines(gt: List[List[str]], ocr: List[List[str]],
+                   confidence_list: List[List[float]],
+                   confidence_threshold: Optional[float] = None) -> Tuple[
+    float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]], float]:
     """
     Computes the levensthein ratio between all lines and returns the mean, median and list of all ratios.
     """
+    chencherry = SmoothingFunction()
     ratio_sum = 0.0
     count = 0
     ratio_list = []
     text_list = []
     distance_list = []
+    bleu_sum = 0
     for gt_region, ocr_region, conf_region in zip(gt, ocr, confidence_list):
         count += len(gt_region)
         for gt_line, ocr_line, conf in zip(gt_region, ocr_region, conf_region):
             if sufficient_confidence(conf, confidence_threshold):
+                bleu_sum += sentence_bleu([ocr_line.split(" ")], gt_line.split(" "),
+                                          smoothing_function=chencherry.method1)
                 ratio = Levenshtein.ratio(gt_line, ocr_line)
                 distance = Levenshtein.distance(gt_line, ocr_line)
                 distance_list.append((distance, len(gt_line) + len(ocr_line)))
@@ -154,7 +163,7 @@ def levensthein_distance(gt: List[List[str]], ocr: List[List[str]],
                 ratio_list.append(ratio)
 
     return 1 - ratio_sum / count, 1 - statistics.median(
-        ratio_list), ratio_list, distance_list, text_list
+        ratio_list), ratio_list, distance_list, text_list, bleu_sum/count
 
 
 def read_lines(

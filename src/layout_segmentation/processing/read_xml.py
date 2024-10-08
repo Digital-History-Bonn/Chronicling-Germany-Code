@@ -3,7 +3,7 @@ Module contains read xml functions for all datasets. Data will be writen into a 
 mypy typing is ignored for this dictionary
 """
 import re
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Tuple, Union
 
 from bs4 import BeautifulSoup, ResultSet
 from shapely import Polygon
@@ -13,12 +13,12 @@ from src.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
 
 def read_transkribus(
         path: str,
-        log_path: Optional[str] = None,
+        log: bool,
 ) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
-    :param log_path: path to log file
+    :param log: activates tag check logging
     :return: dictionary {height: , width: , tags: {tag_name_1: [], tag_name_2: [], ...}}
     """
     with open(path, "r", encoding="utf-8") as file:
@@ -35,7 +35,7 @@ def read_transkribus(
 
     page = bs_data.find("Page")
 
-    if log_path:
+    if log:
         check_tags(page, tags_dict)
 
     if page:

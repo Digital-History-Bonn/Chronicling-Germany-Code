@@ -4,6 +4,7 @@ import argparse
 import glob
 import os
 from multiprocessing import Process, Queue, set_start_method
+from threading import Thread
 from time import sleep
 from typing import Tuple, List
 
@@ -77,55 +78,77 @@ List[List[BaselineLine]]]:
     return soup, text_regions, baselines
 
 
-def predict(model: TorchSeqRecognizer, path_queue: Queue) -> None:
+def predict_batch(model: TorchSeqRecognizer, path_queue: Queue, thread_count: int = 1) -> None:
     """
     Predicts OCR on given image using given baseline annotations and model.
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     Args:
         model: Model to use for OCR prediction.
         path_queue: multiprocessing queue for path tuples.
+        thread_count: this number of threads will run predictions in parallel. This might lead to an CUDA out of
+        memory error if too many threads are launched.
     """
     while True:
-        image_path, anno_path, out_path, done = path_queue.get()
-        if done:
-            break
-        print(f'Predicting {image_path}...')
-        # load image and pad image
-        im = pad_image(Image.open(image_path))
+        threads: List[Thread] = []
+        for i in range(thread_count):
+            image_path, anno_path, out_path, done = path_queue.get()
+            if done:
+                join_threads(threads)
+                return
 
-        # preprocess annotations and extract baselines
-        file_name = os.path.basename(image_path)
-        soup, regions, region_baselines = extract_baselines(anno_path)
+            threads.append(Thread(target=predict, args=(anno_path, image_path, model, out_path)))
+            threads[i].start()
+        for thread in threads:
+            thread.join()
 
-        for region, baselines in zip(regions, region_baselines):
-            baseline_seg = Segmentation(type='baselines',
-                                        imagename=file_name,
-                                        text_direction='horizontal-lr',
-                                        script_detection=False,
-                                        lines=baselines,
-                                        line_orders=[])
 
-            # single model recognition
-            pred_it = rpred.rpred(model, im, baseline_seg)
-            lines = list(pred_it)
+def join_threads(threads: List[Thread]) -> None:
+    """
+    Join all threads.
+    """
+    for thread in threads:
+        thread.join()
 
-            textlines = region.find_all('TextLine')
-            for pred_line, textline in zip(lines, textlines):
-                textequiv = soup.new_tag('TextEquiv')
-                if pred_line.confidences:
-                    textequiv['conf'] = str(min(pred_line.confidences))
-                else:
-                    textequiv['conf'] = '0'
-                unicode = soup.new_tag('Unicode')
-                unicode.string = str(pred_line).strip()
-                textequiv.append(unicode)
-                textline.append(textequiv)
 
-        # save results
-        with open(out_path, 'w', encoding='utf-8') as file:
-            file.write(soup.prettify()
-                       .replace("<Unicode>\n      ", "<Unicode>")
-                       .replace("\n     </Unicode>", "</Unicode>"))
+def predict(anno_path: str, image_path: str, model: TorchSeqRecognizer, out_path: str) -> None:
+    """
+    Predicts OCR on given image using given baseline annotations and model.
+    Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
+    """
+    print(f'Predicting {image_path}...')
+    # load image and pad image
+    im = pad_image(Image.open(image_path))
+    # preprocess annotations and extract baselines
+    file_name = os.path.basename(image_path)
+    soup, regions, region_baselines = extract_baselines(anno_path)
+    for region, baselines in zip(regions, region_baselines):
+        baseline_seg = Segmentation(type='baselines',
+                                    imagename=file_name,
+                                    text_direction='horizontal-lr',
+                                    script_detection=False,
+                                    lines=baselines,
+                                    line_orders=[])
+
+        # single model recognition
+        pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
+        lines = list(pred_it)
+
+        textlines = region.find_all('TextLine')
+        for pred_line, textline in zip(lines, textlines):
+            textequiv = soup.new_tag('TextEquiv')
+            if pred_line.confidences:
+                textequiv['conf'] = str(min(pred_line.confidences))
+            else:
+                textequiv['conf'] = '0'
+            unicode = soup.new_tag('Unicode')
+            unicode.string = str(pred_line).strip()
+            textequiv.append(unicode)
+            textline.append(textequiv)
+    # save results
+    with open(out_path, 'w', encoding='utf-8') as file:
+        file.write(soup.prettify()
+                   .replace("<Unicode>\n      ", "<Unicode>")
+                   .replace("\n     </Unicode>", "</Unicode>"))
 
 
 def get_args() -> argparse.Namespace:
@@ -177,6 +200,24 @@ def get_args() -> argparse.Namespace:
         help="Select cuda device to use. Use -1 for CPU only. (default 0)",
     )
 
+    parser.add_argument(
+        "--thread-count",
+        "-t",
+        type=int,
+        default=1,
+        help="Select number of threads that are launched per process. This must be used carefully, as it can "
+             "lead to a CUDA out of memory error.",
+    )
+
+    parser.add_argument(
+        "--process-count",
+        "-p",
+        type=int,
+        default=1,
+        help="Select number of processes that are launched per graphics card. This must be used carefully, as it can "
+             "lead to a CUDA out of memory error.",
+    )
+
     return parser.parse_args()
 
 
@@ -215,11 +256,15 @@ def main() -> None:
                         output_path,
                         False))
 
-    model_list = [models.load_any(args.model, device=f"cuda:{i}") for i in
-                  range(num_gpus)] if torch.cuda.is_available() else [models.load_any(args.model, device="cpu")]
+    model_list = [models.load_any(args.model, device=f"cuda:{i % num_gpus}") for i in
+                  range(num_gpus*args.process_count)] if torch.cuda.is_available() else \
+        [models.load_any(args.model, device="cpu")]
 
-    processes = [Process(target=predict, args=(model_list[i % num_gpus if num_gpus > 0 else 0], path_queue)) for i in
-                 range(num_gpus)]
+    processes = [Process(target=predict_batch,
+                         args=(model_list[i if num_gpus > 0 else 0], path_queue, args.thread_count),
+                         ) for i
+                 in
+                 range(num_gpus*args.process_count)]
     for process in processes:
         process.start()
     total = len(images)

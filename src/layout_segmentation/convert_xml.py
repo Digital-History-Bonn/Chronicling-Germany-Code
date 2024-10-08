@@ -41,6 +41,7 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
     ]
 
+
     path_queue: Queue = Queue()
     processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
     for process in processes:
@@ -48,11 +49,15 @@ def main(parsed_args: argparse.Namespace) -> None:
     for path in tqdm(paths, desc="Put paths in queue"):
         path_queue.put((path, False))
     total = len(paths)
-    with tqdm(total=path_queue.qsize(), desc="Page converting", unit="pages") as pbar:
-        while not path_queue.empty():
-            pbar.n = total - path_queue.qsize()
+    with tqdm(total=total, desc="Page converting", unit="pages") as pbar:
+        done = False
+        while not done:
+            files_number = len([f for f in os.listdir(output_path) if f.endswith(".npy")])
+            pbar.n = files_number
             pbar.refresh()
             sleep(1)
+            if files_number >= total:
+                done = True
     for _ in processes:
         path_queue.put(("", True))
     for process in tqdm(processes, desc="Waiting for processes to end"):
@@ -68,7 +73,6 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
     annotations_path = adjust_path(parsed_args.annotations_path)
     image_path = adjust_path(parsed_args.image_path) if parsed_args.image_path else None
     output_path = adjust_path(parsed_args.output_path)
-    log_path = adjust_path(parsed_args.log_path) if parsed_args.log_path else None
 
     while True:
         path, done = path_queue.get()
@@ -76,7 +80,7 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
             break
         read = (
             # pylint: disable=unnecessary-lambda-assignment
-            lambda file: read_xml.read_transkribus(path=file, log_path=log_path)
+            lambda file: read_xml.read_transkribus(path=file, log=parsed_args.log)
             if parsed_args.dataset == "transkribus"
             else read_xml.read_hlna2013
         )
@@ -160,7 +164,8 @@ def get_args() -> argparse.Namespace:
         "-l",
         action="store_true",
         dest="log",
-        help="Activates logging.",
+        help="Activates command line unkown regions logging. This reports all unkown regions and region type "
+             "mismatches for each file.",
     )
     parser.add_argument(
         "--json",

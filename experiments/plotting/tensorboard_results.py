@@ -1,3 +1,4 @@
+import json
 from csv import reader
 from typing import Any, Tuple, List
 import numpy as np
@@ -11,16 +12,16 @@ from experiments.plotting.utils import tikzplotlib_fix_ncols
 
 TAGS = ['current+best',
         'epoch',
-        'multi-acc-test/class+0',
-        'multi-acc-test/class+1',
-        'multi-acc-test/class+2',
-        'multi-acc-test/class+3',
-        'multi-acc-test/class+4',
-        'multi-acc-test/class+5',
-        'multi-acc-test/class+6',
-        'multi-acc-test/class+7',
-        'multi-acc-test/class+8',
-        'multi-acc-test/class+9',
+        'multi-acc-Test/class+0',
+        'multi-acc-Test/class+1',
+        'multi-acc-Test/class+2',
+        'multi-acc-Test/class+3',
+        'multi-acc-Test/class+4',
+        'multi-acc-Test/class+5',
+        'multi-acc-Test/class+6',
+        'multi-acc-Test/class+7',
+        'multi-acc-Test/class+8',
+        'multi-acc-Test/class+9',
         'multi-acc-val/class+0',
         'multi-acc-val/class+1',
         'multi-acc-val/class+2',
@@ -31,9 +32,9 @@ TAGS = ['current+best',
         'multi-acc-val/class+7',
         'multi-acc-val/class+8',
         'multi-acc-val/class+9',
-        'test/accuracy',
-        'test/jaccard+score',
-        'test/loss',
+        'Test/accuracy',
+        'Test/jaccard+score',
+        'Test/loss',
         'train loss',
         'val/accuracy',
         'val/jaccard+score',
@@ -52,7 +53,7 @@ TAGS = ['current+best',
 # ]
 
 # RUNS = [
-#     ['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C'],
+#     ['lerning_rate_Test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C'],
 #     ['scaling_64_512_1.0', 'scaling_64_512_2.0', 'scaling_64_512_3.0'],
 #     ['reduce_1.0', 'reduce_2.0', 'reduce_3.0'],
 # ]
@@ -73,11 +74,12 @@ TAGS = ['current+best',
 # ]
 
 RUNS = [
-    ['neurips_dh_segment_scratch_1.0', 'neurips_dh_segment_scratch_2.0', 'neurips_dh_segment_scratch_3.0', 'neurips_dh_segment_scratch_4.0'],
-    ['neurips_dh_segment_1.0', 'neurips_dh_segment_2.0', 'neurips_dh_segment_3.0', 'neurips_dh_segment_4.0']
+    ['neurips-09-2024_scratch_1.0_eval', 'neurips-09-2024_scratch_2.0_eval', 'neurips-09-2024_scratch_3.0_eval',
+     'neurips-09-2024_scratch_4.0_eval'],
+    ['neurips-09-2024_1.0_eval', 'neurips-09-2024_2.0_eval', 'neurips-09-2024_3.0_eval', 'neurips-09-2024_4.0_eval']
 ]
 
-# RUNS = [['lerning_rate_test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
+# RUNS = [['lerning_rate_Test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
 
 
 # RUNS = [['final_dh_1.0', 'final_dh_2.0', 'final_dh_3.0']]
@@ -331,35 +333,35 @@ def graph():
 
 
 def class_sci():
-    tags = ['multi-acc-test/class 0',
-            'multi-acc-test/class 1',
-            'multi-acc-test/class 2',
-            'multi-acc-test/class 3',
-            'multi-acc-test/class 4',
-            'multi-acc-test/class 5',
-            'multi-acc-test/class 6',
-            'multi-acc-test/class 7',
-            'multi-acc-test/class 8',
-            'multi-acc-test/class 9']
+    tags = ['multi-acc-Test/class 0',
+            'multi-acc-Test/class 1',
+            'multi-acc-Test/class 2',
+            'multi-acc-Test/class 3',
+            'multi-acc-Test/class 4',
+            'multi-acc-Test/class 5',
+            'multi-acc-Test/class 6',
+            'multi-acc-Test/class 7',
+            'multi-acc-Test/class 8',
+            'multi-acc-Test/class 9']
 
-    # tags = ['multi-acc-test/class 0',
-    #         'multi-acc-test/class 4',
-    #         'multi-acc-test/class 5',
-    #         'multi-acc-test/class 7',]
+    # tags = ['multi-acc-Test/class 0',
+    #         'multi-acc-Test/class 4',
+    #         'multi-acc-Test/class 5',
+    #         'multi-acc-Test/class 7',]
 
-    # tags = ['multi-acc-test/class 0',
-    #         'multi-acc-test/class 4',
-    #         'multi-acc-test/class 7',
-    #         'multi-acc-test/class 9',]
+    # tags = ['multi-acc-Test/class 0',
+    #         'multi-acc-Test/class 4',
+    #         'multi-acc-Test/class 7',
+    #         'multi-acc-Test/class 9',]
 
-    # tags = ['multi-acc-test/class 0',
-    #         'multi-acc-test/class 2',
-    #         'multi-acc-test/class 3',
-    #         'multi-acc-test/class 4',
-    #         'multi-acc-test/class 5',
-    #         'multi-acc-test/class 6',
-    #         'multi-acc-test/class 7',
-    #         'multi-acc-test/class 9']
+    # tags = ['multi-acc-Test/class 0',
+    #         'multi-acc-Test/class 2',
+    #         'multi-acc-Test/class 3',
+    #         'multi-acc-Test/class 4',
+    #         'multi-acc-Test/class 5',
+    #         'multi-acc-Test/class 6',
+    #         'multi-acc-Test/class 7',
+    #         'multi-acc-Test/class 9']
 
     mean, std = get_data_bar(tags)
 
@@ -373,39 +375,40 @@ def class_sci():
     ylabel = 'IoU'
 
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
-    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    return mean.tolist(), std.tolist()
 
 
 def class_precision():
-    tags = ['multi-precision-test/class 0',
-            'multi-precision-test/class 1',
-            'multi-precision-test/class 2',
-            'multi-precision-test/class 3',
-            'multi-precision-test/class 4',
-            'multi-precision-test/class 5',
-            'multi-precision-test/class 6',
-            'multi-precision-test/class 7',
-            'multi-precision-test/class 8',
-            'multi-precision-test/class 9']
+    tags = ['multi-precision-Test/class 0',
+            'multi-precision-Test/class 1',
+            'multi-precision-Test/class 2',
+            'multi-precision-Test/class 3',
+            'multi-precision-Test/class 4',
+            'multi-precision-Test/class 5',
+            'multi-precision-Test/class 6',
+            'multi-precision-Test/class 7',
+            'multi-precision-Test/class 8',
+            'multi-precision-Test/class 9']
 
-    # tags = ['multi-precision-test/class 0',
-    #         'multi-precision-test/class 4',
-    #         'multi-precision-test/class 5',
-    #         'multi-precision-test/class 7']
+    # tags = ['multi-precision-Test/class 0',
+    #         'multi-precision-Test/class 4',
+    #         'multi-precision-Test/class 5',
+    #         'multi-precision-Test/class 7']
     #
-    # tags = ['multi-precision-test/class 0',
-    #         'multi-precision-test/class 4',
-    #         'multi-precision-test/class 7',
-    #         'multi-precision-test/class 9']
+    # tags = ['multi-precision-Test/class 0',
+    #         'multi-precision-Test/class 4',
+    #         'multi-precision-Test/class 7',
+    #         'multi-precision-Test/class 9']
 
-    # tags = ['multi-precision-test/class 0',
-    #         'multi-precision-test/class 2',
-    #         'multi-precision-test/class 3',
-    #         'multi-precision-test/class 4',
-    #         'multi-precision-test/class 5',
-    #         'multi-precision-test/class 6',
-    #         'multi-precision-test/class 7',
-    #         'multi-precision-test/class 9']
+    # tags = ['multi-precision-Test/class 0',
+    #         'multi-precision-Test/class 2',
+    #         'multi-precision-Test/class 3',
+    #         'multi-precision-Test/class 4',
+    #         'multi-precision-Test/class 5',
+    #         'multi-precision-Test/class 6',
+    #         'multi-precision-Test/class 7',
+    #         'multi-precision-Test/class 9']
 
     mean, std = get_data_bar(tags)
 
@@ -415,7 +418,8 @@ def class_precision():
     ylabel = 'Precision'
 
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
-    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    return mean.tolist(), std.tolist()
 
 
 def get_data_bar(tags):
@@ -439,35 +443,35 @@ def get_data_bar(tags):
 
 
 def class_recall():
-    tags = ['multi-recall-test/class 0',
-            'multi-recall-test/class 1',
-            'multi-recall-test/class 2',
-            'multi-recall-test/class 3',
-            'multi-recall-test/class 4',
-            'multi-recall-test/class 5',
-            'multi-recall-test/class 6',
-            'multi-recall-test/class 7',
-            'multi-recall-test/class 8',
-            'multi-recall-test/class 9']
+    tags = ['multi-recall-Test/class 0',
+            'multi-recall-Test/class 1',
+            'multi-recall-Test/class 2',
+            'multi-recall-Test/class 3',
+            'multi-recall-Test/class 4',
+            'multi-recall-Test/class 5',
+            'multi-recall-Test/class 6',
+            'multi-recall-Test/class 7',
+            'multi-recall-Test/class 8',
+            'multi-recall-Test/class 9']
 
-    # tags = ['multi-recall-test/class 0',
-    #         'multi-recall-test/class 4',
-    #         'multi-recall-test/class 5',
-    #         'multi-recall-test/class 7',]
+    # tags = ['multi-recall-Test/class 0',
+    #         'multi-recall-Test/class 4',
+    #         'multi-recall-Test/class 5',
+    #         'multi-recall-Test/class 7',]
 
-    # tags = ['multi-recall-test/class 0',
-    #         'multi-recall-test/class 4',
-    #         'multi-recall-test/class 7',
-    #         'multi-recall-test/class 9',]
+    # tags = ['multi-recall-Test/class 0',
+    #         'multi-recall-Test/class 4',
+    #         'multi-recall-Test/class 7',
+    #         'multi-recall-Test/class 9',]
 
-    # tags = ['multi-recall-test/class 0',
-    #         'multi-recall-test/class 2',
-    #         'multi-recall-test/class 3',
-    #         'multi-recall-test/class 4',
-    #         'multi-recall-test/class 5',
-    #         'multi-recall-test/class 6',
-    #         'multi-recall-test/class 7',
-    #         'multi-recall-test/class 9']
+    # tags = ['multi-recall-Test/class 0',
+    #         'multi-recall-Test/class 2',
+    #         'multi-recall-Test/class 3',
+    #         'multi-recall-Test/class 4',
+    #         'multi-recall-Test/class 5',
+    #         'multi-recall-Test/class 6',
+    #         'multi-recall-Test/class 7',
+    #         'multi-recall-Test/class 9']
 
     mean, std = get_data_bar(tags)
 
@@ -477,14 +481,40 @@ def class_recall():
     title = "Multi Class Recall"
     ylabel = "Recall"
 
+    return mean.tolist(), std.tolist()
     # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
-    plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
+
+
+def class_f1():
+    tags = ['multi-f1-Test/class 0',
+            'multi-f1-Test/class 1',
+            'multi-f1-Test/class 2',
+            'multi-f1-Test/class 3',
+            'multi-f1-Test/class 4',
+            'multi-f1-Test/class 5',
+            'multi-f1-Test/class 6',
+            'multi-f1-Test/class 7',
+            'multi-f1-Test/class 8',
+            'multi-f1-Test/class 9']
+
+    mean, std = get_data_bar(tags)
+
+    # labels = ["so scaling", "scaling", "reduce", "reduce_focal"]
+    labels = ["scratch", "pretrained"]
+    name = "final-class-recall"
+    title = "Multi Class Recall"
+    ylabel = "Recall"
+
+    return mean.tolist(), std.tolist()
+    # plot_bar(data, np.zeros(1), name, XTICKS, labels, title)
+    # plot_bar(mean, std, name, XTICKS, labels, title, ylabel)
 
 
 def results():
-    tags = ['test/loss',
-            'test/accuracy',
-            'test/jaccard score']
+    tags = ['Test/loss',
+            'Test/accuracy',
+            'Test/jaccard score']
 
     mean, std = get_data_bar(tags)
 
@@ -501,14 +531,27 @@ def results():
 
 
 def bar():
-    class_sci()
-    results()
-    # class_precision()
-    # class_recall()
+
+    # results()
+    results = []
+
+    # results.append(class_sci())
+    # print("iou")
+    results.append(class_precision())
+    print("precision")
+    results.append(class_recall())
+    print("recall")
+    results.append(class_f1())
+    print("f1")
+
+    with open('eval_results.json', 'w', encoding='utf8') as json_file:
+        json.dump(results, json_file)
+
 
 def main():
     # graph()
     bar()
+
 
 if __name__ == "__main__":
     main()

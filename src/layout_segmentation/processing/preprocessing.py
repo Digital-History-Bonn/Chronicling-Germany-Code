@@ -124,10 +124,10 @@ class Preprocessing:
                 pad_y = 0
 
             self.pad = (pad_x, pad_y)
-            print(
-                f"Image padding by {self.pad} because of crop size {self.crop_size}, crop step {crop_step} and "
-                f"image shape {shape[0]} x {shape[1]}"
-            )
+            # print(
+            #     f"Image padding by {self.pad} because of crop size {self.crop_size}, crop step {crop_step} and "
+            #     f"image shape {shape[0]} x {shape[1]}"
+            # )
 
     def load(
             self, input_path: str, target_path: str, file: str, dataset: str
