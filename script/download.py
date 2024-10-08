@@ -8,8 +8,6 @@ import requests
 
 DATASET_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
                "archive/main/Chronicling-Germany-Dataset-main.zip?path=data")
-SPLIT_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
-               "archive/main/Chronicling-Germany-Dataset-main.zip?path=split.json")
 MODELS_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
               "archive/main/Chronicling-Germany-Dataset-main.zip?path=models")
 
@@ -102,10 +100,8 @@ def main():
     model_path = adjust_path(args.model_path)
 
     if args.dataset or args.all:
-        print("downloading main dataset ...")
+        print("downloading dataset ...")
         download_extract(DATASET_URL, dataset_path)
-        print("downloading split.json")
-        download_extract(SPLIT_URL, dataset_path)
 
     if args.models or args.all:
         print("downloading models ...")

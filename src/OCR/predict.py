@@ -130,7 +130,7 @@ def predict(anno_path: str, image_path: str, model: TorchSeqRecognizer, out_path
                                     line_orders=[])
 
         # single model recognition
-        pred_it = rpred.rpred(model, im, baseline_seg)
+        pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
         lines = list(pred_it)
 
         textlines = region.find_all('TextLine')
