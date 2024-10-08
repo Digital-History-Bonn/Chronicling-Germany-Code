@@ -248,7 +248,7 @@ def main() -> None:
     if num_gpus > 0:
         print(f"Using {num_gpus} gpu device(s).")
     else:
-        print(f"Using cpu.")
+        print("Using cpu.")
 
     path_queue: Queue = Queue()
 
