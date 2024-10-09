@@ -2,32 +2,42 @@
 
 import glob
 import os
-from typing import List
+from typing import Tuple, List
 
 import torch
 import torch.nn.functional as F
+from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
-from src.OCR.pero.utils import Tokenizer, read_xml
+from src.OCR.pero.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH
+from src.OCR.pero.tokenizer import Tokenizer
+from src.OCR.utils import get_bbox
 
 
 class Dataset(torch.utils.data.Dataset):
+    """
+    Dataset class for Transformer based OCR.
+    """
     def __init__(self, image_path: str,
                  target_path: str,
-                 alphabet: List[str],
-                 pad: bool = False,
-                 max_seq_len: int = 512,
-                 pad_height: int = 64,
-                 pad_width: int = 16,
+                 pad_seq: bool = False,
                  cache_images: bool = False):
+        """
+        
+        Args:
+            image_path: path to folder with images
+            target_path: path to folder with xml files
+            pad_seq: boolean to activate padding for sequences
+            cache_images: load all images into cache (needs a lot of RAM!) 
+        """
         self.image_path = image_path
         self.target_path = target_path
-        self.pad_height = pad_height
-        self.pad_width = pad_width
+        self.pad_height = PAD_HEIGHT
+        self.pad_width = PAD_WIDTH
         self.cache_images = cache_images
 
-        self.tokenizer = Tokenizer(alphabet, pad=pad, max_lenght=max_seq_len)
+        self.tokenizer = Tokenizer(ALPHABET, pad=pad_seq, max_lenght=MAX_SEQUENCE_LENGTH)
 
         self.images = []
         self.bboxes = []
@@ -39,6 +49,7 @@ class Dataset(torch.utils.data.Dataset):
         self.len = len(self.images)
 
     def get_data(self):
+        """Loads the data by reading the annotation."""
         image_paths = list(glob.glob(os.path.join(self.image_path, '*.jpg')))
         xml_paths = [f"{x[:-4]}.xml" for x in image_paths]
 
@@ -78,10 +89,30 @@ class Dataset(torch.utils.data.Dataset):
         return crop.float() / 255, target, text
 
 
+def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
+    with open(xml_path, "r", encoding="utf-8") as file:
+        data = file.read()
+
+    # Parse the XML data
+    soup = BeautifulSoup(data, 'xml')
+    page = soup.find('Page')
+    bboxes = []
+    texts = []
+
+    text_lines = page.find_all('TextLine')
+    for line in text_lines:
+        coords = line.find('Coords')
+        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
+                                       point in coords['points'].split()])
+        bboxes.append(torch.tensor(get_bbox(region_polygon)))
+        texts.append(line.find('Unicode').text)
+
+    return bboxes, texts
+
+
 if __name__ == '__main__':
     from src.OCR.pero.trainer import ALPHABET
 
     dataset = Dataset(image_path='data/preprocessedOCR/train',
                       target_path='data/preprocessedOCR/train',
-                      alphabet=ALPHABET,
                       cache_images=True)

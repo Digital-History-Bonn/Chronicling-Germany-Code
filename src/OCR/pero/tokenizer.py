@@ -1,10 +1,7 @@
-from typing import List, Tuple
+from typing import List
 
 import torch
 import torch.nn.functional as F
-from bs4 import BeautifulSoup
-
-from src.OCR.utils import get_bbox
 
 
 class Tokenizer:
@@ -40,22 +37,3 @@ class Tokenizer:
         return text
 
 
-def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
-    with open(xml_path, "r", encoding="utf-8") as file:
-        data = file.read()
-
-    # Parse the XML data
-    soup = BeautifulSoup(data, 'xml')
-    page = soup.find('Page')
-    bboxes = []
-    texts = []
-
-    text_lines = page.find_all('TextLine')
-    for line in text_lines:
-        coords = line.find('Coords')
-        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in coords['points'].split()])
-        bboxes.append(torch.tensor(get_bbox(region_polygon)))
-        texts.append(line.find('Unicode').text)
-
-    return bboxes, texts

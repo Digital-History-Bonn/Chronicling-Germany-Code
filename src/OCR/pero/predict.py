@@ -8,21 +8,11 @@ import torch
 import Levenshtein
 import matplotlib.pyplot as plt
 
+from src.OCR.pero.config import ALPHABET, PAD_HEIGHT
 from src.OCR.pero.dataset import Dataset
 from src.OCR.pero.ocr_engine import transformer
-from src.OCR.pero.trainer import CROP_HEIGHT
-from src.OCR.pero.utils import Tokenizer
+from src.OCR.pero.tokenizer import Tokenizer
 
-
-ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
-            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
-            'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
-            'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-            'ä', 'ö', 'ü', 'ſ', 'ẞ', 'à', 'è',
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-            ' ', ',', '.', '?', '!', '-', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}', '%', '$',
-            '\"', '„', '“', '\'', '’', '&', '+', '~']
 
 def predict(model: transformer.TransformerOCR,
             tokenizer: Tokenizer,
@@ -39,10 +29,12 @@ def predict(model: transformer.TransformerOCR,
         model (transformer.TransformerOCR): The transformer to predict the text.
         tokenizer (Tokenizer): The tokenizer to use for reverse ids.
         images: Input tensor for the encoder, expected shape [batch_size, seq_length].
-        max_length: Maximum len
+        max_length: Maximum length of sequence for prediction
         gth of the sequence to be generated.
-        start_token_idx: Index of the start token in the vocabulary.
-        eos_token_idx: Index of the end token in the vocabulary.
+        start_token_idx: Index of the start token in the alphabet.
+        eos_token_idx: Index of the end token in the alphabet.
+        nan_token_idx: Index of the nan token in the alphabet.
+        predict_nan: Whether to predict nan or not.
 
     Returns:
         generated_sequences: The predicted sequences, shape [batch_size, max_length].
@@ -136,7 +128,7 @@ def main():
         json_data = json.load(file)
 
     model: transformer.TransformerOCR = transformer.build_net(net=json_data,
-                                                              input_height=CROP_HEIGHT,
+                                                              input_height=PAD_HEIGHT,
                                                               input_channels=3,
                                                               nb_output_symbols=len(ALPHABET) - 2)
     model.load_state_dict(torch.load(f"models/{args.name}.pt"))
@@ -146,8 +138,7 @@ def main():
 
     validset = Dataset(image_path=args.data,
                        target_path=args.data,
-                       alphabet=ALPHABET,
-                       pad=False,
+                       pad_seq=False,
                        cache_images=True)
 
     for i in range(100):

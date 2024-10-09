@@ -9,7 +9,7 @@ from torch import Tensor
 from torch.nn.modules import TransformerDecoder, TransformerDecoderLayer, ModuleList, \
     MultiheadAttention
 
-from typing import Optional, Tuple, List, Union
+from typing import Optional, Tuple, Union
 
 
 def build_net(net, input_height, input_channels, nb_output_symbols, max_seq_len=2000):

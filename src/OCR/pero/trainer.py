@@ -13,27 +13,10 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 import Levenshtein
 
+from src.OCR.pero.config import ALPHABET, VALID_EVERY, BATCH_SIZE, LR, PAD_HEIGHT
 from src.OCR.pero.ocr_engine import transformer
 from src.OCR.pero.dataset import Dataset
 from src.OCR.utils import set_seed, adjust_path
-
-ALPHABET = ['<PAD>', '<START>', '<NAN>', '<END>',
-            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
-            'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
-            'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-            'ä', 'ö', 'ü', 'Ä', 'Ö', 'Ü', 'ſ', 'ß', 'à', 'á', 'è', 'é', 'ò', 'ó', 'ù', 'ú',
-            '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-            ' ', ',', '.', '?', '!', '-', '—', '_', ':', ';', '/', '\\', '(', ')', '[', ']', '{', '}',
-            '%', '$', '£', '§', '\"', '„', '“', '»', '«', '\'', '’', '&', '+', '~', '*', '=', '†']
-            # 'ñ', 'ë', 'π', 'ο', 'λ', 'ε', 'ε', 'ç', 'Μ', 'υ', 'η', 'û', 'ê', 'â', 'ô', 'š', 'ι',
-            # '�', 'Κ', 'θ', 'î', 'γ', 'ů', '°', 'ξ', 'ρ', 'ꝛ', 'α', 'ς', 'τ', 'ν', 'ω', 'æ', 'œ',
-            # 'μ', 'σ', 'δ', 'ꝙ', 'ï', 'κ', 'Ε', 'ζ', 'Π', '·', 'φ', 'ψ', 'β', 'Σ']
-
-LR = 1e-4
-CROP_HEIGHT = 64
-VALID_EVERY = 25600
-BATCH_SIZE = 128
 
 
 class Trainer:
@@ -405,13 +388,13 @@ def main():
     trainset = Dataset(image_path=train_path,
                        target_path=train_path,
                        alphabet=ALPHABET,
-                       pad=False,
+                       pad_seq=False,
                        cache_images=True)
 
     validset = Dataset(image_path=valid_path,
                        target_path=valid_path,
                        alphabet=ALPHABET,
-                       pad=False,
+                       pad_seq=False,
                        cache_images=True)
 
     print(f"training with {len(trainset)} samples for training and {len(validset)} "
@@ -421,7 +404,7 @@ def main():
         json_data = json.load(file)
 
     net: transformer.TransformerOCR = transformer.build_net(net=json_data,
-                                                            input_height=CROP_HEIGHT,
+                                                            input_height=PAD_HEIGHT,
                                                             input_channels=3,
                                                             nb_output_symbols=len(ALPHABET) - 2)
     optimizer = AdamW(net.parameters(), lr=LR)
