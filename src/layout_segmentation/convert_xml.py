@@ -11,6 +11,7 @@ from time import sleep
 from typing import List
 
 import numpy as np
+from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
@@ -184,3 +185,19 @@ if __name__ == "__main__":
                       "--image-path should not be activated in production environment.")
 
     main(args)
+
+
+def save_xml(bs_data: BeautifulSoup, output_path: object, file_stem: object) -> object:
+    """
+    :param bs_data: BeautifulSoup object, that should be saved as xml.
+    :param output_path: Output folder path
+    :param file_stem: file name without extension
+    """
+    with open(
+            f"{output_path}{file_stem}.xml",
+            "w",
+            encoding="utf-8",
+    ) as xml_file:
+        xml_file.write(
+            bs_data.prettify().replace("<Unicode>\n      ", "<Unicode>")
+            .replace("\n     </Unicode>", "</Unicode>"))

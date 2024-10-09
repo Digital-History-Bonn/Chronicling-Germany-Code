@@ -5,6 +5,7 @@ from typing import List, Dict
 
 from tqdm import tqdm
 
+from src.layout_segmentation.convert_xml import save_xml
 from src.layout_segmentation.processing.read_xml import read_raw_data, read_regions_for_reading_order
 from src.layout_segmentation.processing.reading_order import PageProperties
 from src.layout_segmentation.processing.transkribus_export import copy_xml
@@ -46,13 +47,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 
         copy_xml(bs_copy, bs_data, id_list, reading_order_dict)
 
-        with open(
-                f"{output_path}{path}.xml",
-                "w",
-                encoding="utf-8",
-        ) as xml_file:
-            xml_file.write(
-                bs_copy.prettify().replace("<Unicode>\n      ", "<Unicode>").replace("\n     </Unicode>", "</Unicode>"))
+        save_xml(bs_copy, output_path, path)
 
 
 def get_args() -> argparse.Namespace:
