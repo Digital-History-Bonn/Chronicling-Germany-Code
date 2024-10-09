@@ -16,6 +16,7 @@ from src.OCR.evaluate_ocr import levensthein_distance, calculate_ratio
 from src.baseline_detection.class_config import TEXT_CLASSES
 from src.baseline_detection.utils import get_tag, adjust_path
 
+
 # pylint: disable=duplicate-code
 def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
     """
@@ -55,7 +56,7 @@ def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
 
 
 def matching(predictions: List[Polygon],
-             targets: List[Polygon]):
+             targets: List[Polygon]) -> List[Tuple[int, int]]:
     """
     Calcs precision, recall, F1 score for textline polygons.
 
@@ -130,22 +131,23 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> List[Tuple[int, 
     pred_texts = [pred_texts[i] for i, _ in mapping]
     gt_texts = [gt_texts[j] for _, j in mapping]
 
-    lev_dis, lev_med, ratio_list, distance_list, _ = levensthein_distance(
-        gt=[gt_texts],
-        ocr=[pred_texts],
-        confidence_list=[[1] * len(pred_texts)]
-    )
+    results = levensthein_distance(gt=[gt_texts],
+                                   ocr=[pred_texts],
+                                   confidence_list=[[1] * len(pred_texts)])
+    lev_dis, lev_med, ratio_list, distance_list, _, _ = results
 
     char_ratio = calculate_ratio(distance_list)
     print(f"{prediction_file} correct lines: "
           f"{len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
-    print(f"{prediction_file} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
+    print(
+        f"{prediction_file} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
     print(f"{prediction_file} normalized levensthein distance per line: {lev_dis}")
     print(f"{prediction_file} normalized levensthein distance per character: {char_ratio}")
     print(f"{prediction_file} levensthein median: {lev_med}")
     print(f"{prediction_file} levensthein worst line: {min(ratio_list)}\n")
 
     return distance_list
+
 
 # pylint: disable=duplicate-code
 def get_args() -> argparse.Namespace:
@@ -173,6 +175,7 @@ def get_args() -> argparse.Namespace:
     )
 
     return parser.parse_args()
+
 
 # pylint: disable=duplicate-code
 def main() -> None:

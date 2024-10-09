@@ -2,17 +2,16 @@
 
 import glob
 import os
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import torch
 import torch.nn.functional as F
 from bs4 import BeautifulSoup
-from skimage import io
 from tqdm import tqdm
 
-from src.OCR.pero.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH
+from src.OCR.pero.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
 from src.OCR.pero.tokenizer import Tokenizer
-from src.OCR.utils import get_bbox
+from src.OCR.utils import get_bbox, load_image
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -33,22 +32,19 @@ class Dataset(torch.utils.data.Dataset):
         """
         self.image_path = image_path
         self.target_path = target_path
-        self.pad_height = PAD_HEIGHT
-        self.pad_width = PAD_WIDTH
         self.cache_images = cache_images
 
-        self.tokenizer = Tokenizer(ALPHABET, pad=pad_seq, max_lenght=MAX_SEQUENCE_LENGTH)
+        self.tokenizer = Tokenizer(ALPHABET, pad=pad_seq, max_length=MAX_SEQUENCE_LENGTH)
 
-        self.images = []
-        self.bboxes = []
-        self.targets = []
-        self.texts = []
-        self.image_dict = {}
+        self.images: List[str] = []
+        self.bboxes: List[torch.Tensor] = []
+        self.targets: List[torch.Tensor] = []
+        self.texts: List[str] = []
+        self.image_dict: Dict[str, torch.Tensor] = {}
 
         self.get_data()
-        self.len = len(self.images)
 
-    def get_data(self):
+    def get_data(self) -> None:
         """Loads the data by reading the annotation."""
         image_paths = list(glob.glob(os.path.join(self.image_path, '*.jpg')))
         xml_paths = [f"{x[:-4]}.xml" for x in image_paths]
@@ -64,32 +60,42 @@ class Dataset(torch.utils.data.Dataset):
             self.images.extend([image_path] * len(bboxes))
 
             if image_path not in self.image_dict.keys() and self.cache_images:
-                self.image_dict[image_path] = torch.tensor(io.imread(image_path)).permute(2, 0, 1)
+                self.image_dict[image_path] = load_image(image_path)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.images)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, str]:
         if self.cache_images:
             image = self.image_dict[self.images[idx]]
         else:
-            image = torch.tensor(io.imread(self.images[idx])).permute(2, 0, 1)
+            image = load_image(self.images[idx])
 
         bbox = self.bboxes[idx]
         target = self.targets[idx]
         text = self.texts[idx]
 
+        # pylint: disable=duplicate-code
         crop = image[:, bbox[1]:bbox[3], bbox[0]:bbox[2]]
 
-        pad_height = max(0, self.pad_height - crop.shape[1])
-        pad_width = max(0, self.pad_width - crop.shape[2])
+        pad_height = max(0, PAD_HEIGHT - crop.shape[1])
+        pad_width = max(0, PAD_WIDTH - crop.shape[2])
         crop = F.pad(crop, (pad_width, 0, pad_height, 0), "constant", 0)
-        crop = crop[:, :self.pad_height]
+        crop = crop[:, :PAD_HEIGHT]
 
         return crop.float() / 255, target, text
 
 
 def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
+    """
+    Reads the xml files.
+    Args:
+        xml_path: path to xml file with annotations.
+
+    Returns:
+        bboxes: bounding boxes text lines.
+        texts: text of text lines.
+    """
     with open(xml_path, "r", encoding="utf-8") as file:
         data = file.read()
 
@@ -111,8 +117,6 @@ def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
 
 
 if __name__ == '__main__':
-    from src.OCR.pero.trainer import ALPHABET
-
     dataset = Dataset(image_path='data/preprocessedOCR/train',
                       target_path='data/preprocessedOCR/train',
                       cache_images=True)

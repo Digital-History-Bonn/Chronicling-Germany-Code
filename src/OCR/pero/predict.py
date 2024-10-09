@@ -1,17 +1,61 @@
-"""Predict function for Pero Transformer based OCR."""
+"""OCR Prediction"""
 
 import argparse
+import glob
 import json
-import re
+import os
+from typing import Tuple, List
 
 import torch
-import Levenshtein
-import matplotlib.pyplot as plt
+import torch.nn.functional as F
+from skimage import io
 
-from src.OCR.pero.config import ALPHABET, PAD_HEIGHT
-from src.OCR.pero.dataset import Dataset
+from bs4 import BeautifulSoup, ResultSet
+from tqdm import tqdm, trange
+
+from src.OCR.pero.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
 from src.OCR.pero.ocr_engine import transformer
+from src.OCR.pero.ocr_engine.transformer import TransformerOCR
 from src.OCR.pero.tokenizer import Tokenizer
+from src.OCR.utils import get_bbox
+
+
+def read_xml(soup: BeautifulSoup) -> Tuple[ResultSet, List[torch.Tensor]]:
+    """
+    Reads out textlines and corresponding bounding boxes form soup.
+    Args:
+        soup: soup object with textline annotations.
+
+    Returns:
+        text_lines: ResultSet with textlines
+        bboxes: Bounding boxes from textlines.
+    """
+    page = soup.find('Page')
+    bboxes = []
+
+    text_lines = page.find_all('TextLine')
+    for line in text_lines:
+        coords = line.find('Coords')
+        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
+                                       point in coords['points'].split()])
+        bboxes.append(torch.tensor(get_bbox(region_polygon)))
+
+    return text_lines, bboxes
+
+
+def replace_text(soup: BeautifulSoup, new_text: str) -> None:
+    """
+    Replaces text form xml file with predicted text.
+    Args:
+        soup: Soup object with textline annotations.
+        new_text: predicted text.
+    """
+    # Find the first occurrence of the tag
+    tag = soup.find('Unicode')
+
+    if tag and tag.text:
+        # Replace the text inside the tag
+        tag.string.replace_with(new_text)
 
 
 def predict(model: transformer.TransformerOCR,
@@ -21,7 +65,7 @@ def predict(model: transformer.TransformerOCR,
             start_token_idx: int = 1,
             eos_token_idx: int = 3,
             nan_token_idx: int= 2,
-            predict_nan: bool = False):
+            predict_nan: bool = False) -> str:
     """
     Perform autoregressive prediction using the transformer decoder.
 
@@ -49,7 +93,7 @@ def predict(model: transformer.TransformerOCR,
         images.device)
 
     # Step 3: Iteratively generate the sequence
-    for i in range(max_length - 1):  # Already have <START> as the first token
+    for _ in range(max_length - 1):  # Already have <START> as the first token
         # Get the current length of the generated sequence
         tgt_len = generated_sequences.size(0)
 
@@ -84,6 +128,57 @@ def predict(model: transformer.TransformerOCR,
     return tokenizer.to_text(pred[0])
 
 
+def predict_and_write(model: TransformerOCR,
+                      tokenizer: Tokenizer,
+                      device: torch.device,
+                      image_path: str,
+                      anno_path: str,
+                      out_path: str) -> None:
+    """
+    Predicts textlines based on annotated lines and writes them into the xml file.
+
+    Args:
+        model: model to use for prediction
+        tokenizer: tokenizer to use for prediction
+        device: device to use for prediction
+        image_path: path to image
+        anno_path: path to annotation
+        out_path: path to save the resulting xml file
+    """
+    if os.path.exists(out_path):
+        return
+
+    image = torch.tensor(io.imread(image_path)).permute(2, 0, 1).to(device)
+
+    with open(anno_path, "r", encoding="utf-8") as file:
+        data = file.read()
+
+    # Parse the XML data
+    soup = BeautifulSoup(data, 'xml')
+    textlines, bboxes = read_xml(soup)
+
+    for line, bbox in tqdm(zip(textlines, bboxes), total=len(textlines), desc="precessing lines",
+                           disable=True):
+        # pylint: disable=duplicate-code
+        crop = image[:, bbox[1]:bbox[3], bbox[0]:bbox[2]]
+
+        pad_height = max(0, PAD_HEIGHT - crop.shape[1])
+        pad_width = max(0, PAD_WIDTH - crop.shape[2])
+        crop = F.pad(crop, (pad_width, 0, pad_height, 0), "constant", 0)
+        crop = crop[:, :PAD_HEIGHT]
+
+        text = predict(model, tokenizer, crop[None].float() / 255)
+
+        replace_text(line, text)
+
+    # save results
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, 'w', encoding='utf-8') as file:
+        file.write(soup.prettify()
+                   .replace("<Unicode>\n      ", "<Unicode>")
+                   .replace("\n     </Unicode>", "</Unicode>"))
+
+
 def get_args() -> argparse.Namespace:
     """
     Defines arguments.
@@ -94,8 +189,8 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="train Pero OCR")
 
     parser.add_argument(
-        "--name",
-        "-n",
+        "--model",
+        "-m",
         type=str,
         default="model",
         help="Name of the model and the log files."
@@ -109,106 +204,52 @@ def get_args() -> argparse.Namespace:
         help="path for folder with images jpg files to predict."
     )
 
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        default=None,
+        help="path to output folder for predicted xml files."
+    )
+
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
+    """Predicts OCR and write it into xml file using textline annotations."""
     args = get_args()
-    print(f"{args=}")
 
     print(f"{torch.cuda.is_available()=}")
     device = (
         torch.device(f"cuda:{0}")
-        if torch.cuda.is_available() and 0 >= 0
+        if torch.cuda.is_available()
         else torch.device("cpu")
     )
     print(f"using {device}")
 
-    with open("src/OCR/pero/config.json", "r") as file:
+    with open("src/OCR/pero/config.json", "r", encoding='utf-8') as file:
         json_data = json.load(file)
 
     model: transformer.TransformerOCR = transformer.build_net(net=json_data,
                                                               input_height=PAD_HEIGHT,
                                                               input_channels=3,
                                                               nb_output_symbols=len(ALPHABET) - 2)
-    model.load_state_dict(torch.load(f"models/{args.name}.pt"))
+    model.load_state_dict(torch.load(f"models/{args.model}.pt"))
     model.to(device)
 
     tokenizer = Tokenizer(ALPHABET)
 
-    validset = Dataset(image_path=args.data,
-                       target_path=args.data,
-                       pad_seq=False,
-                       cache_images=True)
+    images = glob.glob(f"{args.data}/*.jpg")
+    annos = [f"{x[:-4]}.xml" for x in images]
+    outputs = [f"{args.output}/{os.path.basename(x)[:-4]}.xml" for x in images]
 
-    for i in range(100):
-        image, target, text = validset[i]
-
-        pred_text = predict(model, tokenizer, image[None].to(device))
-        distance = Levenshtein.distance(text, pred_text)
-        ratio = distance / max(len(text), len(pred_text))
-
-        plot_image_with_text(image.permute(1, 2, 0), distance, ratio, text, pred_text)
-
-        print()
-        print(f"{distance=}")
-        print(f"{ratio=}")
-        print(f"text:\t\t{text}")
-        print(f"prediction:\t{pred_text}")
-        print()
-
-
-def plot_image_with_text(image, distance, ratio, text, pred_text):
-    """
-    Plots an image and writes the provided texts next to it.
-
-    Parameters:
-    - image: The image to plot (as a NumPy array).
-    - distance: The distance value to display.
-    - ratio: The ratio value to display.
-    - text: The text value to display.
-    - pred_text: The predicted text value to display.
-    """
-
-    # Create a figure and axis
-    fig, ax = plt.subplots()
-
-    # Show the image
-    ax.imshow(image)
-
-    # Hide the axes
-    ax.axis('off')
-
-    # Formatting the text to display
-    display_text = f"text={text}\npred_text={pred_text}\ndistance={distance}\nratio={ratio}"
-
-    # Add the text to the right side of the image
-    plt.figtext(
-        0.5,  # Center horizontally
-        0.01,  # Near the bottom of the figure
-        display_text,
-        fontsize=12,
-        va='bottom',
-        ha='center'
-    )
-
-    # Create a filename from the text, using only alphabetical letters
-    clean_filename = re.sub(r'[^a-zA-Z]', '', text)
-    if clean_filename == "":
-        clean_filename = "output"  # Fallback to a default name if the result is empty
-    filename = f"logs/peroimages/{clean_filename}.png"
-
-    # Adjust layout to fit text
-    plt.tight_layout()
-
-    # Adjusting the figure size to accommodate text
-    fig.set_size_inches(8, 6)
-
-    # Save the plot as a PNG file
-    plt.savefig(filename, bbox_inches='tight', pad_inches=0.1, dpi=500)
-
-    # Close the plot to free up memory
-    plt.close(fig)
+    for i in trange(len(images), desc="preprocessing images"):
+        predict_and_write(model,
+                          tokenizer,
+                          device,
+                          image_path=images[i],
+                          anno_path=annos[i],
+                          out_path=outputs[i])
 
 
 if __name__ == '__main__':

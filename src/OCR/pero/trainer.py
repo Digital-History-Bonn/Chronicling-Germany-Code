@@ -22,15 +22,14 @@ from src.OCR.utils import set_seed, adjust_path
 class Trainer:
     """Class to train models."""
 
-    def __init__(
-            self,
-            model: transformer.TransformerOCR,
-            traindataset: Dataset,
-            testdataset: Dataset,
-            optimizer: Optimizer,
-            name: str,
-            cuda: int = 0,
-    ) -> None:
+    def __init__(self,
+                 model: transformer.TransformerOCR,
+                 traindataset: Dataset,
+                 testdataset: Dataset,
+                 optimizer: Optimizer,
+                 name: str,
+                 cuda: int = 0,
+                 ) -> None:
         """
         Trainer class to train models.
 
@@ -73,7 +72,8 @@ class Trainer:
         self.writer = SummaryWriter(train_log_dir)  # type: ignore
 
         self.valid_example_image, self.valid_example_label, self.valid_example_text = testdataset[2]
-        self.train_example_image, self.train_example_label, self.train_example_text = traindataset[0]
+        self.train_example_image, self.train_example_label, self.train_example_text = traindataset[
+            0]
 
         self.log_text(dataset='Valid', step=self.step, ground_truth=self.valid_example_text)
         self.log_text(dataset='Training', step=self.step, ground_truth=self.train_example_text)
@@ -192,7 +192,7 @@ class Trainer:
 
         self.log_loss('Valid',
                       step=self.step,
-                      levenshtein=np.mean(levenshtein_lst))
+                      levenshtein=np.mean(levenshtein_lst))  # type: ignore
 
         self.log_examples('Training')
         self.log_examples('Valid')
@@ -201,9 +201,10 @@ class Trainer:
 
         return np.mean(loss_lst)  # type: ignore
 
-    def predict(self, images: torch.Tensor, max_length: int = 100,
+    def predict(self, images: torch.Tensor,
+                max_length: int = 100,
                 start_token_idx: int = 1,
-                eos_token_idx: int = 3):
+                eos_token_idx: int = 3) -> str:
         """
         Perform autoregressive prediction using the transformer decoder.
 
@@ -227,7 +228,7 @@ class Trainer:
             images.device)
 
         # Step 3: Iteratively generate the sequence
-        for i in range(max_length - 1):  # Already have <START> as the first token
+        for _ in range(max_length - 1):  # Already have <START> as the first token
             # Get the current length of the generated sequence
             tgt_len = generated_sequences.size(0)
 
@@ -281,7 +282,7 @@ class Trainer:
         self.model.train()
 
     def log_text(self, dataset: str, step: Optional[int] = None,
-                 **kwargs: Dict[str, torch.Tensor]) -> None:
+                 **kwargs: str) -> None:
         """
         Logs given images under the given dataset label.
 
@@ -301,7 +302,7 @@ class Trainer:
         self.writer.flush()  # type: ignore
 
     def log_loss(self, dataset: str, step: Optional[int] = None,
-                 **kwargs: Dict[str, float]) -> None:
+                 **kwargs: float) -> None:
         """
         Logs the loss values to tensorboard.
 
@@ -376,7 +377,8 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
+    """Trains a Transformer model on the dataset."""
     # get args
     args = get_args()
     set_seed(args.seed)
@@ -387,20 +389,18 @@ def main():
 
     trainset = Dataset(image_path=train_path,
                        target_path=train_path,
-                       alphabet=ALPHABET,
                        pad_seq=False,
                        cache_images=True)
 
     validset = Dataset(image_path=valid_path,
                        target_path=valid_path,
-                       alphabet=ALPHABET,
                        pad_seq=False,
                        cache_images=True)
 
     print(f"training with {len(trainset)} samples for training and {len(validset)} "
           f"samples for validation.")
 
-    with open("src/OCR/pero/config.json", "r") as file:
+    with open("src/OCR/pero/config.json", "r", encoding='utf-8') as file:
         json_data = json.load(file)
 
     net: transformer.TransformerOCR = transformer.build_net(net=json_data,
