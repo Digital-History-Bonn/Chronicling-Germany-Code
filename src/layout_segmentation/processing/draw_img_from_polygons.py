@@ -39,7 +39,7 @@ def draw_img(annotation: dict) -> ndarray:
 
 
 def draw_polygon(
-        img: ndarray, polygon: List[Tuple[int]], label: int = 1, shift: int = 0
+        img: ndarray, polygon: List[Tuple[str]], label: int = 1, shift: int = 0
 ) -> ndarray:
     """Takes corner coordinates and fills entire polygon with label values"""
     polygon_np = np.array(polygon, dtype=int).T

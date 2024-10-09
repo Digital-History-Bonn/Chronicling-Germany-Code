@@ -5,7 +5,7 @@ mypy typing is ignored for this dictionary
 import re
 from typing import Dict, List, Tuple, Union
 
-from bs4 import BeautifulSoup, ResultSet
+from bs4 import BeautifulSoup, ResultSet, Tag
 from shapely import Polygon
 
 from src.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
@@ -14,7 +14,7 @@ from src.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
 def read_transkribus(
         path: str,
         log: bool,
-) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
+) -> Dict[str, Union[List[int], Dict[str, List[List[List[str]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
@@ -46,7 +46,7 @@ def read_transkribus(
     return {}
 
 
-def check_tags(page: BeautifulSoup, tags_dict:  Dict[str, List[List[List[int]]]]) -> None:
+def check_tags(page: BeautifulSoup, tags_dict: Dict[str, List[List[List[str]]]]) -> None:
     """
     Logs all occurrences of unknown regions.
     """
@@ -62,9 +62,9 @@ def find_regions(
         tag: str,
         search_children: bool,
         child_tag: str,
-        tags_dict: Dict[str, List[List[List[int]]]],
+        tags_dict: Dict[str, List[List[List[str]]]],
         id_dict: Union[None, Dict[str, List[str]]] = None
-) -> Dict[str, List[List[List[int]]]]:
+) -> Dict[str, List[List[List[str]]]]:
     """
     returns dictionary with all coordinates of specified regions
     :param data: BeautifulSoup xml data
@@ -90,7 +90,7 @@ def find_regions(
         if region_type not in tags_dict:
             tags_dict[region_type] = []
         tags_dict[region_type].append(
-            [pair.split(",") for pair in region.Coords["points"].split()]
+            xml_polygon_to_polygon_list(region)
         )
         if id_dict is not None:
             if region_type not in id_dict:
@@ -105,9 +105,16 @@ def find_regions(
                 tags_dict[child_tag] = []
             for line in lines:
                 tags_dict[child_tag].append(
-                    [pair.split(",") for pair in line.Coords["points"].split()]
+                    xml_polygon_to_polygon_list(line)
                 )
     return tags_dict
+
+
+def xml_polygon_to_polygon_list(xml_data: Tag) -> List[List[str]]:
+    """
+    Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
+    """
+    return [pair.split(",") for pair in xml_data.Coords["points"].split()]
 
 
 def read_hlna2013(

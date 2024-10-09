@@ -105,7 +105,7 @@ def add_regions_to_xml(order_group: Tag, page: BeautifulSoup, reading_order: Dic
                 },
             )
             region.append(
-                xml_data.new_tag("Coords", attrs={"points": polygon_to_string(polygon, scale)})
+                xml_data.new_tag("Coords", attrs={"points": polygon_to_string(polygon, scale ** -1)})
             )
             page.append(region)
             index += 1
@@ -120,16 +120,17 @@ def get_label_name(label: int) -> str:
     return LABEL_NAMES[label - 1]
 
 
-def polygon_to_string(input_list: List[float], scale: float) -> str:
+def polygon_to_string(input_list: List[float], scale: float = 1) -> str:
     """
     Converts a list to string, while converting each element in the list to an integer. X and y coordinates are
     separated by a comma, each pair is separated from other coordinate pairs by a space. This format is required
-    for transkribus
+    for transkribus.
+    :param scale: Coordinates will be scaled by this value
     :param input_list: list withcoordinates
     :return: string
     """
     generator_expression = (
-        f"{int(input_list[index] * scale ** -1)},{int(input_list[index + 1] * scale ** -1)}"
+        f"{int(input_list[index] * scale)},{int(input_list[index + 1] * scale)}"
         for index in range(0, len(input_list), 2)
     )
     string = " ".join(generator_expression)
