@@ -14,6 +14,8 @@ from src.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_l
 from src.layout_segmentation.processing.transkribus_export import polygon_to_string
 from src.layout_segmentation.utils import adjust_path
 
+TAG_LIST = ["TextRegion", "SeparatorRegion", "ImageRegion", "GraphicRegion", "TableRegion"]
+
 def rescale(args: argparse.Namespace):
     """Rescale data according to scaling parameter in the provided directory."""
     scale = args.scale ** -1 if args.reverse else args.scale
@@ -22,6 +24,12 @@ def rescale(args: argparse.Namespace):
     output_path = adjust_path(args.output_path)
     extension = args.extension
     xml = args.xml
+
+    if not os.path.exists(f"{output_path}"):
+        os.makedirs(f"{output_path}")
+
+    if not os.path.exists(f"{output_path}page/"):
+        os.makedirs(f"{output_path}page/")
 
     if extension is not None:
         image_names = [
@@ -35,9 +43,8 @@ def rescale(args: argparse.Namespace):
             f[:-4] for f in os.listdir(data_path + "page/") if f.endswith("xml")
         ]
         for name in tqdm(xml_names, desc="Rescaling xml files", unit="file"):
-            image = scale_xml(scale, data_path, extension, name)
-            image.save(output_path + name + extension)
-            save_xml(output_path + "page/" + name + ".xml")
+            bs_data = scale_xml(scale, data_path + "page/", name, TAG_LIST)
+            save_xml(bs_data, output_path + "page/", name)
 
 
 def scale_image(scale: int, data_path: str, extension: str, name: str) -> Image.Image:
@@ -59,6 +66,9 @@ def scale_xml(scale: int, data_path: str, name: str, tag_list: List[str]) -> Bea
         data = file.read()
 
     bs_data = BeautifulSoup(data, "xml")
+    page = bs_data.find("Page")
+    page.attrs['imageHeight'] = str(int(int(page.attrs['imageHeight'])*scale))
+    page.attrs['imageWidth'] = str(int(int(page.attrs['imageWidth'])*scale))
 
     for tag in tag_list:
         regions = bs_data.find_all(tag)
@@ -68,6 +78,8 @@ def scale_xml(scale: int, data_path: str, name: str, tag_list: List[str]) -> Bea
             for line in lines:
                 scale_coordinates(line, scale)
 
+    return bs_data
+
 
 def scale_coordinates(tag: Tag, scale: int):
     """
@@ -75,7 +87,7 @@ def scale_coordinates(tag: Tag, scale: int):
     Finally, reconverts coordinates to update the bs4.Tag object.
     """
     polygon = xml_polygon_to_polygon_list(tag)
-    polygon_ndarray = np.array(polygon, dtype=int)*scale
+    polygon_ndarray = np.array(polygon, dtype=int).flatten()*scale
     polygon_string = polygon_to_string(polygon_ndarray.tolist(), 1)
     tag.Coords["points"] = polygon_string
 
@@ -99,7 +111,7 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--extension",
-        "-o",
+        "-e",
         type=str,
         default=None,
         help="Image extension, if this is None, no images will be ignored.",
@@ -121,12 +133,10 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Reverse scaling, so scale^(-1) is applied.",
     )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
     parameter_args = get_args()
-
-    if not os.path.exists(f"{parameter_args.output_path}"):
-        os.makedirs(f"{parameter_args.output_path}")
 
     rescale(parameter_args)
