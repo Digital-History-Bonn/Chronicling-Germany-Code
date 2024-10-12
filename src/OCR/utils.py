@@ -7,6 +7,7 @@ import torch
 from PIL import Image, ImageOps
 from bs4 import BeautifulSoup, PageElement
 from matplotlib import pyplot as plt
+from skimage import io
 
 
 def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
@@ -54,19 +55,18 @@ def pad_points(points: str, pad_value: int = 10) -> str:
     return ' '.join(padded_points_list)
 
 
-def pad_image(image: Image.Image, pad: int = 10, color: tuple = (0, 0, 0)) -> Image.Image:
+def pad_image(image: Image.Image, pad: int = 10) -> Image.Image:
     """
     Pads the given PIL Image with a specified number of pixels on each side.
 
     Args:
         image (Image.Image): The input PIL Image to be padded.
         pad (int): The number of pixels to pad on each side. Default is 10.
-        color (tuple): The color for the padding. Default is white (255, 255, 255).
 
     Returns:
         Image.Image: The padded PIL Image.
     """
-    return ImageOps.expand(image, border=(pad, pad, pad, pad), fill=color)
+    return ImageOps.expand(image, border=(pad, pad, pad, pad), fill=0)
 
 
 def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
@@ -127,7 +127,7 @@ def plot_boxes_on_image(image: Image.Image, baselines: torch.Tensor, polygons: t
     plt.savefig(f'{name}.png', dpi=750)
 
 
-def adjust_path(path: Optional[str]) -> Optional[str]:
+def adjust_path(path: str) -> str:
     """
     Make sure, there is a slash at the end of a (folder) spath string.
 
@@ -162,3 +162,29 @@ def line_has_text(line: BeautifulSoup) -> bool:
     Returns:
         True if the line has TextEquiv and Unicode xml tags"""
     return bool(line.TextEquiv and line.TextEquiv.Unicode and len(line.TextEquiv.Unicode.contents))
+
+
+def load_image(image_path: str) -> torch.Tensor:
+    """
+    Loads an image and ensures it has the right dimensions.
+
+    Args:
+        image_path: path to image
+
+    Returns:
+        torch tensor of shape (H, W, C) with values in the range [0, 1]
+    """
+    image = torch.from_numpy(io.imread(image_path))
+    # image is black and white
+    if image.dim() == 2:
+        return image[None, :, :].repeat(3, 1, 1) / 256
+
+    # image has channels last
+    if image.shape[-1] == 3:
+        return image.permute(2, 0, 1) / 256
+
+    # image has alpha channel and channel last
+    if image.shape[-1] == 4:
+        return image[:, :, :3].permute(2, 0, 1) / 256
+
+    return image / 256

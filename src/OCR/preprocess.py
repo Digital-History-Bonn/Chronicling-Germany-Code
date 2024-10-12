@@ -61,8 +61,12 @@ def copy_and_pad_image(input_path: str, output_dir: str, pad_value: int = 10) ->
     padded_image.save(os.path.join(output_dir, file_name))
 
 
-def preprocess(train_paths: List[str], valid_paths: List[str],
-               test_paths: List[str], image_dir: str, annotation_dir: str, output_dir: str) -> None:
+def preprocess(train_paths: List[str],
+               valid_paths: List[str],
+               test_paths: List[str],
+               image_dir: str,
+               annotation_dir: str,
+               output_dir: str) -> None:
     """
     Preprocesses and splits data and saves it.
 

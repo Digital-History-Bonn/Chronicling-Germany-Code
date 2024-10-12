@@ -8,6 +8,7 @@ import torch
 from bs4 import PageElement, BeautifulSoup
 from scipy import ndimage
 from shapely import Polygon
+from skimage import io
 
 from src.baseline_detection.class_config import TEXT_CLASSES
 
@@ -284,3 +285,29 @@ def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+
+def load_image(image_path: str) -> torch.Tensor:
+    """
+    Loads an image and ensures it has the right dimensions.
+
+    Args:
+        image_path: path to image
+
+    Returns:
+        torch tensor of shape (H, W, C) with values in the range [0, 1]
+    """
+    image = torch.from_numpy(io.imread(image_path))
+    # image is black and white
+    if image.dim() == 2:
+        return image[None, :, :].repeat(3, 1, 1) / 256
+
+    # image has channels last
+    if image.shape[-1] == 3:
+        return image.permute(2, 0, 1) / 256
+
+    # image has alpha channel and channel last
+    if image.shape[-1] == 4:
+        return image[:, :, :3].permute(2, 0, 1) / 256
+
+    return image / 256

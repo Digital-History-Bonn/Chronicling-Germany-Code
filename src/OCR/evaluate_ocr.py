@@ -52,26 +52,28 @@ def main(parsed_args: argparse.Namespace) -> None:
     bleu_sum = 0.0
 
     for path in tqdm(gt_paths):
-        multi_page_bad_list, multi_page_distance_list, bleu_sum = compare_page(confidence_threshold,
-                                                                     multi_page_bad,
-                                                                     multi_page_bad_list,
-                                                                     multi_page_correct,
-                                                                     multi_page_distance_list,
-                                                                     parsed_args, path, bleu_sum)
+        results = compare_page(confidence_threshold, parsed_args, path)
+        page_correct, page_bad, distance_list, bad_list, bleu_score = results
 
-    print(f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
+        multi_page_correct.append(page_correct)
+        multi_page_bad.append(page_bad)
+        multi_page_distance_list.append(distance_list)
+        multi_page_bad_list.append(bad_list)
+        bleu_sum += bleu_score
+
+    print(
+        f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
     print(f"overall correct lines: {calculate_ratio(multi_page_correct)}")
     print(f"overall bad lines: {calculate_ratio(multi_page_bad)}")
-    print(f"overall bleu score: {bleu_sum/len(gt_paths)}")
+    print(f"overall bleu score: {bleu_sum / len(gt_paths)}")
 
     with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
         json.dump(multi_page_bad_list, file)
 
 
-def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_bad_list: list,
-                 multi_page_correct: list,
-                 multi_page_distance_list: list, parsed_args: argparse.Namespace,
-                 path: str, bleu_sum: float) -> Tuple[list, list, float]:
+def compare_page(confidence_threshold: float,
+                 parsed_args: argparse.Namespace,
+                 path: str) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray, float]:
     """
     Load lines from ground truth and ocr files and compare them directly. This function assumes, that the
     lines are already assigned from one file to the other, and text can be directly compare.
@@ -86,26 +88,28 @@ def compare_page(confidence_threshold: float, multi_page_bad: list, multi_page_b
         merge_lists_conf(ground_truth, confidence_list, confidence_threshold))
     with open(f"{parsed_args.output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
-    lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = evaluate_lines(ground_truth, ocr,
-                                                                            confidence_list,
-                                                                            confidence_threshold)
+    lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = levensthein_distance(
+        ground_truth,
+        ocr,
+        confidence_list,
+        confidence_threshold)
 
     char_ratio = calculate_ratio(distance_list)
-    print(f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
-    print(f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
+    print(
+        f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
+    print(
+        f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
     print(f"{path} normalized levensthein distance per line: {lev_dis}")
     print(f"{path} normalized levensthein distance per character: {char_ratio}")
     print(f"{path} levensthein median: {lev_med}")
     print(f"{path} levensthein worst line: {min(ratio_list)}\n")
     print(f"{path} bleu score: {bleu_score}\n")
 
-    multi_page_distance_list += distance_list
-    multi_page_correct.append((len(np.array(ratio_list)[np.array(ratio_list) == 1.0]), len(ratio_list)))
-    multi_page_bad.append((len(np.array(ratio_list)[np.array(ratio_list) < 0.9]), len(ratio_list)))
-    multi_page_bad_list += np.array(text_list)[np.array(ratio_list) < 0.9].tolist()
-    bleu_sum += bleu_score
+    page_correct = len(np.array(ratio_list)[np.array(ratio_list) == 1.0])
+    page_bad = len(np.array(ratio_list)[np.array(ratio_list) < 0.9])
+    page_bad_list = np.array(text_list)[np.array(ratio_list) < 0.9].tolist()
 
-    return multi_page_bad_list, multi_page_distance_list, bleu_sum
+    return page_correct, page_bad, distance_list, page_bad_list, bleu_score
 
 
 def merge_lists_conf(list_list: List[List[Any]], conf_list: List[List[float]],
@@ -120,24 +124,24 @@ def merge_lists_conf(list_list: List[List[Any]], conf_list: List[List[float]],
     return result
 
 
-def sufficient_confidence(conf, confidence_threshold):
-    """returns True if, the confidence is sufficient or """
+def sufficient_confidence(conf: float, confidence_threshold: Optional[float]) -> bool:
+    """Returns True if, the confidence is sufficient."""
     if not confidence_threshold:
         return True
     return conf >= confidence_threshold
 
 
 def calculate_ratio(data_list: List[Tuple[int, int]]) -> float:
-    """Calculate ratio from list containing values and lengths"""
+    """Calculate ratio from list containing values and lengths."""
     data_ndarray = np.array(data_list)
     sums = np.sum(data_ndarray, axis=0)
     ratio: float = sums[0] / sums[1]
     return ratio
 
 
-def evaluate_lines(gt: List[List[str]], ocr: List[List[str]],
-                   confidence_list: List[List[float]],
-                   confidence_threshold: Optional[float] = None) -> Tuple[
+def levensthein_distance(gt: List[List[str]], ocr: List[List[str]],
+                         confidence_list: List[List[float]],
+                         confidence_threshold: Optional[float] = None) -> Tuple[
     float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]], float]:
     """
     Computes the levensthein ratio between all lines and returns the mean, median and list of all ratios.
@@ -163,7 +167,7 @@ def evaluate_lines(gt: List[List[str]], ocr: List[List[str]],
                 ratio_list.append(ratio)
 
     return 1 - ratio_sum / count, 1 - statistics.median(
-        ratio_list), ratio_list, distance_list, text_list, bleu_sum/count
+        ratio_list), ratio_list, distance_list, text_list, bleu_sum / count
 
 
 def read_lines(
@@ -211,9 +215,8 @@ def read_lines(
     return region_text_list, region_coords_list, region_conf_list, lines_data
 
 
-def line_confidence(confidence, line) -> float:
-    """Returns True if threshold ist not supplied or no confidence for the line is known. If both are present it only
-    returns true, if the confidence is grater or equal to the threshold."""
+def line_confidence(confidence: bool, line: BeautifulSoup) -> float:
+    """Returns line confidence if confidence is true and line has a conf value else 0.0"""
     if not confidence:
         return 0.0
     if "conf" in line.TextEquiv.attrs:

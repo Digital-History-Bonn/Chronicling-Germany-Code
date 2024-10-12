@@ -18,11 +18,12 @@ from scipy import ndimage
 from PIL import ImageDraw, Image
 from bs4 import BeautifulSoup
 
-from skimage import draw, io
+from skimage import draw
 
 from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
+from src.OCR.utils import load_image
 from src.baseline_detection.utils import nonmaxima_suppression, adjust_path
 from src.baseline_detection.xml_conversion import add_baselines
 
@@ -91,18 +92,15 @@ List[np.ndarray]]:
     return baselines, heights, textlines
 
 
-def get_tableregions(xml_path: str) -> List[torch.Tensor]:
+def extract_layout(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     """
     Extracts the textregions and regions to mask form xml file.
-
-    Some regions like table and Header look like text, but we don't want to predict baselines
-    here, so we mask them for prediction.
 
     Args:
         xml_path: path to xml file
 
     Returns:
-        textregions and mask regions
+        mask regions and textregions
     """
     with open(xml_path, "r", encoding="utf-8") as file:
         data = file.read()
@@ -111,15 +109,23 @@ def get_tableregions(xml_path: str) -> List[torch.Tensor]:
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
     mask_regions = []
+    rois = []
 
-    text_regions = page.find_all(['TableRegion'])
-    for region in text_regions:
+    table_regions = page.find_all(['TableRegion'])
+    for region in table_regions:
         coords = region.find('Coords')
         points = torch.tensor([tuple(map(int, point.split(','))) for
                                point in coords['points'].split()])
         mask_regions.append(points)
 
-    return mask_regions
+    text_regions = page.find_all(['TextRegion'])
+    for region in text_regions:
+        coords = region.find('Coords')
+        points = torch.tensor([tuple(map(int, point.split(','))) for
+                               point in coords['points'].split()])
+        rois.append(points)
+
+    return mask_regions, rois
 
 
 def preprocess_image(image: torch.Tensor,
@@ -149,6 +155,29 @@ def preprocess_image(image: torch.Tensor,
     resize = transforms.Resize((width // 2, height // 2))
     return resize(image)  # type: ignore
 
+
+def polygon_mask(image: torch.Tensor, roi: torch.Tensor) -> torch.Tensor:
+    """
+    Masks everything outside the roi polygone with zeros.
+
+    Args:
+        image: torch Tensor of the shape (channel, width, height)
+        roi: torch Tensor with the polygon points
+
+    Returns:
+        image: masked Tensor
+    """
+    _, width, height = image.shape
+    mask = torch.ones(width, height)  # mask to filter regions
+
+    # draw mask
+    if len(roi) >= 3:
+        rr, cc = draw.polygon(roi[:, 1], roi[:, 0], shape=(width, height))
+        mask[rr, cc] = 0.0
+
+    image[:, mask == 1] = 0.0
+
+    return image
 
 class BaselineEngine:
     """Class to predict baselines using approach from: https://arxiv.org/abs/2102.11838."""
@@ -249,8 +278,6 @@ class BaselineEngine:
         b_list = []
         h_list = []
 
-        print('MAP RES:', out_map.shape)
-
         # expand line heights verticaly
         heights_map = ndimage.grey_dilation(
             out_map[:, :, :2], size=(5, 1, 1))
@@ -313,7 +340,7 @@ class BaselineEngine:
 
         return b_list, h_list, t_list
 
-    def predict(self, image: torch.Tensor, layout: str) -> Tuple[List[Polygon], List[LineString]]:
+    def predict(self, image: torch.Tensor, layout: str) -> Tuple[List[List[Polygon]], List[List[LineString]]]:
         """
         Predicts the baselines and textlines on a given image.
 
@@ -325,43 +352,43 @@ class BaselineEngine:
             predicted textlines and baselines
         """
         _, width, height = image.shape
-        maps = torch.zeros((4, width, height))  # tensor to save predictions from networks
+        baseline_lst: List[List[LineString]] = []
+        textline_lst: List[List[Polygon]] = []
 
         # extract layout information
-        mask_regions = get_tableregions(layout)
+        mask_regions, text_regions = extract_layout(layout)
         input_image = preprocess_image(image, mask_regions)
 
         # predict
-        print(f"{input_image.shape=}")
         input_image = input_image[None].to(self.device)
         pred_gpu = self.model(input_image)  # pylint: disable=not-callable
         pred = pred_gpu.cpu().detach()
 
+        # extract maps
         ascenders = pred[0, 0]
         descenders = pred[0, 1]
         baselines = self.softmax(pred[:, 2:4])[0, 1]
         limits = self.softmax(pred[:, 4:6])[0, 1]
+        maps = torch.stack([ascenders, descenders, baselines, limits])
 
-        pred = torch.stack([ascenders, descenders, baselines, limits])
+        # resize to image size
         resize = transforms.Resize((width, height), interpolation=InterpolationMode.NEAREST)
-        maps = resize(pred)
+        maps = resize(maps)
 
-        # postprocess from pero
-        b_list, h_list, t_list = self.parse(maps.permute(1, 2, 0).numpy())
+        for roi in text_regions:
+            mask_map = polygon_mask(torch.clone(maps), roi)
 
-        if not b_list:
-            print('fail!')
-            return [], []
+            # postprocess from pero
+            b_list, h_list, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
+            b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
 
-        b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
-
-        baselines = [LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list]
-        textlines = [Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list]
+            baseline_lst.append([LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list])
+            textline_lst.append([Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list])
 
         del pred_gpu, input_image
         torch.cuda.empty_cache()
 
-        return textlines, baselines
+        return textline_lst, baseline_lst
 
 
 def get_args() -> argparse.Namespace:
@@ -408,6 +435,14 @@ def get_args() -> argparse.Namespace:
         help="path to the model file",
     )
 
+    parser.add_argument(
+        "--processes",
+        "-p",
+        type=int,
+        default=1,
+        help="number of processes for every gpu in use",
+    )
+
     return parser.parse_args()
 
 
@@ -426,18 +461,17 @@ def main() -> None:
     output_files = [f"{output_dir}/{os.path.basename(i)[:-4]}.xml" for i in image_paths]
 
     num_gpus = torch.cuda.device_count()
-    if num_gpus > 0:
-        print(f"Using {num_gpus} gpu device(s).")
-    else:
-        print("Using cpu.")
+    num_processes = args.processes
+    print(f"Using {num_gpus} device(s).")
 
     path_queue: Queue = Queue()
     # put paths in queue
     for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
         path_queue.put((image, layout, output_file, False))
 
-    device_ids: List[int] = list(range(num_gpus)) if (torch.cuda.is_available() and num_gpus > 0) else [-1]
-    processes = [Process(target=predict, args=(device_ids[i], path_queue, args.model)) for i in range(len(device_ids))]
+    device_ids = range(num_gpus) if torch.cuda.is_available() else [0]
+    models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus]) for i in range(num_gpus * num_processes)]
+    processes = [Process(target=predict, args=(models[i], path_queue)) for i in range(num_gpus * num_processes)]
     for process in processes:
         process.start()
     total = len(image_paths)
@@ -453,24 +487,20 @@ def main() -> None:
         process.join()
 
 
-def predict(device: int, path_queue: Queue, model: str) -> None:
+def predict(model: BaselineEngine, path_queue: Queue) -> None:
     """
     Predicts baselines for given image with given layout and writes into outputfile.
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     Args:
-        image_path (str): Path to image
-        layout_xml_path (str): Path to layout xml file
-        output_file (str): Path to output xml file
+        path_queue (Queue): Queue object containing image, layout and output path and info if job is already done
         model (str): Path to model file
     """
-    baseline_engine = BaselineEngine(model_name=model, cuda=device)
     while True:
         image_path, layout_xml_path, output_file, done = path_queue.get()
         if done:
             break
-
-        image = torch.tensor(io.imread(image_path)).permute(2, 0, 1) / 256
-        textlines, baselines = baseline_engine.predict(image, layout_xml_path)
+        image = load_image(image_path)
+        textlines, baselines = model.predict(image, layout_xml_path)
         add_baselines(
             layout_xml=layout_xml_path,
             textlines=textlines,
