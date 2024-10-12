@@ -174,7 +174,7 @@ def load_image(image_path: str) -> torch.Tensor:
     Returns:
         torch tensor of shape (H, W, C) with values in the range [0, 1]
     """
-    image = torch.tensor(io.imread(image_path))
+    image = torch.from_numpy(io.imread(image_path))
     # image is black and white
     if image.dim() == 2:
         return image[None, :, :].repeat(3, 1, 1) / 256
