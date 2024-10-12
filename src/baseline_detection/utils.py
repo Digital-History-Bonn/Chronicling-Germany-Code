@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from bs4 import PageElement, BeautifulSoup
 from scipy import ndimage
-from shapely import Polygon, LineString
+from shapely.geometry import Polygon, LineString
 from skimage import io
 
 from src.baseline_detection.class_config import TEXT_CLASSES

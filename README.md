@@ -99,7 +99,7 @@ O Kodym, M Hradiš: Page Layout Analysis System for Unconstrained Historic Docum
 ### Preprocessing and Training
 The trainings script need targets saved as .npz files. The target can be created by with our preprocessing script.
 ````
-python -m src.baseline_detection.pero.preprocess -i path/to/images -a path/to/annotations -o path/to/output/folder
+python -m src.baseline_detection.preprocess -i path/to/images -a path/to/annotations -o path/to/output/folder
 ````
 The preprocessed data can then be splited into our train, valid and test split with:
 ````
