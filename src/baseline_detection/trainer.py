@@ -26,7 +26,7 @@ class MultiTargetLoss(nn.Module):
     """
     Custom loss for multi task semantic segmentation.
 
-    Oriented on pero (https://arxiv.org/abs/2102.11838)
+    Oriented on Transformer (https://arxiv.org/abs/2102.11838)
     """
 
     def __init__(self, scaling: float = 0.01):

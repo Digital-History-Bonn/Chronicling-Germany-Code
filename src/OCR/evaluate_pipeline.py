@@ -189,7 +189,7 @@ def main() -> None:
 
     overall_distance_list = []
     ratios = []
-    bleu_sum = 0
+    bleu_sum = 0.0
 
     for prediction, target in tqdm(zip(predictions, targets), total=len(targets),
                                    desc='evaluation'):

@@ -261,14 +261,13 @@ def main() -> None:
                         False))
 
     model_list = [models.load_any(args.model, device=f"cuda:{i % num_gpus}") for i in
-                  range(num_gpus*args.process_count)] if (torch.cuda.is_available() and num_gpus > 0) else \
+                  range(num_gpus * args.process_count)] if (
+                torch.cuda.is_available() and num_gpus > 0) else \
         [models.load_any(args.model, device="cpu")]
 
     processes = [Process(target=predict_batch,
-                         args=(model_list[i if num_gpus > 0 else 0], path_queue, args.thread_count),
-                         ) for i
-                 in
-                 range(len(model_list))]
+                         args=(model_list[i if num_gpus > 0 else 0], path_queue, args.thread_count))
+                         for i in range(len(model_list))]
     for process in processes:
         process.start()
     total = len(images)

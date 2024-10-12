@@ -13,10 +13,10 @@ from skimage import io
 from bs4 import BeautifulSoup, ResultSet
 from tqdm import tqdm, trange
 
-from src.OCR.pero.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
-from src.OCR.pero.ocr_engine import transformer
-from src.OCR.pero.ocr_engine.transformer import TransformerOCR
-from src.OCR.pero.tokenizer import Tokenizer
+from src.OCR.Transformer.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
+from src.OCR.Transformer.ocr_engine import transformer
+from src.OCR.Transformer.ocr_engine.transformer import TransformerOCR
+from src.OCR.Transformer.tokenizer import Tokenizer
 from src.OCR.utils import get_bbox
 
 
@@ -227,7 +227,7 @@ def main() -> None:
     )
     print(f"using {device}")
 
-    with open("src/OCR/pero/config.json", "r", encoding='utf-8') as file:
+    with open("src/OCR/Transformer/config.json", "r", encoding='utf-8') as file:
         json_data = json.load(file)
 
     model: transformer.TransformerOCR = transformer.build_net(net=json_data,

@@ -1,4 +1,4 @@
-"""Dataset class for pero baseline detection model training."""
+"""Dataset class for Transformer baseline detection model training."""
 import os
 import glob
 from typing import Tuple, Optional

@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from src.OCR.pero.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
-from src.OCR.pero.tokenizer import Tokenizer
+from src.OCR.Transformer.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
+from src.OCR.Transformer.tokenizer import Tokenizer
 from src.OCR.utils import get_bbox, load_image
 
 
@@ -59,7 +59,7 @@ class Dataset(torch.utils.data.Dataset):
             self.targets.extend([self.tokenizer(line) for line in texts])
             self.images.extend([image_path] * len(bboxes))
 
-            if image_path not in self.image_dict.keys() and self.cache_images:
+            if image_path not in self.image_dict.keys() and self.cache_images:  # pylint: disable=consider-iterating-dictionary
                 self.image_dict[image_path] = load_image(image_path)
 
     def __len__(self) -> int:

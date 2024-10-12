@@ -23,9 +23,7 @@ from skimage import draw
 from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
-from src.OCR.utils import load_image
-from src.baseline_detection.utils import nonmaxima_suppression, adjust_path
-from src.baseline_detection.xml_conversion import add_baselines
+from src.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image
 
 
 def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarray:
@@ -235,7 +233,7 @@ class BaselineEngine:
         """
         Creates outline image of the textregions from our layout prediction.
 
-        This is similar to the Text outline output of the pero model.
+        This is similar to the Text outline output of the Transformer model.
 
         Args:
             textregions: List of textregions as polygons to draw in torch tensor
@@ -378,7 +376,7 @@ class BaselineEngine:
         for roi in text_regions:
             mask_map = polygon_mask(torch.clone(maps), roi)
 
-            # postprocess from pero
+            # postprocess from Transformer
             b_list, h_list, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
             b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
 
@@ -464,13 +462,14 @@ def main() -> None:
     num_processes = args.processes
     print(f"Using {num_gpus} device(s).")
 
+    # create queue
     path_queue: Queue = Queue()
-    # put paths in queue
     for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
         path_queue.put((image, layout, output_file, False))
 
     device_ids = range(num_gpus) if torch.cuda.is_available() else [0]
-    models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus]) for i in range(num_gpus * num_processes)]
+    models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus])
+              for i in range(num_gpus * num_processes)]
     processes = [Process(target=predict, args=(models[i], path_queue)) for i in range(num_gpus * num_processes)]
     for process in processes:
         process.start()

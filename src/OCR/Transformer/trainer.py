@@ -3,7 +3,7 @@
 import argparse
 import json
 import os
-from typing import Union, Dict, Optional
+from typing import Union, Optional
 
 import numpy as np
 import torch
@@ -13,9 +13,9 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 import Levenshtein
 
-from src.OCR.pero.config import ALPHABET, VALID_EVERY, BATCH_SIZE, LR, PAD_HEIGHT
-from src.OCR.pero.ocr_engine import transformer
-from src.OCR.pero.dataset import Dataset
+from src.OCR.Transformer.config import ALPHABET, VALID_EVERY, BATCH_SIZE, LR, PAD_HEIGHT
+from src.OCR.Transformer.ocr_engine import transformer
+from src.OCR.Transformer.dataset import Dataset
 from src.OCR.utils import set_seed, adjust_path
 
 
@@ -400,7 +400,7 @@ def main() -> None:
     print(f"training with {len(trainset)} samples for training and {len(validset)} "
           f"samples for validation.")
 
-    with open("src/OCR/pero/config.json", "r", encoding='utf-8') as file:
+    with open("src/OCR/Transformer/config.json", "r", encoding='utf-8') as file:
         json_data = json.load(file)
 
     net: transformer.TransformerOCR = transformer.build_net(net=json_data,

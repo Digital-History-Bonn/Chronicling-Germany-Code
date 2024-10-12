@@ -41,7 +41,7 @@ class Tokenizer:
         ids.insert(0, self.alphabet['<START>'])
         ids.append(self.alphabet['<END>'])
         if self.pad:
-            ids = F.pad(torch.tensor(ids),                      # mypy: ignore
+            ids = F.pad(torch.tensor(ids),                      # type: ignore
                         pad=(0, self.max_length - len(ids)),
                         mode='constant',
                         value=self.alphabet['<PAD>'])

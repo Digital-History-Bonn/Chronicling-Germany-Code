@@ -1,12 +1,11 @@
 """Utility functions for OCR."""
 import random
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union
 
 import numpy as np
 import torch
 from PIL import Image, ImageOps
-from bs4 import BeautifulSoup, PageElement
-from matplotlib import pyplot as plt
+from bs4 import BeautifulSoup
 from skimage import io
 
 
@@ -83,48 +82,6 @@ def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
     x_max, x_min = points[:, 0].max(), points[:, 0].min()
     y_max, y_min = points[:, 1].max(), points[:, 1].min()
     return x_min, y_min, x_max, y_max  # type: ignore
-
-
-def convert_coord(element: PageElement) -> np.ndarray:
-    """
-    Converts PageEZement with Coords in to a numpy array.
-
-    Args:
-        element: PageElement with Coords for example a Textregion
-
-    Returns:
-        np.ndarray of shape (N x 2) containing a list of coordinates
-    """
-    coords = element.find('Coords')
-    return np.array([tuple(map(int, point.split(','))) for
-                     point in coords['points'].split()])[:, np.array([1, 0])]
-
-
-def plot_boxes_on_image(image: Image.Image, baselines: torch.Tensor, polygons: torch.Tensor,
-                        name: str) -> None:
-    """
-    Plots baselines and textline polygons on image.
-
-    Args:
-        image: image to be plotted.
-        baselines: baseline coordinates.
-        polygons: textline coordinates.
-        name: name of the file to be saved.
-    """
-    # Create figure and axes
-    _, ax = plt.subplots()
-
-    # Display the image
-    ax.imshow(image, cmap='gray')
-
-    for baseline in baselines:
-        ax.plot(baseline[:, 0], baseline[:, 1], color='blue', linewidth=.02)
-
-    for polygon in polygons:
-        ax.plot(polygon[:, 0], polygon[:, 1], color='orange', linewidth=.02)
-
-    # save plot
-    plt.savefig(f'{name}.png', dpi=750)
 
 
 def adjust_path(path: str) -> str:
