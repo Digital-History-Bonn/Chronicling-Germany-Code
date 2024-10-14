@@ -1,3 +1,11 @@
+matplotlib == 3.9
+numpy == 1.23
+torch
+scikit-image
+torchvision
+nltk
+Levenshtein
+monai
 beautifulsoup4==4.12.3
 kraken==5.2.5
 lightning==2.2.5

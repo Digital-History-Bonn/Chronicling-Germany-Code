@@ -9,7 +9,7 @@ from typing import List, Tuple
 
 import numpy as np
 import torch
-from shapely import Polygon, LineString
+from shapely.geometry import Polygon, LineString
 from torch import nn
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
