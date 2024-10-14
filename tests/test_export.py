@@ -63,7 +63,7 @@ class TestClassExport:
 
         ground_truth = "38,40 2,8 11,21 40,60"
 
-        assert polygon_to_string(data, 0.5) == ground_truth
+        assert polygon_to_string(data, 2) == ground_truth
 
     def test_prediction_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
