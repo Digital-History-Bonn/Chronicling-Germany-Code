@@ -81,7 +81,7 @@ def scale_xml(scale: int, data_path: str, name: str, tag_list: List[str]) -> Bea
     return bs_data
 
 
-def scale_coordinates(tag: Tag, scale: int, is_line: bool):
+def scale_coordinates(tag: Tag, scale: int, is_line: bool = False):
     """
     Extracts coordinates from bs4.Tag object, converts it to an ndarray and scales all coordinates.
     Finally, reconverts coordinates to update the bs4.Tag object.
@@ -98,6 +98,7 @@ def scale_coordinates(tag: Tag, scale: int, is_line: bool):
         tag.Baseline["points"] = baseline_string
 
 
+# pylint: disable=locally-disabled, duplicate-code
 def get_args() -> argparse.Namespace:
     """defines arguments"""
     parser = argparse.ArgumentParser(description="Newspaper Layout Prediction")
@@ -144,5 +145,4 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     parameter_args = get_args()
-
     rescale(parameter_args)

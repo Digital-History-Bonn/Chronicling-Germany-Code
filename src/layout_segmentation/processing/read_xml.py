@@ -5,7 +5,7 @@ mypy typing is ignored for this dictionary
 import re
 from typing import Dict, List, Tuple, Union
 
-from bs4 import BeautifulSoup, ResultSet, Tag
+from bs4 import BeautifulSoup, ResultSet
 from shapely import Polygon
 
 from src.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS

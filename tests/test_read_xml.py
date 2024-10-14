@@ -5,7 +5,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 
 from src.layout_segmentation.processing.draw_img_from_polygons import draw_img
-from src.layout_segmentation.processing.read_xml import read_transkribus, find_regions, xml_polygon_to_polygon_list
+from src.layout_segmentation.processing.read_xml import read_transkribus, xml_polygon_to_polygon_list
 
 DATA_PATH = "tests/data/"
 
