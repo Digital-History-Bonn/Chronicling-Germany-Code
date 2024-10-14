@@ -90,7 +90,7 @@ def find_regions(
         if region_type not in tags_dict:
             tags_dict[region_type] = []
         tags_dict[region_type].append(
-            xml_polygon_to_polygon_list(region)
+            xml_polygon_to_polygon_list(region.Coords["points"])
         )
         if id_dict is not None:
             if region_type not in id_dict:
@@ -105,16 +105,16 @@ def find_regions(
                 tags_dict[child_tag] = []
             for line in lines:
                 tags_dict[child_tag].append(
-                    xml_polygon_to_polygon_list(line)
+                    xml_polygon_to_polygon_list(line.Coords["points"])
                 )
     return tags_dict
 
 
-def xml_polygon_to_polygon_list(xml_data: Tag) -> List[List[str]]:
+def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[str]]:
     """
     Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
     """
-    return [pair.split(",") for pair in xml_data.Coords["points"].split()]
+    return [pair.split(",") for pair in polygon_string.split()]
 
 
 def read_hlna2013(

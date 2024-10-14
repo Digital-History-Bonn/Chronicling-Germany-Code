@@ -38,4 +38,4 @@ class TestClassReadXML:
 
         ground_truth = [['3498', '5612'], ['4581', '5626'], ['4594', '6971'], ['3506', '6955']]
 
-        assert xml_polygon_to_polygon_list(tag) == ground_truth
+        assert xml_polygon_to_polygon_list(tag.Coords["points"]) == ground_truth

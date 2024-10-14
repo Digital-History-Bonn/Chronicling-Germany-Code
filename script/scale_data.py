@@ -76,20 +76,26 @@ def scale_xml(scale: int, data_path: str, name: str, tag_list: List[str]) -> Bea
             scale_coordinates(region, scale)
             lines = region.find_all("TextLine")
             for line in lines:
-                scale_coordinates(line, scale)
+                scale_coordinates(line, scale, True)
 
     return bs_data
 
 
-def scale_coordinates(tag: Tag, scale: int):
+def scale_coordinates(tag: Tag, scale: int, is_line: bool):
     """
     Extracts coordinates from bs4.Tag object, converts it to an ndarray and scales all coordinates.
     Finally, reconverts coordinates to update the bs4.Tag object.
     """
-    polygon = xml_polygon_to_polygon_list(tag)
+    polygon = xml_polygon_to_polygon_list(tag.Coords["points"])
     polygon_ndarray = np.array(polygon, dtype=int).flatten()*scale
     polygon_string = polygon_to_string(polygon_ndarray.tolist(), 1)
     tag.Coords["points"] = polygon_string
+
+    if is_line:
+        baseline = xml_polygon_to_polygon_list(tag.Baseline["points"])
+        baseline_ndarray = np.array(baseline, dtype=int).flatten()*scale
+        baseline_string = polygon_to_string(baseline_ndarray.tolist(), 1)
+        tag.Baseline["points"] = baseline_string
 
 
 def get_args() -> argparse.Namespace:
