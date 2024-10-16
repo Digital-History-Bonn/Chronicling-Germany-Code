@@ -1,5 +1,5 @@
 matplotlib == 3.6
-numpy == 1.26.4
+numpy
 pillow
 torch
 scikit-learn

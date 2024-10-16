@@ -1,17 +1,17 @@
-matplotlib == 3.9
-numpy == 1.23
+matplotlib
+numpy
 torch
 scikit-image
 torchvision
 nltk
 Levenshtein
 monai
-beautifulsoup4==4.12.3
-kraken==5.2.5
-lightning==2.2.5
-matplotlib==3.9.0
-Pillow==10.3.0
-tqdm==4.66.4
+beautifulsoup4
+kraken==5.2.9
+lightning>=2.3.2
+matplotlib
+Pillow
+tqdm
 opencv-python
 albumentations
 tensorboard

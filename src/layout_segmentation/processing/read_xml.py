@@ -114,6 +114,7 @@ def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[str]]:
     """
     Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
     """
+    # TODO: use this everywhere and do it as int return
     return [pair.split(",") for pair in polygon_string.split()]
 
 

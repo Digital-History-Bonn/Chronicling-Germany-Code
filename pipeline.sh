@@ -17,13 +17,12 @@ export PYTHONPATH=${PYTHONPATH}:
 
 # Run layout segmentation prediction
 python src/layout_segmentation/predict.py -d "$DATA_DIR" -m "$MODEL_LAYOUT" $LAYOUT_PARAMS
-
+conda activate ocr
 # Run baseline detection prediction
-python src/baseline_detection/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_BASELINE"
+python src/baseline_detection/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_BASELINE" -p $PROCESS_COUNT
 
 # Activate conda environment and set PYTHONPATH for OCR
-conda activate ocr
 export PYTHONPATH=${PYTHONPATH}:
 
 # Run OCR prediction
-python src/OCR/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_OCR" -t $THREAD_COUNT -p $PROCESS_COUNT
+python src/OCR/LSTM/predict.py -i "$DATA_DIR" -l "$PAGE_DIR" -o "$PAGE_DIR" -m "$MODEL_OCR" -t $THREAD_COUNT -p $PROCESS_COUNT

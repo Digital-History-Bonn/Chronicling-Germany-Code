@@ -22,7 +22,7 @@ def order_lines(region: PageElement) -> None:
 
     properties_list = []
     for i, line in enumerate(lines):
-        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        line_polygon = Polygon([tuple(map(int, pair.split(","))) for pair in line.Coords["points"].split()])
         line_centroid = line_polygon.centroid
         bbox = line_polygon.bounds
         properties_list.append(
