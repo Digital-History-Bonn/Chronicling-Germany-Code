@@ -167,7 +167,6 @@ def apply_polygon_mask(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tens
     Returns:
         image: masked Tensor
     """
-    print(f"image shape:{image.shape}")
 
     bounds = list(Polygon(roi).bounds)
     if bounds[0] < 0:
