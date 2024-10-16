@@ -4,13 +4,14 @@ import glob
 import os
 import random
 from multiprocessing import Queue, Process, set_start_method
+from threading import Thread
 from time import sleep
 from typing import List, Tuple
 
 import numpy as np
 import torch
 from shapely.geometry import Polygon, LineString
-from torch import nn
+from torch import nn, Tensor
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
@@ -23,6 +24,7 @@ from skimage import draw
 from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
+from src.OCR.LSTM.predict import join_threads
 from src.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image
 
 
@@ -177,6 +179,7 @@ def polygon_mask(image: torch.Tensor, roi: torch.Tensor) -> torch.Tensor:
 
     return image
 
+
 class BaselineEngine:
     """Class to predict baselines using approach from: https://arxiv.org/abs/2102.11838."""
 
@@ -187,7 +190,8 @@ class BaselineEngine:
                  line_end_weight: float = 1.0,
                  line_detection_threshold: float = 0.2,
                  vertical_line_connection_range: int = 5,
-                 paragraph_line_threshold: float = 0.3
+                 paragraph_line_threshold: float = 0.3,
+                 thread_count: int = 1
                  ):
         """
         Predicts baselines using approach from: https://arxiv.org/abs/2102.11838.
@@ -202,6 +206,7 @@ class BaselineEngine:
             vertical_line_connection_range: Vertical line connection range (default: 5)
             paragraph_line_threshold: Paragraph line threshold (default: 0.3)
         """
+        self.thread_count = thread_count
         self.downsample = downsample
         self.smooth_line_predictions = smooth_line_predictions
         self.line_end_weight = line_end_weight
@@ -373,20 +378,36 @@ class BaselineEngine:
         resize = transforms.Resize((width, height), interpolation=InterpolationMode.NEAREST)
         maps = resize(maps)
 
+        threads: List[Thread] = []
         for roi in text_regions:
-            mask_map = polygon_mask(torch.clone(maps), roi)
+            if len(threads) >= self.thread_count:
+                join_threads(threads)
+                threads = []
 
-            # postprocess from Transformer
-            b_list, h_list, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
-            b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
-
-            baseline_lst.append([LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list])
-            textline_lst.append([Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list])
+            threads.append(Thread(target=self.postprocess_per_region, args=(baseline_lst, maps, roi, textline_lst)))
+            threads[-1].start()
+        join_threads(threads)
 
         del pred_gpu, input_image
-        torch.cuda.empty_cache()
 
         return textline_lst, baseline_lst
+
+
+    def postprocess_per_region(self, baseline_lst: List[List[LineString]], prediction: Tensor, roi: Tensor,
+                               textline_lst: List[List[Polygon]]) -> None:
+        """
+        Args:
+            prediction: prediction Tensor with channels for ascenders, descenders, baselines and limits.
+            roi: Tensor containing polygon points.
+        Postprocessing is applied for each region separately, to ensure all lines are within one region.
+        Therefore, all but the region polygon is masked within the prediction.
+        """
+        mask_map = polygon_mask(torch.clone(prediction), roi)
+        # postprocess from Transformer
+        b_list, h_list, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
+        b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
+        baseline_lst.append([LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list])
+        textline_lst.append([Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list])
 
 
 def get_args() -> argparse.Namespace:
@@ -438,7 +459,15 @@ def get_args() -> argparse.Namespace:
         "-p",
         type=int,
         default=1,
-        help="number of processes for every gpu in use",
+        help="Number of processes for every gpu in use.",
+    )
+
+    parser.add_argument(
+        "--thread-count",
+        "-t",
+        type=int,
+        default=1,
+        help="Select number of threads that are launched per process.",
     )
 
     return parser.parse_args()
@@ -471,7 +500,7 @@ def main() -> None:
         path_queue.put((image, layout, output_file, False))
 
     device_ids = list(range(num_gpus) if torch.cuda.is_available() else [-1])
-    models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus])
+    models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus], thread_count=args.thread_count)
               for i in range(len(device_ids) * num_processes)]
     processes = [Process(target=predict, args=(models[i], path_queue)) for i in range(len(models))]
     for process in processes:
