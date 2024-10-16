@@ -306,13 +306,13 @@ def add_baselines(layout_xml: str,
 
             # add textline
             coords_element = soup.new_tag("Coords")
-            points_list = np.array(textline.exterior.coords)[:, ::-1].ravel().tolist()
+            points_list = np.array(textline.exterior.coords).ravel().tolist()
             coords_element["points"] = polygon_to_string(points_list)
             new_textline.append(coords_element)
 
             # add baseline
             baseline_element = soup.new_tag("Baseline")
-            points_list = np.array(baseline.coords)[:, ::-1].ravel().tolist()
+            points_list = np.array(baseline.coords).ravel().tolist()
             baseline_element["points"] = polygon_to_string(points_list)
             new_textline.append(baseline_element)
 

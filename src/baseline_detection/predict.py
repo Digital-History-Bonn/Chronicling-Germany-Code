@@ -92,7 +92,7 @@ List[np.ndarray]]:
     return baselines, heights, textlines
 
 
-def extract_layout(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+def extract_layout(xml_path: str) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """
     Extracts the textregions and regions to mask form xml file.
 
@@ -114,14 +114,14 @@ def extract_layout(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor
     table_regions = page.find_all(['TableRegion'])
     for region in table_regions:
         coords = region.find('Coords')
-        points = torch.tensor([tuple(map(int, point.split(','))) for
+        points = np.array([tuple(map(int, point.split(','))) for
                                point in coords['points'].split()])
         mask_regions.append(points)
 
     text_regions = page.find_all(['TextRegion'])
     for region in text_regions:
         coords = region.find('Coords')
-        points = torch.tensor([tuple(map(int, point.split(','))) for
+        points = np.array([tuple(map(int, point.split(','))) for
                                point in coords['points'].split()])
         rois.append(points)
 
@@ -129,7 +129,7 @@ def extract_layout(xml_path: str) -> Tuple[List[torch.Tensor], List[torch.Tensor
 
 
 def preprocess_image(image: torch.Tensor,
-                     mask_regions: List[torch.Tensor]) -> torch.Tensor:
+                     mask_regions: List[np.ndarray]) -> torch.Tensor:
     """
     Preprocesses the image for prediction.
 
@@ -156,7 +156,7 @@ def preprocess_image(image: torch.Tensor,
     return resize(image)  # type: ignore
 
 
-def polygon_mask(image: torch.Tensor, roi: torch.Tensor) -> torch.Tensor:
+def apply_polygon_mask(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tensor, np.ndarray]:
     """
     Masks everything outside the roi polygone with zeros.
 
@@ -167,17 +167,24 @@ def polygon_mask(image: torch.Tensor, roi: torch.Tensor) -> torch.Tensor:
     Returns:
         image: masked Tensor
     """
-    _, width, height = image.shape
-    mask = torch.ones(width, height)  # mask to filter regions
+    print(f"image shape:{image.shape}")
 
-    # draw mask
-    if len(roi) >= 3:
-        rr, cc = draw.polygon(roi[:, 1], roi[:, 0], shape=(width, height))
-        mask[rr, cc] = 0.0
+    bounds = list(Polygon(roi).bounds)
+    if bounds[0] < 0:
+        bounds[0] = 0
+    if bounds[1] < 0:
+        bounds[1] = 0
+    if bounds[2] >= image.shape[2]:
+        bounds[2] = image.shape[2]
+    if bounds[3] >= image.shape[1]:
+        bounds[3] = image.shape[1]
+    offset = np.array([bounds[0], bounds[1]], dtype=int)
+    shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
+    mask = draw.polygon2mask(shape, roi[:, ::-1]-offset[::-1])
 
-    image[:, mask == 1] = 0.0
-
-    return image
+    result = image[:, int(bounds[1]): int(bounds[3]), int(bounds[0]): int(bounds[2])]
+    result[:, mask == 0] = 0.0
+    return result, offset
 
 
 class BaselineEngine:
@@ -366,6 +373,7 @@ class BaselineEngine:
         input_image = input_image[None].to(self.device)
         pred_gpu = self.model(input_image)  # pylint: disable=not-callable
         pred = pred_gpu.cpu().detach()
+        del pred_gpu, input_image
 
         # extract maps
         ascenders = pred[0, 0]
@@ -380,6 +388,8 @@ class BaselineEngine:
 
         threads: List[Thread] = []
         for roi in text_regions:
+            if len(roi) < 3:
+                continue
             if len(threads) >= self.thread_count:
                 join_threads(threads)
                 threads = []
@@ -388,12 +398,9 @@ class BaselineEngine:
             threads[-1].start()
         join_threads(threads)
 
-        del pred_gpu, input_image
-
         return textline_lst, baseline_lst
 
-
-    def postprocess_per_region(self, baseline_lst: List[List[LineString]], prediction: Tensor, roi: Tensor,
+    def postprocess_per_region(self, baseline_lst: List[List[LineString]], prediction: Tensor, roi: np.ndarray,
                                textline_lst: List[List[Polygon]]) -> None:
         """
         Args:
@@ -402,12 +409,12 @@ class BaselineEngine:
         Postprocessing is applied for each region separately, to ensure all lines are within one region.
         Therefore, all but the region polygon is masked within the prediction.
         """
-        mask_map = polygon_mask(torch.clone(prediction), roi)
+        mask_map, offset = apply_polygon_mask(prediction, roi)
         # postprocess from Transformer
         b_list, h_list, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
-        baseline_lst.append([LineString(line[:, ::-1]).simplify(tolerance=1) for line in b_list])
-        textline_lst.append([Polygon(poly[:, ::-1]).simplify(tolerance=1) for poly in t_list])
+        baseline_lst.append([LineString(line + offset).simplify(tolerance=1) for line in b_list])
+        textline_lst.append([Polygon(poly + offset).simplify(tolerance=1) for poly in t_list])
 
 
 def get_args() -> argparse.Namespace:
@@ -459,7 +466,8 @@ def get_args() -> argparse.Namespace:
         "-p",
         type=int,
         default=1,
-        help="Number of processes for every gpu in use.",
+        help="Number of processes for every gpu in use. This has to be used carefull, as this can lead to a CUDA out "
+             "of memory error.",
     )
 
     parser.add_argument(

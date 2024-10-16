@@ -32,6 +32,7 @@ bash scipt/pipeline.sh data/
 
 Optionally, the amount of processes and threads, as well as the conda environment name can be specified.
 If CUDA with at least one GPU is used, the specified amount of processes will be launched for each GPU, for each process the specified amount of threads will be launched.
+This applies to all 3 parts of the pipeline, in practice it is most likely necessary to determine these numbers for each part separately.
 ````
 bash scipt/pipeline.sh data/ 'my_env' 1 1 
 ````
