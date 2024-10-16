@@ -7,7 +7,6 @@ from itertools import product
 
 import torch
 from bs4 import BeautifulSoup
-from shapely import intersection, union
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
@@ -69,8 +68,8 @@ def textline_detection_metrics(prediction: List[Polygon],
     unions = []
 
     for pred, tar in product(prediction, target):
-        intersects.append(intersection(pred, tar).area)
-        unions.append(union(pred, tar).area)
+        intersects.append(pred.intersection(tar).area)
+        unions.append(pred.union(tar).area)
 
     ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(prediction), len(target))
 

@@ -9,8 +9,7 @@ from itertools import product
 import numpy as np
 import torch
 from bs4 import BeautifulSoup
-from shapely import Polygon
-from shapely import intersection, union
+from shapely.geometry import Polygon
 from shapely.validation import explain_validity
 from tqdm import tqdm
 from tabulate import tabulate
@@ -147,8 +146,8 @@ def detection_metrics(prediction: List[Polygon],
         if pred_classes is None or gt_classes is None or pred_classes[pred_idx] == gt_classes[
             tar_idx]:
             if pred.is_valid and tar.is_valid:
-                intersects.append(intersection(pred, tar).area)
-                unions.append(union(pred, tar).area)
+                intersects.append(pred.intersection(tar).area)
+                unions.append(pred.union(tar).area)
             else:
                 intersects.append(0.0)
                 unions.append(1.0)

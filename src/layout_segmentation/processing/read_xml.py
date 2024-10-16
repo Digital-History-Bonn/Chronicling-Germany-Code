@@ -6,7 +6,7 @@ import re
 from typing import Dict, List, Tuple, Union
 
 from bs4 import BeautifulSoup, ResultSet
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from src.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
 

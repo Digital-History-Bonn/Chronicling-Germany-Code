@@ -24,12 +24,16 @@ Defaults are `data/` and `models/`. When Downloading data also the split.json fi
 folder. It provides a dataset split for train, validation and test.
 
 ## Prediction Pipeline
-To run the complete prediction from an input image to an annotation xml with layout and text our pipeline in pipeline.sh can be used with the only argument being the data folder path.
-This pipeline needs two conda environments named 'layout' and 'ocr' (see requirements). Depending on the computational 
-ressources available, the ocr prediction can be multiprocessed and multithreaded.
-
+To run the complete prediction from an input image to an annotation xml with layout and text the pipeline.sh script can be used.
+As per default this pipeline needs a conda environments named 'pipeline'.
 ````
-bash scipt/pipeline.sh data/ 1 1
+bash scipt/pipeline.sh data/
+````
+
+Optionally, the amount of processes and threads, as well as the conda environment name can be specified.
+If CUDA with at least one GPU is used, the specified amount of processes will be launched for each GPU, for each process the specified amount of threads will be launched.
+````
+bash scipt/pipeline.sh data/ 1 1 'my_env'
 ````
 
 ## Layout Segmentation

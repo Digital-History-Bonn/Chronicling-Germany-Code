@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 from bs4 import BeautifulSoup, Tag
-from shapely import Polygon, centroid
+from shapely.geometry import Polygon
 
 from src.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
 from src.layout_segmentation.utils import adjust_path
@@ -177,7 +177,7 @@ def sort_lines(region: BeautifulSoup) -> None:
     height_list = []
     for line in lines:
         line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
-        height_list.append(centroid(line_polygon).y)
+        height_list.append(line_polygon.centroid.y)
     sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
     for i, line in enumerate(lines):
         custom_match = re.search(
