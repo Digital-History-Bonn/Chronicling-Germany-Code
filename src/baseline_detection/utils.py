@@ -3,6 +3,7 @@ import random
 import re
 from typing import Tuple, Union, List, Dict, Optional
 
+import bs4
 import numpy as np
 import torch
 from bs4 import PageElement, BeautifulSoup
@@ -13,12 +14,10 @@ from skimage import io
 from src.baseline_detection.class_config import TEXT_CLASSES
 
 
-def order_lines(region: PageElement) -> None:
+def order_lines(region: bs4.element) -> None:
     """Sort lines by estimating columns and sorting columns from left to right and lines inside a column
     from top to bottom."""
     lines = region.find_all("TextLine")
-    if len(lines) == 0:
-        return
 
     properties_list = []
     for i, line in enumerate(lines):
@@ -28,6 +27,8 @@ def order_lines(region: PageElement) -> None:
         properties_list.append(
             [i, bbox[0], bbox[2] - bbox[0], line_centroid.x,
              line_centroid.y])  # index, minx, width, centroidx, centroidy
+    if len(properties_list) == 0:
+        return
     properties = np.array(properties_list)
     median_width = np.median(properties[:, 2])
     global_min_x = np.min(properties[:, 1])

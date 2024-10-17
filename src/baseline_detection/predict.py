@@ -174,9 +174,9 @@ def apply_polygon_mask(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tens
     if bounds[1] < 0:
         bounds[1] = 0
     if bounds[2] >= image.shape[2]:
-        bounds[2] = image.shape[2]
+        bounds[2] = image.shape[2]-1
     if bounds[3] >= image.shape[1]:
-        bounds[3] = image.shape[1]
+        bounds[3] = image.shape[1]-1
     offset = np.array([bounds[0], bounds[1]], dtype=int)
     shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
     mask = draw.polygon2mask(shape, roi[:, ::-1]-offset[::-1])
