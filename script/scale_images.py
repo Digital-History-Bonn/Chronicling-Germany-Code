@@ -6,7 +6,7 @@ from PIL import Image
 from PIL.Image import BICUBIC # pylint: disable=no-name-in-module
 from tqdm import tqdm
 
-from src.layout_segmentation.utils import adjust_path
+from src.cgprocess.layout_segmentation.utils import adjust_path
 
 
 def rescale(args: argparse.Namespace):

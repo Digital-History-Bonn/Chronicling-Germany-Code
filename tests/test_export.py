@@ -2,12 +2,12 @@
 import numpy as np
 import torch
 
-from src.layout_segmentation.predict import process_prediction_debug, process_prediction
-from src.layout_segmentation.processing.polygon_handler import bbox_sufficient, uncertainty_to_polygons, \
+from src.cgprocess.layout_segmentation.predict import process_prediction_debug, process_prediction
+from src.cgprocess.layout_segmentation.processing.polygon_handler import bbox_sufficient, uncertainty_to_polygons, \
     prediction_to_region_polygons
-from src.layout_segmentation.processing.slicing_export import area_sufficient
-from src.layout_segmentation.processing.transkribus_export import get_label_name, polygon_to_string
-from src.layout_segmentation.utils import calculate_x_axis_center
+from src.cgprocess.layout_segmentation.processing.slicing_export import area_sufficient
+from src.cgprocess.layout_segmentation.processing.transkribus_export import get_label_name, polygon_to_string
+from src.cgprocess.layout_segmentation.utils import calculate_x_axis_center
 
 
 class TestClassExport:

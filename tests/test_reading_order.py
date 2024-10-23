@@ -3,9 +3,9 @@ import json
 
 import numpy as np
 
-from src.layout_segmentation.processing.reading_order import (get_global_splitting_regions,
-                                                              get_local_splitting_regions,
-                                                              PageProperties)
+from src.cgprocess.layout_segmentation.processing.reading_order import (get_global_splitting_regions,
+                                                          get_local_splitting_regions,
+                                                          PageProperties)
 
 DATA_PATH = "./tests/data/"
 
