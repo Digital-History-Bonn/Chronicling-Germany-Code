@@ -86,7 +86,7 @@ def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
 
 def adjust_path(path: str) -> str:
     """
-    Make sure, there is a slash at the end of a (folder) spath string.
+    Make sure, there is no slash at the end of a (folder) spath string.
 
     Args:
         path: String representation of path

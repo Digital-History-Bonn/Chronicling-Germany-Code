@@ -44,22 +44,21 @@ An image segmentation model for the detection of structure in historical newspap
 Model based on: https://arxiv.org/abs/1804.10371
 
 ### Preprocessing and Training
-Depending on your setup, you may require `PYTHONPATH=.` in front of the commands below.
 
 Before starting the training process all data has to be converted.
 This command loads xml annotation data and converts it to .npy files.
 ````
-python src/layout_segmentation/convert_xml.py -a annotations/ -o targets/
+python -m cgprocess.layout_segmentation.convert_xml -a annotations/ -o targets/
 ````
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.
 ````
-python src/layout_segmentation/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -g 4 -w 32
+python -m cgprocess.layout_segmentation.train -e 100 -n experiment_name -b 64 -d data_folder/  -g 4 -w 32
 ````
 
 If the training process has to be interrupted, training can be continued by executing this command.
 ````
-python src/layout_segmentation/train.py -e 100 -n experiment_name -b 64 -d data_folder/  -l model_name -ls -g 4 -w 32
+python -m cgprocess.layout_segmentation.train -e 100 -n experiment_name -b 64 -d data_folder/  -l model_name -ls -g 4 -w 32
 ````
 
 ### Prediction
@@ -75,7 +74,7 @@ exported to a page folder within the data folder. If there are already xml files
 
 Example for calling the predict script.
 ````
-python src/layout_segmentation/predict.py -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
+python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
 ````
 
 ### Evaluation
@@ -84,7 +83,7 @@ At the end of each training run, the early stopping result is evaluated.
 For evaluating a model without training it, use -- evaluate.
 
 ````
-python src/layout_segmentation/train.py -n evaluate -b 64 -d data_folder/ -l model_name -g 4 -w 32 --evaluate
+python -m cgprocess.layout_segmentation.train -n evaluate -b 64 -d data_folder/ -l model_name -g 4 -w 32 --evaluate
 ````
 
 ### Uncertainty predict
@@ -93,7 +92,7 @@ function does not output the prediction, instead it outputs the areas of uncerta
 pixels that have a predicted probability under the given threshold for the ground truth class. 
 For this, images and groud truth are required.
 ````
-python src/layout_segmentation/predict.py -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --uncertainty-predict
+python -m cgprocess.layout_segmentation.predict -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --uncertainty-predict
 ````
 
 ## Baseline detection
@@ -104,22 +103,22 @@ O Kodym, M Hradiš: Page Layout Analysis System for Unconstrained Historic Docum
 ### Preprocessing and Training
 The trainings script need targets saved as .npz files. The target can be created by with our preprocessing script.
 ````
-python -m src.baseline_detection.preprocess -i path/to/images -a path/to/annotations -o path/to/output/folder
+python -m cgprocess.baseline_detection.preprocess -i path/to/images -a path/to/annotations -o path/to/output/folder
 ````
 The preprocessed data can then be splited into our train, valid and test split with:
 ````
-python -m src.baseline_detection.split -i path/to/images -a path/to/targets -o path/to/output/folder
+python -m cgprocess.baseline_detection.split -i path/to/images -a path/to/targets -o path/to/output/folder
 ````
 The training script can then be started with:
 ````
-python -m src.baseline_detection.pero.trainer -n NameOfTheModel -t path/to/train/data -v path/to/train/data -e 200
+python -m cgprocess.baseline_detection.trainer -n NameOfTheModel -t path/to/train/data -v path/to/train/data -e 200
 ````
 
 ### Prediction
 The baseline prediction uses the layout (prediction) to differentiate between different text regions and exclude Table regions.
 It can be started with:
 ````
-python -m src.baseline_detection.pero.predict -i path/to/images -l path/to/layout/annotations -o path/to/output/folder -m path/to/model
+python -m cgprocess.baseline_detection.predict -i path/to/images -l path/to/layout/annotations -o path/to/output/folder -m path/to/model
 ````
 The image folder and the layout folder can be the same, but the name of the image file and the .xml file with the layout annotations must match.
 
@@ -132,18 +131,18 @@ The OCR is based on Kraken (https://kraken.re/main/index.html).
 Kraken uses the filename in the .xml file to find the image while training. So the image files should always be in the same folder as the annotation files.
 For preprocessing we padded all images and the annotations by 10 pixels. This can be done by:
 ````
-python -m src.OCR.preprocess -i path/to/image/data -a path/to/annotation/data  -o path/to/output/folder
+python -m cgprocess.OCR.LSTM.preprocess -i path/to/image/data -a path/to/annotation/data  -o path/to/output/folder
 ````
 
 After that the training can be stared:
 ````
-python -m src.OCR.train -n NameOfTheModel -t path/to/train/data -v path/to/valid/data
+python -m cgprocess.OCR.LSTM.train -n NameOfTheModel -t path/to/train/data -v path/to/valid/data
 ````
 
 ### Prediction
 To predict the Text in an image our tool needs baseline (predictions). The process can be started with:
 ````
-python -m src.OCR.predict -i path/to/images -l path/to/annotations -o path/to/output/folder -m path/to/model
+python -m cgprocess.OCR.LSTM.predict -i path/to/images -l path/to/annotations -o path/to/output/folder -m path/to/model
 ````
 Again the image folder and the layout annotation folder can be the same, but the name of the image file and the .xml file with the layout annotations must match.
 
