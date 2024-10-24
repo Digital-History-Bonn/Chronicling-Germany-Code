@@ -5,7 +5,7 @@ import nox
 @nox.session(name="test")
 def run_test(session):
     """Run pytest."""
-    session.install("-r", "requirements.txt")
+    session.install(".")
     session.install("pytest")
     session.run("pytest")
 
@@ -13,7 +13,7 @@ def run_test(session):
 @nox.session(name="fast-test")
 def run_test_fast(session):
     """Run pytest."""
-    session.install("-r", "requirements.txt")
+    session.install(".")
     session.install("pytest")
     session.run("pytest", "-m", "not slow")
 
@@ -21,7 +21,7 @@ def run_test_fast(session):
 @nox.session(name="lint")
 def lint(session):
     """Check code conventions."""
-    session.install("-r", "requirements.txt")
+    session.install(".")
     session.install("pylint")
     session.run("pylint",
                 "src/cgprocess/baseline_detection",
@@ -34,7 +34,7 @@ def lint(session):
 @nox.session(name="typing")
 def mypy(session):
     """Check type hints."""
-    session.install("-r", "requirements.txt")
+    session.install(".")
     session.install("mypy")
     session.run(
         "mypy",
@@ -65,7 +65,7 @@ def format(session):
 @nox.session(name="coverage")
 def check_coverage(session):
     """Check test coverage and generate a html report."""
-    session.install("-r", "requirements.txt")
+    session.install(".")
     session.install("pytest")
     session.install("coverage")
     try:
