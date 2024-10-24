@@ -338,9 +338,9 @@ def predict(args: argparse.Namespace) -> None:
     cuda_count = torch.cuda.device_count()
 
     target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
-    dataset = PredictDataset(adjust_path(args.data_path),
+    dataset = PredictDataset(adjust_path(args.data_path),  # type: ignore
                              args.scale, args.pad,
-                             target_path=adjust_path(target_path)) # type: ignore
+                             target_path=adjust_path(target_path))
 
     print(f"{len(dataset)=}")
 

@@ -19,6 +19,7 @@ from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
 from tqdm import tqdm
 
 from src.cgprocess.OCR.utils import pad_image, adjust_path, pad_points
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,

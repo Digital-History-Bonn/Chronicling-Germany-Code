@@ -14,7 +14,7 @@ from src.cgprocess.layout_segmentation.class_config import VALID_TAGS, LABEL_ASS
 def read_transkribus(
         path: str,
         log: bool,
-) -> Dict[str, Union[List[int], Dict[str, List[List[List[str]]]]]]:
+) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
     :param path: path to file
@@ -46,7 +46,7 @@ def read_transkribus(
     return {}
 
 
-def check_tags(page: BeautifulSoup, tags_dict: Dict[str, List[List[List[str]]]]) -> None:
+def check_tags(page: BeautifulSoup, tags_dict: Dict[str, List[List[List[int]]]]) -> None:
     """
     Logs all occurrences of unknown regions.
     """
