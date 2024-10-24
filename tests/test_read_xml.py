@@ -36,6 +36,6 @@ class TestClassReadXML:
         bs_data = BeautifulSoup(data, "xml")
         tag = bs_data.find_all("TextRegion")[0]
 
-        ground_truth = [['3498', '5612'], ['4581', '5626'], ['4594', '6971'], ['3506', '6955']]
+        ground_truth = [[3498, 5612], [4581, 5626], [4594, 6971], [3506, 6955]]
 
         assert xml_polygon_to_polygon_list(tag.Coords["points"]) == ground_truth

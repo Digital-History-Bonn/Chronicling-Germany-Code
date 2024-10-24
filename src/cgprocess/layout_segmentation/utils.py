@@ -19,6 +19,7 @@ def adjust_path(path: Optional[str]) -> Optional[str]:
     """
     return path if not path or path[-1] == '/' else path + '/'
 
+
 def draw_prediction(img: ndarray, path: str) -> None:
     """
     Draw prediction with legend. And save it.

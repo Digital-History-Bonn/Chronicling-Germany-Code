@@ -62,7 +62,7 @@ def find_regions(
         tag: str,
         search_children: bool,
         child_tag: str,
-        tags_dict: Dict[str, List[List[List[str]]]],
+        tags_dict: Dict[str, List[List[List[int]]]],
         id_dict: Union[None, Dict[str, List[str]]] = None
 ) -> Dict[str, List[List[List[int]]]]:
     """
@@ -110,12 +110,11 @@ def find_regions(
     return tags_dict
 
 
-def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[str]]:
+def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[int]]:
     """
     Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
     """
-    # TODO: use this everywhere and do it as int return
-    return [pair.split(",") for pair in polygon_string.split()]
+    return [list(map(int, point.split(','))) for point in polygon_string.split()]
 
 
 def read_hlna2013(

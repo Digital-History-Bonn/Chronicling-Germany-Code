@@ -12,6 +12,7 @@ from shapely.geometry import Polygon, LineString
 from skimage import io
 
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 def order_lines(region: bs4.element) -> None:
@@ -21,7 +22,7 @@ def order_lines(region: bs4.element) -> None:
 
     properties_list = []
     for i, line in enumerate(lines):
-        line_polygon = Polygon([tuple(map(int, pair.split(","))) for pair in line.Coords["points"].split()])
+        line_polygon = Polygon(xml_polygon_to_polygon_list(line.Coords["points"]))
         line_centroid = line_polygon.centroid
         bbox = line_polygon.bounds
         # pylint: disable=no-member
@@ -155,9 +156,7 @@ List[torch.Tensor]]:
     text_regions = page.find_all(['TextRegion', 'TableRegion'])
     for region in text_regions:
         tag = get_tag(region)
-        coords = region.find('Coords')
-        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in coords['points'].split()])[:, torch.tensor([1, 0])]
+        region_polygon = torch.tensor(xml_polygon_to_polygon_list(region.Coords["points"]))[:, torch.tensor([1, 0])]
 
         if tag in ['table']:
             if is_valid(torch.tensor(get_bbox(region_polygon))):
@@ -201,15 +200,13 @@ def extract_region(region: BeautifulSoup, region_bbox: torch.Tensor) -> Dict[
         baseline = text_line.find('Baseline')
         if baseline:
             # get and shift baseline
-            line = torch.tensor([tuple(map(int, point.split(','))) for
-                                 point in baseline['points'].split()])
+            line = torch.tensor(xml_polygon_to_polygon_list(baseline["points"]))
             line = line[:, torch.tensor([1, 0])]
 
             region_dict['baselines'].append(line)  # type: ignore
 
             # get mask
-            polygon_pt = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in polygon['points'].split()])
+            polygon_pt = torch.tensor(xml_polygon_to_polygon_list(polygon["points"]))
             polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
 
             # calc bbox for line

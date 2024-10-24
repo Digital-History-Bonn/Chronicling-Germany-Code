@@ -18,6 +18,7 @@ from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
 from src.cgprocess.OCR.Transformer.tokenizer import Tokenizer
 from src.cgprocess.OCR.utils import get_bbox
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 def read_xml(soup: BeautifulSoup) -> Tuple[ResultSet, List[torch.Tensor]]:
@@ -35,9 +36,7 @@ def read_xml(soup: BeautifulSoup) -> Tuple[ResultSet, List[torch.Tensor]]:
 
     text_lines = page.find_all('TextLine')
     for line in text_lines:
-        coords = line.find('Coords')
-        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in coords['points'].split()])
+        region_polygon = torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"]))
         bboxes.append(torch.tensor(get_bbox(region_polygon)))
 
     return text_lines, bboxes

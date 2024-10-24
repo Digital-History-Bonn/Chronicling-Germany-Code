@@ -67,10 +67,8 @@ List[List[BaselineLine]]]:
                 region_baselines.append(
                     BaselineLine(
                         str(i),
-                        [tuple(map(int, point.split(','))) for point in
-                         baseline_points.split()],  # type: ignore
-                        [tuple(map(int, point.split(','))) for point in
-                         polygon_points.split()])  # type: ignore
+                        xml_polygon_to_polygon_list(baseline_points),  # type: ignore
+                        xml_polygon_to_polygon_list(polygon_points))  # type: ignore
                 )
 
         baselines.append(region_baselines)

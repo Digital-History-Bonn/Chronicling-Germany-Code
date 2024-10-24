@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from src.cgprocess.baseline_detection.utils import get_tag, adjust_path
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 def extract_textlines(file_path: str) -> List[torch.Tensor]:
@@ -37,9 +38,7 @@ def extract_textlines(file_path: str) -> List[torch.Tensor]:
         if get_tag(region) in TEXT_CLASSES:
             text_region = region.find_all('TextLine')
             for text_line in text_region:
-                textline = text_line.find('Coords')
-                polygon = torch.tensor([tuple(map(int, point.split(','))) for
-                                        point in textline['points'].split()])
+                polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
                 polygon = polygon[:, torch.tensor([1, 0])]
                 textlines.append(polygon)
 

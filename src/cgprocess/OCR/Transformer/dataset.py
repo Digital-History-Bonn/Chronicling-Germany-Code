@@ -12,6 +12,7 @@ from tqdm import tqdm
 from src.cgprocess.OCR.Transformer import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
 from src.cgprocess.OCR.Transformer.tokenizer import Tokenizer
 from src.cgprocess.OCR.utils import get_bbox, load_image
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -107,9 +108,7 @@ def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
 
     text_lines = page.find_all('TextLine')
     for line in text_lines:
-        coords = line.find('Coords')
-        region_polygon = torch.tensor([tuple(map(int, point.split(','))) for
-                                       point in coords['points'].split()])
+        region_polygon = torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"]))
         bboxes.append(torch.tensor(get_bbox(region_polygon)))
         texts.append(line.find('Unicode').text)
 

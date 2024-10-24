@@ -26,6 +26,7 @@ from tqdm import tqdm
 
 from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarray:
@@ -113,16 +114,12 @@ def extract_layout(xml_path: str) -> Tuple[List[np.ndarray], List[np.ndarray]]:
 
     table_regions = page.find_all(['TableRegion'])
     for region in table_regions:
-        coords = region.find('Coords')
-        points = np.array([tuple(map(int, point.split(','))) for
-                               point in coords['points'].split()])
+        points = np.array(xml_polygon_to_polygon_list(region.find('Coords')["points"]))
         mask_regions.append(points)
 
     text_regions = page.find_all(['TextRegion'])
     for region in text_regions:
-        coords = region.find('Coords')
-        points = np.array([tuple(map(int, point.split(','))) for
-                               point in coords['points'].split()])
+        points = np.array(xml_polygon_to_polygon_list(region.Coords["points"]))
         rois.append(points)
 
     return mask_regions, rois
