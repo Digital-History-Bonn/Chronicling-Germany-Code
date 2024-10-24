@@ -9,9 +9,12 @@ All tasks are trained and evaluated individually, but work together to extract t
 
 ![An Overview over our pipeline](assets/pipeline.png)
 
-## Requirements
-Tested on Python 3.10.4.
-Two separate environments are needed for layout segmentation and OCR. Layout segmentation and baseline detection use the requirements.txt in the main folder. The OCR uses src/OCR/requirements.txt.
+## Installation
+The code has been tested on Python 3.10.
+````
+git clone https://github.com/Digital-History-Bonn/Chronicling-Germany-Code.git && cd Chronicling-Germany-Code
+pip install .
+````
 
 ## Download
 To download our dataset and our model the download.py script can be used:
