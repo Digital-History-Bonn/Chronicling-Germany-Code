@@ -2,12 +2,12 @@
 import numpy as np
 import torch
 
-from src.layout_segmentation.predict import process_prediction_debug, process_prediction
-from src.layout_segmentation.processing.polygon_handler import bbox_sufficient, uncertainty_to_polygons, \
+from src.cgprocess.layout_segmentation.predict import process_prediction_debug, process_prediction
+from src.cgprocess.layout_segmentation.processing.polygon_handler import bbox_sufficient, uncertainty_to_polygons, \
     prediction_to_region_polygons
-from src.layout_segmentation.processing.slicing_export import area_sufficient
-from src.layout_segmentation.processing.transkribus_export import get_label_name, polygon_to_string
-from src.layout_segmentation.utils import calculate_x_axis_center
+from src.cgprocess.layout_segmentation.processing.slicing_export import area_sufficient
+from src.cgprocess.layout_segmentation.processing.transkribus_export import get_label_name, polygon_to_string
+from src.cgprocess.layout_segmentation.utils import calculate_x_axis_center
 
 
 class TestClassExport:
@@ -63,7 +63,7 @@ class TestClassExport:
 
         ground_truth = "38,40 2,8 11,21 40,60"
 
-        assert polygon_to_string(data, 0.5) == ground_truth
+        assert polygon_to_string(data, 2) == ground_truth
 
     def test_prediction_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""

@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 
-from src.layout_segmentation.class_config import LABEL_NAMES
-from src.layout_segmentation.class_config import cmap
+from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES
+from src.cgprocess.layout_segmentation.class_config import cmap
 
 # unique, counts = np.unique(img, return_counts=True)
 # print(dict(zip(unique, counts)))
