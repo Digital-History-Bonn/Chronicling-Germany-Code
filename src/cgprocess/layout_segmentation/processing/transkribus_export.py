@@ -177,6 +177,7 @@ def sort_lines(region: BeautifulSoup) -> None:
     height_list = []
     for line in lines:
         line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        # pylint: disable=no-member
         height_list.append(line_polygon.centroid.y)
     sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
     for i, line in enumerate(lines):

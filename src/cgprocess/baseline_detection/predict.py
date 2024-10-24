@@ -410,7 +410,7 @@ class BaselineEngine:
         """
         mask_map, offset = apply_polygon_mask(prediction, roi)
         # postprocess from Transformer
-        b_list, h_list, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
+        b_list, _, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         # b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
         baseline_lst.append([LineString(line + offset).simplify(tolerance=1) for line in b_list])
         textline_lst.append([Polygon(poly + offset).simplify(tolerance=1) for poly in t_list])

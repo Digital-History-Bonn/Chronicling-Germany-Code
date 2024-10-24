@@ -17,7 +17,8 @@ from src.cgprocess.layout_segmentation.class_config import TOLERANCE
 from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
 from src.cgprocess.layout_segmentation.helper.train_helper import init_model
 from src.cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_polygons_into_image
-from src.cgprocess.layout_segmentation.processing.polygon_handler import prediction_to_region_polygons, uncertainty_to_polygons
+from src.cgprocess.layout_segmentation.processing.polygon_handler import prediction_to_region_polygons, \
+    uncertainty_to_polygons
 from src.cgprocess.layout_segmentation.processing.reading_order import PageProperties
 from src.cgprocess.layout_segmentation.processing.slicing_export import export_slices
 from src.cgprocess.layout_segmentation.processing.transkribus_export import export_xml
@@ -339,7 +340,7 @@ def predict(args: argparse.Namespace) -> None:
     target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
     dataset = PredictDataset(adjust_path(args.data_path),
                              args.scale, args.pad,
-                             target_path=adjust_path(target_path))
+                             target_path=adjust_path(target_path)) # type: ignore
 
     print(f"{len(dataset)=}")
 

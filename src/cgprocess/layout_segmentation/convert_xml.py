@@ -34,9 +34,9 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(annotations_path) if f.endswith(".xml")
     ]
 
-    if not os.path.exists(output_path):
+    if not output_path or not os.path.exists(output_path):
         print(f"creating {output_path}.")
-        os.makedirs(output_path)
+        os.makedirs(output_path) # type: ignore
 
     target_paths = [
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     main(args)
 
 
-def save_xml(bs_data: BeautifulSoup, output_path: object, file_stem: object) -> object:
+def save_xml(bs_data: BeautifulSoup, output_path: object, file_stem: object) -> None:
     """
     :param bs_data: BeautifulSoup object, that should be saved as xml.
     :param output_path: Output folder path

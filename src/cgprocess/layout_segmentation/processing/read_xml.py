@@ -64,7 +64,7 @@ def find_regions(
         child_tag: str,
         tags_dict: Dict[str, List[List[List[str]]]],
         id_dict: Union[None, Dict[str, List[str]]] = None
-) -> Dict[str, List[List[List[str]]]]:
+) -> Dict[str, List[List[List[int]]]]:
     """
     returns dictionary with all coordinates of specified regions
     :param data: BeautifulSoup xml data

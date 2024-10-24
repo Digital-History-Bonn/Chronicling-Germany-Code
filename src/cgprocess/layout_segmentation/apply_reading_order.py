@@ -29,9 +29,9 @@ def main(parsed_args: argparse.Namespace) -> None:
 
     output_path = adjust_path(parsed_args.output_path)
     data_path = adjust_path(parsed_args.data_path)
-    if not os.path.exists(output_path):
+    if not output_path or not os.path.exists(output_path):
         print(f"creating {output_path}.")
-        os.makedirs(output_path)
+        os.makedirs(output_path) # type: ignore
 
     for path in tqdm(data_paths):
         bbox_dict, id_dict, bs_data = read_regions_for_reading_order(f"{data_path}{path}")

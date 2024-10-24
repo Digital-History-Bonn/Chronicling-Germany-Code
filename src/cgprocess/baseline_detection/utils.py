@@ -24,6 +24,7 @@ def order_lines(region: bs4.element) -> None:
         line_polygon = Polygon([tuple(map(int, pair.split(","))) for pair in line.Coords["points"].split()])
         line_centroid = line_polygon.centroid
         bbox = line_polygon.bounds
+        # pylint: disable=no-member
         properties_list.append(
             [i, bbox[0], bbox[2] - bbox[0], line_centroid.x,
              line_centroid.y])  # index, minx, width, centroidx, centroidy

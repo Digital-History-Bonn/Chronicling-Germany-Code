@@ -57,6 +57,7 @@ def create_mask_polygons(sub_mask: ndarray, label: int, tolerance: List[float], 
         if export:
             poly = poly.simplify(tolerance[label - 1], preserve_topology=False)
         if poly.geom_type == 'MultiPolygon':
+            # pylint: disable=no-member
             multi_polygons = list(poly.geoms)
             for polygon in multi_polygons:
                 append_polygons(polygon, bbox_list, segmentations, bbox_size)

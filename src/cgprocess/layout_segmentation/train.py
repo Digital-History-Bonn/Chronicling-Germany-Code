@@ -120,11 +120,11 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                    total=(len(self.train_loader)),
+                    total=(len(self.train_loader)),  # type: ignore
                     desc=f"Epoch {self.epoch}/{epochs}",
                     unit="batch(es)",
             ) as pbar:
-                for images, targets in self.train_loader:
+                for images, targets in self.train_loader:  # type: ignore
                     # transfer = time()
                     images = images.to(self.device, non_blocking=True)
                     targets = targets.to(self.device, non_blocking=True)
@@ -170,7 +170,7 @@ class Trainer:
                     del images, loss, targets, preds
 
                     score = self.best_score
-                    if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:
+                    if self.step % (len(self.train_loader) // VAL_NUMBER) == 0:  # type: ignore
                         score = self.val_round()
 
                     # log the step of current best model
