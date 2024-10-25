@@ -29,6 +29,32 @@ class Preprocessing:
     """
 
     @staticmethod
+    def calculate_padding_size(image: torch.Tensor, size: int, factor: float) -> Tuple[int, int]:
+        """
+        Sets padding to make the image compatible with cropping. For this, it can not be smaller than one crop
+        at each dimension. If a dimension is of greater size than a crop, it will be padded to be a multiple of
+        the crop step size. This prevents the last crop to the right and bottom to be dropped.
+        :param image: image tensor with [..., C, H, W]
+        """
+        shape = (image.shape[-1], image.shape[-2])
+        crop_step = int(size // factor)
+        if shape[0] < size:
+            pad_x = size - shape[0]
+        elif shape[0] % crop_step > 0:
+            pad_x = crop_step - (shape[0] % crop_step)
+        else:
+            pad_x = 0
+
+        if shape[1] < size:
+            pad_y = size - shape[1]
+        elif shape[1] % crop_step > 0:
+            pad_y = crop_step - (shape[1] % crop_step)
+        else:
+            pad_y = 0
+
+        return pad_x, pad_y
+
+    @staticmethod
     def crop_img(crop_size: int, crop_factor: float, data: ndarray) -> ndarray:
         """
         Crop image by viewing it as windows of size CROP_SIZE x CROP_SIZE and steps of CROP_SIZE // CROP_FACTOR
@@ -104,30 +130,9 @@ class Preprocessing:
         Sets padding to make the image compatible with cropping. For this, it can not be smaller than one crop
         at each dimension. If a dimension is of greater size than a crop, it will be padded to be a multiple of
         the crop step size. This prevents the last crop to the right and bottom to be dropped.
-        :param image:
         """
         if self.crop:
-            shape = (image.shape[-1], image.shape[-2])
-            crop_step = int(self.crop_size // self.crop_factor)
-            if shape[0] < self.crop_size:
-                pad_x = self.crop_size - shape[0]
-            elif shape[0] % crop_step > 0:
-                pad_x = crop_step - (shape[0] % crop_step)
-            else:
-                pad_x = 0
-
-            if shape[1] < self.crop_size:
-                pad_y = self.crop_size - shape[1]
-            elif shape[1] % crop_step > 0:
-                pad_y = crop_step - (shape[1] % crop_step)
-            else:
-                pad_y = 0
-
-            self.pad = (pad_x, pad_y)
-            # print(
-            #     f"Image padding by {self.pad} because of crop size {self.crop_size}, crop step {crop_step} and "
-            #     f"image shape {shape[0]} x {shape[1]}"
-            # )
+            self.pad = self.calculate_padding_size(image, self.crop_size, self.crop_factor)
 
     def load(
             self, input_path: str, target_path: str, file: str, dataset: str

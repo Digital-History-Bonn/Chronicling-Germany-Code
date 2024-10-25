@@ -17,6 +17,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 from src.cgprocess.layout_segmentation.utils import pad_image, calculate_padding
+from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -53,6 +54,9 @@ class PredictDataset(Dataset):
     def load_image(self, file: str) -> torch.Tensor:
         """
         Loads image and applies necessary transformation for prdiction.
+        Image is transformed to a 3 channel grayscale torch tensor with values form 0 to 1.
+        Image is padded to a multiple of the fixed value 256, which allows for at least 8 downscale operations.
+        Dh segment 2 requires 7.
         :param file: path to image
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
@@ -60,7 +64,11 @@ class PredictDataset(Dataset):
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
         image = image.resize(shape, resample=BICUBIC)
         transform = transforms.Compose([transforms.PILToTensor(), transforms.Grayscale(num_output_channels=3)])
+
         data: torch.Tensor = transform(image).float() / 255
+        pad_size = Preprocessing.calculate_padding_size(data, 256, 1) #
+        pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
+        data = pad(data)
         return data
 
     def load_target(self, file: str) -> torch.Tensor:

@@ -314,7 +314,7 @@ class DhSegment(nn.Module):
         freeze(self.block4.conv.parameters())  # type: ignore
         freeze(self.block4.layers[3].parameters())  # type: ignore
 
-    def _make_layer(
+    def make_layer(
         self,
         planes: int,
         blocks: int,

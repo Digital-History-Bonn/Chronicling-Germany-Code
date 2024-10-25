@@ -3,7 +3,7 @@
 from __future__ import absolute_import, division, print_function
 
 import logging
-from typing import Dict, Iterator, Union
+from typing import Dict, Iterator, Union, List
 
 import torch
 from torch import nn
@@ -17,11 +17,12 @@ logger = logging.getLogger(__name__)
 
 class Encoder(nn.Module):
     """
-    CNN Encoder Class, using the first 3 resnet50 layers, while reducing the  by appending cbam modules at the end of the last 4 layers.
+    CNN Encoder Class, using the first three resnet 50 layers, while reducing the number of feature maps in the last
+    two layers and increase downscaling.
     (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, dhsegment: DhSegment, in_channels: int):
+    def __init__(self, dhsegment: DhSegment, in_channels: int, layers: List[int]):
         super().__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
@@ -30,8 +31,18 @@ class Encoder(nn.Module):
 
         self.block1 = dhsegment.block1
         self.block2 = dhsegment.block2
-        self.block3 = dhsegment.block3
-        self.block4 = dhsegment.block4
+        self.maxpool_block3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.block3 = dhsegment.make_layer(
+            128,
+            layers[2],
+            stride=2,
+        )
+        self.maxpool_block4 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.block4 = dhsegment.make_layer(
+            128,
+            layers[3],
+            stride=2,
+        )
 
         # initialize normalization
         # pylint: disable=duplicate-code
@@ -53,13 +64,11 @@ class Encoder(nn.Module):
         result = self.maxpool(copy_0)
 
         result, copy_1 = self.block1(result)
-        copy_1 = self.cbam1(copy_1)
         result, copy_2 = self.block2(result)
-        copy_2 = self.cbam2(copy_2)
+        result = self.maxpool_block3(result)
         result, copy_3 = self.block3(result)
-        copy_3 = self.cbam3(copy_3)
+        result = self.maxpool_block4(result)
         _, copy_4 = self.block4(result)
-        copy_4 = self.cbam4(copy_4)
 
         return {
             "identity": identity,
@@ -86,15 +95,9 @@ class Encoder(nn.Module):
         freeze(self.bn1.parameters())
         freeze(self.block1.parameters())
         freeze(self.block2.parameters())
-        freeze(self.block3.parameters())
-        freeze(self.block4.parameters())
-
-        # unfreeze weights, which are not loaded
-        requires_grad = True
-        freeze(self.block3.conv.parameters())  # type: ignore
-        freeze(self.block4.conv.parameters())  # type: ignore
 
 
+# pylint: disable=duplicate-code
 class Decoder(nn.Module):
     """
     CNN Decoder class, corresponding to DhSegment Decoder from https://arxiv.org/abs/1804.10371
@@ -144,13 +147,14 @@ class DhSegment2(nn.Module):
         """
         # pylint: disable=duplicate-code
         super().__init__()
+        layers = [3, 4, 6, 4]
         dhsegment = DhSegment(
-            [3, 4, 6, 1],
+            layers,
             in_channels=in_channels,
             out_channel=out_channel,
             load_resnet_weights=load_resnet_weights,
         )
-        self.encoder = Encoder(dhsegment, in_channels)
+        self.encoder = Encoder(dhsegment, in_channels, layers)
         self.decoder = Decoder(dhsegment)
 
     def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:
