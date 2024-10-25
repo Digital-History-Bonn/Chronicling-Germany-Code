@@ -25,13 +25,13 @@ def validate(args):
         extension = ".jpg"
 
         def get_file_name(name: str) -> str:
-            return f"{name}.npy"
+            return f"{name}.npz"
 
     else:
         extension = ".tif"
 
         def get_file_name(name: str) -> str:
-            return f"pc-{name}.npy"
+            return f"pc-{name}.npz"
 
     file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
     assert len(file_names) > 0, (

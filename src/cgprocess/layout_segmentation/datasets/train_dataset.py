@@ -199,7 +199,7 @@ class TrainDataset(Dataset):
         """Defines transformations
         :param resize_prob: Probability of resize. This allows to deactivate the scaling augmentation.
         """
-        resize_to = self.preprocessing.crop_size // (random.random() * 2)
+        resize_to = int(self.preprocessing.crop_size // (random.random() * 2))
         pad = self.preprocessing.crop_size - resize_to
         return {
             "default": transforms.Compose(
@@ -207,7 +207,6 @@ class TrainDataset(Dataset):
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomVerticalFlip(),
                     transforms.RandomRotation(180),
-                    transforms.RandomPerspective(p=0.2),
                     transforms.RandomApply(
                         [
                             transforms.RandomChoice(
@@ -230,6 +229,7 @@ class TrainDataset(Dataset):
                         ],
                         p=resize_prob,
                     ),
+                    transforms.RandomPerspective(p=0.2),
                 ]
             ),
             "images": transforms.Compose([
@@ -239,7 +239,7 @@ class TrainDataset(Dataset):
                 [
                     transforms.Compose(
                         [
-                            transforms.GaussianBlur(20, (0.1, 1.5)),
+                            transforms.GaussianBlur(9, (0.1, 1.5)),
                         ]
                     ),
                 ],

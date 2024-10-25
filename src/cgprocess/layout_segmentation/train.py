@@ -717,7 +717,7 @@ def get_args() -> argparse.Namespace:
         "-m",
         type=str,
         default="dh_segment",
-        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small, dh_segment_2",
     )
     parser.add_argument(
         "--skip-cbam",

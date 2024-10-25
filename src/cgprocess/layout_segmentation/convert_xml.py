@@ -39,7 +39,7 @@ def main(parsed_args: argparse.Namespace) -> None:
         os.makedirs(output_path) # type: ignore
 
     target_paths = [
-        f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
+        f[:-4] for f in os.listdir(output_path) if f.endswith(".npz")
     ]
 
 
@@ -53,7 +53,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     with tqdm(total=total, desc="Page converting", unit="pages") as pbar:
         done = False
         while not done:
-            files_number = len([f for f in os.listdir(output_path) if f.endswith(".npy")])
+            files_number = len([f for f in os.listdir(output_path) if f.endswith(".npz")])
             pbar.n = files_number
             pbar.refresh()
             sleep(1)
@@ -114,7 +114,7 @@ def np_save(file: str, img: np.ndarray) -> None:
     :param file: name of the file without ending
     :param img: numpy array to save
     """
-    np.savez_compressed("{file}.npz", array=img)
+    np.savez_compressed(f"{file}.npz", array=img)
 
 
 def img_save(file: str, img: np.ndarray) -> None:

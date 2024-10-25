@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
+from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, UpScaleBlock
 
 # pylint: disable=duplicate-code
 logger = logging.getLogger(__name__)
@@ -105,8 +105,8 @@ class Decoder(nn.Module):
 
     def __init__(self, dhsegment: DhSegment):
         super().__init__()
-        self.up_block1 = dhsegment.up_block1
-        self.up_block2 = dhsegment.up_block2
+        self.up_block1 = UpScaleBlock(512, 512, 512, double=True)
+        self.up_block2 = UpScaleBlock(512, 512, 256, double=True)
         self.up_block3 = dhsegment.up_block3
         self.up_block4 = dhsegment.up_block4
         self.up_block5 = dhsegment.up_block5

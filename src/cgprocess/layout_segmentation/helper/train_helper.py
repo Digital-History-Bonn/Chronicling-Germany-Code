@@ -15,6 +15,7 @@ from src.cgprocess.layout_segmentation.datasets.page_dataset import PageDataset
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 
 from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, conv1x1
+from src.cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
 from src.cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
 from src.cgprocess.layout_segmentation.models.dh_segment_small import DhSegmentSmall
 from src.cgprocess.layout_segmentation.models.trans_unet import VisionTransformer
@@ -72,6 +73,11 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
         model = setup_dh_segment(device, load, model, freeze)
+    elif model_str == "dh_segment_2":
+        model = DhSegment2(
+            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
+        )
+        model = setup_dh_segment(device, load, model, freeze)
     assert model, "No valid model string supplied in model parameter"
     return model
 
@@ -93,12 +99,12 @@ def setup_dh_segment(
         model.freeze_encoder()
     # load model if argument is None, it does nothing
     model.load(load, device)
-    if override_load_channels != OUT_CHANNELS:
-        model.conv2 = conv1x1(32, 12)
-        model.out_channel = 12
-        print(
-            f"overriding model loading out channels. {override_load_channels} channels are "
-            f"loaded and overwritten with {OUT_CHANNELS} channels")
+    # if override_load_channels != OUT_CHANNELS:
+    #     model.conv2 = conv1x1(32, 12)
+    #     model.out_channel = 12
+    #     print(
+    #         f"overriding model loading out channels. {override_load_channels} channels are "
+    #         f"loaded and overwritten with {OUT_CHANNELS} channels")
     # set mean and std in a model for normalization
     model.means = torch.tensor((0.485, 0.456, 0.406))
     model.stds = torch.tensor((0.229, 0.224, 0.225))
