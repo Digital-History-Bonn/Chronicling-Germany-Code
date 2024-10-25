@@ -3,9 +3,11 @@ module for Dataset class
 """
 from __future__ import annotations
 
+import random
 from threading import Thread
 from typing import Dict, List, Tuple, Union, Callable
 
+import numpy as np
 import torch
 
 # pylint thinks torch has no name randperm this is wrong
@@ -197,30 +199,30 @@ class TrainDataset(Dataset):
         """Defines transformations
         :param resize_prob: Probability of resize. This allows to deactivate the scaling augmentation.
         """
+        resize_to = self.preprocessing.crop_size // (random.random() * 2)
+        pad = self.preprocessing.crop_size - resize_to
         return {
             "default": transforms.Compose(
                 [
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomVerticalFlip(),
                     transforms.RandomRotation(180),
-                    transforms.RandomErasing(),
+                    transforms.RandomPerspective(p=0.2),
                     transforms.RandomApply(
                         [
                             transforms.RandomChoice(
                                 [
                                     transforms.RandomResizedCrop(
                                         size=self.preprocessing.crop_size,
-                                        scale=(0.2, 1.0),
+                                        scale=(0.25, 1.0),
                                     ),
                                     transforms.Compose(
                                         [
                                             transforms.Resize(
-                                                self.preprocessing.crop_size // 2,
+                                                resize_to,
                                                 antialias=True,
                                             ),
-                                            transforms.Pad(
-                                                self.preprocessing.crop_size // 4
-                                            ),
+                                            transforms.Pad([0,0,pad,pad]),
                                         ]
                                     ),
                                 ]
@@ -230,14 +232,17 @@ class TrainDataset(Dataset):
                     ),
                 ]
             ),
-            "images": transforms.RandomApply(
+            "images": transforms.Compose([
+                transforms.RandomErasing(),
+                transforms.Grayscale(num_output_channels=3),
+                transforms.RandomApply(
                 [
                     transforms.Compose(
                         [
-                            transforms.GaussianBlur(5, (0.1, 1.5)),
+                            transforms.GaussianBlur(20, (0.1, 1.5)),
                         ]
-                    )
+                    ),
                 ],
                 p=0.75,
-            ),
+            ), ])
         }  # originally 0.8

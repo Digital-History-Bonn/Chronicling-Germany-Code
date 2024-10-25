@@ -1,4 +1,4 @@
-"""Module for dh segment with integrated cbam inside different layers."""
+"""Module for updated dh segment version with lower capacity but a higher receptive field."""
 # coding=utf-8
 from __future__ import absolute_import, division, print_function
 
@@ -9,7 +9,6 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.cbam import CBAM
 from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
 
 # pylint: disable=duplicate-code
@@ -18,11 +17,11 @@ logger = logging.getLogger(__name__)
 
 class Encoder(nn.Module):
     """
-    CNN Encoder Class, expanding the first resnet50 layers, by appending cbam modules at the end of the last 4 layers.
-    (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py and https://github.com/Peachypie98/CBAM)
+    CNN Encoder Class, using the first 3 resnet50 layers, while reducing the  by appending cbam modules at the end of the last 4 layers.
+    (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, dhsegment: DhSegment, in_channels: int, cbam_skip_connection: bool):
+    def __init__(self, dhsegment: DhSegment, in_channels: int):
         super().__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
@@ -30,13 +29,9 @@ class Encoder(nn.Module):
         self.maxpool = dhsegment.maxpool
 
         self.block1 = dhsegment.block1
-        self.cbam1 = CBAM(256, 2, cbam_skip_connection)
         self.block2 = dhsegment.block2
-        self.cbam2 = CBAM(512, 2, cbam_skip_connection)
         self.block3 = dhsegment.block3
-        self.cbam3 = CBAM(512, 2, cbam_skip_connection)
         self.block4 = dhsegment.block4
-        self.cbam4 = CBAM(512, 2, cbam_skip_connection)
 
         # initialize normalization
         # pylint: disable=duplicate-code
@@ -134,13 +129,12 @@ class Decoder(nn.Module):
         return tensor_x
 
 
-class DhSegmentCBAM(nn.Module):
+class DhSegment2(nn.Module):
     """Implements DhSegment combined with CBAM modules after encoder layers. https://arxiv.org/abs/1804.10371 and
     https://github.com/Peachypie98/CBAM"""
 
     def __init__(
-            self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool = True,
-            cbam_skip_connection: bool = False
+            self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool = True
     ) -> None:
         """
         :param in_channels: input image channels eg 3 for RGB
@@ -156,7 +150,7 @@ class DhSegmentCBAM(nn.Module):
             out_channel=out_channel,
             load_resnet_weights=load_resnet_weights,
         )
-        self.encoder = Encoder(dhsegment, in_channels, cbam_skip_connection)
+        self.encoder = Encoder(dhsegment, in_channels)
         self.decoder = Decoder(dhsegment)
 
     def forward(self, x_tensor: torch.Tensor) -> torch.Tensor:

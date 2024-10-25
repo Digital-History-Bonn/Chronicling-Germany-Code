@@ -59,7 +59,7 @@ class PredictDataset(Dataset):
         image = Image.open(self.image_path + file).convert("RGB")
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
         image = image.resize(shape, resample=BICUBIC)
-        transform = transforms.PILToTensor()
+        transform = transforms.Compose([transforms.PILToTensor(), transforms.Grayscale(num_output_channels=3)])
         data: torch.Tensor = transform(image).float() / 255
         return data
 
