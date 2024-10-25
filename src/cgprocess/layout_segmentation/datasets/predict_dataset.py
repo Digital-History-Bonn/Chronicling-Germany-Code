@@ -32,7 +32,6 @@ class PredictDataset(Dataset):
             self,
             image_path: str,
             scale: float,
-            pad: Tuple[int, int],
             target_path: Optional[str] = None,
     ) -> None:
         """
@@ -46,7 +45,6 @@ class PredictDataset(Dataset):
         self.image_path = image_path
         self.target_path = target_path
         self.scale = scale
-        self.pad = pad
 
         self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") +
                            glob.glob(f"{image_path}*.jpg")]
@@ -55,8 +53,6 @@ class PredictDataset(Dataset):
         """
         Loads image and applies necessary transformation for prdiction.
         Image is transformed to a 3 channel grayscale torch tensor with values form 0 to 1.
-        Image is padded to a multiple of the fixed value 256, which allows for at least 8 downscale operations.
-        Dh segment 2 requires 7.
         :param file: path to image
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
@@ -66,9 +62,6 @@ class PredictDataset(Dataset):
         transform = transforms.Compose([transforms.PILToTensor(), transforms.Grayscale(num_output_channels=3)])
 
         data: torch.Tensor = transform(image).float() / 255
-        pad_size = Preprocessing.calculate_padding_size(data, 256, 1) #
-        pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
-        data = pad(data)
         return data
 
     def load_target(self, file: str) -> torch.Tensor:
@@ -77,7 +70,7 @@ class PredictDataset(Dataset):
         :param file: path to target
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
-        target:  torch.Tensor = np.load(f"{self.target_path}{file[:-4]}.npy")
+        target:  torch.Tensor = np.load(f"{self.target_path}{file[:-4]}.npz")['array']
         shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
         target = torch.nn.functional.interpolate(torch.tensor(target[None, :, :]), size=shape, mode='nearest')
 
@@ -86,18 +79,21 @@ class PredictDataset(Dataset):
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
         """
         returns one datapoint
+        Image and Target are padded to a multiple of the fixed value 256, which allows for at least 8 downscale operations.
+        Dh segment 2 requires 7.
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
         file_name = self.file_names[item]
         image = self.load_image(file_name)
 
-        pad = calculate_padding(self.pad, image.shape, self.scale)
-        image = pad_image(pad, image)
+        pad_size = Preprocessing.calculate_padding_size(image, 256, 1) #
+        pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
+        image = pad(image)
 
         if self.target_path is not None:
             target = self.load_target(file_name)
-            target = pad_image(pad, target)
+            target = pad(target)
         else:
             target = torch.zeros((image.shape[0], image.shape[1]))
 

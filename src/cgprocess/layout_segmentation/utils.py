@@ -146,19 +146,19 @@ def prepare_file_loading(dataset: str) -> Tuple[str, Callable]:
         extension = ".jpg"
 
         def get_file_name(name: str) -> str:
-            return f"{name}.npy"
+            return f"{name}.npz"
 
     elif dataset == "HLNA2013":
         extension = ".tif"
 
         def get_file_name(name: str) -> str:
-            return f"pc-{name}.npy"
+            return f"pc-{name}.npz"
 
     else:
         extension = ".png"
 
         def get_file_name(name: str) -> str:
-            return f"{name}.npy"
+            return f"{name}.npz"
     return extension, get_file_name
 
 

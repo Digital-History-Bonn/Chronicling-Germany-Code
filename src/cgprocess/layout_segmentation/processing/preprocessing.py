@@ -147,7 +147,7 @@ class Preprocessing:
         image = Image.open(f"{input_path}").convert("RGB")
 
         # load target
-        target = np.load(f"{target_path}")
+        target = np.load(f"{target_path}")['array']
         if dataset == "HLNA2013":
             target = target.T
 

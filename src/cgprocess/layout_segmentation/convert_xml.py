@@ -114,7 +114,7 @@ def np_save(file: str, img: np.ndarray) -> None:
     :param file: name of the file without ending
     :param img: numpy array to save
     """
-    np.save(f"{file}.npy", img)
+    np.savez_compressed("{file}.npz", array=img)
 
 
 def img_save(file: str, img: np.ndarray) -> None:

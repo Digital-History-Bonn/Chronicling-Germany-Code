@@ -252,16 +252,6 @@ def get_args() -> argparse.Namespace:
         help="Downscaling factor of the images. Polygon data will be upscaled accordingly",
     )
     parser.add_argument(
-        "--padding",
-        "-p",
-        dest="pad",
-        type=int,
-        nargs="+",
-        default=FINAL_SIZE,
-        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-             "Has to be grater or equal to actual image",
-    )
-    parser.add_argument(
         "--bbox-threshold",
         "-bt",
         dest="bbox_size",
@@ -339,7 +329,7 @@ def predict(args: argparse.Namespace) -> None:
 
     target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
     dataset = PredictDataset(adjust_path(args.data_path),  # type: ignore
-                             args.scale, args.pad,
+                             args.scale,
                              target_path=adjust_path(target_path))
 
     print(f"{len(dataset)=}")
