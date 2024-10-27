@@ -199,7 +199,7 @@ class Trainer:
         """
         _, _, _, class_acc = self.validation()
         # early stopping
-        score: float = (1 - np.mean(np.nan_to_num(class_acc)))  # type: ignore
+        score: float = np.sum(np.pow(1 - np.nan_to_num(class_acc), 2))  # type: ignore
         if self.scheduler_type:
             if self.scheduler_type == "reduced_on_plateau":
                 self.scheduler.step(score)

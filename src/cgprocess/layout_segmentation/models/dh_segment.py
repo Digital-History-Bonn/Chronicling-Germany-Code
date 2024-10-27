@@ -174,7 +174,7 @@ class UpScaleBlock(nn.Module):
     Decoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, in_up: int, in_copy: int, out_channels: int, double = False):
+    def __init__(self, in_up: int, in_copy: int, out_channels: int, double_scaling = False):
         """
         Decoder Block
         :param in_up: number of input feature maps from up-scaling-path
@@ -186,8 +186,8 @@ class UpScaleBlock(nn.Module):
         self.upscale = nn.ConvTranspose2d(
             in_channels=in_up, out_channels=in_up, kernel_size=2, stride=2
         )
-        self.double = double
-        if self.double:
+        self.double_scaling = double_scaling
+        if self.double_scaling:
             self.upscale_2 = nn.ConvTranspose2d(
                 in_channels=in_up, out_channels=in_up, kernel_size=2, stride=2
             )
@@ -202,7 +202,7 @@ class UpScaleBlock(nn.Module):
         :return: output
         """
         prev_up = self.upscale(prev_up)
-        if self.double:
+        if self.double_scaling:
             prev_up = self.upscale_2(prev_up)
         feat_x = torch.concat((copy, prev_up), 1)
         feat_x = self.conv(feat_x)
@@ -331,7 +331,8 @@ class DhSegment(nn.Module):
         conv_out: bool = False,
     ) -> nn.Module:
         """
-        creates a Block of the ResNet Encoder
+        Creates a layer of the ResNet50 Encoder. First Block scales image down, and doubles the feature
+        maps.
         :param planes: ???
         :param blocks: Number of Bottleneck-Blocks
         :param stride: stride for convolutional-Layer
