@@ -15,17 +15,17 @@ from tqdm import tqdm
 from tabulate import tabulate
 
 
-def read_xml(xml_path) -> Dict[str, list]:
+def read_xml(xml_path) -> Dict[str, List[Polygon]]:
     """Reads xml files and returns shapely polygons of all desired regions."""
-    data = {"caption": [],
-            "table": [],
-            "paragraph": [],
-            "heading": [],
-            "header": [],
-            "separator_vertical": [],
-            "separator_horizontal": [],
-            "image": [],
-            "inverted_text": []}
+    data: Dict[str, List[Polygon]] = {"caption": [],
+                                      "table": [],
+                                      "paragraph": [],
+                                      "heading": [],
+                                      "header": [],
+                                      "separator_vertical": [],
+                                      "separator_horizontal": [],
+                                      "image": [],
+                                      "inverted_text": []}
 
     # Read the XML file content
     with open(xml_path, 'r', encoding='utf-8') as file:
@@ -164,12 +164,12 @@ def detection_metrics(prediction: List[Polygon],
     return results
 
 
-def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, list]:
+def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, Dict[str, float]]:
     """Compares read xml data and returns comparisons."""
     categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",
                   "separator_horizontal", "image", "inverted_text"]
 
-    data = {key: {} for key in categories}
+    data: Dict[str, Dict[str, float]] = {key: {} for key in categories}
 
     pred_objects = read_xml(pred_xml)
     gt_objects = read_xml(gt_xml)
@@ -183,7 +183,6 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, list
 
     pred_classes = [key for key, values in pred_objects.items() for _ in values]
     gt_classes = [key for key, values in gt_objects.items() for _ in values]
-
 
     data['all'] = detection_metrics(pred_all, gt_all,
                                     threshold=threshold,
