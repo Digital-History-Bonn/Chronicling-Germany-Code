@@ -288,7 +288,7 @@ def main() -> None:
     precision: Dict[str, List[float]] = {c: [] for c in categories}
     recall: Dict[str, List[float]] = {c: [] for c in categories}
     f1_score: Dict[str, List[float]] = {c: [] for c in categories}
-    count: Dict[str, int] = {c: 0 for c in categories}
+    count: Dict[str, float] = {c: 0 for c in categories}
 
     for pred, gt in tqdm(zip(pred_paths, gt_paths), total=len(pred_paths)):
         data = compare(pred, gt, threshold=.5)
