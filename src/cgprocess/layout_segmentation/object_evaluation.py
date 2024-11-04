@@ -66,7 +66,7 @@ def read_xml(xml_path: str) -> Dict[str, List[Polygon]]:
     return data
 
 
-def remove_duplicate_points(polygon: Polygon):
+def remove_duplicate_points(polygon: Polygon) -> Polygon:
     """Removes duplicate points inside a shapely polygon."""
     coords = list(polygon.exterior.coords)
     unique_coords = []
@@ -192,9 +192,9 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, Dict
     return data
 
 
-def print_table(count: Dict[str, int], tp: Dict[str, List[int]], fp: Dict[str, List[int]],
-                fn: Dict[str, List[int]], precision: Dict[str, List[float]],
-                recall: Dict[str, List[float]], f1_score: Dict[str, List[float]]):
+def print_table(count: Dict[str, float], tp: Dict[str, List[float]], fp: Dict[str, List[float]],
+                fn: Dict[str, List[float]], precision: Dict[str, List[float]],
+                recall: Dict[str, List[float]], f1_score: Dict[str, List[float]]) -> None:
     """Prints markdown table."""
     categories = ["caption", "table", "paragraph", "heading", "header",
                   "separator_vertical", "separator_horizontal", "image", "inverted_text", "all"]
@@ -271,7 +271,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Main function of layout object evaluation script. Prepares file paths and concatenates comparison results."""
     args = get_args()
 
@@ -281,16 +281,14 @@ def main():
     pred_paths = list(glob.glob(f"{args.pred_dir}/*.xml"))
     gt_paths = [f"{args.gt_dir}/{os.path.basename(x)}" for x in pred_paths]
 
-    # pred_paths = ['data/pipeline_test_dataset/Koelnische_Zeitung_1866-06_1866-09_Anzeigen_0308.xml']
-    # gt_paths=['data/newSplit2/test/annos/Koelnische_Zeitung_1866-06_1866-09_Anzeigen_0308.xml']
-
-    tp = {c: [] for c in categories}
-    fp = {c: [] for c in categories}
-    fn = {c: [] for c in categories}
-    precision = {c: [] for c in categories}
-    recall = {c: [] for c in categories}
-    f1_score = {c: [] for c in categories}
-    count = {c: 0 for c in categories}
+    # pylint: disable=duplicate-code
+    tp: Dict[str, List[float]] = {c: [] for c in categories}
+    fp: Dict[str, List[float]] = {c: [] for c in categories}
+    fn: Dict[str, List[float]] = {c: [] for c in categories}
+    precision: Dict[str, List[float]] = {c: [] for c in categories}
+    recall: Dict[str, List[float]] = {c: [] for c in categories}
+    f1_score: Dict[str, List[float]] = {c: [] for c in categories}
+    count: Dict[str, int] = {c: 0 for c in categories}
 
     for pred, gt in tqdm(zip(pred_paths, gt_paths), total=len(pred_paths)):
         data = compare(pred, gt, threshold=.5)
