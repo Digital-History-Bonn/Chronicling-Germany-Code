@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from src.cgprocess.OCR.Transformer import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
+from src.cgprocess.OCR.Transformer.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
 from src.cgprocess.OCR.Transformer.tokenizer import Tokenizer
 from src.cgprocess.OCR.utils import get_bbox, load_image
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list

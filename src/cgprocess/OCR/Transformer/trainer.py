@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 import Levenshtein
 
-from src.cgprocess.OCR.Transformer import ALPHABET, VALID_EVERY, BATCH_SIZE, LR, PAD_HEIGHT
+from src.cgprocess.OCR.Transformer.config import ALPHABET, VALID_EVERY, BATCH_SIZE, LR, PAD_HEIGHT
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.dataset import Dataset
 from src.cgprocess.OCR.utils import set_seed, adjust_path

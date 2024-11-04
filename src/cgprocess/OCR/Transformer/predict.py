@@ -13,7 +13,7 @@ from skimage import io
 from bs4 import BeautifulSoup, ResultSet
 from tqdm import tqdm, trange
 
-from src.cgprocess.OCR.Transformer import ALPHABET, PAD_HEIGHT, PAD_WIDTH
+from src.cgprocess.OCR.Transformer.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
 from src.cgprocess.OCR.Transformer.tokenizer import Tokenizer
