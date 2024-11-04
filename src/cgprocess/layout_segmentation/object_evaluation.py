@@ -15,7 +15,7 @@ from tqdm import tqdm
 from tabulate import tabulate
 
 
-def read_xml(xml_path) -> Dict[str, List[Polygon]]:
+def read_xml(xml_path: str) -> Dict[str, List[Polygon]]:
     """Reads xml files and returns shapely polygons of all desired regions."""
     data: Dict[str, List[Polygon]] = {"caption": [],
                                       "table": [],
@@ -66,7 +66,7 @@ def read_xml(xml_path) -> Dict[str, List[Polygon]]:
     return data
 
 
-def remove_duplicate_points(polygon):
+def remove_duplicate_points(polygon: Polygon):
     """Removes duplicate points inside a shapely polygon."""
     coords = list(polygon.exterior.coords)
     unique_coords = []
@@ -127,7 +127,7 @@ def detection_metrics(prediction: List[Polygon],
     Calcs precision, recall, F1 score for textline polygons.
 
     Textline is considered as detected if IoU is above threshold.
-    Also textline predictions are considerd as correct if IoU is above threshold.
+    Also, textline predictions are considerd as correct if IoU is above threshold.
 
     Args:
         prediction: List of predicted textlines.
@@ -192,7 +192,9 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, Dict
     return data
 
 
-def print_table(count, tp, fp, fn, precision, recall, f1_score):
+def print_table(count: Dict[str, int], tp: Dict[str, List[int]], fp: Dict[str, List[int]],
+                fn: Dict[str, List[int]], precision: Dict[str, List[float]],
+                recall: Dict[str, List[float]], f1_score: Dict[str, List[float]]):
     """Prints markdown table."""
     categories = ["caption", "table", "paragraph", "heading", "header",
                   "separator_vertical", "separator_horizontal", "image", "inverted_text", "all"]
