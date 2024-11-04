@@ -1,5 +1,6 @@
 [MASTER]
 ignore=migrations
+disable=invalid-name
 
 [MAIN]
 
