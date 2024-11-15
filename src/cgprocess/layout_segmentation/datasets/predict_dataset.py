@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import glob
 import os
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, List
 
 import numpy as np
 import torch
@@ -33,6 +33,7 @@ class PredictDataset(Dataset):
             image_path: str,
             scale: float,
             target_path: Optional[str] = None,
+            file_names : List[str] = None,
     ) -> None:
         """
         load images and targets from folder
@@ -46,6 +47,8 @@ class PredictDataset(Dataset):
         self.target_path = target_path
         self.scale = scale
 
+        if file_names:
+            self.file_names = file_names
         self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") +
                            glob.glob(f"{image_path}*.jpg")]
 
@@ -76,6 +79,21 @@ class PredictDataset(Dataset):
 
         return target
 
+    def load_data_by_path(self, path: str) -> Tuple[torch.Tensor, Union[torch.Tensor, None]]:
+        image = self.load_image(path)
+
+        pad_size = Preprocessing.calculate_padding_size(image, 256, 1)  #
+        pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
+        image = pad(image)
+
+        if self.target_path is not None:
+            target = self.load_target(path)
+            target = pad(target)
+        else:
+            target = torch.zeros((image.shape[0], image.shape[1]))
+
+        return image, target
+
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
         """
         returns one datapoint
@@ -85,19 +103,9 @@ class PredictDataset(Dataset):
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """
         file_name = self.file_names[item]
-        image = self.load_image(file_name)
-
-        pad_size = Preprocessing.calculate_padding_size(image, 256, 1) #
-        pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
-        image = pad(image)
-
-        if self.target_path is not None:
-            target = self.load_target(file_name)
-            target = pad(target)
-        else:
-            target = torch.zeros((image.shape[0], image.shape[1]))
-
+        image, target = self.load_data_by_path(file_name)
         return image, target, file_name
+
 
     def __len__(self) -> int:
         """

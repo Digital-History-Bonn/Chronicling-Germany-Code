@@ -36,7 +36,7 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
             page.clear()
             xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     else:
-        with open("src/layout_segmentation/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
+        with open("src/cgprocess/layout_segmentation/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
             data = f.read()
         xml_data = BeautifulSoup(data, "xml")
         page = xml_data.find("Page")

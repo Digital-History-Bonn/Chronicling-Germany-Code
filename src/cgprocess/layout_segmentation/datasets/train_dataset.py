@@ -136,7 +136,8 @@ class TrainDataset(Dataset):
             img = augmentations["images"](data[:-1]).float() / 255
             # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
         else:
-            img = data[:-1].float() / 255
+            gray_transform = transforms.Grayscale(num_output_channels=3)
+            img = gray_transform(data[:-1]).float() / 255
 
         return img, data[-1].long()
 
@@ -234,7 +235,6 @@ class TrainDataset(Dataset):
             ),
             "images": transforms.Compose([
                 transforms.RandomErasing(),
-                transforms.Grayscale(num_output_channels=3),
                 transforms.RandomApply(
                 [
                     transforms.Compose(

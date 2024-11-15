@@ -3,7 +3,9 @@
 import argparse
 import os
 import warnings
+from multiprocessing import Process, Queue, set_start_method
 from threading import Thread
+from time import sleep
 from typing import Dict, List, Tuple, Any
 
 import numpy as np
@@ -13,6 +15,7 @@ from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.layout_segmentation.class_config import TOLERANCE
 from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
 from src.cgprocess.layout_segmentation.helper.train_helper import init_model
@@ -35,36 +38,48 @@ FINAL_SIZE = (1024, 1024)
 # Tolerance pixel for polygon simplification. All points in the simplified object will be within
 # the tolerance distance of the original geometry.
 
-
-def predict_batch(args: argparse.Namespace, device: str, paths: List[str], image: torch.Tensor,
-                  target: torch.Tensor, model: Any, debug: bool = False) -> List[Thread]:
+def predict_batch(args: argparse.Namespace, device: str, path_queue: Queue) -> None:
     """
     Run model to create prediction of whole batch and start export threads for each image.
-    :param debug: if true, the uncertainty prediction is activated
-    :param target: target for uncertainty prediction.
-    :param args: arguments
-    :param device: device, cuda or cpu
-    :param paths: image file names
-    :param image: image tensor [3, H, W]
-    :param model: model to run prediction on
+    :param path_queue: multiprocessing queue
+    :param args: arguments for threshold, and optional debug mode
+    :param device: device id for model
     """
-    with torch.autocast(device, enabled=args.amp):
+    target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
+    dataset = PredictDataset(adjust_path(args.data_path),  # type: ignore
+                             args.scale,
+                             target_path=target_path)
+    model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
+                         overwrite_load_channels=args.override_load_channels)
+    model.to(device)
+    model.eval()
+    debug = args.uncertainty_predict
+    thread_count = args.thread_count
+    threads: List[Thread] = []
+    while True:
+        path, done = path_queue.get()
+        image, target = dataset.load_data_by_path(path)
+        image = image[None, :, :, :]
+        if done:
+            join_threads(threads)
+            return
         pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
 
-    if debug:
-        pred_ndarray = process_prediction_debug(pred, target.to(device), args.threshold)
-    else:
-        pred_ndarray = process_prediction(pred, args.threshold, args.reduce)
-    image_ndarray = image.numpy()
+        if debug:
+            target = target[None, :, :]  # type: ignore
+            pred_ndarray = process_prediction_debug(pred, target.to(device), args.threshold)
+        else:
+            pred_ndarray = process_prediction(pred, args.threshold, args.reduce)
+        image_ndarray = image.numpy()
 
-    threads = []
-    for i in range(pred_ndarray.shape[0]):
-        threads.append(Thread(target=image_level_export, args=(paths[i], pred_ndarray[i], image_ndarray[i], args)))
+        threads.append(Thread(target=image_level_export, args=(path, pred_ndarray[0], image_ndarray[0], args)))
+        threads[-1].start()
         if args.output_path:
-            draw_prediction(pred_ndarray[i], adjust_path(args.output_path) + os.path.splitext(paths[i])[0] + ".png")
-        threads[i].start()
+            draw_prediction(pred_ndarray[0], adjust_path(args.output_path) + os.path.splitext(path)[0] + ".png")
 
-    return threads
+        if len(threads) >= thread_count:
+            join_threads(threads)
+            threads = []
 
 
 def image_level_export(file: str, pred: ndarray, image: ndarray, args: argparse.Namespace) -> None:
@@ -205,7 +220,7 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--threshold",
-        "-t",
+        "-th",
         type=float,
         default=0.5,
         help="Confidence threshold for assigning a label to a pixel.",
@@ -232,13 +247,6 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Batch size",
-    )
-    parser.add_argument(
-        "--worker-factor",
-        "-wf",
-        type=int,
-        default=2,
-        help="Factor for number of workers. There will be gpu_count * worker_factor many Factor.",
     )
     parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
@@ -307,16 +315,22 @@ def get_args() -> argparse.Namespace:
              "loaded with this number of output classes instead of the configured number. This is necessary if a "
              "pretrained model is intended to be used for a task with a different number of output classes.",
     )
-    return parser.parse_args()
-
-
-def collate_fn(batch: Any) -> Any:
-    """dataloader collate function"""
-    return (
-        torch.stack([x[0] for x in batch]),
-        torch.stack([x[1] for x in batch]),
-        [x[2] for x in batch]
+    parser.add_argument(
+        "--processes",
+        "-p",
+        type=int,
+        default=1,
+        help="Number of processes for every gpu in use. This has to be used carefull, as this can lead to a CUDA out "
+             "of memory error.",
     )
+    parser.add_argument(
+        "--thread-count",
+        "-t",
+        type=int,
+        default=1,
+        help="Select number of threads that are launched per process.",
+    )
+    return parser.parse_args()
 
 
 def predict(args: argparse.Namespace) -> None:
@@ -334,48 +348,68 @@ def predict(args: argparse.Namespace) -> None:
 
     print(f"{len(dataset)=}")
 
-    pred_loader = DataLoader(
-        dataset,
-        batch_size=cuda_count if torch.cuda.is_available() else 1,
-        shuffle=False,
-        num_workers=args.worker_factor * cuda_count,
-        prefetch_factor=2 if args.worker_factor * cuda_count > 1 else None,
-        persistent_workers=args.worker_factor * cuda_count > 1,
-        pin_memory=True,
-        collate_fn=collate_fn
-    )
-    if device == 'cpu':
-        print(f"Using {device}")
-        model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
-                           overwrite_load_channels=args.override_load_channels)
+    num_gpus = torch.cuda.device_count()
+    num_processes = args.processes
+    if num_gpus > 0:
+        print(f"Using {num_gpus} gpu device(s).")
     else:
-        print(f"Using {device} device with {cuda_count} gpus")
-        model = DataParallel(
-            init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
+        print("Using cpu.")
 
-    model.to(device)
-    model.eval()
-    threads = []
+    # create queue
+    path_queue: Queue = Queue()
+    for i in range(len(dataset)):
+        path_queue.put((dataset.file_names[i], False))
 
-    batch = 0
-    for image, target, path in tqdm(
-            pred_loader, desc="layout inference", total=len(pred_loader), unit="batches"
-    ):
-        batch += 1
-        threads += predict_batch(args, device, path, image, target, model, args.uncertainty_predict)
+    device_ids = [f"cuda:{i % num_gpus}" for i in range(num_gpus * num_processes)] \
+        if torch.cuda.is_available() else ["cpu"] * num_processes
+    processes = [Process(target=predict_batch, args=(args, device_ids[i], path_queue)) for i in range(len(device_ids))]
+    for process in processes:
+        process.start()
+    total = len(dataset)
+    # pylint: disable=duplicate-code
+    with tqdm(total=path_queue.qsize(), desc="Layout Prediction", unit="pages") as pbar:
+        while not path_queue.empty():
+            pbar.n = total - path_queue.qsize()
+            pbar.refresh()
+            sleep(1)
+    for _ in processes:
+        path_queue.put(("", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
 
-        if batch % 10 == 0:
-            for thread in threads:
-                thread.join()
-            threads = []
-
-    print("Prediction done, waiting for post processing to end")
-    for thread in threads:
-        thread.join()
-    print("Done")
+    # if device == 'cpu':
+    #     print(f"Using {device}")
+    #     model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
+    #                        overwrite_load_channels=args.override_load_channels)
+    # else:
+    #     print(f"Using {device} device with {cuda_count} gpus")
+    #     model = DataParallel(
+    #         init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
+    #
+    # model.to(device)
+    # model.eval()
+    # threads = []
+    #
+    # batch = 0
+    # for image, target, path in tqdm(
+    #         pred_loader, desc="layout inference", total=len(pred_loader), unit="batches"
+    # ):
+    #     batch += 1
+    #     threads += predict_batch(args, device, path, image, target, model, args.uncertainty_predict)
+    #
+    #     if batch % 10 == 0:
+    #         for thread in threads:
+    #             thread.join()
+    #         threads = []
+    #
+    # print("Prediction done, waiting for post processing to end")
+    # for thread in threads:
+    #     thread.join()
+    # print("Done")
 
 
 if __name__ == "__main__":
+    set_start_method('spawn')
     parameter_args = get_args()
 
     if parameter_args.output_path:
