@@ -14,7 +14,7 @@ LOSS_WEIGHTS: torch.Tensor = torch.tensor([
     5.0,  # background
     10.0,  # caption
     10.0,  # table
-    2.0,  # paragraph
+    1.0,  # paragraph
     20.0,  # heading
     10.0,  # header
     20.0,  # separator_vertical

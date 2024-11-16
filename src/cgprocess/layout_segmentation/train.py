@@ -34,6 +34,22 @@ from src.cgprocess.layout_segmentation.utils import split_batches, adjust_path, 
 from src.cgprocess.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
 from src.cgprocess.layout_segmentation.helper.train_helper import multi_precison_recall
 
+from prettytable import PrettyTable
+
+
+def count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters", "Median"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        params = parameter.numel()
+        table.add_row([name, params, torch.median(parameter).item()])
+        total_params += params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
+
 
 class Trainer:
     """Training class containing functions for training and validation."""
@@ -84,6 +100,7 @@ class Trainer:
                        args.override_load_channels))
 
         # set optimizer and loss_fn
+        count_parameters(self.model)
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4

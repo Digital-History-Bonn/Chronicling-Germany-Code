@@ -86,7 +86,8 @@ VALID_TAGS = [
 
 
 REDUCE_CLASSES = {
-    3: [1, 4, 5]
+    3: [1, 5],
+    0: [8, 9]
 }
 
 # REDUCE_CLASSES = {
