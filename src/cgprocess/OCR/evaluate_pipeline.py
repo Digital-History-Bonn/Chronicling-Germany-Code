@@ -10,7 +10,6 @@ from itertools import product
 import numpy as np
 import torch
 from bs4 import BeautifulSoup
-from shapely import intersection, union
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
@@ -77,8 +76,8 @@ def matching(predictions: List[Polygon],
 
     for pred, tar in product(predictions, targets):
         try:
-            intersects.append(intersection(pred.buffer(0), tar.buffer(0)).area)
-            unions.append(union(pred.buffer(0), tar.buffer(0)).area)
+            intersects.append(pred.buffer(0).intersection(tar.buffer(0)).area)
+            unions.append(pred.buffer(0).union(tar.buffer(0)).area)
         except Exception as e:
             intersects.append(0.0)
             unions.append(100.0)
