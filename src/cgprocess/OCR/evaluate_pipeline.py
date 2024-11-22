@@ -1,7 +1,9 @@
 """Evaluation script for baseline detection."""
 import argparse
 import glob
+import json
 import os.path
+import time
 from typing import Tuple, List
 from itertools import product
 
@@ -74,8 +76,13 @@ def matching(predictions: List[Polygon],
     unions = []
 
     for pred, tar in product(predictions, targets):
-        intersects.append(intersection(pred, tar).area)
-        unions.append(union(pred, tar).area)
+        try:
+            intersects.append(intersection(pred, tar).area)
+            unions.append(union(pred, tar).area)
+        except Exception as e:
+            intersects.append(0.0)
+            unions.append(100.0)
+            print(e)
 
     ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(predictions), len(targets))
 
@@ -176,8 +183,16 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with ground truth xml files."
     )
+    parser.add_argument(
+        "--name",
+        "-n",
+        type=str,
+        default=time.time(),
+        help="Evaluation name. Results will be printed in 'results_name.json'"
+    )
 
     return parser.parse_args()
+
 
 # pylint: disable=duplicate-code
 def main() -> None:
@@ -207,6 +222,7 @@ def main() -> None:
 
     if len(targets) > 0:
         overall_ratio = calculate_ratio(overall_distance_list)
+        print(args.name)
         print(f"\n\n{overall_ratio=}")
         print(
             f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
@@ -216,6 +232,11 @@ def main() -> None:
               f"{len(overall_correct_lines) / len(overall_distance_list)}")
         print(
             f"overall bad lines: {len(overall_bad_lines) / len(overall_distance_list)}")
+
+        with open(f'results_{args.name}.json', 'w', encoding='utf8') as json_file:
+            json.dump({"levenshtein": np.mean(ratios), "correct":
+                len(overall_correct_lines) / len(overall_distance_list),
+                       "bad": len(overall_bad_lines) / len(overall_distance_list)}, json_file)
 
 
 if __name__ == '__main__':
