@@ -75,13 +75,8 @@ def matching(predictions: List[Polygon],
     unions = []
 
     for pred, tar in product(predictions, targets):
-        try:
-            intersects.append(pred.buffer(0).intersection(tar.buffer(0)).area)
-            unions.append(pred.buffer(0).union(tar.buffer(0)).area)
-        except Exception as e:
-            intersects.append(0.0)
-            unions.append(100.0)
-            print(e)
+        intersects.append(pred.intersection(tar.buffer(0)).area)
+        unions.append(pred.union(tar.buffer(0)).area)
 
     ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(predictions), len(targets))
 
@@ -222,10 +217,10 @@ def main() -> None:
     if len(targets) > 0:
         overall_ratio = calculate_ratio(overall_distance_list)
         print(args.name)
-        print(f"\n\n{overall_ratio=}")
-        print(
-            f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
-            f"{np.max(ratios)}")
+        print(f"\n\noverall levensthein distance per character: {overall_ratio}")
+        # print(
+        #     f"levensthein distance per character per page: {np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
+        #     f"{np.max(ratios)}")
         print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
         print(f"overall correct lines: "
               f"{len(overall_correct_lines) / len(overall_distance_list)}")
@@ -233,7 +228,7 @@ def main() -> None:
             f"overall bad lines: {len(overall_bad_lines) / len(overall_distance_list)}")
 
         with open(f'results_{args.name}.json', 'w', encoding='utf8') as json_file:
-            json.dump({"levenshtein": np.mean(ratios), "correct":
+            json.dump({"levenshtein": overall_ratio, "correct":
                 len(overall_correct_lines) / len(overall_distance_list),
                        "bad": len(overall_bad_lines) / len(overall_distance_list)}, json_file)
 
