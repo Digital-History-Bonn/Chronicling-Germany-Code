@@ -77,8 +77,8 @@ def matching(predictions: List[Polygon],
 
     for pred, tar in product(predictions, targets):
         try:
-            intersects.append(intersection(pred, tar).area)
-            unions.append(union(pred, tar).area)
+            intersects.append(intersection(pred.buffer(0), tar.buffer(0)).area)
+            unions.append(union(pred.buffer(0), tar.buffer(0)).area)
         except Exception as e:
             intersects.append(0.0)
             unions.append(100.0)
