@@ -243,6 +243,6 @@ class TrainDataset(Dataset):
                         ]
                     ),
                 ],
-                p=0.75,
+                p=0.2,
             ), ])
         }  # originally 0.8
