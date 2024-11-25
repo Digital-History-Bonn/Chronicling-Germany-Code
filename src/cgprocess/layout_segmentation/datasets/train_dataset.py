@@ -206,8 +206,7 @@ class TrainDataset(Dataset):
             "default": transforms.Compose(
                 [
                     transforms.RandomHorizontalFlip(),
-                    transforms.RandomVerticalFlip(),
-                    transforms.RandomRotation(180),
+                    transforms.RandomRotation(20),
                     transforms.RandomApply(
                         [
                             transforms.RandomChoice(
