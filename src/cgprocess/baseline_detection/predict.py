@@ -370,7 +370,7 @@ class BaselineEngine:
         to_grayscale = transforms.Grayscale(num_output_channels=3)
         pred_gpu = self.model(to_grayscale(input_image))  # pylint: disable=not-callable
         pred = pred_gpu.cpu().detach()
-        del pred_gpu, input_image, self.model
+        del pred_gpu, input_image
 
         # extract maps
         ascenders = pred[0, 0]
