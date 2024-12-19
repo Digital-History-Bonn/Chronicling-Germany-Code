@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import warnings
 from typing import Union, Tuple, Dict
 
 import numpy as np
@@ -9,7 +10,7 @@ import torch
 from monai.losses import DiceLoss
 from monai.networks.nets import BasicUNet
 from torch import nn
-from torch.nn import MSELoss
+from torch.nn import MSELoss, DataParallel
 from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
@@ -76,7 +77,7 @@ class Trainer:
             testdataset: Dataset,
             optimizer: Optimizer,
             name: str,
-            cuda: int = 0,
+            gpu_count: int = 0,
     ) -> None:
         """
         Trainer class to train models.
@@ -87,12 +88,12 @@ class Trainer:
             testdataset: dataset to validate model while trainings process
             optimizer: optimizer to use
             name: name of the model in save-files and tensorboard
-            cuda: number of used cuda device
+            gpu_count: number of used cuda device
         """
         print(f"{torch.cuda.is_available()=}")
         self.device = (
-            torch.device(f"cuda:{cuda}")
-            if torch.cuda.is_available() and cuda >= 0
+            torch.device("cuda")
+            if torch.cuda.is_available() and gpu_count >= 0
             else torch.device("cpu")
         )
         print(f"using {self.device}")
@@ -103,10 +104,10 @@ class Trainer:
         self.softmax = nn.Softmax(dim=1)
 
         self.trainloader = DataLoader(
-            traindataset, batch_size=16, shuffle=True, num_workers=14
+            traindataset, batch_size=16*gpu_count, shuffle=True, num_workers=28, prefetch_factor=1
         )
         self.testloader = DataLoader(
-            testdataset, batch_size=1, shuffle=False, num_workers=24
+            testdataset, batch_size=1*gpu_count, shuffle=False, num_workers=24
         )
 
         self.bestavrgloss: Union[float, None] = None
@@ -130,7 +131,7 @@ class Trainer:
         """
         os.makedirs("models/", exist_ok=True)
         torch.save(
-            self.model.state_dict(),
+            self.model.module.state_dict(),
             f"models/{name}",
         )
 
@@ -141,7 +142,7 @@ class Trainer:
         Args:
             name: name of the model
         """
-        self.model.load_state_dict(
+        self.model.module.load_state_dict(
             torch.load(f"models/{name}.pt")
         )
 
@@ -362,11 +363,11 @@ def get_args() -> argparse.Namespace:
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
-        "--cuda",
-        "-c",
+        "--gpu",
+        "-g",
         type=int,
         default=-1,
-        help="number of the cuda device (use -1 for cpu)",
+        help="number of the gpu devices to use. (use -1 for cpu)",
     )
 
     # pylint: disable=duplicate-code
@@ -412,12 +413,12 @@ def main() -> None:
     print(f'start training:\n'
           f'\tname: {args.name}\n'
           f'\tepochs: {args.epochs}\n'
-          f'\tcuda: {args.cuda}\n')
+          f'\tgpu count: {args.gpu}\n')
 
     # init model
     name = (f"{args.name}_baseline"
             f"{'_aug' if args.augmentations else ''}_e{args.epochs}")
-    model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=6)
+    model = DataParallel(BasicUNet(spatial_dims=2, in_channels=3, out_channels=6))
 
     # init transformations for augmentation
     transform = None
@@ -433,10 +434,10 @@ def main() -> None:
                 torch.nn.ModuleList(
                     [transforms.GaussianBlur(kernel_size=9, sigma=(2, 10))]
                 ),
-                p=0.1,
+                p=0.3,
             ),
             transforms.RandomAdjustSharpness(sharpness_factor=1.5, p=0.1),
-            transforms.RandomGrayscale(p=0.1))
+            transforms.RandomGrayscale(p=1))
 
     # init datasets
     traindataset = Dataset(
@@ -459,11 +460,13 @@ def main() -> None:
                       validdataset,
                       optimizer,
                       name,
-                      cuda=args.cuda)
+                      gpu_count=args.gpu)
 
     # start training
     trainer.train(args.epochs)
 
 
 if __name__ == "__main__":
-    main()
+    with warnings.catch_warnings(): # TODO: remove. ignores pil decompression bomb DOS warning
+        warnings.simplefilter("ignore")
+        main()

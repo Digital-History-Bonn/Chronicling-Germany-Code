@@ -133,7 +133,7 @@ def get_reading_order_idx(textregion: PageElement) -> int:
 
 def extract(xml_path: str
             ) -> Tuple[List[Dict[str, Union[torch.Tensor, List[torch.Tensor], int]]],
-List[torch.Tensor]]:
+List[torch.Tensor], Tuple[int,int]]:
     """
     Extracts the annotation from the xml file.
 
@@ -150,6 +150,7 @@ List[torch.Tensor]]:
     # Parse the XML data
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
+    shape = (int(page["imageHeight"]), int(page["imageWidth"]))
     paragraphs = []
     mask_regions = []
 
@@ -173,7 +174,7 @@ List[torch.Tensor]]:
                 if len(region_dict['textline_polygone']) > 0:  # type: ignore
                     paragraphs.append(region_dict)
 
-    return paragraphs, mask_regions
+    return paragraphs, mask_regions, shape
 
 
 def extract_region(region: BeautifulSoup, region_bbox: torch.Tensor) -> Dict[

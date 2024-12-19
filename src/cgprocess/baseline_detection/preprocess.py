@@ -2,6 +2,8 @@
 import argparse
 import glob
 import os
+from multiprocessing import Queue, Process, set_start_method
+from time import sleep
 from typing import List, Tuple
 
 import torch
@@ -240,6 +242,14 @@ def get_args() -> argparse.Namespace:
         help="path to the folder where to save the preprocessed trainings targets",
     )
 
+    parser.add_argument(
+        "--processes",
+        "-p",
+        type=int,
+        default=1,
+        help="number of processes that are used.",
+    )
+
     return parser.parse_args()
 
 
@@ -271,23 +281,42 @@ def main() -> None:
     print(f"{len(image_paths)=}")
     print(f"{len(target_paths)=}")
 
+    path_queue: Queue = Queue()
     for img_path, tar_path in tqdm(zip(image_paths, target_paths),
                                    total=len(image_paths),
-                                   desc='preprocessing'):
+                                   desc='put in queue'):
         document_name = img_path.split(os.sep)[-1][:-4]
 
         # check if folder already exists if yes skip this image
         if os.path.exists(f"{output_path}/{document_name}.npz"):
             continue
+        path_queue.put((document_name, img_path, output_path, tar_path, to_tensor, False))
 
+    processes = [Process(target=preprocess, args=(path_queue, i)) for i in range(args.processes)]
+    for process in processes:
+        process.start()
+    total = path_queue.qsize()
+    # pylint: disable=duplicate-code
+    with tqdm(total=total, desc="Preprocess", unit="pages") as pbar:
+        while not path_queue.empty():
+            pbar.n = total - path_queue.qsize()
+            pbar.refresh()
+            sleep(1)
+    for _ in processes:
+        path_queue.put(("", "", "", "", "", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
+
+
+def preprocess(path_queue, i):
+    print(f"process {i}")
+    while True:
+        document_name, img_path, output_path, tar_path, to_tensor, done = path_queue.get()
+        if done:
+            break
+        print(f"process {i} start page")
         # extract annotation information from annotation xml file
-        regions, mask_regions = extract(tar_path)
-
-        # open image, check orientation, convert to tensor
-        image = Image.open(img_path)
-        image = ImageOps.exif_transpose(image)  # type: ignore
-        torch_image = to_tensor(image).permute(1, 2, 0).to(torch.uint8)
-
+        regions, mask_regions, shape = extract(tar_path)
         # create a list for masks, baselines, bboxes and textregion information
         masks: List[torch.Tensor] = []
         baselines: List[torch.Tensor] = []
@@ -298,10 +327,9 @@ def main() -> None:
             masks.extend(region['textline_polygone'])  # type: ignore
             baselines.extend(region['baselines'])  # type: ignore
             bboxes.extend(region['bboxes'])  # type: ignore
-            textregion.append(region['textregion'])     # type: ignore
-
+            textregion.append(region['textregion'])  # type: ignore
         # create target as numpy array and save it in a compressed file
-        target = draw_baseline_target(torch_image.shape[:2],
+        target = draw_baseline_target(shape,
                                       baselines,
                                       masks,
                                       mask_regions,
@@ -311,4 +339,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    set_start_method('spawn')
     main()

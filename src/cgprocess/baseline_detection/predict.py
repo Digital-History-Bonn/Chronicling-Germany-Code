@@ -367,9 +367,10 @@ class BaselineEngine:
 
         # predict
         input_image = input_image[None].to(self.device)
-        pred_gpu = self.model(input_image)  # pylint: disable=not-callable
+        to_grayscale = transforms.Grayscale(num_output_channels=3)
+        pred_gpu = self.model(to_grayscale(input_image))  # pylint: disable=not-callable
         pred = pred_gpu.cpu().detach()
-        del pred_gpu, input_image
+        del pred_gpu, input_image, self.model
 
         # extract maps
         ascenders = pred[0, 0]
@@ -410,7 +411,7 @@ class BaselineEngine:
         b_list, _, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         # b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
         baseline_lst.append([LineString(line + offset).simplify(tolerance=1) for line in b_list])
-        textline_lst.append([Polygon(poly + offset).simplify(tolerance=1) for poly in t_list])
+        textline_lst.append([Polygon(poly + offset).buffer(0).simplify(tolerance=1) for poly in t_list])
 
 
 def get_args() -> argparse.Namespace:

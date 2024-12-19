@@ -1,6 +1,7 @@
 """Scipt for rescaling images and/or xml data."""
 import argparse
 import os
+import random
 from typing import List
 
 import numpy as np
@@ -19,11 +20,13 @@ TAG_LIST = ["TextRegion", "SeparatorRegion", "ImageRegion", "GraphicRegion", "Ta
 def rescale(args: argparse.Namespace):
     """Rescale data according to scaling parameter in the provided directory."""
     scale = args.scale ** -1 if args.reverse else args.scale
+    print(f"scale: {scale}")
 
     data_path = adjust_path(args.data_path)
     output_path = adjust_path(args.output_path)
     extension = args.extension
     xml = args.xml
+    np.random.seed(42)
 
     if not os.path.exists(f"{output_path}"):
         os.makedirs(f"{output_path}")
@@ -35,16 +38,24 @@ def rescale(args: argparse.Namespace):
         image_names = [
             f[:-4] for f in os.listdir(data_path) if f.endswith(extension)
         ]
-        for name in tqdm(image_names, desc="Rescaling images", unit="image"):
-            image = scale_image(scale, data_path, extension, name)
-            image.save(output_path + name + extension)
-    if xml:
-        xml_names = [
-            f[:-4] for f in os.listdir(data_path + "page/") if f.endswith("xml")
-        ]
-        for name in tqdm(xml_names, desc="Rescaling xml files", unit="file"):
-            bs_data = scale_xml(scale, data_path + "page/", name, TAG_LIST)
-            save_xml(bs_data, output_path + "page/", name)
+
+        for i in range(args.random +1):
+            number = ""
+            if args.random > 0:
+                number = "_" + str(i)
+            for name in tqdm(image_names, desc=f"Rescaling images round {i+1}/{args.random +1}", unit="image"):
+                random_scale = scale
+                if args.random > 0:
+                    random_scale = 1 + np.random.rand() * (scale-1)
+                    print(f"round {i}: scale {random_scale}")
+                    random_scale = random_scale if np.random.rand() < 0.5 else random_scale ** -1
+
+                image = scale_image(random_scale, data_path, extension, name)
+                image.save(output_path + name + number + extension)
+
+                if xml:
+                    bs_data = scale_xml(random_scale, data_path + "page/", name, TAG_LIST)
+                    save_xml(bs_data, output_path + "page/", name + number)
 
 
 def scale_image(scale: int, data_path: str, extension: str, name: str) -> Image.Image:
@@ -92,10 +103,11 @@ def scale_coordinates(tag: Tag, scale: int, is_line: bool = False):
     tag.Coords["points"] = polygon_string
 
     if is_line:
-        baseline = xml_polygon_to_polygon_list(tag.Baseline["points"])
-        baseline_ndarray = np.array(baseline, dtype=int).flatten()*scale
-        baseline_string = polygon_to_string(baseline_ndarray.tolist(), 1)
-        tag.Baseline["points"] = baseline_string
+        if tag.Baseline and tag.Baseline["points"]:
+            baseline = xml_polygon_to_polygon_list(tag.Baseline["points"])
+            baseline_ndarray = np.array(baseline, dtype=int).flatten()*scale
+            baseline_string = polygon_to_string(baseline_ndarray.tolist(), 1)
+            tag.Baseline["points"] = baseline_string
 
 
 # pylint: disable=locally-disabled, duplicate-code
@@ -139,6 +151,13 @@ def get_args() -> argparse.Namespace:
         "--reverse",
         action="store_true",
         help="Reverse scaling, so scale^(-1) is applied.",
+    )
+    parser.add_argument(
+        "--random",
+        type=int,
+        default=0,
+        help="Scale images with uniformly distributed random ratio between scale and scale^(-1). "
+             "Provide an integer that determines, how often each image will be scaled.",
     )
     return parser.parse_args()
 

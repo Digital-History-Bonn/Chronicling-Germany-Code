@@ -2,6 +2,7 @@
 import os
 import glob
 from typing import Tuple, Optional
+import random
 
 import numpy as np
 import torch
@@ -53,16 +54,22 @@ class CustomDataset(Dataset):  # type: ignore
         image = image * target[None, 5, :, :]
         target = target[:4, :, :]
 
+        _, width, height = image.shape
+        resize = transforms.Resize((width // 2, height // 2))
+        image = resize(image)
+        target = F.max_pool2d(target, 2)
+
+        if self.augmentations and random.random() < 0.5:
+            resize = transforms.Resize((width // 4, height // 4))
+            image = resize(image)
+            target = F.max_pool2d(target, 2)
+
         # pad image to ensure size is big enough for cropping
         width_pad = max(256 - image.shape[1], 0)
         height_pad = max(256 - image.shape[2], 0)
         image = F.pad(image, (0, height_pad, 0, width_pad))     # pylint: disable=not-callable
         target = F.pad(target, (0, height_pad, 0, width_pad))   # pylint: disable=not-callable
 
-        _, width, height = image.shape
-        resize = transforms.Resize((width // 2, height // 2))
-        image = resize(image)
-        target = F.max_pool2d(target, 2)
 
         # crop image and target
         if self.cropping:
@@ -80,6 +87,7 @@ class CustomDataset(Dataset):  # type: ignore
         # augment image
         if self.augmentations:
             image = self.augmentations(image)
+
 
         return image, target.long()
 
