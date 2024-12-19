@@ -206,8 +206,7 @@ class TrainDataset(Dataset):
             "default": transforms.Compose(
                 [
                     transforms.RandomHorizontalFlip(),
-                    transforms.RandomVerticalFlip(),
-                    transforms.RandomRotation(180),
+                    transforms.RandomRotation(20),
                     transforms.RandomApply(
                         [
                             transforms.RandomChoice(
@@ -243,6 +242,6 @@ class TrainDataset(Dataset):
                         ]
                     ),
                 ],
-                p=0.75,
+                p=0.2,
             ), ])
         }  # originally 0.8

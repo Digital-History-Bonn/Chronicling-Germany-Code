@@ -58,11 +58,12 @@ def predict_batch(args: argparse.Namespace, device: str, path_queue: Queue) -> N
     threads: List[Thread] = []
     while True:
         path, done = path_queue.get()
-        image, target = dataset.load_data_by_path(path)
-        image = image[None, :, :, :]
         if done:
             join_threads(threads)
             return
+        image, target = dataset.load_data_by_path(path)
+        image = image[None, :, :, :]
+
         pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
 
         if debug:
