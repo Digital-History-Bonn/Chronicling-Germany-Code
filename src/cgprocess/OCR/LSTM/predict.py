@@ -14,12 +14,12 @@ from bs4 import BeautifulSoup, PageElement
 from kraken import rpred  # pylint: disable=import-error
 from kraken.containers import Segmentation, \
     BaselineLine  # pylint: disable=no-name-in-module, import-error
-from kraken.lib import models  # pylint: disable=import-error
 from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
 from tqdm import tqdm
 
-from src.cgprocess.OCR.utils import pad_image, adjust_path, pad_points
+from src.cgprocess.OCR.utils import pad_image, adjust_path, pad_points, create_path_queue, create_model_list
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.universal_predictor import Predictor
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
@@ -77,28 +77,26 @@ List[List[BaselineLine]]]:
     return soup, text_regions, baselines
 
 
-def predict_batch(model: TorchSeqRecognizer, path_queue: Queue, thread_count: int = 1) -> None:
+def predict_batch(model: TorchSeqRecognizer, path_queue: Queue, done: bool, thread_count: int = 1) -> None:
     """
     Predicts OCR on given image using given baseline annotations and model.
-    Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     Args:
         model: Model to use for OCR prediction.
         path_queue: multiprocessing queue for path tuples.
         thread_count: this number of threads will run predictions in parallel. This might lead to an CUDA out of
         memory error if too many threads are launched.
     """
-    while True:
-        threads: List[Thread] = []
-        for i in range(thread_count):
-            image_path, anno_path, out_path, done = path_queue.get()
-            if done:
-                join_threads(threads)
-                return
+    threads: List[Thread] = []
+    for i in range(thread_count):
+        image_path, anno_path, out_path, done = path_queue.get()
+        if done:
+            join_threads(threads)
+            return
 
-            threads.append(Thread(target=predict, args=(anno_path, image_path, model, out_path)))
-            threads[i].start()
-        for thread in threads:
-            thread.join()
+        threads.append(Thread(target=predict, args=(anno_path, image_path, model, out_path)))
+        threads[i].start()
+    for thread in threads:
+        thread.join()
 
 
 def join_threads(threads: List[Thread]) -> None:
@@ -243,43 +241,14 @@ def main() -> None:
     assert len(images) == len(annotations), "Images and annotations path numbers do not match."
 
     num_gpus = torch.cuda.device_count()
-    # pylint: disable=duplicate-code
-    if num_gpus > 0:
-        print(f"Using {num_gpus} gpu device(s).")
-    else:
-        print("Using cpu.")
-
-    path_queue: Queue = Queue()
 
     # put paths in queue
-    for image_path, annotation_path in zip(images, annotations):
-        output_path = f'{args.output}/{os.path.basename(annotation_path)}'
-        path_queue.put((image_path,
-                        annotation_path,
-                        output_path,
-                        False))
+    path_queue = create_path_queue(annotations, args, images)
 
-    model_list = [models.load_any(args.model, device=f"cuda:{i % num_gpus}") for i in
-                  range(num_gpus * args.process_count)] if (
-                torch.cuda.is_available() and num_gpus > 0) else \
-        [models.load_any(args.model, device="cpu")]
+    model_list = create_model_list(args, num_gpus)
 
-    processes = [Process(target=predict_batch,
-                         args=(model_list[i if num_gpus > 0 else 0], path_queue, args.thread_count))
-                         for i in range(len(model_list))]
-    for process in processes:
-        process.start()
-    total = len(images)
-    # pylint: disable=duplicate-code
-    with tqdm(total=path_queue.qsize(), desc="OCR prediction", unit="pages") as pbar:
-        while not path_queue.empty():
-            pbar.n = total - path_queue.qsize()
-            pbar.refresh()
-            sleep(1)
-    for _ in processes:
-        path_queue.put(("", "", "", True))
-    for process in tqdm(processes, desc="Waiting for processes to end"):
-        process.join()
+    predictor = Predictor("OCR prediction", predict_batch, path_queue, model_list)
+    predictor.run_processes(num_gpus, args.thread_count)
 
 
 if __name__ == '__main__':
