@@ -1,11 +1,15 @@
 """Utility functions for OCR."""
+import argparse
+import os
 import random
-from typing import Tuple, Union
+from multiprocessing import Queue
+from typing import Tuple, Union, List
 
 import numpy as np
 import torch
 from PIL import Image, ImageOps
 from bs4 import BeautifulSoup
+from kraken.lib import models
 from skimage import io
 
 
@@ -145,3 +149,37 @@ def load_image(image_path: str) -> torch.Tensor:
         return image[:, :, :3].permute(2, 0, 1) / 256
 
     return image / 256
+
+
+def create_path_queue(annotations: List[str], args: argparse.Namespace, images: List[str]) -> Queue:
+    """
+    Create path queue for OCR prediction containing image, annotation (baseline) and ouput path.
+    Elements are required to have the image path at
+    index 0 and the bool variable for terminating processes at index -1.
+    :param annotations: list of annotation paths
+    :param images: list of image paths
+    """
+    path_queue: Queue = Queue()
+    for image_path, annotation_path in zip(images, annotations):
+        output_path = f'{args.output}/{os.path.basename(annotation_path)}'
+        path_queue.put((image_path,
+                        annotation_path,
+                        output_path,
+                        False))
+    return path_queue
+
+
+def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
+    """
+    Create OCR model list containing one separate model for each process.
+    """
+    model_list = [(models.load_any(args.model, device=f"cuda:{i % num_gpus}")) for i in
+                  range(num_gpus * args.process_count)] if (
+            torch.cuda.is_available() and num_gpus > 0) else \
+        [models.load_any(args.model, device="cpu")]
+    return model_list
+
+
+def init_model(model: object):
+    """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
+    return model

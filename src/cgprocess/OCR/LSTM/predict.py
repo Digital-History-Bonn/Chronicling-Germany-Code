@@ -17,9 +17,9 @@ from kraken.containers import Segmentation, \
 from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
 from tqdm import tqdm
 
-from src.cgprocess.OCR.utils import pad_image, adjust_path, pad_points, create_path_queue, create_model_list
+from src.cgprocess.OCR.utils import pad_image, adjust_path, pad_points, create_path_queue, create_model_list, init_model
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
-from src.cgprocess.universal_predictor import Predictor
+from src.cgprocess.multiprocessing_handler import MPPredictor
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,
@@ -77,28 +77,6 @@ List[List[BaselineLine]]]:
     return soup, text_regions, baselines
 
 
-def predict_batch(model: TorchSeqRecognizer, path_queue: Queue, done: bool, thread_count: int = 1) -> None:
-    """
-    Predicts OCR on given image using given baseline annotations and model.
-    Args:
-        model: Model to use for OCR prediction.
-        path_queue: multiprocessing queue for path tuples.
-        thread_count: this number of threads will run predictions in parallel. This might lead to an CUDA out of
-        memory error if too many threads are launched.
-    """
-    threads: List[Thread] = []
-    for i in range(thread_count):
-        image_path, anno_path, out_path, done = path_queue.get()
-        if done:
-            join_threads(threads)
-            return
-
-        threads.append(Thread(target=predict, args=(anno_path, image_path, model, out_path)))
-        threads[i].start()
-    for thread in threads:
-        thread.join()
-
-
 def join_threads(threads: List[Thread]) -> None:
     """
     Join all threads.
@@ -107,11 +85,12 @@ def join_threads(threads: List[Thread]) -> None:
         thread.join()
 
 
-def predict(anno_path: str, image_path: str, model: TorchSeqRecognizer, out_path: str) -> None:
+def predict(args: list, model: TorchSeqRecognizer) -> None:
     """
     Predicts OCR on given image using given baseline annotations and model.
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     """
+    image_path, anno_path, out_path = args
     print(f'Predicting {image_path}...')
     # load image and pad image
     im = pad_image(Image.open(image_path))
@@ -247,8 +226,8 @@ def main() -> None:
 
     model_list = create_model_list(args, num_gpus)
 
-    predictor = Predictor("OCR prediction", predict_batch, path_queue, model_list)
-    predictor.run_processes(num_gpus, args.thread_count)
+    predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, input_path, True, True)
+    predictor.launch_processes(num_gpus, args.thread_count)
 
 
 if __name__ == '__main__':

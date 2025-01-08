@@ -1,5 +1,7 @@
 """Utility Module"""
+import argparse
 import os
+from multiprocessing import Queue
 from typing import Dict, List, Tuple, Callable, Optional
 
 import torch
@@ -11,6 +13,7 @@ from torchvision import transforms
 
 from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES, REDUCE_CLASSES
 from src.cgprocess.layout_segmentation.class_config import cmap
+from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:
@@ -182,3 +185,25 @@ def collapse_prediction(pred: torch.Tensor) -> torch.Tensor:
             pred[:, replace_label, :, :] += pred[:, label, :, :]
             pred[:, label, :, :] = 0
     return pred
+
+
+def create_model_list(args: argparse.Namespace, num_gpus: int, num_processes: int) -> List[tuple]:
+    """
+    Create list of tuples that contain all information for model initialization. Tuple is used as arguments for
+    train_helper.model_init()
+    """
+    models = [(args.model_path, f"cuda:{i % num_gpus}", args.model_architecture, args.skip_cbam,
+                         False, args.override_load_channels) for i in range(num_gpus * num_processes)] \
+        if torch.cuda.is_available() else ["cpu"] * num_processes
+    return models
+
+
+def create_path_queue(dataset: PredictDataset) -> Queue:
+    """
+    Creates and fills path queue with image paths to be predicted. Elements are required to have the image path at
+    index 0 and the bool variable for terminating processes at index -1.
+    """
+    path_queue: Queue = Queue()
+    for i in range(len(dataset)):
+        path_queue.put((dataset.file_names[i], False))
+    return path_queue

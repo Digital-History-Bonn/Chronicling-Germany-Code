@@ -81,7 +81,7 @@ def count_classes(args: argparse.Namespace):
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="train")
+    parser = argparse.ArgumentParser(description="validate dataset")
     # pylint: disable=duplicate-code
     parser.add_argument(
         "--data-path",

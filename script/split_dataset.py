@@ -16,7 +16,7 @@ def get_args() -> argparse.Namespace:
         Namespace with parsed arguments.
     """
     # pylint: disable=duplicate-code
-    parser = argparse.ArgumentParser(description="evaluate_xml")
+    parser = argparse.ArgumentParser(description="split dataset")
 
     parser.add_argument(
         "--custom-split-file",

@@ -3,17 +3,13 @@
 import argparse
 import os
 import warnings
-from multiprocessing import Process, Queue, set_start_method
+from multiprocessing import Queue, set_start_method
 from threading import Thread
-from time import sleep
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 from numpy import ndarray
-from torch.nn import DataParallel
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.layout_segmentation.class_config import TOLERANCE
@@ -26,7 +22,9 @@ from src.cgprocess.layout_segmentation.processing.reading_order import PagePrope
 from src.cgprocess.layout_segmentation.processing.slicing_export import export_slices
 from src.cgprocess.layout_segmentation.processing.transkribus_export import export_xml
 from src.cgprocess.layout_segmentation.train_config import OUT_CHANNELS
-from src.cgprocess.layout_segmentation.utils import draw_prediction, adjust_path, collapse_prediction
+from src.cgprocess.layout_segmentation.utils import draw_prediction, adjust_path, collapse_prediction, \
+    create_model_list, create_path_queue
+from src.cgprocess.multiprocessing_handler import MPPredictor
 
 DATA_PATH = "../../../data/newspaper/input/"
 RESULT_PATH = "../../../data/output/"
@@ -50,7 +48,7 @@ def predict_batch(args: argparse.Namespace, device: str, path_queue: Queue) -> N
                              args.scale,
                              target_path=target_path)
     model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
-                         overwrite_load_channels=args.override_load_channels)
+                       overwrite_load_channels=args.override_load_channels)
     model.to(device)
     model.eval()
     debug = args.uncertainty_predict
@@ -339,11 +337,10 @@ def predict(args: argparse.Namespace) -> None:
     Loads all images from the data folder and predicts segmentation.
     Loading is handled through a Dataloader and Dataset. Threads are joined every 10 batches.
     """
-    device = args.cuda if torch.cuda.is_available() else "cpu"
-    cuda_count = torch.cuda.device_count()
 
     target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
-    dataset = PredictDataset(adjust_path(args.data_path),  # type: ignore
+    data_path = adjust_path(args.data_path)
+    dataset = PredictDataset(data_path,  # type: ignore
                              args.scale,
                              target_path=adjust_path(target_path))
 
@@ -351,62 +348,15 @@ def predict(args: argparse.Namespace) -> None:
 
     num_gpus = torch.cuda.device_count()
     num_processes = args.processes
-    if num_gpus > 0:
-        print(f"Using {num_gpus} gpu device(s).")
-    else:
-        print("Using cpu.")
 
     # create queue
-    path_queue: Queue = Queue()
-    for i in range(len(dataset)):
-        path_queue.put((dataset.file_names[i], False))
+    path_queue = create_path_queue(dataset)
 
-    device_ids = [f"cuda:{i % num_gpus}" for i in range(num_gpus * num_processes)] \
-        if torch.cuda.is_available() else ["cpu"] * num_processes
-    processes = [Process(target=predict_batch, args=(args, device_ids[i], path_queue)) for i in range(len(device_ids))]
-    for process in processes:
-        process.start()
-    total = len(dataset)
-    # pylint: disable=duplicate-code
-    with tqdm(total=path_queue.qsize(), desc="Layout Prediction", unit="pages") as pbar:
-        while not path_queue.empty():
-            pbar.n = total - path_queue.qsize()
-            pbar.refresh()
-            sleep(1)
-    for _ in processes:
-        path_queue.put(("", True))
-    for process in tqdm(processes, desc="Waiting for processes to end"):
-        process.join()
+    model_list = create_model_list(args, num_gpus, num_processes)
 
-    # if device == 'cpu':
-    #     print(f"Using {device}")
-    #     model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
-    #                        overwrite_load_channels=args.override_load_channels)
-    # else:
-    #     print(f"Using {device} device with {cuda_count} gpus")
-    #     model = DataParallel(
-    #         init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
-    #
-    # model.to(device)
-    # model.eval()
-    # threads = []
-    #
-    # batch = 0
-    # for image, target, path in tqdm(
-    #         pred_loader, desc="layout inference", total=len(pred_loader), unit="batches"
-    # ):
-    #     batch += 1
-    #     threads += predict_batch(args, device, path, image, target, model, args.uncertainty_predict)
-    #
-    #     if batch % 10 == 0:
-    #         for thread in threads:
-    #             thread.join()
-    #         threads = []
-    #
-    # print("Prediction done, waiting for post processing to end")
-    # for thread in threads:
-    #     thread.join()
-    # print("Done")
+    predictor = MPPredictor("Layout prediction", predict, init_model, path_queue, model_list,
+                            data_path, False, False)
+    predictor.launch_processes(num_gpus, args.thread_count)
 
 
 if __name__ == "__main__":

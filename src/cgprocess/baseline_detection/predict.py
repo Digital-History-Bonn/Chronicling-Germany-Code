@@ -25,8 +25,10 @@ from monai.networks.nets import BasicUNet
 from tqdm import tqdm
 
 from src.cgprocess.OCR.LSTM.predict import join_threads
-from src.cgprocess.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image
+from src.cgprocess.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image, \
+    create_path_queue, create_model_list, init_model
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.multiprocessing_handler import MPPredictor
 
 
 def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarray:
@@ -494,49 +496,47 @@ def main() -> None:
 
     num_gpus = torch.cuda.device_count()
     num_processes = args.processes
-    if num_gpus > 0:
-        print(f"Using {num_gpus} gpu device(s).")
-    else:
-        print("Using cpu.")
 
-    # create queue
-    path_queue: Queue = Queue()
-    for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
-        path_queue.put((image, layout, output_file, False))
+    # put paths in queue
+    path_queue = create_path_queue(image_paths, layout_xml_paths, output_files)
 
-    device_ids = list(range(num_gpus) if torch.cuda.is_available() else [-1])
-    models = [BaselineEngine(model_name=args.model, cuda=device_ids[i % num_gpus], thread_count=args.thread_count)
-              for i in range(len(device_ids) * num_processes)]
-    processes = [Process(target=predict, args=(models[i], path_queue)) for i in range(len(models))]
-    for process in processes:
-        process.start()
-    total = len(image_paths)
-    # pylint: disable=duplicate-code
-    with tqdm(total=path_queue.qsize(), desc="Baseline Prediction", unit="pages") as pbar:
-        while not path_queue.empty():
-            pbar.n = total - path_queue.qsize()
-            pbar.refresh()
-            sleep(1)
-    for _ in processes:
-        path_queue.put(("", "", "", True))
-    for process in tqdm(processes, desc="Waiting for processes to end"):
-        process.join()
+    model_list = create_model_list(args, num_gpus, num_processes)
+
+    predictor = MPPredictor("Baseline prediction", predict, init_model, path_queue, model_list, input_dir,
+                            False, False)
+    predictor.launch_processes(num_gpus, args.thread_count)
+
+    # processes = [Process(target=predict, args=(model_list[i], path_queue)) for i in range(len(model_list))]
+    # for process in processes:
+    #     process.start()
+    # total = len(image_paths)
+    # # pylint: disable=duplicate-code
+    # with tqdm(total=path_queue.qsize(), desc="Baseline Prediction", unit="pages") as pbar:
+    #     while not path_queue.empty():
+    #         pbar.n = total - path_queue.qsize()
+    #         pbar.refresh()
+    #         sleep(1)
+    # for _ in processes:
+    #     path_queue.put(("", "", "", True))
+    # for process in tqdm(processes, desc="Waiting for processes to end"):
+    #     process.join()
 
 
-def predict(model: BaselineEngine, path_queue: Queue) -> None:
+def predict(model: Tuple[str, int], path_queue: Queue, thread_count: int) -> None:
     """
     Predicts baselines for given image with given layout and writes into outputfile.
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     Args:
         path_queue (Queue): Queue object containing image, layout and output path and info if job is already done
-        model (str): Path to model file
+        model (Tuple[str, int]): name and device id of model
     """
+    engine = init_model(model, thread_count)
     while True:
         image_path, layout_xml_path, output_file, done = path_queue.get()
         if done:
             break
         image = load_image(image_path)
-        textlines, baselines = model.predict(image, layout_xml_path)
+        textlines, baselines = engine.predict(image, layout_xml_path)
         add_baselines(
             layout_xml=layout_xml_path,
             textlines=textlines,

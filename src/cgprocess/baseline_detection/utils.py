@@ -1,6 +1,8 @@
 """Utility functions for baseline detection."""
+import argparse
 import random
 import re
+from multiprocessing import Queue
 from typing import Tuple, Union, List, Dict, Optional
 
 import bs4
@@ -12,6 +14,7 @@ from shapely.geometry import Polygon, LineString
 from skimage import io
 
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
+from src.cgprocess.baseline_detection.predict import BaselineEngine
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
@@ -375,3 +378,30 @@ def load_image(image_path: str) -> torch.Tensor:
         return image[:, :, :3].permute(2, 0, 1) / 256
 
     return image / 256
+
+
+def create_path_queue(image_paths: List[str], layout_xml_paths: List[str], output_files: List[str]) -> Queue:
+    """
+    Create path queue for OCR prediction containing image, annotation (baseline) and ouput path.
+    Elements are required to have the image path at
+    index 0 and the bool variable for terminating processes at index -1.
+    """
+    path_queue: Queue = Queue()
+    for image, layout, output_file in zip(image_paths, layout_xml_paths, output_files):
+        path_queue.put((image, layout, output_file, False))
+    return path_queue
+
+
+def create_model_list(args: argparse.Namespace, num_gpus: int, num_processes: int) -> list:
+    """    Create OCR model list containing one separate model for each process."""
+    device_ids = list(range(num_gpus) if torch.cuda.is_available() else [-1])
+    models = [(args.model, device_ids[i % num_gpus], args.thread_count) for i in range(len(device_ids) * num_processes)]
+    return models
+
+
+def init_model(model_name: str, device_id: int, thread_count: int) -> BaselineEngine:
+    """
+    Initialize baseline prediction engine.
+    """
+    engine = BaselineEngine(model_name=model_name, cuda=device_id, thread_count=thread_count)
+    return engine
