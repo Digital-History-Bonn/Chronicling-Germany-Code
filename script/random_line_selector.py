@@ -5,6 +5,7 @@ import argparse
 import re
 from pathlib import Path
 
+
 def select_random_lines(input_file: Path, output_file: Path, num_lines: int, file_transfer: str):
     try:
         # Read all lines from the input file
@@ -42,10 +43,12 @@ def select_random_lines(input_file: Path, output_file: Path, num_lines: int, fil
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
+
 # pylint: disable=locally-disabled, duplicate-code
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="Extract a random amount of lines from a given file and save it to a new file.")
+    parser = argparse.ArgumentParser(
+        description="Extract a random amount of lines from a given file and save it to a new file.")
     parser.add_argument(
         "--input-path",
         "-i",
@@ -79,4 +82,5 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = get_args()
-    select_random_lines(Path(args.input_path), Path(args.output_path), num_lines=args.num_lines, file_transfer=args.file_transfer)
+    select_random_lines(Path(args.input_path), Path(args.output_path), num_lines=args.num_lines,
+                        file_transfer=args.file_transfer)

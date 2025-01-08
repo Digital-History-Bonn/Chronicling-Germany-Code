@@ -8,7 +8,7 @@ THREAD_COUNT=${4:-1}
 MODEL_LAYOUT="models/layout_2024-05-28.pt"
 MODEL_BASELINE="models/baseline_2024-06-01"
 MODEL_OCR="models/ocr_2024-09-24.mlmodel"
-LAYOUT_PARAMS="-p 5760 7680 -t 0.6 -a dh_segment -s 0.5 -e -bt 200"
+LAYOUT_PARAMS="-th 0.6 -a dh_segment_2 -s 0.5 -e -bt 200"
 PAGE_DIR="${DATA_DIR}/page"
 
 # Activate conda environment and set PYTHONPATH for layout segmentation
