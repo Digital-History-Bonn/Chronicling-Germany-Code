@@ -1,11 +1,12 @@
 """Module for Predictor class that handles multiprocessing and file management."""
+import json
+import os
 from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
 from time import sleep
 from typing import Callable, List
 
-import torch
 from tqdm import tqdm
 
 
@@ -134,9 +135,34 @@ class MPPredictor:
         for process in tqdm(processes, desc="Waiting for processes to end"):
             process.join()
 
-        failed_list = []
-        done_list = []
+        self.save_logs(done_queue, failed_queue)
+
+    def save_logs(self, done_queue: Queue, failed_queue: Queue) -> None:
+        """
+        Save logs for failed images and images that have been completely processed.
+        Args:
+            failed_queue:  multiprocessing queue for image paths, where the prediction has failed.
+            done_queue:  multiprocessing queue for image paths, where the image has been processed completely.
+        """
+        if not os.path.exists(self.data_path / 'logs'):
+            os.makedirs(self.data_path / 'logs')
+        if not os.path.exists(self.data_path / 'logs' / 'failed.json'):
+            failed_dict = {}
+        else:
+            with open(self.data_path / 'logs' / 'failed.json', encoding="utf-8") as file:
+                failed_dict = json.load(file)
+        if not os.path.exists(self.data_path / 'logs' / 'done.json'):
+            done_list = []
+        else:
+            with open(self.data_path / 'logs' / 'done.json', encoding="utf-8") as file:
+                done_list = json.load(file)
+        if self.name not in failed_dict.keys():
+            failed_dict[self.name] = []
         while not failed_queue.empty():
-            failed_list.append(failed_queue.get())
+            failed_dict[self.name].append(failed_queue.get())
+        with open(self.data_path / 'logs' / 'failed.json', encoding="utf-8") as file:
+            json.dump(failed_dict, file)
         while not done_queue.empty():
             done_list.append(done_queue.get())
+        with open(self.data_path / 'logs' / 'done.json', encoding="utf-8") as file:
+            json.dump(done_list, file)

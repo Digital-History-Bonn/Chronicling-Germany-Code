@@ -68,7 +68,7 @@ def get_args() -> argparse.Namespace:
         help="Number of lines that should be selected randomly.",
     )
     parser.add_argument(
-        "--file_transfer",
+        "--file-transfer",
         "-f",
         type=str,
         default=None,
@@ -79,4 +79,4 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = get_args()
-    select_random_lines(Path(args.input_path), Path(args.output_path), num_lines=args.num_lines, args.file_transfer)
+    select_random_lines(Path(args.input_path), Path(args.output_path), num_lines=args.num_lines, file_transfer=args.file_transfer)
