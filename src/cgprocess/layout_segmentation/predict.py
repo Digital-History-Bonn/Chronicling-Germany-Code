@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import torch
 from numpy import ndarray
+from torch import nn
 
 from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.layout_segmentation.class_config import TOLERANCE
@@ -36,49 +37,38 @@ FINAL_SIZE = (1024, 1024)
 # Tolerance pixel for polygon simplification. All points in the simplified object will be within
 # the tolerance distance of the original geometry.
 
-def predict_batch(args: argparse.Namespace, device: str, path_queue: Queue) -> None:
+def predict(args: list, model: nn.Module) -> Thread:
     """
-    Run model to create prediction of whole batch and start export threads for each image.
-    :param path_queue: multiprocessing queue
-    :param args: arguments for threshold, and optional debug mode
-    :param device: device id for model
+    Run model to create prediction of one image and start export thread.
+    :param args: arguments passed from multiprocessing handler.
+    :param model: layout model for prediction.
     """
-    target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
-    dataset = PredictDataset(adjust_path(args.data_path),  # type: ignore
-                             args.scale,
-                             target_path=target_path)
-    model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
-                       overwrite_load_channels=args.override_load_channels)
-    model.to(device)
+    path, cmd_args, dataset, _ = args
+
+    target_path = adjust_path(cmd_args.target_path if cmd_args.uncertainty_predict else None)
     model.eval()
-    debug = args.uncertainty_predict
-    thread_count = args.thread_count
-    threads: List[Thread] = []
-    while True:
-        path, done = path_queue.get()
-        if done:
-            join_threads(threads)
-            return
-        image, target = dataset.load_data_by_path(path)
-        image = image[None, :, :, :]
+    device = next(model.parameters()).device
+    debug = target_path is not None
 
-        pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
+    image, target = dataset.load_data_by_path(path)
+    image = image[None, :, :, :]
 
-        if debug:
-            target = target[None, :, :]  # type: ignore
-            pred_ndarray = process_prediction_debug(pred, target.to(device), args.threshold)
-        else:
-            pred_ndarray = process_prediction(pred, args.threshold, args.reduce)
-        image_ndarray = image.numpy()
+    pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
 
-        threads.append(Thread(target=image_level_export, args=(path, pred_ndarray[0], image_ndarray[0], args)))
-        threads[-1].start()
-        if args.output_path:
-            draw_prediction(pred_ndarray[0], adjust_path(args.output_path) + os.path.splitext(path)[0] + ".png")
+    if debug:
+        target = target[None, :, :]  # type: ignore
+        pred_ndarray = process_prediction_debug(pred, target.to(device), cmd_args.threshold)
+    else:
+        pred_ndarray = process_prediction(pred, cmd_args.threshold, cmd_args.reduce)
+    image_ndarray = image.numpy()
 
-        if len(threads) >= thread_count:
-            join_threads(threads)
-            threads = []
+    # todo: thread exceptions must be caught and image name added to failed queue
+    thread = Thread(target=image_level_export, args=(path, pred_ndarray[0], image_ndarray[0], cmd_args))
+    thread.start()
+    if cmd_args.output_path:
+        draw_prediction(pred_ndarray[0], adjust_path(cmd_args.output_path) + os.path.splitext(path)[0] + ".png")
+
+    return thread
 
 
 def image_level_export(file: str, pred: ndarray, image: ndarray, args: argparse.Namespace) -> None:
@@ -332,7 +322,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def predict(args: argparse.Namespace) -> None:
+def main(args: argparse.Namespace) -> None:
     """
     Loads all images from the data folder and predicts segmentation.
     Loading is handled through a Dataloader and Dataset. Threads are joined every 10 batches.
@@ -350,12 +340,12 @@ def predict(args: argparse.Namespace) -> None:
     num_processes = args.processes
 
     # create queue
-    path_queue = create_path_queue(dataset)
+    path_queue = create_path_queue(dataset.file_names, args, dataset)
 
     model_list = create_model_list(args, num_gpus, num_processes)
 
     predictor = MPPredictor("Layout prediction", predict, init_model, path_queue, model_list,
-                            data_path, False, False)
+                            data_path, False, False) # type: ignore
     predictor.launch_processes(num_gpus, args.thread_count)
 
 
@@ -373,4 +363,4 @@ if __name__ == "__main__":
         os.makedirs(f"{parameter_args.slices_path}")
 
     torch.manual_seed(parameter_args.torch_seed)
-    predict(parameter_args)
+    main(parameter_args)

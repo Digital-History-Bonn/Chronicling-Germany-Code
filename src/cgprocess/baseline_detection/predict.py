@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image, \
-    create_path_queue, create_model_list, init_model
+    create_path_queue, create_model_list
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 from src.cgprocess.multiprocessing_handler import MPPredictor
 
@@ -173,12 +173,12 @@ def apply_polygon_mask(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tens
     if bounds[1] < 0:
         bounds[1] = 0
     if bounds[2] >= image.shape[2]:
-        bounds[2] = image.shape[2]-1
+        bounds[2] = image.shape[2] - 1
     if bounds[3] >= image.shape[1]:
-        bounds[3] = image.shape[1]-1
+        bounds[3] = image.shape[1] - 1
     offset = np.array([bounds[0], bounds[1]], dtype=int)
     shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
-    mask = draw.polygon2mask(shape, roi[:, ::-1]-offset[::-1])
+    mask = draw.polygon2mask(shape, roi[:, ::-1] - offset[::-1])
 
     result = image[:, int(bounds[1]): int(bounds[3]), int(bounds[0]): int(bounds[2])]
     result[:, mask == 0] = 0.0
@@ -416,6 +416,14 @@ class BaselineEngine:
         textline_lst.append([Polygon(poly + offset).buffer(0).simplify(tolerance=1) for poly in t_list])
 
 
+def init_model(model_name: str, device_id: int, thread_count: int) -> BaselineEngine:
+    """
+    Initialize baseline prediction engine.
+    """
+    engine = BaselineEngine(model_name=model_name, cuda=device_id, thread_count=thread_count)
+    return engine
+
+
 def get_args() -> argparse.Namespace:
     """
     Defines arguments.
@@ -480,6 +488,24 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def predict(args: list, model: BaselineEngine) -> None:
+    """
+    Predicts baselines for given image with given layout and writes into outputfile.
+    Args:
+        args : List with image_path (str), layout_xml_path (str), output_file (str)
+        model (BaselineEngine):
+    """
+    image_path, layout_xml_path, output_file, _ = args
+    image = load_image(image_path)
+    textlines, baselines = model.predict(image, layout_xml_path)
+    add_baselines(
+        layout_xml=layout_xml_path,
+        textlines=textlines,
+        baselines=baselines,
+        output_file=output_file
+    )
+
+
 def main() -> None:
     """Predicts textlines and baselines for all files in given folder."""
     args = get_args()
@@ -505,44 +531,6 @@ def main() -> None:
     predictor = MPPredictor("Baseline prediction", predict, init_model, path_queue, model_list, input_dir,
                             False, False)
     predictor.launch_processes(num_gpus, args.thread_count)
-
-    # processes = [Process(target=predict, args=(model_list[i], path_queue)) for i in range(len(model_list))]
-    # for process in processes:
-    #     process.start()
-    # total = len(image_paths)
-    # # pylint: disable=duplicate-code
-    # with tqdm(total=path_queue.qsize(), desc="Baseline Prediction", unit="pages") as pbar:
-    #     while not path_queue.empty():
-    #         pbar.n = total - path_queue.qsize()
-    #         pbar.refresh()
-    #         sleep(1)
-    # for _ in processes:
-    #     path_queue.put(("", "", "", True))
-    # for process in tqdm(processes, desc="Waiting for processes to end"):
-    #     process.join()
-
-
-def predict(model: Tuple[str, int], path_queue: Queue, thread_count: int) -> None:
-    """
-    Predicts baselines for given image with given layout and writes into outputfile.
-    Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
-    Args:
-        path_queue (Queue): Queue object containing image, layout and output path and info if job is already done
-        model (Tuple[str, int]): name and device id of model
-    """
-    engine = init_model(model, thread_count)
-    while True:
-        image_path, layout_xml_path, output_file, done = path_queue.get()
-        if done:
-            break
-        image = load_image(image_path)
-        textlines, baselines = engine.predict(image, layout_xml_path)
-        add_baselines(
-            layout_xml=layout_xml_path,
-            textlines=textlines,
-            baselines=baselines,
-            output_file=output_file
-        )
 
 
 if __name__ == '__main__':

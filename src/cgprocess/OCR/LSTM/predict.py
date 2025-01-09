@@ -90,7 +90,7 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
     Predicts OCR on given image using given baseline annotations and model.
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     """
-    image_path, anno_path, out_path = args
+    image_path, anno_path, out_path, _ = args
     print(f'Predicting {image_path}...')
     # load image and pad image
     im = pad_image(Image.open(image_path))

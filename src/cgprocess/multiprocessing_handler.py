@@ -5,7 +5,7 @@ from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Callable, List
+from typing import Callable, List, Union
 
 from tqdm import tqdm
 
@@ -23,10 +23,13 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
         done_queue:  multiprocessing queue for image paths, where the image has been processed completely.
         thread_count: this number of threads will run predictions in parallel. This might lead to an CUDA out of
         memory error if too many threads are launched.
-        :param page_level_threads: activates threads that are launched at this level instead of inside the
+        page_level_threads: activates threads that are launched at this level instead of inside the
         predict function.
     """
+    assert num_threads > 0
+
     model = init_model_function(*model_args)
+    threads = []
     while True:
         if page_level_threads:
             launch_threads(done_queue, failed_queue, model, num_threads, predict_function, queue, save_done)
@@ -35,7 +38,12 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
             if args[-1]:
                 break
             try:
-                predict_function(args, model)
+                thread: Union[None, Thread] = predict_function(args, model)
+                if thread is not None:
+                    threads.append(thread)
+                if len(threads) >= num_threads:
+                    join_threads(threads)
+                    threads = []
             except Exception as e:
                 failed_queue.put(args[0])
                 print(e)
@@ -92,7 +100,7 @@ class MPPredictor:
     """Class for handling multiprocessing for prediction and can be used with an arbitrary model."""
 
     def __init__(self, name: str, predict_function: Callable, init_model_function: Callable, path_queue: Queue,
-                 model_list: list, data_path: str, save_done: bool, page_level_threads) -> None:
+                 model_list: list, data_path: str, save_done: bool, page_level_threads: bool) -> None:
         self.name = name
         self.predict_function = predict_function
         self.path_queue = path_queue
@@ -144,25 +152,31 @@ class MPPredictor:
             failed_queue:  multiprocessing queue for image paths, where the prediction has failed.
             done_queue:  multiprocessing queue for image paths, where the image has been processed completely.
         """
-        if not os.path.exists(self.data_path / 'logs'):
-            os.makedirs(self.data_path / 'logs')
-        if not os.path.exists(self.data_path / 'logs' / 'failed.json'):
-            failed_dict = {}
-        else:
-            with open(self.data_path / 'logs' / 'failed.json', encoding="utf-8") as file:
+        log_path = self.data_path / 'logs'
+        failed_file = log_path / 'failed.json'
+        done_file = log_path / 'done.json'
+        if not log_path.is_dir():
+            os.makedirs(log_path)
+
+        failed_dict = {}
+        if failed_file.is_file():
+            with open(failed_file, encoding="utf-8") as file:
                 failed_dict = json.load(file)
-        if not os.path.exists(self.data_path / 'logs' / 'done.json'):
-            done_list = []
-        else:
-            with open(self.data_path / 'logs' / 'done.json', encoding="utf-8") as file:
+
+        done_list = []
+        if done_file.is_file():
+            with open(done_file, encoding="utf-8") as file:
                 done_list = json.load(file)
+
         if self.name not in failed_dict.keys():
             failed_dict[self.name] = []
+
         while not failed_queue.empty():
             failed_dict[self.name].append(failed_queue.get())
-        with open(self.data_path / 'logs' / 'failed.json', encoding="utf-8") as file:
-            json.dump(failed_dict, file)
         while not done_queue.empty():
             done_list.append(done_queue.get())
-        with open(self.data_path / 'logs' / 'done.json', encoding="utf-8") as file:
+
+        with open(failed_file, "w",  encoding="utf-8") as file:
+            json.dump(failed_dict, file)
+        with open(done_file, "w", encoding="utf-8") as file:
             json.dump(done_list, file)

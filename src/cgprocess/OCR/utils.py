@@ -173,10 +173,10 @@ def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
     """
     Create OCR model list containing one separate model for each process.
     """
-    model_list = [(models.load_any(args.model, device=f"cuda:{i % num_gpus}")) for i in
+    model_list = [[models.load_any(args.model, device=f"cuda:{i % num_gpus}")] for i in
                   range(num_gpus * args.process_count)] if (
             torch.cuda.is_available() and num_gpus > 0) else \
-        [models.load_any(args.model, device="cpu")]
+        [[models.load_any(args.model, device="cpu")]]
     return model_list
 
 

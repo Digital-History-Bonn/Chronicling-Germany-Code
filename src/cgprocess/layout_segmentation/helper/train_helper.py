@@ -79,6 +79,7 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         )
         model = setup_dh_segment(device, load, model, freeze)
     assert model, "No valid model string supplied in model parameter"
+    model.to(device)
     return model
 
 

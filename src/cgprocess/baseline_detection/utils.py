@@ -14,7 +14,6 @@ from shapely.geometry import Polygon, LineString
 from skimage import io
 
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
-from src.cgprocess.baseline_detection.predict import BaselineEngine
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
@@ -397,11 +396,3 @@ def create_model_list(args: argparse.Namespace, num_gpus: int, num_processes: in
     device_ids = list(range(num_gpus) if torch.cuda.is_available() else [-1])
     models = [(args.model, device_ids[i % num_gpus], args.thread_count) for i in range(len(device_ids) * num_processes)]
     return models
-
-
-def init_model(model_name: str, device_id: int, thread_count: int) -> BaselineEngine:
-    """
-    Initialize baseline prediction engine.
-    """
-    engine = BaselineEngine(model_name=model_name, cuda=device_id, thread_count=thread_count)
-    return engine

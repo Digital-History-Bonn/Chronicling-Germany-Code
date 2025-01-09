@@ -13,7 +13,6 @@ from torchvision import transforms
 
 from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES, REDUCE_CLASSES
 from src.cgprocess.layout_segmentation.class_config import cmap
-from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:
@@ -194,16 +193,18 @@ def create_model_list(args: argparse.Namespace, num_gpus: int, num_processes: in
     """
     models = [(args.model_path, f"cuda:{i % num_gpus}", args.model_architecture, args.skip_cbam,
                          False, args.override_load_channels) for i in range(num_gpus * num_processes)] \
-        if torch.cuda.is_available() else ["cpu"] * num_processes
+        if torch.cuda.is_available() else [(args.model_path, "cpu", args.model_architecture, args.skip_cbam,
+                         False, args.override_load_channels)]
     return models
 
 
-def create_path_queue(dataset: PredictDataset) -> Queue:
+def create_path_queue(file_names: List[str], args: argparse.Namespace, dataset: object)\
+        -> Queue:
     """
     Creates and fills path queue with image paths to be predicted. Elements are required to have the image path at
     index 0 and the bool variable for terminating processes at index -1.
     """
     path_queue: Queue = Queue()
-    for i in range(len(dataset)):
-        path_queue.put((dataset.file_names[i], False))
+    for i in range(len(file_names)):
+        path_queue.put((file_names[i], args, dataset, False))
     return path_queue
