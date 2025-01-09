@@ -1,6 +1,6 @@
-DATA_PATH =$1
+DATA_PATH=$1
 
-cd DATA_PATH
+cd $DATA_PATH
 mkdir xml_results
 mv images/page/* xml_results
 rm images/*.jpg
