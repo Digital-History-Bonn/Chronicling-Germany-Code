@@ -30,10 +30,11 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
 
     model = init_model_function(*model_args)
     threads = []
-    while True:
-        if page_level_threads:
-            launch_threads(done_queue, failed_queue, model, num_threads, predict_function, queue, save_done)
-        else:
+
+    if page_level_threads:
+        launch_threads(done_queue, failed_queue, model, num_threads, predict_function, queue, save_done)
+    else:
+        while True:
             args = queue.get()
             if args[-1]:
                 break
@@ -59,16 +60,17 @@ def launch_threads(done_queue: Queue, failed_queue: Queue, model: object, num_th
         failed_queue:  multiprocessing queue for image paths, where the prediction has failed.
         done_queue:  multiprocessing queue for image paths, where the image has been processed completely.
     """
-    threads: List[Thread] = []
-    for i in range(num_threads):
-        args = queue.get()
-        if args[-1]:
-            break
+    while True:
+        threads: List[Thread] = []
+        for i in range(num_threads):
+            args = queue.get()
+            if args[-1]:
+                return
 
-        threads.append(Thread(target=run_thread, args=(args, predict_function, failed_queue,
-                                                       done_queue, model, save_done)))
-        threads[i].start()
-    join_threads(threads)
+            threads.append(Thread(target=run_thread, args=(args, predict_function, failed_queue,
+                                                           done_queue, model, save_done)))
+            threads[i].start()
+        join_threads(threads)
 
 
 def run_thread(args: list, predict_function: Callable, failed_queue: Queue,
@@ -143,6 +145,7 @@ class MPPredictor:
                 sleep(1)
         for _ in processes:
             self.path_queue.put(("", "", "", True))
+        self.empty_log_queues(done_list, done_queue, failed_dict, failed_queue)
         for process in tqdm(processes, desc="Waiting for processes to end"):
             process.join()
 
