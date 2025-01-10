@@ -65,6 +65,7 @@ def launch_threads(done_queue: Queue, failed_queue: Queue, model: object, num_th
         for i in range(num_threads):
             args = queue.get()
             if args[-1]:
+                join_threads(threads)
                 return
 
             threads.append(Thread(target=run_thread, args=(args, predict_function, failed_queue,
