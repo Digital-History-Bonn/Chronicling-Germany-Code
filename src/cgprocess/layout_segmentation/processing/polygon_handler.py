@@ -119,7 +119,6 @@ def prediction_to_region_polygons(pred: ndarray, tolerance: List[float], bbox_si
                                                   2]:  # for sclice export only paragraph and separator are processed (obsolete)
             segment, bbox = create_mask_polygons(np.array(mask), label, tolerance, bbox_size, export)
             segmentations[label], bbox_dict[label] = segment, bbox
-            print(f"label: {label}, length: {len(segment)}")
 
     return segmentations, bbox_dict
 

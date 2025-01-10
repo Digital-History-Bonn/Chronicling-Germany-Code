@@ -5,7 +5,7 @@ from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Dict, Tuple
 
 from tqdm import tqdm
 
@@ -133,8 +133,11 @@ class MPPredictor:
         for process in processes:
             process.start()
 
+        done_file, done_list, failed_dict, failed_file = self.init_logs()
+
         with tqdm(total=total, desc=self.name, unit="pages") as pbar:
             while not self.path_queue.empty():
+                self.empty_log_queues(done_list, done_queue, failed_dict, failed_queue)
                 pbar.n = total - self.path_queue.qsize()
                 pbar.refresh()
                 sleep(1)
@@ -143,40 +146,46 @@ class MPPredictor:
         for process in tqdm(processes, desc="Waiting for processes to end"):
             process.join()
 
-        self.save_logs(done_queue, failed_queue)
+        self.save_logs(done_file, done_list, failed_dict, failed_file)
 
-    def save_logs(self, done_queue: Queue, failed_queue: Queue) -> None:
+    def save_logs(self, done_file: Path, done_list: List[str], failed_dict: Dict[str, List[str]],
+                  failed_file: Path) -> None:
         """
         Save logs for failed images and images that have been completely processed.
-        Args:
-            failed_queue:  multiprocessing queue for image paths, where the prediction has failed.
-            done_queue:  multiprocessing queue for image paths, where the image has been processed completely.
+        """
+        with open(failed_file, "w", encoding="utf-8") as file:
+            json.dump(failed_dict, file)
+        with open(done_file, "w", encoding="utf-8") as file:
+            json.dump(done_list, file)
+
+    def empty_log_queues(self, done_list: List[str], done_queue: Queue, failed_dict: Dict[str, List[str]],
+                         failed_queue: Queue) -> None:
+        """
+        Empty log queues during execution to avoid an overflow of a queue.
+        """
+        while not failed_queue.empty():
+            failed_dict[self.name].append(failed_queue.get())
+        while not done_queue.empty():
+            done_list.append(done_queue.get())
+
+    def init_logs(self) -> Tuple[Path, List[str], Dict[str, List[str]], Path]:
+        """
+        Initialize done and failed logs. If files are already present, they are loaded and appended to.
+        Otherwise, logs are created empty.
         """
         log_path = self.data_path / 'logs'
         failed_file = log_path / 'failed.json'
         done_file = log_path / 'done.json'
         if not log_path.is_dir():
             os.makedirs(log_path)
-
         failed_dict = {}
         if failed_file.is_file():
             with open(failed_file, encoding="utf-8") as file:
                 failed_dict = json.load(file)
-
         done_list = []
         if done_file.is_file():
             with open(done_file, encoding="utf-8") as file:
                 done_list = json.load(file)
-
         if self.name not in failed_dict.keys():
             failed_dict[self.name] = []
-
-        while not failed_queue.empty():
-            failed_dict[self.name].append(failed_queue.get())
-        while not done_queue.empty():
-            done_list.append(done_queue.get())
-
-        with open(failed_file, "w",  encoding="utf-8") as file:
-            json.dump(failed_dict, file)
-        with open(done_file, "w", encoding="utf-8") as file:
-            json.dump(done_list, file)
+        return done_file, done_list, failed_dict, failed_file

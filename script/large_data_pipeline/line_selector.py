@@ -5,22 +5,26 @@ import argparse
 import re
 from pathlib import Path
 
+import numpy as np
+
 
 def select_random_lines(input_file: Path, output_file: Path, num_lines: int, file_transfer: str):
     try:
         # Read all lines from the input file
         print(f"loading input file {input_file}, please be patient.")
         with open(input_file, 'r') as infile:
-            lines = infile.readlines()
+            lines = np.array(infile.readlines())
 
         # Check if the file has fewer lines than the requested number
         if len(lines) < num_lines:
             print(f"Warning: The file contains only {len(lines)} lines. Selecting all of them.")
-            selected_lines = lines
+            selected_lines = lines.tolist()
         else:
             # Randomly select the specified number of lines
             print("sampling random lines")
-            selected_lines = random.sample(lines, num_lines)
+            indices = np.random.randint(0, lines.size, num_lines)
+            selected_lines = lines[indices].tolist()
+            not_selected_lines = np.delete(lines, indices).tolist()
 
         result_list = []
         if file_transfer:
@@ -35,6 +39,9 @@ def select_random_lines(input_file: Path, output_file: Path, num_lines: int, fil
         # Write the selected lines to the output file
         with open(output_file, 'w') as outfile:
             outfile.writelines(result_list)
+
+        with open(input_file, 'w') as infile:
+            infile.writelines(not_selected_lines)
 
         print(f"{len(result_list)} lines have been written to {output_file}.")
 
@@ -75,7 +82,9 @@ def get_args() -> argparse.Namespace:
         "-f",
         type=str,
         default=None,
-        help="Supply host name and folder for ftp connection. Lines will be split between spaces, as well, as only results with .jpeg extension are valid. Furthermore, the output file will be an .sh file to load all those files from an ftp server. If left empty, this option is deactivated.",
+        help="Supply host name and folder for ftp connection. Lines will be split between spaces, as well, "
+             "as only results with .jpeg extension are valid. Furthermore, the output file will be an .sh file to "
+             "load all those files from an ftp server. If left empty, this option is deactivated.",
     )
     return parser.parse_args()
 
