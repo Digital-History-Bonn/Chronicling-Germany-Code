@@ -126,6 +126,8 @@ class MPPredictor:
         done_queue: Queue = Queue()
         total = self.path_queue.qsize()
 
+        # todo: fill path queue after process start to avoid a full queue exception.
+
         processes = [Process(target=run_process,
                              args=(
                                  self.predict_function, self.init_model_function, self.path_queue, failed_queue,
