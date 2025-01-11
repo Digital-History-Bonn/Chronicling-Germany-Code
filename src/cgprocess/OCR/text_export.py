@@ -23,6 +23,8 @@ def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tupl
     dictionary for json export.
     """
     text_regions = xml_data.find_all("TextRegion")
+    if len(text_regions) == 0:
+        return np.array([]), []
 
     region_order = sort_xml_elements(text_regions)
 
@@ -54,12 +56,14 @@ def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tupl
             region_csv.append([path, str(i), region_class,
                                np.mean(np.array(region_confidence_list, dtype=float)), "\n".join(region_text_list)])
 
-        # todo: add conficence to json as well
+        # todo: add confidence to json
         if export_lines:
             region_list.append({"class": region_class, "lines": region_text_list})
         else:
             region_list.append({"class": region_class, "text": region_text_list})
 
+    if len(region_csv) == 0:
+        return np.array([]), region_list
     return np.vstack(region_csv), region_list
 
 
@@ -97,6 +101,8 @@ def sort_xml_elements(elements: ResultSet) -> ndarray:
         else:
             warnings.warn("No reading Order found. This line will be ignored.")
     order = np.array(reading_list)
+    if len(reading_list) < 1:
+        return np.array([])
     return order[:, 1][np.argsort(order[:, 0])]  # type: ignore
 
 
@@ -105,7 +111,7 @@ def main(args: argparse.Namespace) -> None:
     Load xml files and assemble page lists before saving them.
     """
     if not os.path.exists(args.output_path):
-        print(f"creating {args.output_path}.")
+        print(f"creating {args.output_path}")
         os.makedirs(args.output_path)
 
     paths = [
@@ -124,6 +130,8 @@ def main(args: argparse.Namespace) -> None:
 
         xml_data = BeautifulSoup(data, "xml")
         region_csv, region_json = extract_text(xml_data, path, args.lines)
+        if len(region_csv) == 0 or len(region_json) == 0:
+            continue
         page_csv.append(region_csv)
         page_json.append({"path": path, "regions": region_json})
 
