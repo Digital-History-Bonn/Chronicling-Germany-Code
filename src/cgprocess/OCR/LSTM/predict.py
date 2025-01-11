@@ -91,7 +91,7 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
     """
     image_path, anno_path, out_path, _ = args
-    print(f'Predicting {image_path}...')
+    # print(f'Predicting {image_path}...')
     # load image and pad image
     im = pad_image(Image.open(image_path))
     # preprocess annotations and extract baselines

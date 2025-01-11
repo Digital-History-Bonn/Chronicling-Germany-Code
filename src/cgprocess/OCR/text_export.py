@@ -36,10 +36,12 @@ def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tupl
         lines_order = sort_xml_elements(lines)
 
         region_text_list = []
+        region_confidence_list = []
         for _, line_id in enumerate(lines_order):
             line = xml_data.find(attrs={'id': f'{line_id}'})
             if line_has_text(line):
                 region_text_list.append(line.TextEquiv.Unicode.contents[0])
+                region_confidence_list.append(line.TextEquiv.attrs["conf"])
 
         region_type = re.search(
             r"structure \{type:(.+?);}", region["custom"]
@@ -47,10 +49,12 @@ def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tupl
         region_class = "UnkownRegion" if not region_type else region_type.group(1)
 
         if export_lines:
-            prepare_csv_data(i, path, region_class, region_csv, region_text_list)
+            prepare_csv_data(i, path, region_class, region_csv, region_text_list, region_confidence_list)
         else:
-            region_csv.append([path, str(i), "\n".join(region_text_list), region_class])
+            region_csv.append([path, str(i), region_class,
+                               np.mean(np.array(region_confidence_list, dtype=float)), "\n".join(region_text_list)])
 
+        # todo: add conficence to json as well
         if export_lines:
             region_list.append({"class": region_class, "lines": region_text_list})
         else:
@@ -60,6 +64,7 @@ def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tupl
 
 
 def prepare_csv_data(i: int, path: str, region_class: str, region_csv: list, region_text_list: List[str],
+                     region_confidence_list: List[str]
                      ) -> None:
     """
     Assemble csv data for a single region. This means adding the current region id to all lines of that
@@ -71,7 +76,8 @@ def prepare_csv_data(i: int, path: str, region_class: str, region_csv: list, reg
     class_array = np.full(len(region_text_list), region_class)
     line_id_array = np.char.mod('%d', (np.arange(len(region_text_list)) + 1))
     region_csv.append(
-        np.vstack([path_array, region_id_array, line_id_array, np.array(region_text_list), class_array]).T)
+        np.vstack([path_array, region_id_array, line_id_array, class_array, np.array(region_confidence_list),
+                   np.array(region_text_list)]).T)
 
 
 def sort_xml_elements(elements: ResultSet) -> ndarray:
@@ -91,7 +97,7 @@ def sort_xml_elements(elements: ResultSet) -> ndarray:
         else:
             warnings.warn("No reading Order found. This line will be ignored.")
     order = np.array(reading_list)
-    return order[:, 1][np.argsort(order[:, 0])]  #type: ignore
+    return order[:, 1][np.argsort(order[:, 0])]  # type: ignore
 
 
 def main(args: argparse.Namespace) -> None:
@@ -127,9 +133,9 @@ def main(args: argparse.Namespace) -> None:
         with open(f"{output_path}text_export.csv", 'w', newline='', encoding='utf-8') as file:
             data_writer = csv.writer(file, delimiter=';', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
             if args.lines:
-                data_writer.writerow(["path", "region", "line", "text", "class"])
+                data_writer.writerow(["path", "region", "line", "class", "confidence", "text"])
             else:
-                data_writer.writerow(["path", "region", "text", "class"])
+                data_writer.writerow(["path", "region", "class", "confidence", "text"])
             for row in csv_data:
                 data_writer.writerow(row)
 

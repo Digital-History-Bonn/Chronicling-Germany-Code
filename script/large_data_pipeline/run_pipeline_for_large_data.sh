@@ -35,6 +35,6 @@ do
   fi
 done
 END=$(date +%s)
-DIFF=$(( END - START ))
+DIFF=$(( END - INIT ))
 echo "Total execution time: ${DIFF} seconds"
 echo "Max execution time of an iteration: ${MAX_TIME}"

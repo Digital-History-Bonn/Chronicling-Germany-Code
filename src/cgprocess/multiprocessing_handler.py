@@ -45,11 +45,11 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
                 if len(threads) >= num_threads:
                     join_threads(threads)
                     threads = []
+                if save_done:
+                    done_queue.put(args[0])
             except Exception as e:
                 failed_queue.put(args[0])
                 print(e)
-            if save_done:
-                done_queue.put(args[0])
 
 
 def launch_threads(done_queue: Queue, failed_queue: Queue, model: object, num_threads: int, predict_function: Callable,
@@ -84,11 +84,11 @@ def run_thread(args: list, predict_function: Callable, failed_queue: Queue,
     """
     try:
         predict_function(args, model)
+        if save_done:
+            done_queue.put(args[0])
     except Exception as e:
         failed_queue.put(args[0])
         print(e)
-    if save_done:
-        done_queue.put(args[0])
 
 
 def join_threads(threads: List[Thread]) -> None:

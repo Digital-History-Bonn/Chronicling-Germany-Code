@@ -1,7 +1,6 @@
 """Scipt for rescaling images and/or xml data."""
 import argparse
 import os
-import random
 from typing import List
 
 import numpy as np
