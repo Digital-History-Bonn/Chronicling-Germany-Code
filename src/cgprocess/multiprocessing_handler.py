@@ -46,9 +46,9 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
                     join_threads(threads)
                     threads = []
                 if save_done:
-                    done_queue.put(args[0])
+                    done_queue.put(args[0], block=True)
             except Exception as e:
-                failed_queue.put(args[0])
+                failed_queue.put(args[0], block=True)
                 print(e)
 
 
@@ -85,9 +85,9 @@ def run_thread(args: list, predict_function: Callable, failed_queue: Queue,
     try:
         predict_function(args, model)
         if save_done:
-            done_queue.put(args[0])
+            done_queue.put(args[0], block=True)
     except Exception as e:
-        failed_queue.put(args[0])
+        failed_queue.put(args[0], block=True)
         print(e)
 
 
@@ -98,7 +98,7 @@ def join_threads(threads: List[Thread]) -> None:
     for thread in threads:
         thread.join()
 
-
+# todo: make super class that is not intended for prediction?
 class MPPredictor:
     """Class for handling multiprocessing for prediction and can be used with an arbitrary model."""
 

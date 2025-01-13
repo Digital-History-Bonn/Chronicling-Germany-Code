@@ -1,23 +1,27 @@
 """Export text acording to layout information."""
 
 import argparse
-import csv
 import json
 import os
 import re
 import warnings
-from typing import Tuple, List
+from multiprocessing import Process, Queue
+from pathlib import Path
+from time import sleep
+from typing import Tuple, List, Dict
 
 import numpy as np
 from numpy import ndarray
 from bs4 import BeautifulSoup, ResultSet
 from tqdm import tqdm
 
+from src.cgprocess.OCR.merge_text_export import merge_files
 from src.cgprocess.OCR.utils import line_has_text
-from src.cgprocess.layout_segmentation.utils import adjust_path
 
 
-def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tuple[ndarray, list]:
+# todo: tests
+def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool, export: Dict[str, bool]) -> Tuple[
+    ndarray, list]:
     """
     Sorts regions and lines by the supplied reading order and assembles ndarray for csv export and
     dictionary for json export.
@@ -110,46 +114,78 @@ def main(args: argparse.Namespace) -> None:
     """
     Load xml files and assemble page lists before saving them.
     """
-    if not os.path.exists(args.output_path):
-        print(f"creating {args.output_path}")
-        os.makedirs(args.output_path)
+    data_path = Path(args.data_path)
+    output_path = Path(args.output_path)
+
+    if not os.path.exists(output_path):
+        print(f"creating {output_path}")
+        os.makedirs(output_path)
+
+    if not os.path.exists(output_path / "temp"):
+        print(f"creating {output_path / 'temp'}")
+        os.makedirs(output_path / "temp")
 
     paths = [
-        f[:-4] for f in os.listdir(args.data_path) if f.endswith(".xml")
+        f[:-4] for f in os.listdir(data_path) if f.endswith(".xml")
     ]
 
-    page_csv = []
-    page_json = []
+    total = len(paths)
 
-    data_path = adjust_path(args.data_path)
-    output_path = adjust_path(args.output_path)
+    launch_processes(args, data_path, output_path, paths, total)
 
-    for path in tqdm(paths):
-        with open(f"{data_path}{path}.xml", "r", encoding="utf-8") as file:
+    if not args.skip_merge:
+        # todo: add json handling
+        paths = [
+            f[:-4] for f in os.listdir(output_path / "temp") if f.endswith(".npz")
+        ]
+        merge_files(args, output_path, paths)
+
+
+def launch_processes(args, data_path, output_path, paths, total):
+    path_queue = Queue()
+    processes = [Process(target=run_text_extraction,
+                         args=(data_path, output_path, path_queue, args.lines, {"csv": args.csv, "json": args.json}))
+                 for _ in range(args.process_count)]
+    for process in processes:
+        process.start()
+    counter = total
+    with tqdm(total=total, desc="Read xml data", unit="pages") as pbar:
+        while not path_queue.empty() or counter > 0:
+            for _ in range(1000):
+                if counter == 0:
+                    break
+                path_queue.put((paths[counter - 1], False), True)
+                counter -= 1
+                pbar.n = total - path_queue.qsize() - counter
+                pbar.refresh()
+
+            pbar.n = total - path_queue.qsize() - counter
+            pbar.refresh()
+            sleep(1)
+    for _ in processes:
+        path_queue.put(("", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()
+
+
+def run_text_extraction(data_path: Path, output_path: Path, path_queue: Queue, lines: bool,
+                        export: Dict[str, bool]) -> None:
+    while True:
+        path, done = path_queue.get()
+        if done:
+            break
+        with open(data_path / f"{path}.xml", "r", encoding="utf-8") as file:
             data = file.read()
-
         xml_data = BeautifulSoup(data, "xml")
-        region_csv, region_json = extract_text(xml_data, path, args.lines)
-        if len(region_csv) == 0 or len(region_json) == 0:
+        region_csv, region_json = extract_text(xml_data, path, lines, export)
+        if (len(region_csv) == 0 and export["csv"]) or (len(region_json) == 0 and export["json"]):
+            print(f"{path}.xml contains no text")
             continue
-        page_csv.append(region_csv)
-        page_json.append({"path": path, "regions": region_json})
-
-    csv_data = np.vstack(page_csv).tolist()
-
-    if args.csv:
-        with open(f"{output_path}text_export.csv", 'w', newline='', encoding='utf-8') as file:
-            data_writer = csv.writer(file, delimiter=';', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-            if args.lines:
-                data_writer.writerow(["path", "region", "line", "class", "confidence", "text"])
-            else:
-                data_writer.writerow(["path", "region", "class", "confidence", "text"])
-            for row in csv_data:
-                data_writer.writerow(row)
-
-    if args.json:
-        with open(f"{output_path}text_export.json", 'w', newline='', encoding='utf-8') as file:
-            json.dump(page_json, file)
+        if export["csv"]:
+            np.savez_compressed(output_path / "temp" / f"{path}.npz", array=region_csv)
+        if export["json"]:
+            with open(output_path / "temp" / f"{path}.json", 'w', newline='', encoding='utf-8') as file:
+                json.dump(region_json, file)
 
 
 def get_args() -> argparse.Namespace:
@@ -185,10 +221,23 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         help="Activates json export.",
     )
+    parser.add_argument(
+        "--skip-merge",
+        action="store_true",
+        help="Deactivates merging",
+    )
+    parser.add_argument(
+        "--process-count",
+        "-p",
+        type=int,
+        default=1,
+        help="Select number of processes that are launched.",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     parameter_args = get_args()
-    assert parameter_args.csv or parameter_args.json, "Please activate at least one export methon with '--csv' or '--json'."
+    assert parameter_args.csv or parameter_args.json, ("Please activate at least one export method with '--csv' or "
+                                                       "'--json'.")
     main(parameter_args)
