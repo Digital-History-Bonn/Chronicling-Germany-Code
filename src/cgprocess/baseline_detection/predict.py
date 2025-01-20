@@ -3,9 +3,8 @@ import argparse
 import glob
 import os
 import random
-from multiprocessing import Queue, Process, set_start_method
+from multiprocessing import set_start_method
 from threading import Thread
-from time import sleep
 from typing import List, Tuple
 
 import numpy as np
@@ -22,13 +21,12 @@ from bs4 import BeautifulSoup
 from skimage import draw
 
 from monai.networks.nets import BasicUNet
-from tqdm import tqdm
 
 from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image, \
     create_path_queue, create_model_list
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
-from src.cgprocess.multiprocessing_handler import MPPredictor
+from src.cgprocess.shared.multiprocessing_handler import MPPredictor
 
 
 def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarray:

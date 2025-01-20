@@ -12,7 +12,7 @@ from shapely import intersection, union
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
-from src.cgprocess.OCR.evaluate_ocr import levensthein_distance, calculate_ratio
+from src.cgprocess.OCR.shared.evaluate_ocr import levensthein_distance, calculate_ratio
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from src.cgprocess.baseline_detection.utils import get_tag, adjust_path
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list

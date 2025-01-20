@@ -9,7 +9,7 @@ from kraken.lib import default_specs                            # pylint: disabl
 from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module, import-error
 from lightning.pytorch.loggers import TensorBoardLogger         # pylint: disable=import-error
 
-from src.cgprocess.OCR.utils import set_seed, adjust_path
+from src.cgprocess.OCR.shared.utils import set_seed, adjust_path
 
 torch.set_float32_matmul_precision('medium')
 

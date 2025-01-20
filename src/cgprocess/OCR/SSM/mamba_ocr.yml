@@ -1,0 +1,22 @@
+encoder:
+    layers:
+        downscale: True
+        num_blocks:
+            - 2
+            - 2
+            - 2
+    block:
+        dim: 40
+        state: 32
+        expand: 4
+        conv_width: 4
+decoder:
+    layers:
+        downscale: False
+        num_blocks:
+            - 2
+    block:
+        dim: 40
+        state: 64
+        expand: 16
+        conv_width: 4

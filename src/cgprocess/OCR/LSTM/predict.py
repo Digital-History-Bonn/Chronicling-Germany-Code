@@ -3,9 +3,8 @@
 import argparse
 import glob
 import os
-from multiprocessing import Process, Queue, set_start_method
+from multiprocessing import set_start_method
 from threading import Thread
-from time import sleep
 from typing import Tuple, List
 
 import torch
@@ -15,11 +14,10 @@ from kraken import rpred  # pylint: disable=import-error
 from kraken.containers import Segmentation, \
     BaselineLine  # pylint: disable=no-name-in-module, import-error
 from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
-from tqdm import tqdm
 
-from src.cgprocess.OCR.utils import pad_image, adjust_path, pad_points, create_path_queue, create_model_list, init_model
+from src.cgprocess.OCR.shared.utils import pad_image, adjust_path, pad_points, create_path_queue, create_model_list, init_model
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
-from src.cgprocess.multiprocessing_handler import MPPredictor
+from src.cgprocess.shared.multiprocessing_handler import MPPredictor
 
 
 def extract_baselines(anno_path: str) -> Tuple[BeautifulSoup,

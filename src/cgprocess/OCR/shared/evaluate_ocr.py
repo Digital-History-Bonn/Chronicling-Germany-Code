@@ -12,8 +12,8 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm  # type: ignore
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
-from src.cgprocess.OCR.utils import adjust_path
-from src.cgprocess.OCR.utils import line_has_text
+from src.cgprocess.OCR.shared.utils import adjust_path
+from src.cgprocess.OCR.shared.utils import line_has_text
 
 
 def main(parsed_args: argparse.Namespace) -> None:

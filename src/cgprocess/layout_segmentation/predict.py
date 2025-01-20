@@ -3,7 +3,7 @@
 import argparse
 import os
 import warnings
-from multiprocessing import Queue, set_start_method
+from multiprocessing import set_start_method
 from threading import Thread
 from typing import Dict, List, Tuple
 
@@ -12,7 +12,6 @@ import torch
 from numpy import ndarray
 from torch import nn
 
-from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.layout_segmentation.class_config import TOLERANCE
 from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
 from src.cgprocess.layout_segmentation.helper.train_helper import init_model
@@ -25,7 +24,7 @@ from src.cgprocess.layout_segmentation.processing.transkribus_export import expo
 from src.cgprocess.layout_segmentation.train_config import OUT_CHANNELS
 from src.cgprocess.layout_segmentation.utils import draw_prediction, adjust_path, collapse_prediction, \
     create_model_list, create_path_queue
-from src.cgprocess.multiprocessing_handler import MPPredictor
+from src.cgprocess.shared.multiprocessing_handler import MPPredictor
 
 DATA_PATH = "../../../data/newspaper/input/"
 RESULT_PATH = "../../../data/output/"

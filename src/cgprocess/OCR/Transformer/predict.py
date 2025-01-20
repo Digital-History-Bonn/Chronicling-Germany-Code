@@ -16,8 +16,8 @@ from tqdm import tqdm, trange
 from src.cgprocess.OCR.Transformer import ALPHABET, PAD_HEIGHT, PAD_WIDTH
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
-from src.cgprocess.OCR.Transformer.tokenizer import Tokenizer
-from src.cgprocess.OCR.utils import get_bbox
+from src.cgprocess.OCR.shared.tokenizer import Tokenizer
+from src.cgprocess.OCR.shared.utils import get_bbox
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
