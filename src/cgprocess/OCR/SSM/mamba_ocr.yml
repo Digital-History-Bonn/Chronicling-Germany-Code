@@ -20,3 +20,5 @@ decoder:
         state: 64
         expand: 16
         conv_width: 4
+confidence_threshold: 0.5
+vocab_size: 1950

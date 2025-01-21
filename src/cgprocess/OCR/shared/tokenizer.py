@@ -37,7 +37,7 @@ class Tokenizer:
         Returns:
             Torch tensor with token ids.
         """
-        ids = [self.alphabet[t] if t in self.alphabet.keys() else self.alphabet['<NAN>'] for t in text]
+        ids = [self.__get_token(t) for t in text]
         ids.insert(0, self.alphabet['<START>'])
         ids.append(self.alphabet['<END>'])
         if self.pad:
@@ -47,6 +47,29 @@ class Tokenizer:
                         value=self.alphabet['<PAD>'])
 
         return torch.tensor(ids[:self.max_length], dtype=torch.long)
+
+    def single_token(self, input: str) -> int:
+        """
+        Tokenize a single character. This can include returning the index of a start, end or nan token.
+        Args:
+            input: string
+
+        Returns:
+            int with token id.
+        """
+        return self.__get_token(input)
+
+    def single_token_to_text(self, input_id: int) -> str:
+        """
+         Converts single token id back to text.
+         """
+        return self.inverse[input_id]
+
+    def __get_token(self, input: str) -> int:
+        """
+        Tokenize a single character.
+        """
+        return self.alphabet[input] if input in self.alphabet.keys() else self.alphabet['<NAN>']
 
     def to_text(self, token_ids: torch.Tensor) -> str:
         """
