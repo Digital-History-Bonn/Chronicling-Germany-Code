@@ -25,19 +25,28 @@ class Recognizer(nn.Module):
         self.tokenizer = Tokenizer(**cfg["tokenizer"])
         self.confidence_threshold = cfg["confidence_threshold"]
 
-    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
-        """Executes encoder and decoder."""
-        encoder_result = self.encoder(tokens)
-        decoder_result = self.decoder(encoder_result)
-        return decoder_result  # type:ignore
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Forward pass for training with the target sequence as additional input for the decoder, after
+        processed through the embedding layer.
+        Args:
+            input: Image data with shape[B,C,H,W]
+            target: token ids with shape [B,L]"""
+        encoder_tokens = self.encoder(input)
+        decoder_tokens = self.decoder(torch.cat((encoder_tokens, self.embedding(target)), 1))
+        return decoder_tokens  # type:ignore
 
     def generate(self, encoder_tokens: torch.Tensor, batch_size: int):
-        """Generate OCR output at inference time. After processing the encoder output, this is done
+        """Generate OCR output at inference time. This is done
         in an autoregressive way, passing each output back to the model, and ends with an end token.
+        Args:
+            encoder_tokens: encoder processed tokens with shape [B,C,L]
         """
         # TODO: positional encodings?
-        result_strings = [""] * batch_size
-        start_token = self.embedding(self.tokenizer('<START>'))
+        start_token = self.tokenizer.single_token('<START>')
+        end_token = self.tokenizer.single_token('<END>')
+        nan_token = self.tokenizer.single_token('<NAN>')
+        result_tokens = [[start_token]] * batch_size
+        start_token = self.embedding(start_token)
         start_list = []
         for i in range(batch_size):
             start_list.append(start_token.clone())
@@ -50,15 +59,16 @@ class Recognizer(nn.Module):
 
             max_tensor, argmax = torch.max(result_batch, dim=1)
             argmax = argmax.type(torch.uint8)
-            argmax[max_tensor < self.confidence_threshold] = 0
+            argmax[max_tensor < self.confidence_threshold] = nan_token
             result_tensor = argmax.detach().cpu()  # type: ignore
 
             for i, result in enumerate(result_tensor.tolist()):
-                result_strings[i] += self.tokenizer.single_token_to_text(result)
+                result_tokens[i] += [result]
             input_batch = self.embedding(result_tensor)
 
-            if all(result == '<END>' for result in result_strings):
+            if all(result[-1] == end_token for result in result_tokens):
                 break
+        return [self.tokenizer.to_text(torch.tensor(result)) for result in result_tokens]
 
 
 class Encoder(nn.Module):
@@ -91,12 +101,17 @@ class Encoder(nn.Module):
             expansion_factor *= 2
         self.expansion_factor = expansion_factor
 
-    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
         """
         Executes encoder layers
+        Args:
+            image: Image with shape [B,C,H,W]
+        Returns:
+            tokens: tokens with shape [B,C,L]
         """
-        tokens = self.conv1(tokens)
-        tokens = self.conv2(tokens)
+        image = self.conv1(image)
+        image = self.conv2(image)
+        tokens = image.flatten(1, 2)
         for layer in self.layers:
             tokens = layer(tokens)
         return tokens
@@ -122,6 +137,10 @@ class Decoder(nn.Module):
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         """
         Executes decoder layers
+        Args:
+            tokens: tokens with shape [B,C,L]
+        Returns:
+            tokens: tokens with shape [B,C,L]
         """
 
         for layer in self.layers:
@@ -164,6 +183,10 @@ class SSMLayer(nn.Module):
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         """
         Executes SSM Layer consisting out of multiple mamba blocks and an initial downscaling convolution.
+        Args:
+            tokens: tokens with shape [B,C,L]
+        Returns:
+            tokens: tokens with shape [B,C,L]
         """
 
         tokens = self.conv(tokens)
@@ -197,17 +220,26 @@ class SSMBlock(nn.Module):
         ))
         self.norm = torch.nn.BatchNorm1d(channels)
 
-        self.forward = self.FeedForward(channels, channels * cfg["expand"])
+        self.feed_forward = self.FeedForward(channels, channels * cfg["expand"])
         self.inference_params: Optional[InferenceParams] = None
 
-    def forward(self, tokens: torch.Tensor, inference_params: Optional[dict] = None) -> torch.Tensor:
+    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         """
-        Executes SSM Layer consisting out of multiple mamba blocks and an initial downscaling convolution.
+        Executes SSM Block consisting out of multiple mamba blocks and an initial downscaling convolution.
+        Args:
+            tokens: tokens with shape [B,C,L]
+        Returns:
+            tokens: tokens with shape [B,C,L]
         """
+
         residual = tokens.clone()
+
+        tokens = torch.permute(tokens, (0, 2, 1))  # mamba block needs shape of [B,L,C]
         tokens = self.ssm(tokens, inference_params=self.inference_params)
+        tokens = torch.permute(tokens, (0, 2, 1))
+
         tokens = self.norm(tokens + residual)
-        tokens = self.forward(tokens)
+        tokens = self.feed_forward(tokens)
         return tokens
 
     def allocate_inference_cache(self, batch_size: int, max_seqlen: int, dtype: torch.dtype) -> None:

@@ -48,6 +48,10 @@ class Tokenizer:
 
         return torch.tensor(ids[:self.max_length], dtype=torch.long)
 
+    def __len__(self,) -> int:
+        """returns alphabet length"""
+        return len(self.alphabet)
+
     def single_token(self, input: str) -> int:
         """
         Tokenize a single character. This can include returning the index of a start, end or nan token.
