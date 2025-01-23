@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup
 from kraken.lib import models
 from skimage import io
 
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+
 
 def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
     """
@@ -183,3 +185,34 @@ def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
 def init_model(model: object):
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
     return model
+
+
+def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str], List[torch.Tensor]]:
+    """
+    Reads the xml files.
+    Args:
+        xml_path: path to xml file with annotations.
+
+    Returns:
+        bboxes: bounding boxes text lines.
+        texts: text of text lines.
+    """
+    with open(xml_path, "r", encoding="utf-8") as file:
+        data = file.read()
+
+    # Parse the XML data
+    soup = BeautifulSoup(data, 'xml')
+    page = soup.find('Page')
+    bboxes = []
+    texts = []
+    region_polygons = []
+
+    text_lines = page.find_all('TextLine')
+    for line in text_lines:
+        if line_has_text(line):
+            region_polygon = torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"]))
+            region_polygons.append(region_polygon)
+            bboxes.append(torch.tensor(get_bbox(region_polygon)))
+            texts.append(line.find('Unicode').text)
+
+    return bboxes, texts, region_polygons
