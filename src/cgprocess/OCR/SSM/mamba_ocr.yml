@@ -22,3 +22,4 @@ decoder:
         conv_width: 4
 confidence_threshold: 0.5
 vocab_size: 1950
+image_height: 40
