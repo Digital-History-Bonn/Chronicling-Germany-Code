@@ -1,3 +1,5 @@
+from typing import List
+
 import lightning
 import torch
 from torch import optim, nn
@@ -26,7 +28,7 @@ class SSMOCRTrainer(lightning.LightningModule):
         self.model = model
 
     def training_step(self, batch):
-        image, target = batch
+        image, target, _ = batch
         loss = self.run_model(image, target)
         self.log("train_loss", loss)
         return loss
@@ -46,15 +48,15 @@ class SSMOCRTrainer(lightning.LightningModule):
         return loss
 
     def validation_step(self, batch):
-        image, target = batch
+        image, target, _ = batch
         loss = self.run_model(image, target)
         self.log("val_loss", loss)
 
     def test_step(self, batch):
-        image, target = batch
+        image, target, _ = batch
         loss = self.run_model(image, target)
         self.log("test_loss", loss)
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-05)
+        optimizer = optim.AdamW(self.parameters(), lr=3e-4, weight_decay=1e-05)
         return optimizer

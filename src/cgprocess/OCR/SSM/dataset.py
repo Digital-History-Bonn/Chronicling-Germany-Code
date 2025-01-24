@@ -4,10 +4,10 @@ import glob
 import os
 import random
 from pathlib import Path
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional
 
+import numpy as np
 import torch
-import torch.nn.functional as F
 from PIL import Image
 from bs4 import BeautifulSoup
 from skimage import draw
@@ -18,6 +18,7 @@ from tqdm import tqdm
 from src.cgprocess.OCR.shared.tokenizer import Tokenizer
 from src.cgprocess.OCR.shared.utils import get_bbox, line_has_text
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.utils import initialize_random_split
 
 
 def preprocess_data(image: torch.tensor, text_lines: List[BeautifulSoup], image_height: int):
@@ -31,7 +32,7 @@ def preprocess_data(image: torch.tensor, text_lines: List[BeautifulSoup], image_
     return crops, texts
 
 
-def extract_crop(crops:List[torch.tensor], image: torch.tensor, line: List[BeautifulSoup], image_height: int):
+def extract_crop(crops:List[torch.tensor], image: torch.tensor, line: BeautifulSoup, image_height: int):
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
     Args:
@@ -72,7 +73,8 @@ class TrainDataset(Dataset):
 
     def __init__(self, image_path: Path,
                  target_path: Path,
-                 cfg: dict):
+                 cfg: dict,
+                 data: Optional[Tuple[List[torch.Tensor], List[torch.Tensor],List[str]]] = None,):
         """
         Args:
             image_path: path to folder with images
@@ -81,16 +83,21 @@ class TrainDataset(Dataset):
         """
         self.image_path = image_path
         self.target_path = target_path
+        self.cfg = cfg
 
         self.tokenizer = Tokenizer(**cfg["tokenizer"])
         self.image_height = cfg["image_height"]
 
         self.crops: List[torch.Tensor] = []
-        self.bboxes: List[torch.Tensor] = []
         self.targets: List[torch.Tensor] = []
         self.texts: List[str] = []
 
-        self.get_data()
+        if data is None:
+            self.get_data()
+        else:
+            self.crops = data[0]
+            self.targets = data[1]
+            self.texts = data[2]
 
     def get_data(self) -> None:
         """Loads image and corresponding text lines with ground truth text and performs cropping and masking for all
@@ -103,7 +110,7 @@ class TrainDataset(Dataset):
                                          desc='loading dataset'):
 
             image, text_lines = load_data(image_path, xml_path)
-            crops, texts = preprocess_data(image, text_lines, self.image_height)
+            crops, texts = preprocess_data(image, text_lines, self.cfg["image_height"])
 
             self.texts.extend(texts)
             self.targets.extend([self.tokenizer(line) for line in texts])
@@ -169,3 +176,47 @@ class TrainDataset(Dataset):
                 ]
             )
         }
+
+    def random_split(
+            self, ratio: Tuple[float, float, float]
+    ) -> tuple:
+        """
+        splits the dataset in parts of size given in ratio
+        :param ratio: list[float]:
+        :return (tuple): tuple of PageDatasets
+        """
+        # pylint: disable=duplicate-code
+        indices, splits = initialize_random_split(len(self), ratio)
+
+        def apply_split(data_list):
+            return np.array(data_list)[current_indices].tolist()
+
+        current_indices = indices[:splits[0]]
+        data = (apply_split(self.crops), apply_split(self.targets), apply_split(self.texts))
+
+        train_dataset = TrainDataset(
+            image_path=self.image_path,
+            target_path=self.target_path,
+            cfg=self.cfg,
+            data=data
+        )
+
+        current_indices = indices[splits[0]: splits[1]]
+        data = (apply_split(self.crops), apply_split(self.targets), apply_split(self.texts))
+        valid_dataset = TrainDataset(
+            image_path=self.image_path,
+            target_path=self.target_path,
+            cfg=self.cfg,
+            data=data
+        )
+
+        current_indices = indices[splits[1]:]
+        test_dataset = TrainDataset(
+            image_path=self.image_path,
+            target_path=self.target_path,
+            cfg=self.cfg,
+            data=data
+        )
+
+        return train_dataset, valid_dataset, test_dataset
+

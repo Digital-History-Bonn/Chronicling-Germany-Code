@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from src.cgprocess.layout_segmentation.utils import get_file_stems, prepare_file_loading
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
+from src.cgprocess.shared.utils import initialize_random_split
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -149,24 +150,7 @@ class TrainDataset(Dataset):
         :param ratio: list[float]:
         :return (tuple): tuple of NewsDatasets
         """
-        assert sum(ratio) == 1, "ratio does not sum up to 1."
-        assert len(ratio) == 3, "ratio does not have length 3"
-        assert (
-                int(ratio[0] * len(self)) > 0
-                and int(ratio[1] * len(self)) > 0
-                and int(ratio[2] * len(self)) > 0
-        ), (
-            "Dataset is to small for given split ratios for test and validation dataset. "
-            "Test or validation dataset have size of zero."
-        )
-
-        splits = int(ratio[0] * len(self)), int(ratio[0] * len(self)) + int(
-            ratio[1] * len(self)
-        )
-
-        indices = randperm(
-            len(self), generator=torch.Generator().manual_seed(42)
-        ).tolist()
+        indices, splits = initialize_random_split(len(self), ratio)
         torch_data = torch.stack(self.data)
 
         train_dataset = TrainDataset(
