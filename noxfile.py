@@ -27,6 +27,9 @@ def lint(session):
                 "src/cgprocess/baseline_detection",
                 "src/cgprocess/layout_segmentation",
                 "src/cgprocess/OCR/LSTM",
+                "src/cgprocess/OCR/SSM",
+                "src/cgprocess/OCR/shared",
+                "src/cgprocess/shared",
                 "tests",
                 "script")
 
@@ -50,6 +53,11 @@ def mypy(session):
         "src/cgprocess/baseline_detection",
         "src/cgprocess/layout_segmentation",
         "src/cgprocess/OCR/LSTM",
+        "src/cgprocess/OCR/SSM",
+        "src/cgprocess/OCR/shared",
+        "src/cgprocess/shared",
+        "tests",
+        "script",
     )
 
 

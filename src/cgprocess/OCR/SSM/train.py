@@ -58,33 +58,6 @@ def get_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-def collate_fn(batch):
-    """Custom collate function, that pads crops horizontally to fit them all in one tensor batch."""
-    crops, targets, texts = zip(*batch)
-
-    max_width = 0
-    max_length = 0
-    padded_crops = []
-    padded_targets = []
-
-    for crop, target in zip(crops,targets):
-        width = crop.shape[-1]
-        if width > max_width:
-            max_width = width
-
-        length = len(target)
-        if length > max_length:
-            max_length = length
-
-    for crop, target in zip(crops,targets):
-        if crop.shape[-1] < max_width:
-            transform = transforms.Pad((max_width - crop.shape[-1], 0, 0, 0))
-            padded_crops.append(transform(crop))
-        if len(target) < max_length:
-            transform = ConstantPad1d((0, max_length-len(target)), 0) #todo: fixed end token value?
-            padded_targets.append(transform(target))
-    return torch.stack(padded_crops), torch.stack(padded_targets), texts
-
 
 def main():
     args = get_args()
