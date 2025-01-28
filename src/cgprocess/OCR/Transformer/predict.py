@@ -16,7 +16,7 @@ from tqdm import tqdm, trange
 from src.cgprocess.OCR.Transformer import ALPHABET, PAD_HEIGHT, PAD_WIDTH
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
-from src.cgprocess.OCR.shared.tokenizer import Tokenizer
+from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import get_bbox
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
@@ -58,7 +58,7 @@ def replace_text(soup: BeautifulSoup, new_text: str) -> None:
 
 
 def predict(model: transformer.TransformerOCR,
-            tokenizer: Tokenizer,
+            tokenizer: OCRTokenizer,
             images: torch.Tensor,
             max_length: int = 100,
             start_token_idx: int = 1,
@@ -70,7 +70,7 @@ def predict(model: transformer.TransformerOCR,
 
     Args:
         model (transformer.TransformerOCR): The transformer to predict the text.
-        tokenizer (Tokenizer): The tokenizer to use for reverse ids.
+        tokenizer (OCRTokenizer): The tokenizer to use for reverse ids.
         images: Input tensor for the encoder, expected shape [batch_size, seq_length].
         max_length: Maximum length of sequence for prediction
         gth of the sequence to be generated.
@@ -128,7 +128,7 @@ def predict(model: transformer.TransformerOCR,
 
 
 def predict_and_write(model: TransformerOCR,
-                      tokenizer: Tokenizer,
+                      tokenizer: OCRTokenizer,
                       device: torch.device,
                       image_path: str,
                       anno_path: str,
@@ -236,7 +236,7 @@ def main() -> None:
     model.load_state_dict(torch.load(f"models/{args.model}.pt"))
     model.to(device)
 
-    tokenizer = Tokenizer(ALPHABET)
+    tokenizer = OCRTokenizer(ALPHABET)
 
     images = glob.glob(f"{args.data}/*.jpg")
     annos = [f"{x[:-4]}.xml" for x in images]

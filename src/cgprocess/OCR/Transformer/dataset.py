@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from src.cgprocess.OCR.Transformer import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
-from src.cgprocess.OCR.shared.tokenizer import Tokenizer
+from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import load_image, read_xml
 
 
@@ -33,7 +33,7 @@ class Dataset(torch.utils.data.Dataset):
         self.target_path = target_path
         self.cache_images = cache_images
 
-        self.tokenizer = Tokenizer(ALPHABET, pad=pad_seq, max_length=MAX_SEQUENCE_LENGTH)
+        self.tokenizer = OCRTokenizer(ALPHABET, pad=pad_seq, max_length=MAX_SEQUENCE_LENGTH)
 
         self.images: List[str] = []
         self.bboxes: List[torch.Tensor] = []

@@ -15,11 +15,21 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.tokenizer import Tokenizer
+from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import get_bbox, line_has_text
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 from src.cgprocess.shared.utils import initialize_random_split
 
+def create_unicode_alphabet(length: int) -> List[str]:
+    """
+    Creates alphabet with Unicode characters.
+    Args:
+        length: number of Unicode characters in alphabet
+    """
+    result = []
+    for i in range(length):
+        result.append(chr(i))
+    return result
 
 def preprocess_data(image: torch.tensor, text_lines: List[BeautifulSoup], image_height: int):
     texts = []
@@ -74,7 +84,8 @@ class TrainDataset(Dataset):
     def __init__(self, image_path: Path,
                  target_path: Path,
                  cfg: dict,
-                 data: Optional[Tuple[List[torch.Tensor], List[torch.Tensor],List[str]]] = None,):
+                 data: Optional[Tuple[List[torch.Tensor], List[torch.Tensor],List[str]]] = None,
+                 tokenizer: Optional[OCRTokenizer] = None):
         """
         Args:
             image_path: path to folder with images
@@ -85,7 +96,9 @@ class TrainDataset(Dataset):
         self.target_path = target_path
         self.cfg = cfg
 
-        self.tokenizer = Tokenizer(**cfg["tokenizer"])
+        self.tokenizer = tokenizer
+        if tokenizer is None:
+            self.tokenizer = OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])
         self.image_height = cfg["image_height"]
 
         self.crops: List[torch.Tensor] = []
@@ -198,7 +211,8 @@ class TrainDataset(Dataset):
             image_path=self.image_path,
             target_path=self.target_path,
             cfg=self.cfg,
-            data=data
+            data=data,
+            tokenizer=self.tokenizer
         )
 
         current_indices = indices[splits[0]: splits[1]]
@@ -207,7 +221,8 @@ class TrainDataset(Dataset):
             image_path=self.image_path,
             target_path=self.target_path,
             cfg=self.cfg,
-            data=data
+            data=data,
+            tokenizer=self.tokenizer
         )
 
         current_indices = indices[splits[1]:]
@@ -215,7 +230,8 @@ class TrainDataset(Dataset):
             image_path=self.image_path,
             target_path=self.target_path,
             cfg=self.cfg,
-            data=data
+            data=data,
+            tokenizer=self.tokenizer
         )
 
         return train_dataset, valid_dataset, test_dataset

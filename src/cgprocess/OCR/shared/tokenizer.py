@@ -1,12 +1,13 @@
 """Tokenizer for Transformer based OCR."""
 
 from typing import List
+from ssr import Tokenizer
 
 import torch
 import torch.nn.functional as F
 
 
-class Tokenizer:
+class OCRTokenizer(Tokenizer):
     """Tokenizer for Transformer based OCR."""
     def __init__(self, alphabet: List[str],
                  pad: bool=False,

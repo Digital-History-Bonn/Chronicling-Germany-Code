@@ -6,7 +6,7 @@ encoder:
             - 2
             - 2
     block:
-        dim: 40
+        dim: 32
         state: 32
         expand: 4
         conv_width: 4
@@ -16,10 +16,14 @@ decoder:
         num_blocks:
             - 2
     block:
-        dim: 40
+        dim: 32
         state: 64
         expand: 16
         conv_width: 4
+tokenizer:
+    pad: False
+    max_length: 512
+    print_nana: False
 confidence_threshold: 0.5
-vocab_size: 1950
-image_height: 40
+vocab_size: 63488
+image_height: 32

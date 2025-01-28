@@ -11,10 +11,10 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
-from src.cgprocess.layout_segmentation.datasets.page_dataset import PageDataset
+from src.cgprocess.shared.page_dataset import PageDataset
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, conv1x1
+from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
 from src.cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
 from src.cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
 from src.cgprocess.layout_segmentation.models.dh_segment_small import DhSegmentSmall
