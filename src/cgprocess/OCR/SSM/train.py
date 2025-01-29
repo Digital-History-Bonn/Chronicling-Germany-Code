@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import lightning
 import yaml
 
-from src.cgprocess.OCR.SSM.dataset import TrainDataset
+from src.cgprocess.OCR.SSM.dataset import SSMDataset
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
@@ -59,7 +59,7 @@ def main():
     with open('mamba_ocr.yml', 'r') as file:
         cfg = yaml.safe_load(file)
 
-    train_set, val_set, test_set = TrainDataset(image_path, xml_path, cfg).random_split((0.85, 0.05, 0.1))
+    train_set, val_set, test_set = SSMDataset(image_path, xml_path, cfg).random_split((0.85, 0.05, 0.1))
     model = Recognizer(cfg, train_set.tokenizer)
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")

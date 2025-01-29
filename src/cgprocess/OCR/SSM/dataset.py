@@ -18,7 +18,9 @@ from tqdm import tqdm
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import get_bbox, line_has_text
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.datasets import TrainDataset
 from src.cgprocess.shared.utils import initialize_random_split
+
 
 def create_unicode_alphabet(length: int) -> List[str]:
     """
@@ -31,9 +33,11 @@ def create_unicode_alphabet(length: int) -> List[str]:
         result.append(chr(i))
     return result
 
-def preprocess_data(image: torch.tensor, text_lines: List[BeautifulSoup], image_height: int):
+
+def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int) -> Tuple[
+    List[torch.Tensor], List[str]]:
     texts = []
-    crops = []
+    crops: List[torch.Tensor] = []
     for line in text_lines:
         if line_has_text(line):
             extract_crop(crops, image, line, image_height)
@@ -42,7 +46,7 @@ def preprocess_data(image: torch.tensor, text_lines: List[BeautifulSoup], image_
     return crops, texts
 
 
-def extract_crop(crops:List[torch.tensor], image: torch.tensor, line: BeautifulSoup, image_height: int):
+def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, image_height: int) -> None:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
     Args:
@@ -62,7 +66,7 @@ def extract_crop(crops:List[torch.tensor], image: torch.tensor, line: BeautifulS
     crops.append(rescale(crop))
 
 
-def load_data(image_path: Path, xml_path: Path):
+def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
     """Load image and xml data, transform the PIL image to a torch tensor and extract all xml text line objects."""
     with open(xml_path, "r", encoding="utf-8") as file:
         data = file.read()
@@ -76,54 +80,42 @@ def load_data(image_path: Path, xml_path: Path):
     return image, text_lines
 
 
-class TrainDataset(Dataset):
+class SSMDataset(TrainDataset):
     """
     Dataset class for SSM based OCR training.
     """
 
-    def __init__(self, image_path: Path,
-                 target_path: Path,
-                 cfg: dict,
-                 data: Optional[Tuple[List[torch.Tensor], List[torch.Tensor],List[str]]] = None,
-                 tokenizer: Optional[OCRTokenizer] = None):
+    def __init__(self,
+                 args: tuple,
+                 image_height: int,
+                 tokenizer: OCRTokenizer):
         """
         Args:
             image_path: path to folder with images
             target_path: path to folder with xml files
             cfg: configuration file tied to the model
         """
-        self.image_path = image_path
-        self.target_path = target_path
-        self.cfg = cfg
+        super().__init__(*args)
+        self.image_height = image_height
 
         self.tokenizer = tokenizer
-        if tokenizer is None:
-            self.tokenizer = OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])
-        self.image_height = cfg["image_height"]
 
         self.crops: List[torch.Tensor] = []
         self.targets: List[torch.Tensor] = []
         self.texts: List[str] = []
 
-        if data is None:
-            self.get_data()
-        else:
-            self.crops = data[0]
-            self.targets = data[1]
-            self.texts = data[2]
+        self.get_data()
 
     def get_data(self) -> None:
         """Loads image and corresponding text lines with ground truth text and performs cropping and masking for all
         lines."""
-        image_paths = list(glob.glob(os.path.join(self.image_path, '*.jpg')))
-        xml_paths = [f"{x[:-4]}.xml" for x in image_paths]
 
-        for image_path, xml_path in tqdm(zip(image_paths, xml_paths),
-                                         total=len(image_paths),
-                                         desc='loading dataset'):
-
-            image, text_lines = load_data(image_path, xml_path)
-            crops, texts = preprocess_data(image, text_lines, self.cfg["image_height"])
+        for file_stem in tqdm(self.file_stems,
+                              total=len(self.file_stems),
+                              desc=f'loading {self.name} dataset'):
+            image, text_lines = load_data(self.image_path / f"{file_stem}{self.image_extension}",
+                                          self.target_path / f"{file_stem}.xml")
+            crops, texts = preprocess_data(image, text_lines, self.image_height)
 
             self.texts.extend(texts)
             self.targets.extend([self.tokenizer(line) for line in texts])
@@ -135,7 +127,8 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, str]:
         return self.crops[idx], self.targets[idx], self.texts[idx]
 
-    def get_augmentations(self, image_width: int, image_height: int, resize_prob: float = 0.75) -> Dict[str, transforms.Compose]:
+    def get_augmentations(self, image_width: int, resize_prob: float = 0.75) -> Dict[
+        str, transforms.Compose]:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
@@ -143,8 +136,8 @@ class TrainDataset(Dataset):
         as characters, that have been cropped at top or bottom.
         """
         scale = (1 + random.random() * 2)
-        resize_to = int(image_height // scale), int(image_width // scale)
-        pad = image_height - resize_to[0]
+        resize_to = int(self.image_height // scale), int(image_width // scale)
+        pad = self.image_height - resize_to[0]
         return {
             "default": transforms.Compose(
                 [
@@ -157,7 +150,7 @@ class TrainDataset(Dataset):
                                         size=resize_to,
                                     ),
                                     transforms.Resize(
-                                        (image_height, image_width),
+                                        (self.image_height, image_width),
                                         antialias=True,
                                     ),
                                     transforms.Compose(
@@ -166,7 +159,7 @@ class TrainDataset(Dataset):
                                                 resize_to,
                                                 antialias=True,
                                             ),
-                                            transforms.Pad([0,0,0,pad]),
+                                            transforms.Pad([0, 0, 0, pad]),
                                         ]
                                     ),
                                 ]
@@ -189,50 +182,3 @@ class TrainDataset(Dataset):
                 ]
             )
         }
-
-    def random_split(
-            self, ratio: Tuple[float, float, float]
-    ) -> tuple:
-        """
-        splits the dataset in parts of size given in ratio
-        :param ratio: list[float]:
-        :return (tuple): tuple of PageDatasets
-        """
-        # pylint: disable=duplicate-code
-        indices, splits = initialize_random_split(len(self), ratio)
-
-        def apply_split(data_list):
-            return np.array(data_list)[current_indices].tolist()
-
-        current_indices = indices[:splits[0]]
-        data = (apply_split(self.crops), apply_split(self.targets), apply_split(self.texts))
-
-        train_dataset = TrainDataset(
-            image_path=self.image_path,
-            target_path=self.target_path,
-            cfg=self.cfg,
-            data=data,
-            tokenizer=self.tokenizer
-        )
-
-        current_indices = indices[splits[0]: splits[1]]
-        data = (apply_split(self.crops), apply_split(self.targets), apply_split(self.texts))
-        valid_dataset = TrainDataset(
-            image_path=self.image_path,
-            target_path=self.target_path,
-            cfg=self.cfg,
-            data=data,
-            tokenizer=self.tokenizer
-        )
-
-        current_indices = indices[splits[1]:]
-        test_dataset = TrainDataset(
-            image_path=self.image_path,
-            target_path=self.target_path,
-            cfg=self.cfg,
-            data=data,
-            tokenizer=self.tokenizer
-        )
-
-        return train_dataset, valid_dataset, test_dataset
-

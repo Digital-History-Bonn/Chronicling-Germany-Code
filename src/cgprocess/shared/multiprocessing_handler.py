@@ -5,7 +5,7 @@ from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Callable, List, Union, Dict, Tuple
+from typing import Callable, List, Union, Dict, Tuple, Any
 
 from tqdm import tqdm
 
@@ -98,6 +98,7 @@ def join_threads(threads: List[Thread]) -> None:
     for thread in threads:
         thread.join()
 
+
 # todo: make super class that is not intended for prediction?
 class MPPredictor:
     """Class for handling multiprocessing for prediction and can be used with an arbitrary model."""
@@ -140,6 +141,7 @@ class MPPredictor:
 
         done_file, done_list, failed_dict, failed_file = self.init_logs()
 
+        # todo: merge this with run processes?
         with tqdm(total=total, desc=self.name, unit="pages") as pbar:
             while not self.path_queue.empty():
                 self.empty_log_queues(done_list, done_queue, failed_dict, failed_queue)
@@ -195,3 +197,27 @@ class MPPredictor:
         if self.name not in failed_dict.keys():
             failed_dict[self.name] = []
         return done_file, done_list, failed_dict, failed_file
+
+
+def run_processes(get_progress: Dict[str, Any], processes: List[Process], path_queue: Queue, total: int,
+                  name: str) -> None:
+    """
+    Launches basic processes.
+    Args:
+        get_progress(dict): Dictionary containing the get progress method and its arguments with keys 'method' and 'args'.
+    """
+    for process in processes:
+        process.start()
+
+    with tqdm(total=total, desc=name, unit="pages") as pbar:
+        while True:
+            progress = get_progress["method"](get_progress["args"])
+            pbar.n = progress
+            pbar.refresh()
+            sleep(1)
+            if progress >= total:
+                break
+    for _ in processes:
+        path_queue.put(("", True))
+    for process in tqdm(processes, desc="Waiting for processes to end"):
+        process.join()

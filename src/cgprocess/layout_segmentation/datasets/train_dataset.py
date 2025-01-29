@@ -4,6 +4,7 @@ module for Dataset class
 from __future__ import annotations
 
 import random
+from pathlib import Path
 from threading import Thread
 from typing import Dict, List, Tuple, Union, Callable
 
@@ -17,14 +18,13 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.utils import get_file_stems, prepare_file_loading
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
-from src.cgprocess.shared.utils import initialize_random_split
+from src.cgprocess.shared.utils import initialize_random_split, get_file_stems, prepare_file_loading
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
 
-
+# todo: implement shared TrainDataset
 class TrainDataset(Dataset):
     """
     A dataset class for the newspaper datasets
@@ -73,7 +73,7 @@ class TrainDataset(Dataset):
             if file_stems:
                 self.file_stems = file_stems
             else:
-                self.file_stems = get_file_stems(extension, image_path)
+                self.file_stems = get_file_stems(extension, Path(image_path))
             if sort:
                 self.file_stems.sort()
 

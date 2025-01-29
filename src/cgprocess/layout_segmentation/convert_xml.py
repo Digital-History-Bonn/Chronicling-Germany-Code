@@ -42,7 +42,7 @@ def main(parsed_args: argparse.Namespace) -> None:
         f[:-4] for f in os.listdir(output_path) if f.endswith(".npz")
     ]
 
-
+    # todo: use run process from multiprocessing handler
     path_queue: Queue = Queue()
     processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
     for process in processes:
@@ -79,15 +79,14 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
         path, done = path_queue.get()
         if done:
             break
+        if path in target_paths:
+            return
         read = (
             # pylint: disable=unnecessary-lambda-assignment
             lambda file: read_xml.read_transkribus(path=file, log=parsed_args.log)
             if parsed_args.dataset == "transkribus"
             else read_xml.read_hlna2013
         )
-
-        if path in target_paths:
-            return
         annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
         if len(annotation) < 1:
             return

@@ -60,7 +60,6 @@ def rescale(args: argparse.Namespace):
 def scale_image(scale: int, data_path: str, extension: str, name: str) -> Image.Image:
     """
     Scales one image according to scaling parameter.
-    :return: Image
     """
     image = Image.open(data_path + name + extension).convert("RGB")
     shape = int(image.size[0] * scale), int(image.size[1] * scale)
@@ -70,7 +69,9 @@ def scale_image(scale: int, data_path: str, extension: str, name: str) -> Image.
 def scale_xml(scale: int, data_path: str, name: str, tag_list: List[str]) -> BeautifulSoup:
     """
     Reads xml file, scales all region and text line coordinates and returns the corresponding BeautifulSoup object.
-    :param tag_list: List of all tags, that should be affected. E.g. 'TextRegion', 'SeparatorRegion'.
+
+    Args:
+        tag_list(list): List of all tags, that should be affected. E.g. 'TextRegion', 'SeparatorRegion'
     """
     with open(f"{data_path + name}.xml", "r", encoding="utf-8") as file:
         data = file.read()
@@ -112,7 +113,7 @@ def scale_coordinates(tag: Tag, scale: int, is_line: bool = False):
 # pylint: disable=locally-disabled, duplicate-code
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="Newspaper Layout Prediction")
+    parser = argparse.ArgumentParser(description="Scale data")
     parser.add_argument(
         "--data-path",
         "-d",

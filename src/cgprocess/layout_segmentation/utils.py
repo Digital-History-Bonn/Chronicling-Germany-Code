@@ -1,8 +1,7 @@
 """Utility Module"""
 import argparse
-import os
 from multiprocessing import Queue
-from typing import Dict, List, Tuple, Callable, Optional
+from typing import Dict, List, Tuple, Optional
 
 import torch
 # from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type:ignore
@@ -121,47 +120,6 @@ def pad_image(pad: Tuple[int, int], image: torch.Tensor) -> torch.Tensor:
     # debug shape
     # print(image.shape)
     return image
-
-
-def get_file_stems(extension: str, image_path: str) -> List[str]:
-    """
-    Returns file name without extension.
-    :param extension: extension of the files to be loaded
-    :param image_path: path of image folder
-    :return: List of file names.
-    """
-    file_names = [
-        f[:-4] for f in os.listdir(image_path) if f.endswith(extension)
-    ]
-    assert len(file_names) > 0, (
-        f"No Images in {image_path} with extension{extension} found. Make sure the "
-        f"specified dataset and path are correct."
-    )
-    return file_names
-
-
-def prepare_file_loading(dataset: str) -> Tuple[str, Callable]:
-    """Depending on the dataset this returns the correct extension string, as well as a function to get the
-    file names for loading."""
-    if dataset == "transkribus":
-        # pylint: disable=duplicate-code
-        extension = ".jpg"
-
-        def get_file_name(name: str) -> str:
-            return f"{name}.npz"
-
-    elif dataset == "HLNA2013":
-        extension = ".tif"
-
-        def get_file_name(name: str) -> str:
-            return f"pc-{name}.npz"
-
-    else:
-        extension = ".png"
-
-        def get_file_name(name: str) -> str:
-            return f"{name}.npz"
-    return extension, get_file_name
 
 
 def replace_labels(target: torch.Tensor) -> torch.Tensor:
