@@ -216,3 +216,15 @@ def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str], List[torch.T
             texts.append(line.find('Unicode').text)
 
     return bboxes, texts, region_polygons
+
+
+def create_unicode_alphabet(length: int) -> List[str]:
+    """
+    Creates alphabet with Unicode characters.
+    Args:
+        length: number of Unicode characters in alphabet
+    """
+    result = []
+    for i in range(length):
+        result.append(chr(i))
+    return result

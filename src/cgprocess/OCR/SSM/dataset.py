@@ -1,17 +1,18 @@
 """Dataset class for SSM based OCR training."""
 
-import glob
+import gzip
+import json
 import os
 import random
+from multiprocessing import Queue, Process
 from pathlib import Path
-from typing import Tuple, List, Dict, Optional
+from typing import Tuple, List, Dict
 
 import numpy as np
 import torch
 from PIL import Image
 from bs4 import BeautifulSoup
 from skimage import draw
-from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -19,19 +20,7 @@ from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import get_bbox, line_has_text
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 from src.cgprocess.shared.datasets import TrainDataset
-from src.cgprocess.shared.utils import initialize_random_split
-
-
-def create_unicode_alphabet(length: int) -> List[str]:
-    """
-    Creates alphabet with Unicode characters.
-    Args:
-        length: number of Unicode characters in alphabet
-    """
-    result = []
-    for i in range(length):
-        result.append(chr(i))
-    return result
+from src.cgprocess.shared.multiprocessing_handler import run_processes
 
 
 def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int) -> Tuple[
@@ -63,7 +52,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
 
     scale = image_height / crop.shape[-2]
     rescale = transforms.Resize((image_height, int(crop.shape[-1] * scale)))
-    crops.append(rescale(crop))
+    crops.append(rescale(crop).astype(np.uint8).tolist())
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
@@ -72,12 +61,38 @@ def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[Beau
         data = file.read()
     pil_image = Image.open(image_path).convert('L')
     transform = transforms.PILToTensor()
-    image = transform(pil_image).float() / 255
+    image = transform(pil_image)
     # Parse the XML data
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
     text_lines = page.find_all('TextLine')
     return image, text_lines
+
+
+def extract_page(queue: Queue, target_paths: list, image_path: Path, target_path: Path, image_extension: str,
+                 tokenizer: OCRTokenizer, image_height) -> None:
+    """Extract target and input data for OCR SSM training"""
+    while True:
+        arguments = queue.get()
+        if arguments[-1]:
+            break
+        file_stem, _ = arguments
+        if file_stem in target_paths:
+            return
+        image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
+                                      target_path / f"{file_stem}.xml")
+        crops, texts = preprocess_data(image, text_lines, image_height)
+        targets = np.array([tokenizer(line).type_as(torch.uint8).tolist() for line in texts])
+
+        json_str = json.dumps({"crops": crops, "texts": texts, "targets": targets})  # 2. string (i.e. JSON)
+        json_bytes = json_str.encode('utf-8')  # 3. bytes (i.e. UTF-8)
+
+        with gzip.open(target_path / f"{file_stem}.json", 'w') as file:  # 4. fewer bytes (i.e. gzip)
+            file.write(json_bytes)
+
+
+def get_progress(output_path):
+    len([f for f in os.listdir(output_path) if f.endswith(".npz")])
 
 
 class SSMDataset(TrainDataset):
@@ -86,7 +101,7 @@ class SSMDataset(TrainDataset):
     """
 
     def __init__(self,
-                 args: tuple,
+                 kwargs: dict,
                  image_height: int,
                  tokenizer: OCRTokenizer):
         """
@@ -95,7 +110,7 @@ class SSMDataset(TrainDataset):
             target_path: path to folder with xml files
             cfg: configuration file tied to the model
         """
-        super().__init__(*args)
+        super().__init__(**kwargs)
         self.image_height = image_height
 
         self.tokenizer = tokenizer
@@ -104,28 +119,52 @@ class SSMDataset(TrainDataset):
         self.targets: List[torch.Tensor] = []
         self.texts: List[str] = []
 
-        self.get_data()
+        self.prepare_data()
 
-    def get_data(self) -> None:
-        """Loads image and corresponding text lines with ground truth text and performs cropping and masking for all
-        lines."""
+    def get_data(self):
+        for file_stem in tqdm(self.file_stems, desc="Loading data", unit="Pages"):
+            with gzip.open(self.target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
+                json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
 
-        for file_stem in tqdm(self.file_stems,
-                              total=len(self.file_stems),
-                              desc=f'loading {self.name} dataset'):
-            image, text_lines = load_data(self.image_path / f"{file_stem}{self.image_extension}",
-                                          self.target_path / f"{file_stem}.xml")
-            crops, texts = preprocess_data(image, text_lines, self.image_height)
+            json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
+            data = json.loads(json_str)
 
-            self.texts.extend(texts)
-            self.targets.extend([self.tokenizer(line) for line in texts])
-            self.crops.extend(crops)
+            self.crops.extend(data["crops"])
+            self.targets.extend(data["targets"])
+            self.texts.extend(data["texts"])
+
+    def extract_data(self) -> None:
+        """Load xml files and save result image.
+        Calls read and draw functions"""
+
+        file_stems = [
+            f[:-4] for f in os.listdir(self.annotations_path) if f.endswith(".xml")
+        ]
+
+        if not self.target_path or not os.path.exists(self.target_path):
+            print(f"creating {self.target_path}.")
+            os.makedirs(output_path)  # type: ignore
+
+        target_stems = [
+            f[:-4] for f in os.listdir(self.target_path) if f.endswith(".npz")
+        ]
+        path_queue: Queue = Queue()
+        total = len(file_stems)
+
+        processes = [Process(target=extract_page,
+                             args=(path_queue, target_stems, self.image_path, self.annotations_path, self.image_extension,
+                                   self.tokenizer, self.image_height)) for _ in range(self.num_processes)]
+
+        for path in tqdm(file_stems, desc="Put paths in queue"):
+            path_queue.put((path, False))
+
+        run_processes({"method": get_progress, "args": self.target_path}, processes, path_queue, total, "Page converting")
 
     def __len__(self) -> int:
         return len(self.crops)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, str]:
-        return self.crops[idx], self.targets[idx], self.texts[idx]
+        return torch.tensor(self.crops[idx]).float() /255, torch.tensor(self.targets[idx], dtype=torch.uint8), self.texts[idx]
 
     def get_augmentations(self, image_width: int, resize_prob: float = 0.75) -> Dict[
         str, transforms.Compose]:

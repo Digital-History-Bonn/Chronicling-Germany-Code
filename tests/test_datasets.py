@@ -1,20 +1,52 @@
 """Test class for newsdataset"""
 import json
+from pathlib import Path
 
 import pytest
 import torch
 
+from src.cgprocess.OCR.SSM.dataset import SSMDataset
+from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
+from src.cgprocess.OCR.shared.utils import create_unicode_alphabet
 from src.cgprocess.shared.datasets import PageDataset
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
 
 DATA_PATH = "./tests/data/newsdataset/"
+CONFIG_PATH = "./tests/ressources/test_config.yml/"
+
+class TestOCRDataset:
+    @pytest.fixture(autouse=True, scope="class")
+    def setup(self):
+        """will initiate NewsDataset for every test"""
+        args = {"data_path":Path(DATA_PATH), "num_processes": 1}
+        pytest.image_height = 32
+        pytest.ocr_dataset = SSMDataset(
+            args,
+            pytest.image_height,
+            OCRTokenizer(create_unicode_alphabet(128))
+        )
+
+    def test_init(self):
+        """verify file names list and data shapes"""
+        with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
+            ground_truth = json.load(file)
+        file_quantity = 30
+
+        assert pytest.ocr_dataset.file_stems == ground_truth
+        assert len(pytest.ocr_dataset.file_stems) == file_quantity
+
+        assert pytest.ocr_dataset[0][0] == torch.float
+        assert pytest.ocr_dataset[0][0].shape[0] == pytest.image_height
+
+        assert pytest.ocr_dataset[0][1] == torch.uint8
+        assert pytest.ocr_dataset[0][2].dim == 1
 
 
-class TestClassNewsdataset:
+class TestLayoutDataset:
     """Class for testing newsdataset"""
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture(autouse=True, scope="class")
     def setup(self):
         """will initiate NewsDataset for every test"""
         image_path = f"{DATA_PATH}input/"
@@ -31,15 +63,15 @@ class TestClassNewsdataset:
         """verify file names list and length"""
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
-            file_quantity = 30
+        file_quantity = 30
 
-            assert (
-                    pytest.news_dataset.file_stems == ground_truth
-                    and len(pytest.news_dataset.file_stems) == file_quantity
-            )
-            assert (pytest.news_dataset.data[0].dtype == torch.uint8
-                and pytest.news_dataset.data[0].shape == (4, 256, 256)
-            )
+        assert (
+                pytest.news_dataset.file_stems == ground_truth
+                and len(pytest.news_dataset.file_stems) == file_quantity
+        )
+        assert (pytest.news_dataset.data[0].dtype == torch.uint8
+            and pytest.news_dataset.data[0].shape == (4, 256, 256)
+        )
 
     def test_getitem(self):
         """Verify get_item. Particulary important is, that data ist in the right format.

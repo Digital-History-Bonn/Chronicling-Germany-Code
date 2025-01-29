@@ -1,6 +1,7 @@
 """Module for shared Dataset classes."""
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Tuple, Union, List, Optional, Any
@@ -95,32 +96,34 @@ class TrainDataset(Dataset, ABC):
             data_source: str = "transkribus",
             file_stems: Optional[List[str]] = None,
             sort: bool = False,
-            name: str = "default"
+            name: str = "default",
+            num_processes: int = 32,
     ) -> None:
         """
         Args:
             data_path(Path): uses this list instead of loading data from disc
             limit(int): limits the quantity of loaded pages
-            image_type(str): Name of image source, this influences the loading process.
+            data_source(str): Name of image source, this influences the loading process.
             file_stems(list): File stems for images and targets
             sort(bool): sort file_names for testing purposes
             name(str): name of the dataset. E.g. train, val, test
         """
         self.image_path = data_path / "images"
         self.target_path = data_path / "targets"
+        self.annotations_path = data_path / "annotations"
         self.data_source = data_source
         self.limit = limit
         self.name = name
+        self.num_processes = num_processes
 
+        self.image_extension, self.get_file_name = prepare_file_loading(data_source) # get_file_name is only for
+        # compatability with europeana newspaper data
         if file_stems:
             self.file_stems = file_stems
         else:
-            extension, get_file_name = prepare_file_loading(data_source)
-            self.file_stems = get_file_stems(extension, self.image_path)
+            self.file_stems = get_file_stems(self.image_extension, self.image_path)
         if sort:
             self.file_stems.sort()
-
-        self.image_extension = extension
 
         if limit is not None:
             assert limit <= len(
@@ -128,6 +131,19 @@ class TrainDataset(Dataset, ABC):
                                    f"with size {len(self.file_stems)}.")
             self.file_stems = self.file_stems[:limit]
 
+    def prepare_data(self):
+        if self.target_path.is_dir() and len(os.listdir(self.target_path)) == len(os.listdir(self.image_path)):
+            print("Initiating data extraction.")
+            self.extract_data()
+        else:
+            print("Skipping data extraction.")
+
+        self.get_data()
+
+    @abstractmethod
+    def get_data(self):
+        """Loads data and appends it to class attributes that store data until needed."""
+        pass
 
     @abstractmethod
     def __len__(self) -> int:
@@ -143,4 +159,9 @@ class TrainDataset(Dataset, ABC):
         Returns:
             tuple: Input and target tensors
         """
+        pass
+
+    @abstractmethod
+    def extract_data(self) -> None:
+        """Extract data and save files inside the target directory."""
         pass
