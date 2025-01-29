@@ -1,10 +1,14 @@
 """shared utility functions"""
+import argparse
+import json
 import os
 from pathlib import Path
-from typing import Any, Tuple, List, Callable
+from typing import Any, Tuple, List, Callable, Optional
 
 import torch
 from torch import randperm
+
+from src.cgprocess.shared.datasets import PageDataset
 
 
 def initialize_random_split(size: int, ratio: Tuple[float, float, float]) -> Tuple[Any, Tuple[int, int]]:
@@ -78,3 +82,29 @@ def prepare_file_loading(data_source: str) -> Tuple[str, Callable]:
         def get_file_name(name: str) -> str:
             return f"{name}.npz"
     return extension, get_file_name
+
+
+def get_file_stem_split(custom_split_file: Optional[str], split_ratio: Tuple[float, float, float],
+                        page_dataset: PageDataset) -> tuple[List[str], List[str], List[str]]:
+    """
+    Creates dataset split or initializes it from a config file
+    """
+    # todo: merge this with other methods
+    if custom_split_file:
+        with open(custom_split_file, "r", encoding="utf-8") as file:
+            split = json.load(file)
+            train_file_stems = split["Training"]
+            val_file_stems = split["Validation"]
+            test_file_stems = split["Test"]
+            print(
+                f"custom page level split with train size {len(train_file_stems)}, val size"
+                f" {len(val_file_stems)} and test size {len(test_file_stems)}")
+    else:
+        train_pages, validation_pages, test_pages = page_dataset.random_split(split_ratio)
+        train_file_stems = train_pages.file_stems
+        val_file_stems = validation_pages.file_stems
+        test_file_stems = test_pages.file_stems
+
+        with open(custom_split_file, "w", encoding="utf8") as file:
+            json.dump({"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}, file)
+    return test_file_stems, train_file_stems, val_file_stems

@@ -3,6 +3,7 @@ well as computing metrics for validation and test."""
 import argparse
 import json
 import warnings
+from pathlib import Path
 from typing import Union, Any, Tuple, List, Dict
 
 import torch
@@ -23,6 +24,7 @@ from src.cgprocess.layout_segmentation.processing.preprocessing import Preproces
 
 from src.cgprocess.layout_segmentation.train_config import IN_CHANNELS, OUT_CHANNELS
 from src.cgprocess.layout_segmentation.utils import adjust_path
+from src.cgprocess.shared.utils import get_file_stem_split
 
 
 def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
@@ -241,23 +243,8 @@ def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, 
     preprocessing = create_preprocess(args)
     image_path, page_dataset, target_path = prepare_paths(args)
 
-    if args.custom_split_file:
-        with open(args.custom_split_file, "r", encoding="utf-8") as file:
-            split = json.load(file)
-            train_file_stems = split["Training"]
-            val_file_stems = split["Validation"]
-            test_file_stems = split["Test"]
-            print(
-                f"custom page level split with train size {len(train_file_stems)}, val size"
-                f" {len(val_file_stems)} and test size {len(test_file_stems)}")
-    else:
-        train_pages, validation_pages, test_pages = page_dataset.random_split(args.split_ratio)
-        train_file_stems = train_pages.file_stems
-        val_file_stems = validation_pages.file_stems
-        test_file_stems = test_pages.file_stems
-
-        with open(args.custom_split_file, "w", encoding="utf8") as file:
-            json.dump((train_file_stems, val_file_stems, test_file_stems), file)
+    test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
+                                                                            page_dataset)
 
     file_stems_dict = {"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}
     dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
@@ -269,7 +256,7 @@ def prepare_paths(args: argparse.Namespace) -> Tuple[str, PageDataset, str]:
     "Adjust paths and create page_dataset."
     image_path = f"{adjust_path(args.data_path)}images/"
     target_path = f"{adjust_path(args.data_path)}targets/"
-    page_dataset = PageDataset(image_path, args.dataset)
+    page_dataset = PageDataset(Path(image_path), args.dataset)
     return image_path, page_dataset, target_path
 
 

@@ -7,11 +7,13 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 import lightning
 import yaml
-
-from src.cgprocess.OCR.SSM.dataset import SSMDataset
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
+from src.cgprocess.OCR.SSM.dataset import SSMDataset
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
+from src.cgprocess.OCR.shared.utils import create_unicode_alphabet
+from src.cgprocess.shared.datasets import PageDataset
+from src.cgprocess.shared.utils import get_file_stem_split
 
 
 def get_args() -> argparse.Namespace:
@@ -47,6 +49,22 @@ def get_args() -> argparse.Namespace:
         default=42,
         help="Seeding number for random generators.",
     )
+    parser.add_argument(
+        "--custom-split-file",
+        type=str,
+        default=None,
+        help="Provide path for custom split json file. This should contain a list with file stems "
+             "of train, validation and test images. File stem is the file name without the extension.",
+    )
+    parser.add_argument(
+        "--split-ratio",
+        type=float,
+        nargs="+",
+        default=DEFAULT_SPLIT,
+        help="Takes 3 float values for a custom dataset split ratio. The ratio have to sum up to one and the Dataset "
+             "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
+             "and validation in this order.",
+    )
 
     return parser.parse_args()
 
@@ -58,12 +76,20 @@ def main():
     with open('mamba_ocr.yml', 'r') as file:
         cfg = yaml.safe_load(file)
 
-    train_set, val_set, test_set = SSMDataset(data_path, cfg).random_split((0.85, 0.05, 0.1))
+    tokenizer = OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])
+    page_dataset = PageDataset(data_path / "images")
+    test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
+                                                                            page_dataset)
+    kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
+    train_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
+    kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
+    val_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
+    kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
+    test_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
     model = Recognizer(cfg, train_set.tokenizer)
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
     lit_model = SSMOCRTrainer(model)
-
 
     train_loader = DataLoader(train_set, batch_size=8, shuffle=True, drop_last=True, collate_fn=collate_fn)
     val_loader = DataLoader(val_set, batch_size=8, shuffle=False, drop_last=True, collate_fn=collate_fn)

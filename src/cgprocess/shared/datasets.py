@@ -24,16 +24,18 @@ class PageDataset(Dataset):
 
     def __init__(
             self,
-            image_path: str = IMAGE_PATH,
+            image_path: Path = Path(IMAGE_PATH),
             dataset: str = "transkribus",
             file_stems: Union[List[str], None] = None
     ) -> None:
 
+        self.image_path = image_path
+        self.dataset = dataset
         if file_stems:
             self.file_stems = file_stems
         else:
             extension, _ = prepare_file_loading(dataset)
-            self.file_stems = get_file_stems(extension, Path(image_path))
+            self.file_stems = get_file_stems(extension, image_path)
 
     def __len__(self) -> int:
         """
@@ -64,18 +66,18 @@ class PageDataset(Dataset):
         indices, splits = initialize_random_split(len(self), ratio)
 
         train_dataset = PageDataset(
-            image_path="",
-            dataset="",
+            image_path=self.image_path,
+            dataset=self.dataset,
             file_stems=np.array(self.file_stems)[indices[: splits[0]]].tolist()
         )
         valid_dataset = PageDataset(
-            image_path="",
-            dataset="",
+            image_path=self.image_path,
+            dataset=self.dataset,
             file_stems=np.array(self.file_stems)[indices[splits[0]: splits[1]]].tolist(),
         )
         test_dataset = PageDataset(
-            image_path="",
-            dataset="",
+            image_path=self.image_path,
+            dataset=self.dataset,
             file_stems=np.array(self.file_stems)[indices[splits[1]:]].tolist(),
         )
 
