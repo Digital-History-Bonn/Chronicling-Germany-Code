@@ -3,16 +3,15 @@ import argparse
 import os
 import random
 from multiprocessing import Queue
-from typing import Tuple, Union, List
+from typing import Tuple, List
 
 import numpy as np
 import torch
 from PIL import Image, ImageOps
 from bs4 import BeautifulSoup
-from kraken.lib import models
 from skimage import io
 
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
 
 
 def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
@@ -72,22 +71,6 @@ def pad_image(image: Image.Image, pad: int = 10) -> Image.Image:
         Image.Image: The padded PIL Image.
     """
     return ImageOps.expand(image, border=(pad, pad, pad, pad), fill=0)
-
-
-def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
-             ) -> Tuple[int, int, int, int]:
-    """
-    Creates a bounding box around all given points.
-
-    Args:
-        points: p.ndarray of shape (N x 2) containing a list of points
-
-    Returns:
-        coordinates of bounding box in the format (x min, y_min, x_max, y_mx)
-    """
-    x_max, x_min = points[:, 0].max(), points[:, 0].min()
-    y_max, y_min = points[:, 1].max(), points[:, 1].min()
-    return x_min, y_min, x_max, y_max  # type: ignore
 
 
 def adjust_path(path: str) -> str:
@@ -171,17 +154,6 @@ def create_path_queue(annotations: List[str], args: argparse.Namespace, images: 
     return path_queue
 
 
-def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
-    """
-    Create OCR model list containing one separate model for each process.
-    """
-    model_list = [[models.load_any(args.model, device=f"cuda:{i % num_gpus}")] for i in
-                  range(num_gpus * args.process_count)] if (
-            torch.cuda.is_available() and num_gpus > 0) else \
-        [[models.load_any(args.model, device="cpu")]]
-    return model_list
-
-
 def init_model(model: object):
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
     return model
@@ -227,4 +199,4 @@ def create_unicode_alphabet(length: int) -> List[str]:
     result = []
     for i in range(length):
         result.append(chr(i))
-    return result
+    return ['<PAD>', '<START>', '<NAN>', '<END>'] + result

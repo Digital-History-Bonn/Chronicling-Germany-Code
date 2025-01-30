@@ -17,8 +17,7 @@ from src.cgprocess.OCR.Transformer import ALPHABET, PAD_HEIGHT, PAD_WIDTH
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.OCR.shared.utils import get_bbox
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
 
 
 def read_xml(soup: BeautifulSoup) -> Tuple[ResultSet, List[torch.Tensor]]:

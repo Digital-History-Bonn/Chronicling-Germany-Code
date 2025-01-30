@@ -22,8 +22,9 @@ class OCRTokenizer(Tokenizer):
             max_length: maximum length of tokenized sequences.
             print_nan: should nan token be considered when converting back to text
         """
-
         self.alphabet = {token: i for i, token in enumerate(alphabet)}
+        super().__init__(self.alphabet)
+
         self.inverse = dict(enumerate(alphabet))
         self.pad = pad
         self.max_length = max_length

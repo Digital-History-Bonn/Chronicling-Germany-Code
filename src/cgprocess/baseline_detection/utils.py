@@ -14,7 +14,7 @@ from shapely.geometry import Polygon, LineString
 from skimage import io
 
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
 
 
 def order_lines(region: bs4.element) -> None:
@@ -63,22 +63,6 @@ def order_lines(region: bs4.element) -> None:
         )
         class_info = "" if custom_match is None else custom_match.group(1)
         line.attrs['custom'] = f"readingOrder {{index:{ordered_indices[i]};}} {class_info}"
-
-
-def get_bbox(points: Union[np.ndarray, torch.Tensor],  # type: ignore
-             ) -> Tuple[int, int, int, int]:
-    """
-    Creates a bounding box around all given points.
-
-    Args:
-        points: np.ndarray of shape (N x 2) containing a list of points
-
-    Returns:
-        coordinates of bounding box in the format (x_min, y_min, x_max, y_max)
-    """
-    x_max, x_min = points[:, 0].max(), points[:, 0].min()
-    y_max, y_min = points[:, 1].max(), points[:, 1].min()
-    return x_min, y_min, x_max, y_max  # type: ignore
 
 
 def is_valid(box: torch.Tensor) -> bool:

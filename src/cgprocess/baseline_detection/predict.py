@@ -25,7 +25,7 @@ from monai.networks.nets import BasicUNet
 from src.cgprocess.OCR.LSTM.predict import join_threads
 from src.cgprocess.baseline_detection.utils import nonmaxima_suppression, adjust_path, add_baselines, load_image, \
     create_path_queue, create_model_list
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, enforce_image_limits
 from src.cgprocess.shared.multiprocessing_handler import MPPredictor
 
 
@@ -166,14 +166,7 @@ def apply_polygon_mask(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tens
     """
 
     bounds = list(Polygon(roi).bounds)
-    if bounds[0] < 0:
-        bounds[0] = 0
-    if bounds[1] < 0:
-        bounds[1] = 0
-    if bounds[2] >= image.shape[2]:
-        bounds[2] = image.shape[2] - 1
-    if bounds[3] >= image.shape[1]:
-        bounds[3] = image.shape[1] - 1
+    bounds = enforce_image_limits(torch.tensor(bounds).reshape((2,2)), (image.shape[2], image.shape[1])).flatten().tolist()
     offset = np.array([bounds[0], bounds[1]], dtype=int)
     shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
     mask = draw.polygon2mask(shape, roi[:, ::-1] - offset[::-1])

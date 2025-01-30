@@ -24,7 +24,8 @@ class TestOCRDataset:
         pytest.ocr_dataset = SSMDataset(
             args,
             pytest.image_height,
-            OCRTokenizer(create_unicode_alphabet(128))
+            OCRTokenizer(create_unicode_alphabet(128)),
+            num_processes=1,
         )
 
     def test_init(self):

@@ -4,7 +4,7 @@ encoder:
         num_blocks:
             - 2
             - 2
-            - 2
+            - 4
     block:
         dim: 32
         state: 32
@@ -18,12 +18,12 @@ decoder:
     block:
         dim: 32
         state: 64
-        expand: 16
+        expand: 8
         conv_width: 4
 tokenizer:
     pad: False
     max_length: 512
-    print_nana: False
+    print_nan: False
 confidence_threshold: 0.5
-vocab_size: 63488
+vocab_size: 2048
 image_height: 32

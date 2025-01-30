@@ -1,14 +1,12 @@
 """shared utility functions"""
-import argparse
 import json
 import os
 from pathlib import Path
-from typing import Any, Tuple, List, Callable, Optional
+from typing import Any, Tuple, List, Callable, Optional, Union
 
 import torch
 from torch import randperm
-
-from src.cgprocess.shared.datasets import PageDataset
+from torch.utils.data import Dataset
 
 
 def initialize_random_split(size: int, ratio: Tuple[float, float, float]) -> Tuple[Any, Tuple[int, int]]:
@@ -85,7 +83,7 @@ def prepare_file_loading(data_source: str) -> Tuple[str, Callable]:
 
 
 def get_file_stem_split(custom_split_file: Optional[str], split_ratio: Tuple[float, float, float],
-                        page_dataset: PageDataset) -> tuple[List[str], List[str], List[str]]:
+                        page_dataset: Dataset) -> tuple[List[str], List[str], List[str]]:
     """
     Creates dataset split or initializes it from a config file
     """
@@ -105,6 +103,39 @@ def get_file_stem_split(custom_split_file: Optional[str], split_ratio: Tuple[flo
         val_file_stems = validation_pages.file_stems
         test_file_stems = test_pages.file_stems
 
-        with open(custom_split_file, "w", encoding="utf8") as file:
+        with open("custom_split_file.json", "w", encoding="utf8") as file:
             json.dump({"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}, file)
     return test_file_stems, train_file_stems, val_file_stems
+
+
+def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[int]]:
+    """
+    Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
+    """
+    return [list(map(int, point.split(','))) for point in polygon_string.split()]
+
+
+def get_bbox(points: Union[torch.Tensor],  # type: ignore
+             ) -> Tuple[int, int, int, int]:
+    """
+    Creates a bounding box around all given points.
+
+    Args:
+        points: p.ndarray of shape (N x 2) containing a list of points
+
+    Returns:
+        coordinates of bounding box in the format (x min, y_min, x_max, y_mx)
+    """
+    x_max, x_min = points[:, 0].max(), points[:, 0].min()
+    y_max, y_min = points[:, 1].max(), points[:, 1].min()
+
+    return x_min.item(), y_min.item(), x_max.item(), y_max.item()
+
+def enforce_image_limits(polygon: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
+    """
+    Limit polygon points to coordinates inside given shape.
+    """
+    polygon[polygon < 0] = 0
+    polygon[:,0][polygon[:,0]>shape[0]] = shape[0]
+    polygon[:, 1][polygon[:, 1] > shape[1]] = shape[1]
+    return polygon

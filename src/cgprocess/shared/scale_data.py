@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup, Tag
 from tqdm import tqdm
 
 from src.cgprocess.layout_segmentation.convert_xml import save_xml
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
 from src.cgprocess.layout_segmentation.processing.transkribus_export import polygon_to_string
 from src.cgprocess.layout_segmentation.utils import adjust_path
 

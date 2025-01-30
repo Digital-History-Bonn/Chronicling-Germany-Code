@@ -13,7 +13,6 @@ import torch
 from torch import randperm
 from torch.utils.data import Dataset
 
-from src.cgprocess.layout_segmentation.datasets.train_dataset import IMAGE_PATH
 from src.cgprocess.shared.utils import initialize_random_split, get_file_stems, prepare_file_loading
 
 
@@ -24,7 +23,7 @@ class PageDataset(Dataset):
 
     def __init__(
             self,
-            image_path: Path = Path(IMAGE_PATH),
+            image_path: Path = Path("images"),
             dataset: str = "transkribus",
             file_stems: Union[List[str], None] = None
     ) -> None:
@@ -98,8 +97,7 @@ class TrainDataset(Dataset, ABC):
             data_source: str = "transkribus",
             file_stems: Optional[List[str]] = None,
             sort: bool = False,
-            name: str = "default",
-            num_processes: int = 32,
+            name: str = "default"
     ) -> None:
         """
         Args:
@@ -116,7 +114,6 @@ class TrainDataset(Dataset, ABC):
         self.data_source = data_source
         self.limit = limit
         self.name = name
-        self.num_processes = num_processes
 
         self.image_extension, self.get_file_name = prepare_file_loading(data_source)  # get_file_name is only for
         # compatability with europeana newspaper data
@@ -135,11 +132,15 @@ class TrainDataset(Dataset, ABC):
 
     def prepare_data(self):
 
-        if not self.target_path.is_dir() or self.files_missing():
-            print("Initiating data extraction.")
+        if not os.path.exists(self.target_path):
+            print(f"creating {self.target_path}.")
+            os.makedirs(self.target_path)  # type: ignore
+
+        if self.files_missing():
+            print("\n Initiating data extraction. \n")
             self.extract_data()
         else:
-            print("Skipping data extraction.")
+            print("\n Skipping data extraction. \n")
 
         self.get_data()
 
@@ -152,8 +153,8 @@ class TrainDataset(Dataset, ABC):
         file_list = np.array(os.listdir(self.target_path))
         for file_stem in self.file_stems:
             if f"{file_stem}.json" not in file_list:
-                return False
-        return True
+                return True
+        return False
 
     @abstractmethod
     def get_data(self):

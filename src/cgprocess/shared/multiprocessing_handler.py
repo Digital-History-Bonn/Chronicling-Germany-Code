@@ -1,7 +1,7 @@
 """Module for Predictor class that handles multiprocessing and file management."""
 import json
 import os
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, Process, cpu_count
 from pathlib import Path
 from threading import Thread
 from time import sleep
@@ -221,3 +221,7 @@ def run_processes(get_progress: Dict[str, Any], processes: List[Process], path_q
         path_queue.put(("", True))
     for process in tqdm(processes, desc="Waiting for processes to end"):
         process.join()
+
+def get_cpu_count() -> int:
+    """Returns the number of CPUs available."""
+    return cpu_count()

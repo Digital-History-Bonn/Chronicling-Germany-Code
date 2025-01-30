@@ -14,9 +14,10 @@ from kraken import rpred  # pylint: disable=import-error
 from kraken.containers import Segmentation, \
     BaselineLine  # pylint: disable=no-name-in-module, import-error
 from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
+from kraken.lib import models
 
-from src.cgprocess.OCR.shared.utils import pad_image, adjust_path, pad_points, create_path_queue, create_model_list, init_model
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.OCR.shared.utils import pad_image, adjust_path, pad_points, create_path_queue, init_model
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
 from src.cgprocess.shared.multiprocessing_handler import MPPredictor
 
 
@@ -231,3 +232,14 @@ def main() -> None:
 if __name__ == '__main__':
     set_start_method('spawn')
     main()
+
+
+def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
+    """
+    Create OCR model list containing one separate model for each process.
+    """
+    model_list = [[models.load_any(args.model, device=f"cuda:{i % num_gpus}")] for i in
+                  range(num_gpus * args.process_count)] if (
+            torch.cuda.is_available() and num_gpus > 0) else \
+        [[models.load_any(args.model, device="cpu")]]
+    return model_list

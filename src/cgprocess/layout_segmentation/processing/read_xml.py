@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup, ResultSet
 from shapely.geometry import Polygon
 
 from src.cgprocess.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 
 def read_transkribus(
@@ -108,13 +109,6 @@ def find_regions(
                     xml_polygon_to_polygon_list(line.Coords["points"])
                 )
     return tags_dict
-
-
-def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[int]]:
-    """
-    Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
-    """
-    return [list(map(int, point.split(','))) for point in polygon_string.split()]
 
 
 def read_hlna2013(

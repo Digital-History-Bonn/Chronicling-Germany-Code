@@ -88,6 +88,13 @@ def get_args() -> argparse.Namespace:
         default=1,
         help="Number of workers for the Dataloader",
     )
+    parser.add_argument(
+        "--config_path",
+        "-cp",
+        type=str,
+        default="config",
+        help="Path to config directory.",
+    )
 
     return parser.parse_args()
 
@@ -95,8 +102,9 @@ def get_args() -> argparse.Namespace:
 def main():
     args = get_args()
     data_path = Path(args.data_path)
+    config_path = Path(args.config_path)
     # define any number of nn.Modules (or use your current ones)
-    with open('mamba_ocr.yml', 'r') as file:
+    with open(config_path / 'mamba_ocr.yml', 'r') as file:
         cfg = yaml.safe_load(file)
 
     tokenizer = OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])
@@ -115,17 +123,17 @@ def main():
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
-    lit_model = SSMOCRTrainer(model)
+    lit_model = SSMOCRTrainer(model, args.batch_size)
 
-    train_loader = DataLoader(train_set, batch_size=args.batchsize, shuffle=True, drop_last=True, collate_fn=collate_fn,
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
                               num_workers=args.num_workers,
                               prefetch_factor=2,
                               persistent_workers=True)
-    val_loader = DataLoader(val_set, batch_size=args.batchsize, shuffle=False, drop_last=True, collate_fn=collate_fn,
+    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
                             num_workers=args.num_workers,
                             prefetch_factor=2,
                             persistent_workers=True)
-    test_loader = DataLoader(test_set, batch_size=args.batchsize, shuffle=False, drop_last=True, collate_fn=collate_fn,
+    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
                              num_workers=args.num_workers,
                              prefetch_factor=2,
                              persistent_workers=True)
