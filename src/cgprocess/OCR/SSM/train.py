@@ -60,7 +60,7 @@ def get_args() -> argparse.Namespace:
         "--split-ratio",
         type=float,
         nargs="+",
-        default=DEFAULT_SPLIT,
+        default=(0.85, 0.05, 0.10),
         help="Takes 3 float values for a custom dataset split ratio. The ratio have to sum up to one and the Dataset "
              "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
              "and validation in this order.",
@@ -95,7 +95,7 @@ def main():
     val_loader = DataLoader(val_set, batch_size=8, shuffle=False, drop_last=True, collate_fn=collate_fn)
     test_loader = DataLoader(test_set, batch_size=8, shuffle=False, drop_last=True, collate_fn=collate_fn)
     checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="val_loss")
-    trainer = lightning.Trainer(max_epochs=50, callbacks=[checkpoint_callback])
+    trainer = lightning.Trainer(max_epochs=5, callbacks=[checkpoint_callback])
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     print(checkpoint_callback.best_model_path)
     trainer.test(lit_model, dataloaders=test_loader)

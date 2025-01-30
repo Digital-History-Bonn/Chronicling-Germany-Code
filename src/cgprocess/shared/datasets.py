@@ -118,7 +118,7 @@ class TrainDataset(Dataset, ABC):
         self.name = name
         self.num_processes = num_processes
 
-        self.image_extension, self.get_file_name = prepare_file_loading(data_source) # get_file_name is only for
+        self.image_extension, self.get_file_name = prepare_file_loading(data_source)  # get_file_name is only for
         # compatability with europeana newspaper data
         if file_stems:
             self.file_stems = file_stems
@@ -134,13 +134,26 @@ class TrainDataset(Dataset, ABC):
             self.file_stems = self.file_stems[:limit]
 
     def prepare_data(self):
-        if self.target_path.is_dir() and len(os.listdir(self.target_path)) == len(os.listdir(self.image_path)):
+
+        if not self.target_path.is_dir() or self.files_missing():
             print("Initiating data extraction.")
             self.extract_data()
         else:
             print("Skipping data extraction.")
 
         self.get_data()
+
+    def files_missing(self) -> bool:
+        """
+        Looks for json files with extracted data. If all of them are already present, data extraction should be skipped.
+        Returns:
+            bool: True if files are missing, False otherwise
+        """
+        file_list = np.array(os.listdir(self.target_path))
+        for file_stem in self.file_stems:
+            if f"{file_stem}.json" not in file_list:
+                return False
+        return True
 
     @abstractmethod
     def get_data(self):
