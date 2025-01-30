@@ -7,6 +7,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 import lightning
 import yaml
+from torchsummary import summary
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
 from src.cgprocess.OCR.SSM.dataset import SSMDataset
@@ -23,8 +24,15 @@ def get_args() -> argparse.Namespace:
     Returns:
         Namespace with parsed arguments.
     """
-    parser = argparse.ArgumentParser(description="train kraken OCR")
+    parser = argparse.ArgumentParser(description="Train SSM OCR")
 
+    parser.add_argument(
+        "--epochs",
+        "-e",
+        type=int,
+        default=10,
+        help="number of epochs to train",
+    )
     parser.add_argument(
         "--name",
         "-n",
@@ -65,6 +73,21 @@ def get_args() -> argparse.Namespace:
              "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
              "and validation in this order.",
     )
+    parser.add_argument(
+        "--batch-size",
+        "-b",
+        dest="batch_size",
+        metavar="B",
+        type=int,
+        help="Batch size",
+    )
+    parser.add_argument(
+        "--num-workers",
+        "-w",
+        type=int,
+        default=1,
+        help="Number of workers for the Dataloader",
+    )
 
     return parser.parse_args()
 
@@ -87,15 +110,28 @@ def main():
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
     model = Recognizer(cfg, train_set.tokenizer)
+
+    summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
+
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
     lit_model = SSMOCRTrainer(model)
 
-    train_loader = DataLoader(train_set, batch_size=8, shuffle=True, drop_last=True, collate_fn=collate_fn)
-    val_loader = DataLoader(val_set, batch_size=8, shuffle=False, drop_last=True, collate_fn=collate_fn)
-    test_loader = DataLoader(test_set, batch_size=8, shuffle=False, drop_last=True, collate_fn=collate_fn)
-    checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="val_loss")
-    trainer = lightning.Trainer(max_epochs=5, callbacks=[checkpoint_callback])
+    train_loader = DataLoader(train_set, batch_size=args.batchsize, shuffle=True, drop_last=True, collate_fn=collate_fn,
+                              num_workers=args.num_workers,
+                              prefetch_factor=2,
+                              persistent_workers=True)
+    val_loader = DataLoader(val_set, batch_size=args.batchsize, shuffle=False, drop_last=True, collate_fn=collate_fn,
+                            num_workers=args.num_workers,
+                            prefetch_factor=2,
+                            persistent_workers=True)
+    test_loader = DataLoader(test_set, batch_size=args.batchsize, shuffle=False, drop_last=True, collate_fn=collate_fn,
+                             num_workers=args.num_workers,
+                             prefetch_factor=2,
+                             persistent_workers=True)
+    checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="val_loss", dirpath='models/ssm',
+                                          filename=f'{args.name}-{{epoch}}-{{val_loss:.2f}}-')
+    trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback])
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     print(checkpoint_callback.best_model_path)
     trainer.test(lit_model, dataloaders=test_loader)

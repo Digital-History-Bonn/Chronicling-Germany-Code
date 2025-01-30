@@ -548,7 +548,7 @@ class Trainer:
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="Train scipt for Newspaper Layout Models.")
+    parser = argparse.ArgumentParser(description="Train script for Newspaper Layout Models.")
     parser.add_argument(
         "--epochs",
         "-e",
