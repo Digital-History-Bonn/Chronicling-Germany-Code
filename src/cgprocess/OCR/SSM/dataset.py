@@ -49,7 +49,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), (image.shape[2], image.shape[1]))
 
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1]:bbox[3]+1, bbox[0]:bbox[2]+1]
+    crop = image.squeeze()[bbox[1]:bbox[3]+2, bbox[0]:bbox[2]+2]
     local_polygon = region_polygon - torch.tensor([bbox[0], bbox[1]])
 
     mask = torch.zeros_like(crop)
@@ -182,6 +182,7 @@ class SSMDataset(TrainDataset):
         path_queue: Queue = Queue()
         total = len(file_stems)
 
+        print(f"num processes: {self.num_processes}")
         processes = [Process(target=extract_page,
                              args=(path_queue, target_stems, (self.image_path, self.annotations_path, self.target_path), self.image_extension,
                                    self.tokenizer, self.image_height)) for _ in range(self.num_processes)]
