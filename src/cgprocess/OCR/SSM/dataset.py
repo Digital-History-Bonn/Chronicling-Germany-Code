@@ -7,6 +7,7 @@ import random
 import time
 from multiprocessing import Queue, Process
 from pathlib import Path
+from threading import Thread
 from typing import Tuple, List, Dict, Optional
 
 import numpy as np
@@ -29,14 +30,24 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
     texts = []
     crops: List[list] = []
 
+    threads = []
     for line in text_lines:
         if line_has_text(line):
-            extract_crop(crops, image, line, image_height)
+            thread = Thread(target=extract_crop,
+                            args=(crops, image, line, image_height))
+            thread.start()
+            threads.append(thread)
+            if len(threads) >= 8:
+                for thread in threads:
+                    thread.join()
+                threads = []
 
             texts.append(line.find('Unicode').text)
+    for thread in threads:
+        thread.join()
     return crops, texts
 
-
+# todo: make this stuff in its own class
 def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, image_height: int) -> None:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
@@ -53,10 +64,10 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
 
     # todo: remove numpy if not necessary
 
-    mask = np.zeros(crop.shape[0] + 1, crop.shape[1] + 1)
+    mask = np.zeros((crop.shape[0] + 1, crop.shape[1] + 1), dtype=np.uint8)
     x_coords, y_coords = draw.polygon(local_polygon[:, 1], local_polygon[:, 0])
     mask[x_coords, y_coords] = 1
-    crop *= torch.tensor(mask)
+    crop *= torch.tensor(mask[:-1, :-1])
 
     scale = image_height / crop.shape[-2]
     rescale = transforms.Resize((image_height, int(crop.shape[-1] * scale)))
@@ -142,7 +153,7 @@ class SSMDataset(TrainDataset):
         """
         super().__init__(**kwargs)
         self.image_height = image_height
-        self.num_processes = get_cpu_count() // 4 # dont occupy all cores
+        self.num_processes = get_cpu_count() // 8 # dont occupy all cores
         if num_processes:
             self.num_processes = num_processes
 

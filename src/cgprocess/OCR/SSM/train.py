@@ -113,7 +113,7 @@ def main():
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
     kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-    train_set = SSMDataset(kwargs, cfg["image_height"], tokenizer, num_processes=4)
+    train_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
     kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
     val_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
