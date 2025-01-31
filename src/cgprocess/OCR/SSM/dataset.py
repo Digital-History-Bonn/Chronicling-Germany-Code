@@ -2,8 +2,10 @@
 
 import gzip
 import json
+import lzma
 import os
 import random
+import time
 from multiprocessing import Queue, Process
 from pathlib import Path
 from typing import Tuple, List, Dict, Optional
@@ -56,7 +58,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
 
     scale = image_height / crop.shape[-2]
     rescale = transforms.Resize((image_height, int(crop.shape[-1] * scale)))
-    crops.append(rescale(torch.unsqueeze(crop, 0)).type(torch.uint8).tolist())
+    crops.append(rescale(torch.unsqueeze(crop, 0)).type(torch.uint8).numpy())
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
@@ -84,16 +86,36 @@ def extract_page(queue: Queue, target_paths: list, paths: Tuple[Path, Path, Path
         file_stem, _ = arguments
         if file_stem in target_paths:
             return
+        start = time.time()
         image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
                                       annotations_path / f"{file_stem}.xml")
+        loaded = time.time()
+        print(f"loaded: {loaded - start}")
         crops, texts = preprocess_data(image, text_lines, image_height)
+        processed = time.time()
+        print(f"processed: {processed - loaded}")
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
+        tokenized = time.time()
+        print(f"tokenized: {tokenized - processed}")
 
-        json_str = json.dumps({"crops": crops, "texts": texts, "targets": targets})  # 2. string (i.e. JSON)
+        json_str = json.dumps({"texts": texts, "targets": targets})  # 2. string (i.e. JSON)
+        dumped = time.time()
+        print(f"dumped: {dumped - tokenized}")
+
         json_bytes = json_str.encode('utf-8')  # 3. bytes (i.e. UTF-8)
+        bytes = time.time()
+        print(f"bytes: {bytes - dumped}")
 
-        with gzip.open(target_path / f"{file_stem}.json", 'w') as file:  # 4. fewer bytes (i.e. gzip)
+        with lzma.open(target_path / f"{file_stem}.json", 'wb') as file:  # 4. fewer bytes (i.e. gzip)
             file.write(json_bytes)
+
+        crop_dict = {str(i): crops for i, crops in enumerate(crops)}
+
+        np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
+        saved = time.time()
+        print(f"saved: {saved - bytes}")
+
+
 
 
 def get_progress(output_path) -> int:
@@ -120,7 +142,7 @@ class SSMDataset(TrainDataset):
         self.image_height = image_height
         self.num_processes = get_cpu_count() // 2 - 4 # dont occupy all cores
         if num_processes:
-            self.num_processes = 1
+            self.num_processes = num_processes
 
         self.tokenizer = tokenizer
 
@@ -132,13 +154,17 @@ class SSMDataset(TrainDataset):
 
     def get_data(self):
         for file_stem in tqdm(self.file_stems, desc="Loading data", unit="Pages"):
-            with gzip.open(self.target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
+            with lzma.open(self.target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
                 json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
 
             json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
             data = json.loads(json_str)
 
-            self.crops.extend(data["crops"])
+            crops_dict = np.load(self.target_path / f"{file_stem}.npz")
+            for i in range(len(crops_dict)):
+                self.crops.append(crops_dict[str(i)])
+
+
             self.targets.extend(data["targets"])
             self.texts.extend(data["texts"])
 
