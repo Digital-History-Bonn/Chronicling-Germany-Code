@@ -153,9 +153,7 @@ class SSMDataset(TrainDataset):
         """
         super().__init__(**kwargs)
         self.image_height = image_height
-        self.num_processes = get_cpu_count() // 8 # dont occupy all cores
-        if num_processes:
-            self.num_processes = num_processes
+        self.num_processes = num_processes if num_processes else 1
 
         self.tokenizer = tokenizer
 
