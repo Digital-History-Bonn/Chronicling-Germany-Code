@@ -4,6 +4,7 @@ from pathlib import Path
 
 import torch
 from lightning.pytorch.callbacks import ModelCheckpoint
+from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 import lightning
 import yaml
@@ -112,7 +113,7 @@ def main():
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
     kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-    train_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
+    train_set = SSMDataset(kwargs, cfg["image_height"], tokenizer, num_processes=4)
     kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
     val_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
@@ -120,20 +121,22 @@ def main():
     model = Recognizer(cfg, train_set.tokenizer)
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
+    model = DataParallel(model)
+    batch_size = torch.cuda.device_count() * args.batch_size
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
-    lit_model = SSMOCRTrainer(model, args.batch_size)
+    lit_model = SSMOCRTrainer(model, args.batch_size, tokenizer)
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
                               num_workers=args.num_workers,
                               prefetch_factor=2,
                               persistent_workers=True)
-    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
                             num_workers=args.num_workers,
                             prefetch_factor=2,
                             persistent_workers=True)
-    test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
                              num_workers=args.num_workers,
                              prefetch_factor=2,
                              persistent_workers=True)

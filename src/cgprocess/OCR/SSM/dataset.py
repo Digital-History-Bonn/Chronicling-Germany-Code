@@ -1,6 +1,5 @@
 """Dataset class for SSM based OCR training."""
 
-import gzip
 import json
 import lzma
 import os
@@ -49,12 +48,15 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), (image.shape[2], image.shape[1]))
 
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1]:bbox[3]+2, bbox[0]:bbox[2]+2]
-    local_polygon = region_polygon - torch.tensor([bbox[0], bbox[1]])
+    crop = image.squeeze()[bbox[1]:bbox[3]+1, bbox[0]:bbox[2]+1]
+    local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
-    mask = torch.zeros_like(crop)
-    mask[draw.polygon(local_polygon[:, 1], local_polygon[:, 0])] = 1
-    crop *= mask
+    # todo: remove numpy if not necessary
+
+    mask = np.zeros(crop.shape[0] + 1, crop.shape[1] + 1)
+    x_coords, y_coords = draw.polygon(local_polygon[:, 1], local_polygon[:, 0])
+    mask[x_coords, y_coords] = 1
+    crop *= torch.tensor(mask)
 
     scale = image_height / crop.shape[-2]
     rescale = transforms.Resize((image_height, int(crop.shape[-1] * scale)))
@@ -140,7 +142,7 @@ class SSMDataset(TrainDataset):
         """
         super().__init__(**kwargs)
         self.image_height = image_height
-        self.num_processes = get_cpu_count() // 2 - 4 # dont occupy all cores
+        self.num_processes = get_cpu_count() // 4 # dont occupy all cores
         if num_processes:
             self.num_processes = num_processes
 
