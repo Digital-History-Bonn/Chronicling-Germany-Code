@@ -3,14 +3,17 @@ import argparse
 import os
 import random
 from multiprocessing import Queue
+from pathlib import Path
 from typing import Tuple, List
 
 import numpy as np
 import torch
+import yaml
 from PIL import Image, ImageOps
 from bs4 import BeautifulSoup
 from skimage import io
 
+from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
 
 
@@ -200,3 +203,13 @@ def create_unicode_alphabet(length: int) -> List[str]:
     for i in range(length):
         result.append(chr(i))
     return ['<PAD>', '<START>', '<NAN>', '<END>'] + result
+
+
+def load_cfg(config_path: Path) -> dict:
+    with open(config_path, 'r', encoding="utf-8") as file:
+        cfg = yaml.safe_load(file)
+    return cfg
+
+
+def init_tokenizer(cfg: dict) -> OCRTokenizer:
+    return OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])

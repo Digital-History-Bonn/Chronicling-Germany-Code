@@ -7,13 +7,11 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 import lightning
-import yaml
 from torchsummary import summary
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
 from src.cgprocess.OCR.SSM.dataset import SSMDataset
-from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.OCR.shared.utils import create_unicode_alphabet
+from src.cgprocess.OCR.shared.utils import load_cfg, init_tokenizer
 from src.cgprocess.shared.datasets import PageDataset
 from src.cgprocess.shared.utils import get_file_stem_split
 
@@ -105,19 +103,18 @@ def main():
     data_path = Path(args.data_path)
     config_path = Path(args.config_path)
     # define any number of nn.Modules (or use your current ones)
-    with open(config_path / 'mamba_ocr.yml', 'r') as file:
-        cfg = yaml.safe_load(file)
+    cfg = load_cfg(config_path / 'mamba_ocr.yml', )
 
-    tokenizer = OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])
+    tokenizer = init_tokenizer(cfg)
     page_dataset = PageDataset(data_path / "images")
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
     kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-    train_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
+    train_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
-    val_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
+    val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
-    test_set = SSMDataset(kwargs, cfg["image_height"], tokenizer)
+    test_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     model = Recognizer(cfg, train_set.tokenizer)
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)

@@ -19,7 +19,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.OCR.shared.utils import line_has_text
+from src.cgprocess.OCR.shared.utils import line_has_text, init_tokenizer
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox, enforce_image_limits
 from src.cgprocess.shared.datasets import TrainDataset
 from src.cgprocess.shared.multiprocessing_handler import run_processes, get_cpu_count
@@ -88,23 +88,22 @@ def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[Beau
     return image, text_lines
 
 
-def extract_page(queue: Queue, target_paths: list, paths: Tuple[Path, Path, Path], image_extension: str,
-                 tokenizer: OCRTokenizer, image_height) -> None:
+def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: str,
+                 cfg: dict) -> None:
     """Extract target and input data for OCR SSM training"""
+    tokenizer = init_tokenizer(cfg)
     image_path, annotations_path, target_path = paths
     while True:
         arguments = queue.get()
         if arguments[-1]:
             break
         file_stem, _ = arguments
-        if file_stem in target_paths:
-            return
         start = time.time()
         image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
                                       annotations_path / f"{file_stem}.xml")
         loaded = time.time()
         print(f"loaded: {loaded - start}")
-        crops, texts = preprocess_data(image, text_lines, image_height)
+        crops, texts = preprocess_data(image, text_lines, cfg["image_height"])
         processed = time.time()
         print(f"processed: {processed - loaded}")
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
@@ -143,7 +142,7 @@ class SSMDataset(TrainDataset):
     def __init__(self,
                  kwargs: dict,
                  image_height: int,
-                 tokenizer: OCRTokenizer,
+                 cfg: dict,
                  num_processes: Optional[int] = None):
         """
         Args:
@@ -153,9 +152,9 @@ class SSMDataset(TrainDataset):
         """
         super().__init__(**kwargs)
         self.image_height = image_height
-        self.num_processes = num_processes if num_processes else 1
+        self.num_processes = num_processes if num_processes else get_cpu_count() // 8
 
-        self.tokenizer = tokenizer
+        self.cfg = cfg
 
         self.crops: List[torch.Tensor] = []
         self.targets: List[torch.Tensor] = []
@@ -180,7 +179,7 @@ class SSMDataset(TrainDataset):
             self.texts.extend(data["texts"])
 
     def extract_data(self) -> None:
-        """Load xml files and save result image.
+        """Load ALL xml files and save result image.
         Calls read and draw functions"""
 
         file_stems = [
@@ -195,11 +194,13 @@ class SSMDataset(TrainDataset):
 
         print(f"num processes: {self.num_processes}")
         processes = [Process(target=extract_page,
-                             args=(path_queue, target_stems, (self.image_path, self.annotations_path, self.target_path), self.image_extension,
-                                   self.tokenizer, self.image_height)) for _ in range(self.num_processes)]
+                             args=(path_queue, (self.image_path, self.annotations_path, self.target_path), self.image_extension,
+                                   self.cfg)) for _ in range(self.num_processes)]
 
-        for path in tqdm(file_stems, desc="Put paths in queue"):
-            path_queue.put((path, False))
+        for file_stem in tqdm(file_stems, desc="Put paths in queue"):
+            if file_stem in target_stems:
+                continue
+            path_queue.put((file_stem, False))
 
         run_processes({"method": get_progress, "args": self.target_path}, processes, path_queue, total, "Page converting")
 
