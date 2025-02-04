@@ -106,6 +106,7 @@ def main():
     cfg = load_cfg(config_path / 'mamba_ocr.yml', )
 
     tokenizer = init_tokenizer(cfg)
+
     page_dataset = PageDataset(data_path / "images")
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
@@ -115,7 +116,7 @@ def main():
     val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["image_height"], cfg)
-    model = Recognizer(cfg, train_set.tokenizer)
+    model = Recognizer(cfg)
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     model = DataParallel(model)
@@ -123,7 +124,7 @@ def main():
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
-    lit_model = SSMOCRTrainer(model, args.batch_size, tokenizer)
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
                               num_workers=args.num_workers,
@@ -139,7 +140,7 @@ def main():
                              persistent_workers=True)
     checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="val_loss", dirpath='models/ssm',
                                           filename=f'{args.name}-{{epoch}}-{{val_loss:.2f}}-')
-    trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback])
+    trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices='auto')
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     print(checkpoint_callback.best_model_path)
     trainer.test(lit_model, dataloaders=test_loader)
