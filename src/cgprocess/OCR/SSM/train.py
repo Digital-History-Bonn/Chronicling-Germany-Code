@@ -4,7 +4,6 @@ from pathlib import Path
 
 import torch
 from lightning.pytorch.callbacks import ModelCheckpoint
-from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 import lightning
 from torchsummary import summary
@@ -107,6 +106,9 @@ def main():
 
     tokenizer = init_tokenizer(cfg)
 
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {DEVICE} device")
+
     page_dataset = PageDataset(data_path / "images")
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
@@ -119,11 +121,8 @@ def main():
     model = Recognizer(cfg)
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
-    model = DataParallel(model)
-    batch_size = torch.cuda.device_count() * args.batch_size
+    batch_size = args.batch_size
 
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {DEVICE} device")
     lit_model = SSMOCRTrainer(model, batch_size, tokenizer)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
@@ -140,7 +139,7 @@ def main():
                              persistent_workers=True)
     checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="val_loss", dirpath='models/ssm',
                                           filename=f'{args.name}-{{epoch}}-{{val_loss:.2f}}-')
-    trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices='auto')
+    trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices=1)
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     print(checkpoint_callback.best_model_path)
     trainer.test(lit_model, dataloaders=test_loader)
