@@ -90,19 +90,21 @@ def get_args() -> argparse.Namespace:
         "--config_path",
         "-cp",
         type=str,
-        default="config",
-        help="Path to config directory.",
+        default="config/cfg.yml",
+        help="Path to model config.",
     )
 
     return parser.parse_args()
 
 
 def main():
+    torch.set_float32_matmul_precision('high')
+
     args = get_args()
     data_path = Path(args.data_path)
     config_path = Path(args.config_path)
     # define any number of nn.Modules (or use your current ones)
-    cfg = load_cfg(config_path / 'mamba_ocr.yml', )
+    cfg = load_cfg(config_path)
 
     tokenizer = init_tokenizer(cfg)
 
