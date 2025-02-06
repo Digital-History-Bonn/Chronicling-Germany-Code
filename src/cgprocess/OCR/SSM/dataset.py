@@ -77,7 +77,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
 
     # apply mask
-    crop *= torch.tensor(mask)
+    crop *= mask
     crops.append(crop.numpy())
 
 
