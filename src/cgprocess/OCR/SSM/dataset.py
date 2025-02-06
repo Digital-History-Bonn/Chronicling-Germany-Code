@@ -48,30 +48,37 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
     return crops, texts
 
 # todo: make this stuff in its own class
-def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, image_height: int) -> None:
+def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> None:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
     Args:
         crops:  list to insert all crops
         image: full input image
         line: current xml object with polygon data
-        image_height: fixed height for all crops"""
+        crop_height: fixed height for all crops"""
+    assert image.dtype == torch.uint8
+
     region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), (image.shape[2], image.shape[1]))
 
+    # initialize
     bbox = get_bbox(region_polygon)
     crop = image.squeeze()[bbox[1]:bbox[3]+1, bbox[0]:bbox[2]+1]
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
-    # todo: remove numpy if not necessary
-
+    # create mask
     mask = np.zeros((crop.shape[0] + 1, crop.shape[1] + 1), dtype=np.uint8)
     x_coords, y_coords = draw.polygon(local_polygon[:, 1], local_polygon[:, 0])
     mask[x_coords, y_coords] = 1
-    crop *= torch.tensor(mask[:-1, :-1])
 
-    scale = image_height / crop.shape[-2]
-    rescale = transforms.Resize((image_height, int(crop.shape[-1] * scale)))
-    crops.append(rescale(torch.unsqueeze(crop, 0)).type(torch.uint8).numpy())
+    # scale to crop_height
+    scale = crop_height / crop.shape[-2]
+    rescale = transforms.Resize((crop_height, int(crop.shape[-1] * scale)))
+    crop = rescale(torch.unsqueeze(crop, 0))
+    mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
+
+    # apply mask
+    crop *= torch.tensor(mask)
+    crops.append(crop.numpy())
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:

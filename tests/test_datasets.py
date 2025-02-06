@@ -2,10 +2,12 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
+from bs4 import BeautifulSoup
 
-from src.cgprocess.OCR.SSM.dataset import SSMDataset
+from src.cgprocess.OCR.SSM.dataset import SSMDataset, extract_crop
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import create_unicode_alphabet
 from src.cgprocess.shared.datasets import PageDataset
@@ -15,11 +17,29 @@ from src.cgprocess.layout_segmentation.processing.preprocessing import Preproces
 DATA_PATH = "./tests/data/newsdataset/"
 CONFIG_PATH = "./tests/ressources/test_config.yml/"
 
+
+def test_extract_crop():
+    image = torch.ones(1, 1200, 1000, dtype=torch.uint8) * 5
+    crop_height = 64
+    result_list = []
+
+    with open(f"{DATA_PATH}additional/single_test_line.xml", "r", encoding="utf-8") as file:
+        data = file.read()
+    soup = BeautifulSoup(data, 'xml')
+    text_line = soup.find_all('TextLine')[0]
+
+    extract_crop(result_list, image, text_line, crop_height)
+
+    ground_truth = np.load(f"{DATA_PATH}additional/test_line_target.npy")
+
+    assert ground_truth.shape == result_list[0].shape
+    assert np.all(result_list[0] == (ground_truth * 5))
+
 class TestOCRDataset:
     @pytest.fixture(autouse=True, scope="class")
     def setup(self):
         """will initiate NewsDataset for every test"""
-        args = {"data_path":Path(DATA_PATH), "num_processes": 1}
+        args = {"data_path":Path(DATA_PATH)}
         pytest.image_height = 32
         pytest.ocr_dataset = SSMDataset(
             args,
