@@ -120,7 +120,7 @@ def main():
     val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["image_height"], cfg)
-    model = Recognizer(cfg)
+    model = Recognizer(cfg).train()
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
