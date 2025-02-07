@@ -28,7 +28,7 @@ class OCRTokenizer(Tokenizer):
         self.inverse = dict(enumerate(alphabet))
         self.pad = pad
         self.max_length = max_length
-        self.print_nan = print_nan
+        self.print_special_tokens = print_nan
 
     def __call__(self, text: str) -> torch.Tensor:
         """
@@ -94,6 +94,6 @@ class OCRTokenizer(Tokenizer):
             token = self.inverse[token.item()]
             if token == '<END>':
                 break
-            text += token if self.print_nan or token != '<NAN>' else ' '
+            text += token if self.print_special_tokens or (token not in ['<PAD>', '<START>', '<NAN>']) else ' '
 
         return text

@@ -4,7 +4,6 @@ import json
 import lzma
 import os
 import random
-import time
 from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
@@ -48,30 +47,37 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
     return crops, texts
 
 # todo: make this stuff in its own class
-def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, image_height: int) -> None:
+def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> None:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
     Args:
         crops:  list to insert all crops
         image: full input image
         line: current xml object with polygon data
-        image_height: fixed height for all crops"""
+        crop_height: fixed height for all crops"""
+    assert image.dtype == torch.uint8
+
     region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), (image.shape[2], image.shape[1]))
 
+    # initialize
     bbox = get_bbox(region_polygon)
     crop = image.squeeze()[bbox[1]:bbox[3]+1, bbox[0]:bbox[2]+1]
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
-    # todo: remove numpy if not necessary
-
+    # create mask
     mask = np.zeros((crop.shape[0] + 1, crop.shape[1] + 1), dtype=np.uint8)
     x_coords, y_coords = draw.polygon(local_polygon[:, 1], local_polygon[:, 0])
     mask[x_coords, y_coords] = 1
-    crop *= torch.tensor(mask[:-1, :-1])
 
-    scale = image_height / crop.shape[-2]
-    rescale = transforms.Resize((image_height, int(crop.shape[-1] * scale)))
-    crops.append(rescale(torch.unsqueeze(crop, 0)).type(torch.uint8).numpy())
+    # scale to crop_height
+    scale = crop_height / crop.shape[-2]
+    rescale = transforms.Resize((crop_height, int(crop.shape[-1] * scale)))
+    crop = rescale(torch.unsqueeze(crop, 0))
+    mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
+
+    # apply mask
+    crop *= mask
+    crops.append(crop.numpy())
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
@@ -98,25 +104,14 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         if arguments[-1]:
             break
         file_stem, _ = arguments
-        start = time.time()
         image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
                                       annotations_path / f"{file_stem}.xml")
-        loaded = time.time()
-        print(f"loaded: {loaded - start}")
         crops, texts = preprocess_data(image, text_lines, cfg["image_height"])
-        processed = time.time()
-        print(f"processed: {processed - loaded}")
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
-        tokenized = time.time()
-        print(f"tokenized: {tokenized - processed}")
 
         json_str = json.dumps({"texts": texts, "targets": targets})  # 2. string (i.e. JSON)
-        dumped = time.time()
-        print(f"dumped: {dumped - tokenized}")
 
         json_bytes = json_str.encode('utf-8')  # 3. bytes (i.e. UTF-8)
-        bytes = time.time()
-        print(f"bytes: {bytes - dumped}")
 
         with lzma.open(target_path / f"{file_stem}.json", 'wb') as file:  # 4. fewer bytes (i.e. gzip)
             file.write(json_bytes)
@@ -124,10 +119,6 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         crop_dict = {str(i): crops for i, crops in enumerate(crops)}
 
         np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
-        saved = time.time()
-        print(f"saved: {saved - bytes}")
-
-
 
 
 def get_progress(output_path) -> int:
