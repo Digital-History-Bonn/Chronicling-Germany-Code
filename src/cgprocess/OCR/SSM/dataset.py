@@ -4,7 +4,6 @@ import json
 import lzma
 import os
 import random
-import time
 from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
@@ -105,25 +104,14 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         if arguments[-1]:
             break
         file_stem, _ = arguments
-        start = time.time()
         image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
                                       annotations_path / f"{file_stem}.xml")
-        loaded = time.time()
-        print(f"loaded: {loaded - start}")
         crops, texts = preprocess_data(image, text_lines, cfg["image_height"])
-        processed = time.time()
-        print(f"processed: {processed - loaded}")
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
-        tokenized = time.time()
-        print(f"tokenized: {tokenized - processed}")
 
         json_str = json.dumps({"texts": texts, "targets": targets})  # 2. string (i.e. JSON)
-        dumped = time.time()
-        print(f"dumped: {dumped - tokenized}")
 
         json_bytes = json_str.encode('utf-8')  # 3. bytes (i.e. UTF-8)
-        bytes = time.time()
-        print(f"bytes: {bytes - dumped}")
 
         with lzma.open(target_path / f"{file_stem}.json", 'wb') as file:  # 4. fewer bytes (i.e. gzip)
             file.write(json_bytes)
@@ -131,10 +119,6 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         crop_dict = {str(i): crops for i, crops in enumerate(crops)}
 
         np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
-        saved = time.time()
-        print(f"saved: {saved - bytes}")
-
-
 
 
 def get_progress(output_path) -> int:
