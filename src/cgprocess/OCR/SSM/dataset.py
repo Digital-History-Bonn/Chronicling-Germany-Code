@@ -46,6 +46,7 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
         thread.join()
     return crops, texts
 
+
 # todo: make this stuff in its own class
 def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> None:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
@@ -57,11 +58,12 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
         crop_height: fixed height for all crops"""
     assert image.dtype == torch.uint8
 
-    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), (image.shape[2], image.shape[1]))
+    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])),
+                                          (image.shape[2], image.shape[1]))
 
     # initialize
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1]:bbox[3]+1, bbox[0]:bbox[2]+1]
+    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1]
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
     # create mask
@@ -134,7 +136,8 @@ class SSMDataset(TrainDataset):
                  kwargs: dict,
                  image_height: int,
                  cfg: dict,
-                 num_processes: Optional[int] = None):
+                 num_processes: Optional[int] = None,
+                 augmentation: bool = False):
         """
         Args:
             image_path: path to folder with images
@@ -142,6 +145,7 @@ class SSMDataset(TrainDataset):
             cfg: configuration file tied to the model
         """
         super().__init__(**kwargs)
+        self.augmentation = augmentation
         self.image_height = image_height
         self.num_processes = num_processes if num_processes else get_cpu_count() // 8
 
@@ -165,7 +169,6 @@ class SSMDataset(TrainDataset):
             for i in range(len(crops_dict)):
                 self.crops.append(crops_dict[str(i)])
 
-
             self.targets.extend(data["targets"])
             self.texts.extend(data["texts"])
 
@@ -185,7 +188,8 @@ class SSMDataset(TrainDataset):
 
         print(f"num processes: {self.num_processes}")
         processes = [Process(target=extract_page,
-                             args=(path_queue, (self.image_path, self.annotations_path, self.target_path), self.image_extension,
+                             args=(path_queue, (self.image_path, self.annotations_path, self.target_path),
+                                   self.image_extension,
                                    self.cfg)) for _ in range(self.num_processes)]
 
         for file_stem in tqdm(file_stems, desc="Put paths in queue"):
@@ -193,16 +197,20 @@ class SSMDataset(TrainDataset):
                 continue
             path_queue.put((file_stem, False))
 
-        run_processes({"method": get_progress, "args": self.target_path}, processes, path_queue, total, "Page converting")
+        run_processes({"method": get_progress, "args": self.target_path}, processes, path_queue, total,
+                      "Page converting")
 
     def __len__(self) -> int:
         return len(self.crops)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, str]:
-        return torch.tensor(self.crops[idx]).float() /255, torch.tensor(self.targets[idx]).long(), self.texts[idx]
+        data = torch.tensor(self.crops[idx]).float()
+        if self.augmentation:
+            augment = self.get_augmentations(data.shape[-1])
+            data = augment(data)
+        return data, torch.tensor(self.targets[idx]).long(), self.texts[idx]
 
-    def get_augmentations(self, image_width: int, resize_prob: float = 0.75) -> Dict[
-        str, transforms.Compose]:
+    def get_augmentations(self, image_width: int, resize_prob: float = 0.75) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
@@ -212,47 +220,45 @@ class SSMDataset(TrainDataset):
         scale = (1 + random.random() * 2)
         resize_to = int(self.image_height // scale), int(image_width // scale)
         pad = self.image_height - resize_to[0]
-        return {
-            "default": transforms.Compose(
-                [
-                    transforms.RandomRotation(5),
-                    transforms.RandomApply(
-                        [
-                            transforms.RandomChoice(
-                                [
-                                    transforms.RandomCrop(
-                                        size=resize_to,
-                                    ),
-                                    transforms.Resize(
-                                        (self.image_height, image_width),
-                                        antialias=True,
-                                    ),
-                                    transforms.Compose(
-                                        [
-                                            transforms.Resize(
-                                                resize_to,
-                                                antialias=True,
-                                            ),
-                                            transforms.Pad([0, 0, 0, pad]),
-                                        ]
-                                    ),
-                                ]
-                            )
-                        ],
-                        p=resize_prob,
-                    ),
-                    transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
-                    transforms.RandomErasing(scale=(0.02, 0.1)),
-                    transforms.RandomApply(
-                        [
-                            transforms.Compose(
-                                [
-                                    transforms.GaussianBlur(5, (0.1, 1.5)),
-                                ]
-                            ),
-                        ],
-                        p=0.2,
-                    )
-                ]
-            )
-        }
+        return transforms.Compose(
+            [
+                transforms.RandomRotation(5),
+                transforms.RandomApply(
+                    [
+                        transforms.RandomChoice(
+                            [
+                                transforms.RandomCrop(
+                                    size=resize_to,
+                                ),
+                                transforms.Resize(
+                                    (self.image_height, image_width),
+                                    antialias=True,
+                                ),
+                                transforms.Compose(
+                                    [
+                                        transforms.Resize(
+                                            resize_to,
+                                            antialias=True,
+                                        ),
+                                        transforms.Pad([0, 0, 0, pad]),
+                                    ]
+                                ),
+                            ]
+                        )
+                    ],
+                    p=resize_prob,
+                ),
+                transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
+                transforms.RandomErasing(scale=(0.02, 0.1)),
+                transforms.RandomApply(
+                    [
+                        transforms.Compose(
+                            [
+                                transforms.GaussianBlur(5, (0.1, 1.5)),
+                            ]
+                        ),
+                    ],
+                    p=0.2,
+                )
+            ]
+        )

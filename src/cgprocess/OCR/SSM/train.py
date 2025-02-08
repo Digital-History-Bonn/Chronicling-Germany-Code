@@ -115,7 +115,7 @@ def main():
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
     kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-    train_set = SSMDataset(kwargs, cfg["image_height"], cfg)
+    train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True)
     kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
     val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
@@ -139,7 +139,7 @@ def main():
                              num_workers=args.num_workers,
                              prefetch_factor=2,
                              persistent_workers=True)
-    checkpoint_callback = ModelCheckpoint(save_top_k=2, monitor="val_loss", dirpath='models/ssm',
+    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_loss", dirpath='models/ssm',
                                           filename=f'{args.name}-{{epoch}}-{{val_loss:.2f}}-')
     trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices=1)
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
