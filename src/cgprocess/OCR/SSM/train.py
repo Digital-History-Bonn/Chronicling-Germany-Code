@@ -6,6 +6,7 @@ import torch
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 import lightning
+from pytorch_lightning import loggers as pl_loggers
 from torchsummary import summary
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
@@ -142,6 +143,7 @@ def main():
                              persistent_workers=True)
     checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_loss", dirpath=f'models/ssm/{args.name}',
                                           filename=f'{{epoch}}-{{val_loss:.2f}}-')
+
     trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices=1)
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     print(checkpoint_callback.best_model_path)

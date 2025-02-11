@@ -219,15 +219,25 @@ class SSMDataset(TrainDataset):
         Args:
             kernel_size: kernel_size for gaussian blurring
         """
+        pad_kernel = kernel_size if image_width <= kernel_size else 0
         scale = (1 + random.random() * 1.5)
-        resize_to = int(self.image_height // scale), int(image_width // scale)
+        resize_to = int(self.image_height // scale), int(image_width // scale) + 1
         crop_size = resize_to[0], image_width
         pad_y = self.image_height - resize_to[0]
         pad_x = kernel_size - resize_to[1] if resize_to[1] < kernel_size else 0
         pad_x = kernel_size - image_width if image_width < kernel_size else pad_x
         return transforms.Compose(
             [
+                transforms.Pad((pad_kernel, 0, 0, 0)),
                 transforms.RandomRotation(5),
+                transforms.RandomApply(
+                    [
+                        transforms.GaussianBlur(5, (0.1, 1.5))
+                    ],
+                    p=0.2,
+                ),
+                transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
+                transforms.RandomErasing(scale=(0.02, 0.1)),
                 transforms.RandomApply(
                     [
                         transforms.RandomChoice(
@@ -258,13 +268,5 @@ class SSMDataset(TrainDataset):
                     ],
                     p=resize_prob,
                 ),
-                transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
-                transforms.RandomErasing(scale=(0.02, 0.1)),
-                transforms.RandomApply(
-                    [
-                        transforms.GaussianBlur(5, (0.1, 1.5))
-                    ],
-                    p=0.2,
-                )
             ]
         )
