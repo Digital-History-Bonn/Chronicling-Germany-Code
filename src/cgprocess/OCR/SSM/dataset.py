@@ -64,6 +64,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     # initialize
     bbox = get_bbox(region_polygon)
     crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1]
+
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
     # create mask
@@ -76,6 +77,9 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     rescale = transforms.Resize((crop_height, int(crop.shape[-1] * scale)))
     crop = rescale(torch.unsqueeze(crop, 0))
     mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
+
+    if crop.shape[-1] < crop_height:
+        return
 
     # apply mask
     crop *= mask
