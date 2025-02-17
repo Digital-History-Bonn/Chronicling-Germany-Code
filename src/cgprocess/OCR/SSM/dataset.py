@@ -138,19 +138,19 @@ class SSMDataset(TrainDataset):
 
     def __init__(self,
                  kwargs: dict,
-                 image_height: int,
+                 crop_height: int,
                  cfg: dict,
                  num_processes: Optional[int] = None,
                  augmentation: bool = False):
         """
         Args:
-            image_path: path to folder with images
-            target_path: path to folder with xml files
+            kwargs: arguments for super class
+            crop_height: Fixed height. All crops will be scaled to this height
             cfg: configuration file tied to the model
         """
         super().__init__(**kwargs)
         self.augmentation = augmentation
-        self.image_height = image_height
+        self.image_height = crop_height
         self.num_processes = num_processes if num_processes else get_cpu_count() // 8
 
         self.cfg = cfg

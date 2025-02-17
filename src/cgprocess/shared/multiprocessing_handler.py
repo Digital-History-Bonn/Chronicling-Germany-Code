@@ -206,6 +206,7 @@ def run_processes(get_progress: Dict[str, Any], processes: List[Process], path_q
     Args:
         get_progress(dict): Dictionary containing the get progress method and its arguments with keys 'method' and 'args'.
     """
+    # todo: integrate this in MPPredictor
     for process in processes:
         process.start()
 

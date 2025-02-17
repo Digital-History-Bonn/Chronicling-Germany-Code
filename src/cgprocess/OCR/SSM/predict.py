@@ -4,12 +4,59 @@ import glob
 import os
 from multiprocessing import set_start_method, Queue
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import torch
 
-from src.cgprocess.shared.multiprocessing_handler import MPPredictor
+from src.cgprocess.shared.multiprocessing_handler import MPPredictor, get_cpu_count
 
+
+class OCRPreprocess :
+    """Preprocessing includes cropping and masking individual lines for OCR."""
+    def __init__(self,
+            kwargs: dict,
+            image_height: int,
+            cfg: dict,
+            path_queue: Queue,
+            num_processes: Optional[int] = None
+            ):
+        """
+        Args:
+            image_path: path to folder with images
+            crop_height: Fixed height. All crops will be scaled to this height
+            cfg: configuration file tied to the model
+        """
+        super().__init__(**kwargs)
+        self.image_height = image_height
+        self.num_processes = num_processes if num_processes else get_cpu_count() // 8
+        self.cfg = cfg
+
+    def extract_data(self, image_path: Path, annotations_path: Path, output_path: Path) -> None:
+        """Load xml ."""
+
+        file_stems = [
+            f[:-4] for f in os.listdir(annotations_path) if f.endswith(".xml")
+        ]
+
+        target_stems = [
+            f[:-4] for f in os.listdir(output_path) if f.endswith(".npz")
+        ]
+        path_queue: Queue = Queue()
+        total = len(file_stems)
+
+        print(f"num processes: {self.num_processes}")
+        processes = [Process(target=extract_page,
+                             args=(path_queue, (self.image_path, self.annotations_path, self.target_path),
+                                   self.image_extension,
+                                   self.cfg)) for _ in range(self.num_processes)]
+
+        for file_stem in tqdm(file_stems, desc="Put paths in queue"):
+            if file_stem in target_stems:
+                continue
+            path_queue.put((file_stem, False))
+
+        run_processes({"method": get_progress, "args": self.target_path}, processes, path_queue, total,
+                      "Page converting")
 
 def get_args() -> argparse.Namespace:
     """
@@ -89,7 +136,7 @@ def main() -> None:
     # put paths in queue
     path_queue = create_path_queue(layout_paths, image_paths)
 
-    model_list = create_device_list(args, num_gpus)
+    model_list = create_device_list(num_gpus)
 
     predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, str(data_path), True, True)
     predictor.launch_processes(num_gpus, args.thread_count)
