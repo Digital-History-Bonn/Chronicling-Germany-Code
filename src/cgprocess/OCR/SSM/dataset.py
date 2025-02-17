@@ -64,6 +64,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     # initialize
     bbox = get_bbox(region_polygon)
     crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1]
+
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
     # create mask
@@ -76,6 +77,9 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     rescale = transforms.Resize((crop_height, int(crop.shape[-1] * scale)))
     crop = rescale(torch.unsqueeze(crop, 0))
     mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
+
+    if crop.shape[-1] < crop_height:
+        return
 
     # apply mask
     crop *= mask
@@ -210,37 +214,57 @@ class SSMDataset(TrainDataset):
             data = augment(data)
         return data, torch.tensor(self.targets[idx]).long(), self.texts[idx]
 
-    def get_augmentations(self, image_width: int, resize_prob: float = 0.75) -> transforms.Compose:
+    def get_augmentations(self, image_width: int, resize_prob: float = 0.6, kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
         rescaled randomly to train the model to recognize characters that does not fill the entire image, as well
         as characters, that have been cropped at top or bottom.
+        Args:
+            kernel_size: kernel_size for gaussian blurring
         """
-        scale = (1 + random.random() * 2)
-        resize_to = int(self.image_height // scale), int(image_width // scale)
-        pad = self.image_height - resize_to[0]
+        pad_kernel = kernel_size if image_width <= kernel_size else 0
+        scale = (1 + random.random() * 1.5)
+        resize_to = int(self.image_height // scale), int(image_width // scale) + 1
+        crop_size = resize_to[0], image_width
+        pad_y = self.image_height - resize_to[0]
+        pad_x = kernel_size - resize_to[1] if resize_to[1] < kernel_size else 0
+        pad_x = kernel_size - image_width if image_width < kernel_size else pad_x
         return transforms.Compose(
             [
+                transforms.Pad((pad_kernel, 0, 0, 0)),
                 transforms.RandomRotation(5),
+                transforms.RandomApply(
+                    [
+                        transforms.GaussianBlur(5, (0.1, 1.5))
+                    ],
+                    p=0.2,
+                ),
+                transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
+                transforms.RandomErasing(scale=(0.02, 0.1)),
                 transforms.RandomApply(
                     [
                         transforms.RandomChoice(
                             [
-                                transforms.RandomCrop(
-                                    size=resize_to,
-                                ),
-                                transforms.Resize(
-                                    (self.image_height, image_width),
-                                    antialias=True,
-                                ),
+                                transforms.Compose([
+                                    transforms.RandomCrop(
+                                        size=crop_size,
+                                    ),
+                                    transforms.Resize(
+                                        (self.image_height, int(image_width * scale)),
+                                        antialias=True,
+                                    ), ]),
                                 transforms.Compose(
                                     [
                                         transforms.Resize(
                                             resize_to,
                                             antialias=True,
                                         ),
-                                        transforms.Pad([0, 0, 0, pad]),
+                                        transforms.RandomChoice(
+                                            [
+                                                transforms.Pad((pad_x, pad_y, 0, 0)),
+                                                transforms.Pad((0, 0, pad_x, pad_y))
+                                            ]),
                                     ]
                                 ),
                             ]
@@ -248,17 +272,5 @@ class SSMDataset(TrainDataset):
                     ],
                     p=resize_prob,
                 ),
-                transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
-                transforms.RandomErasing(scale=(0.02, 0.1)),
-                transforms.RandomApply(
-                    [
-                        transforms.Compose(
-                            [
-                                transforms.GaussianBlur(5, (0.1, 1.5)),
-                            ]
-                        ),
-                    ],
-                    p=0.2,
-                )
             ]
         )

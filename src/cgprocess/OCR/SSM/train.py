@@ -6,6 +6,7 @@ import torch
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 import lightning
+from pytorch_lightning import loggers as pl_loggers
 from torchsummary import summary
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
@@ -110,6 +111,7 @@ def main():
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
+    print(f"Model config {config_path}")
 
     page_dataset = PageDataset(data_path / "images")
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
@@ -139,8 +141,9 @@ def main():
                              num_workers=args.num_workers,
                              prefetch_factor=2,
                              persistent_workers=True)
-    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_loss", dirpath='models/ssm',
-                                          filename=f'{args.name}-{{epoch}}-{{val_loss:.2f}}-')
+    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_loss", dirpath=f'models/ssm/{args.name}',
+                                          filename=f'{{epoch}}-{{val_loss:.2f}}-')
+
     trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices=1)
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     print(checkpoint_callback.best_model_path)
