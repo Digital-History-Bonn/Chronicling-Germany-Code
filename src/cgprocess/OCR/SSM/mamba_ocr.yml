@@ -2,11 +2,9 @@ encoder:
     layers:
         downscale: True
         num_blocks:
-            - 2
-            - 2
-            - 4
+            - 1
     block:
-        dim: 32
+        dim: 64
         state: 32
         expand: 4
         conv_width: 4
@@ -14,16 +12,18 @@ decoder:
     layers:
         downscale: False
         num_blocks:
-            - 2
+            - 1
     block:
-        dim: 32
+        dim: 64
         state: 64
-        expand: 8
+        expand: 4
         conv_width: 4
 tokenizer:
     pad: False
     max_length: 512
     print_nan: False
+vocabulary:
+    unicode: 128
+    custom: ["B", "e", "r", "l", "i", "n", ",", " ", "M", "o", "t", "a", "g", "d", "D", "s", "c", "h", "A", "u", "m", "\u00e4", "z", "w", ".", "b", "-", "P", ":", "v", "j", "f", "\u00fc", "2", "T", "1", "5", "S", "3", "/", "I", "G", "p", "Z", "\u00f6", "6", "U", ";", "F", "9", "4", "O", "C", "8", "N", "k", "0", "\u2014", "7", "(", "W", ")", "\u201e", "\u201d", "K", "H", "E", "J", "L", "y", "x", "\u00a3", "Y", "V", "R", "\u00e8", "'", "\u201c", "Q", "q", "\u00b4", "%", "\u00e9", "\"", "\u00df", "\u00e0", "\u2019", "&", "\u00a7", "[", "]", "\u017f", "!", "\ua75b", "\u00b0", "*", "=", "?", "X", "\u00bb", "\u00ab", "+", "\u00c9", "\u008d", "\u00c4", "\u00dc", "\u00d6", "\u2020", "\u00e1", "|", "\u0090", "_", "\u204a", "\u00eb", "\u00f4", "\u201a", "\u201b", "\u0364", "#", "\u00e7", "\u00e2", "\u2018", "`", "\u03bf", "\u03b1", "\u00fb", "\u00ea", "\u2606", "\u2670", "\u00ee", "\u0391", "\u03b9", "\u2039", "\u03c3", "\u03c4", "\u00f3", "$", "\u0395", "\u039c", "\u00f1", "^", "\u03c1", "\u039a", "\t", "\u008f", "\u201f", "\u00e6", "}", "{"]
+image_height: 64
 confidence_threshold: 0.5
-vocab_size: 2048
-image_height: 32

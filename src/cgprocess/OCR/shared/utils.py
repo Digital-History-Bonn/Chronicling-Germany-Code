@@ -207,9 +207,15 @@ def create_unicode_alphabet(length: int) -> List[str]:
 
 def load_cfg(config_path: Path) -> dict:
     with open(config_path, 'r', encoding="utf-8") as file:
-        cfg = yaml.safe_load(file)
+        cfg: dict = yaml.safe_load(file)
     return cfg
 
 
 def init_tokenizer(cfg: dict) -> OCRTokenizer:
-    return OCRTokenizer(create_unicode_alphabet(cfg["vocab_size"]), **cfg["tokenizer"])
+    unicode_alphabet = create_unicode_alphabet(cfg["vocabulary"]["size"])
+    custom_alphabet = cfg["vocabulary"].get("custom", [])
+    for char in custom_alphabet:
+        if char not in unicode_alphabet:
+            unicode_alphabet.append(char)
+    cfg["vocabulary"]["size"] = len(unicode_alphabet)
+    return OCRTokenizer(unicode_alphabet, **cfg["tokenizer"])

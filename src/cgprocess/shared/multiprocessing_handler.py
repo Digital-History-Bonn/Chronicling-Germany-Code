@@ -109,7 +109,7 @@ class MPPredictor:
         self.predict_function = predict_function
         self.path_queue = path_queue
         self.model_list = model_list
-        self.data_path = Path(data_path)
+        self.data_path = Path(data_path) # todo: change this to expect path instead of string
         self.init_model_function = init_model_function
         self.save_done = save_done
         self.page_level_threads = page_level_threads
