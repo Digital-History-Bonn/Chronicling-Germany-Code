@@ -1,13 +1,17 @@
 """Module for SSM OCR prediction."""
 import argparse
 import glob
+import json
+import lzma
 import os
 from multiprocessing import set_start_method, Queue, Process, Value
 from multiprocessing.sharedctypes import Synchronized
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import numpy as np
 import torch
+from ssr import Recognizer
 from tqdm import tqdm
 
 from src.cgprocess.OCR.SSM.dataset import extract_page
@@ -58,7 +62,7 @@ class OCRPreprocess:
         processes = [Process(target=extract_page,
                              args=(path_queue, (image_path, annotations_path, output_path),
                                    extension,
-                                   self.cfg, result_queue)) for _ in range(self.num_processes)]
+                                   self.cfg, result_queue, True)) for _ in range(self.num_processes)]
 
         for file_stem in tqdm(file_stems, desc="Put paths in queue"):
             if file_stem in target_stems:
@@ -150,7 +154,7 @@ def main() -> None:
     image_paths = list(glob.glob(f'{image_path}/*.jpg'))
     layout_paths = [f'{layout_path}/{os.path.basename(path)[:-4]}.xml' for path in image_paths]
 
-    cfg = torch.load(model_path).cfg
+    cfg = torch.load(model_path).cfg #todo: is this valid?
 
     preprocess = OCRPreprocess(cfg, args.num_processes)
     path_queue, total = preprocess.extract_data(image_path, layout_path, output_path=layout_path / "temp",
@@ -160,13 +164,37 @@ def main() -> None:
 
     num_gpus = torch.cuda.device_count()
 
-    model_list = create_device_list(num_gpus)
+    model_list = create_model_list(model_path, cfg, num_gpus)
     files_done = Value('i', 0, lock=True)
 
     predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, str(image_path), True)
     predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_progress, "args": [files_done, total]})
 
     preprocess.join_manager()
+
+def predict(args, model) -> None:
+    file_stem, anno_path, target_path, _ = args # todo rename target path everywhere for prediction. THose are preprocessed data and no ML targets.
+
+    with lzma.open(target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
+        json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
+
+    json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
+    data = json.loads(json_str)
+
+    crops = []
+    length = []
+    crops_dict = np.load(target_path / f"{file_stem}.npz")
+    for i in range(len(crops_dict)):
+        crops.append(crops_dict[str(i)])
+        length.append(len(crops[i]))
+
+    ids = data["ids"]
+
+    #todo: sort crops
+
+    pred = model.inference(crops, batch_size, tokenizer)
+
+    # todo: save xml
 
 
 def get_progress(files_done: Synchronized, total) -> int:
@@ -191,20 +219,21 @@ def create_path_queue(annotations: List[str], images: List[str]) -> Queue:
     return path_queue
 
 
-def create_device_list(num_gpus: int) -> list:
+def create_model_list(model_path: Path, num_gpus: int, cfg) -> list:
     """
     Create OCR model list containing one separate model for each process.
     """
-    device_list = [[f"cuda:{i}"] for i in
+    model_list = [[model_path, cfg, f"cuda:{i}"] for i in
                    range(num_gpus)] if (
             torch.cuda.is_available() and num_gpus > 0) else \
-        [["cpu"]]
-    return device_list
+        [[model_path, cfg, "cpu"]]
+    return model_list #todo: do this without cfg, if it is loadable
 
 
-def init_model(device: object):
+def init_model(model_path: Path, cfg: dict, device: str) -> Recognizer:
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
-    torch.load
+    model = Recognizer(cfg) #todo: do this without cfg, if it is loadable
+    return model.load(model_path, device=device)
 
 
 if __name__ == '__main__':

@@ -24,14 +24,15 @@ from src.cgprocess.shared.datasets import TrainDataset
 from src.cgprocess.shared.multiprocessing_handler import run_processes, get_cpu_count
 
 
-def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int) -> Tuple[
-    List[list], List[str]]:
+def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int, predict: bool = False) -> Tuple[
+    List[list], List[str], List[str]]:
     texts = []
     crops: List[list] = []
+    ids = []
 
     threads = []
     for line in text_lines:
-        if line_has_text(line):
+        if line_has_text(line) or predict:
             thread = Thread(target=extract_crop,
                             args=(crops, image, line, image_height))
             thread.start()
@@ -41,10 +42,14 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
                     thread.join()
                 threads = []
 
-            texts.append(line.find('Unicode').text)
+            if predict:
+                ids.append(line["id"])
+            else:
+                texts.append(line.find('Unicode').text)
+
     for thread in threads:
         thread.join()
-    return crops, texts
+    return crops, texts, ids
 
 
 # todo: make this stuff in its own class
@@ -101,7 +106,7 @@ def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[Beau
 
 
 def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: str,
-                 cfg: dict, result_Queue: Optional[Queue] = None) -> None:
+                 cfg: dict, result_Queue: Optional[Queue] = None, predict: bool = False) -> None:
     """Extract target and input data for OCR SSM training"""
     tokenizer = init_tokenizer(cfg)
     image_path, annotations_path, target_path = paths
@@ -112,14 +117,14 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         file_stem, _ = arguments
         image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
                                       annotations_path / f"{file_stem}.xml")
-        crops, texts = preprocess_data(image, text_lines, cfg["image_height"])
+        crops, texts, ids = preprocess_data(image, text_lines, cfg["image_height"], predict)
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
 
-        json_str = json.dumps({"texts": texts, "targets": targets})  # 2. string (i.e. JSON)
+        json_str = json.dumps({"texts": texts, "targets": targets, "ids": ids})
 
-        json_bytes = json_str.encode('utf-8')  # 3. bytes (i.e. UTF-8)
+        json_bytes = json_str.encode('utf-8')
 
-        with lzma.open(target_path / f"{file_stem}.json", 'wb') as file:  # 4. fewer bytes (i.e. gzip)
+        with lzma.open(target_path / f"{file_stem}.json", 'wb') as file:
             file.write(json_bytes)
 
         crop_dict = {str(i): crops for i, crops in enumerate(crops)}
@@ -127,7 +132,7 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
 
         if result_Queue:
-            result_Queue.put(file_stem, block=True)
+            result_Queue.put((file_stem, annotations_path, target_path, False), block=True)
 
 
 def get_progress(output_path) -> int:
