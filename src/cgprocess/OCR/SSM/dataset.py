@@ -101,7 +101,7 @@ def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[Beau
 
 
 def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: str,
-                 cfg: dict) -> None:
+                 cfg: dict, result_Queue: Optional[Queue] = None) -> None:
     """Extract target and input data for OCR SSM training"""
     tokenizer = init_tokenizer(cfg)
     image_path, annotations_path, target_path = paths
@@ -125,6 +125,9 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         crop_dict = {str(i): crops for i, crops in enumerate(crops)}
 
         np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
+
+        if result_Queue:
+            result_Queue.put(file_stem, block=True)
 
 
 def get_progress(output_path) -> int:
@@ -201,7 +204,7 @@ class SSMDataset(TrainDataset):
                 continue
             path_queue.put((file_stem, False))
 
-        run_processes({"method": get_progress, "args": self.target_path}, processes, path_queue, total,
+        run_processes({"method": get_progress, "args": [self.target_path]}, processes, path_queue, total,
                       "Page converting")
 
     def __len__(self) -> int:

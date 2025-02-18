@@ -5,7 +5,7 @@ from multiprocessing import Queue, Process, cpu_count
 from pathlib import Path
 from threading import Thread
 from time import sleep
-from typing import Callable, List, Union, Dict, Tuple, Any
+from typing import Callable, List, Union, Dict, Tuple, Any, Optional
 
 from tqdm import tqdm
 
@@ -104,20 +104,25 @@ class MPPredictor:
     """Class for handling multiprocessing for prediction and can be used with an arbitrary model."""
 
     def __init__(self, name: str, predict_function: Callable, init_model_function: Callable, path_queue: Queue,
-                 model_list: list, data_path: str, save_done: bool, page_level_threads: bool) -> None:
+                 model_list: list, data_path: str, save_done: bool = False, page_level_threads: bool = False) -> None:
         self.name = name
         self.predict_function = predict_function
         self.path_queue = path_queue
         self.model_list = model_list
-        self.data_path = Path(data_path) # todo: change this to expect path instead of string
+        self.data_path = Path(data_path)  # todo: change this to expect path instead of string
         self.init_model_function = init_model_function
         self.save_done = save_done
         self.page_level_threads = page_level_threads
 
-    def launch_processes(self, num_gpus: int = 0, num_threads: int = 1) -> None:
+    def launch_processes(self, num_gpus: int = 0, num_threads: int = 1, total: Optional[int] = None,
+                         get_progress: Optional[Dict[str, Any]] = None) -> None:
         """
         Launches processes and handles multiprocessing Queues.
         """
+        if not total:
+            total = self.path_queue.qsize()
+        if not get_progress:
+            get_progress = {"method": get_queue_progress, "args": (total, self.path_queue)}
         if num_gpus > 0:
             print(f"Using {num_gpus} gpu device(s).")
         else:
@@ -125,7 +130,6 @@ class MPPredictor:
 
         failed_queue: Queue = Queue()
         done_queue: Queue = Queue()
-        total = self.path_queue.qsize()
 
         # todo: fill path queue after process start to avoid a full queue exception.
 
@@ -143,11 +147,14 @@ class MPPredictor:
 
         # todo: merge this with run processes?
         with tqdm(total=total, desc=self.name, unit="pages") as pbar:
-            while not self.path_queue.empty():
+            while True:
                 self.empty_log_queues(done_list, done_queue, failed_dict, failed_queue)
-                pbar.n = total - self.path_queue.qsize()
+                progress = get_progress["method"](*get_progress["args"])
+                pbar.n = progress
                 pbar.refresh()
                 sleep(1)
+                if progress >= total:
+                    break
         for _ in processes:
             self.path_queue.put(("", "", "", True))
         self.empty_log_queues(done_list, done_queue, failed_dict, failed_queue)
@@ -212,7 +219,7 @@ def run_processes(get_progress: Dict[str, Any], processes: List[Process], path_q
 
     with tqdm(total=total, desc=name, unit="pages") as pbar:
         while True:
-            progress = get_progress["method"](get_progress["args"])
+            progress = get_progress["method"](*get_progress["args"])
             pbar.n = progress
             pbar.refresh()
             sleep(1)
@@ -223,6 +230,12 @@ def run_processes(get_progress: Dict[str, Any], processes: List[Process], path_q
     for process in tqdm(processes, desc="Waiting for processes to end"):
         process.join()
 
+
 def get_cpu_count() -> int:
     """Returns the number of CPUs available."""
     return cpu_count()
+
+
+def get_queue_progress(total: int, queue: Queue):
+    """Returns difference between total and queue size."""
+    return total - queue.qsize()
