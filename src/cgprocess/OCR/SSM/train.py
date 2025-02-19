@@ -107,7 +107,8 @@ def main():
     # define any number of nn.Modules (or use your current ones)
     cfg = load_cfg(config_path)
 
-    tokenizer = init_tokenizer(cfg)
+    tokenizer = init_tokenizer(cfg) # todo: assertion for wrong vocabulary in saved targets.
+    print(cfg["vocabulary"]["size"])
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {DEVICE} device")
@@ -117,7 +118,7 @@ def main():
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
                                                                             page_dataset)
     kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-    train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True)
+    train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=args.num_workers)
     kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
     val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}

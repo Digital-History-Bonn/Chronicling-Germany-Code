@@ -212,7 +212,7 @@ def load_cfg(config_path: Path) -> dict:
 
 
 def init_tokenizer(cfg: dict) -> OCRTokenizer:
-    unicode_alphabet = create_unicode_alphabet(cfg["vocabulary"]["size"])
+    unicode_alphabet = create_unicode_alphabet(cfg["vocabulary"]["unicode"])
     custom_alphabet = cfg["vocabulary"].get("custom", [])
     for char in custom_alphabet:
         if char not in unicode_alphabet:

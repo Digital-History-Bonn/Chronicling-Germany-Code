@@ -36,7 +36,7 @@ class OCRPreprocess:
         self.image_height = cfg["image_height"]
         self.num_processes = num_processes if num_processes else get_cpu_count() // 8
         self.cfg = cfg
-        self.manager = None
+        self.manager: Optional[Process] = None
 
     def join_manager(self):
         """Join manager process if one is present"""

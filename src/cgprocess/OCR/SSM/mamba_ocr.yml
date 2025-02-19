@@ -1,8 +1,8 @@
 encoder:
+    channels: [2,4]
     layers:
         downscale: True
-        num_blocks:
-            - 1
+        num_blocks: []
     block:
         dim: 64
         state: 32
