@@ -4,7 +4,7 @@ import json
 import lzma
 import os
 import random
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, Process, set_start_method
 from pathlib import Path
 from threading import Thread
 from typing import Tuple, List, Dict, Optional
@@ -198,6 +198,7 @@ class SSMDataset(TrainDataset):
         path_queue: Queue = Queue()
         total = len(file_stems)
 
+        set_start_method('spawn')
         print(f"num processes: {self.num_processes}")
         processes = [Process(target=extract_page,
                              args=(path_queue, (self.image_path, self.annotations_path, self.target_path),
@@ -212,6 +213,8 @@ class SSMDataset(TrainDataset):
         run_processes({"method": get_progress, "args": [self.target_path]}, processes, path_queue, total,
                       "Page converting")
 
+        set_start_method('fork')
+
     def __len__(self) -> int:
         return len(self.crops)
 
@@ -222,7 +225,7 @@ class SSMDataset(TrainDataset):
             data = augment(data)
         return data, torch.tensor(self.targets[idx]).long(), self.texts[idx]
 
-    def get_augmentations(self, image_width: int, resize_prob: float = 0.6, kernel_size: int = 5) -> transforms.Compose:
+    def get_augmentations(self, image_width: int, resize_prob: float = 0.3, kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
@@ -241,15 +244,13 @@ class SSMDataset(TrainDataset):
         return transforms.Compose(
             [
                 transforms.Pad((pad_kernel, 0, 0, 0)),
-                transforms.RandomRotation(5),
                 transforms.RandomApply(
                     [
                         transforms.GaussianBlur(5, (0.1, 1.5))
                     ],
-                    p=0.2,
+                    p=0.1,
                 ),
-                transforms.RandomPerspective(distortion_scale=0.1, p=0.2),
-                transforms.RandomErasing(scale=(0.02, 0.1)),
+                # transforms.RandomErasing(scale=(0.02, 0.1)),
                 transforms.RandomApply(
                     [
                         transforms.RandomChoice(

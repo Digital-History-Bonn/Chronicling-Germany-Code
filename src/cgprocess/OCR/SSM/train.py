@@ -1,18 +1,23 @@
 """Module for running lightning trainer."""
 import argparse
+import os
+from multiprocessing import set_start_method, Value, Process, Queue
+from multiprocessing.sharedctypes import Synchronized
 from pathlib import Path
+from typing import Optional, List
 
 import torch
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
-import lightning
-from pytorch_lightning import loggers as pl_loggers
+from lightning.pytorch import Trainer
 from torchsummary import summary
 from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
 from src.cgprocess.OCR.SSM.dataset import SSMDataset
 from src.cgprocess.OCR.shared.utils import load_cfg, init_tokenizer
 from src.cgprocess.shared.datasets import PageDataset
+from src.cgprocess.shared.multiprocessing_handler import run_processes
 from src.cgprocess.shared.utils import get_file_stem_split
 
 
@@ -94,28 +99,64 @@ def get_args() -> argparse.Namespace:
         default="config/cfg.yml",
         help="Path to model config.",
     )
+    parser.add_argument(
+        "--gpus",
+        type=int,
+        default=1,
+        help="If cuda is available, this determines the number of processes launched, each receiving a single gpu.",
+    )
 
     return parser.parse_args()
 
 
 def main():
-    torch.set_float32_matmul_precision('high')
-
     args = get_args()
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    print(f"Using {device} device")
+
+    config_path = Path(args.config_path)
+    print(f"Model config {config_path}")
+
+    if torch.cuda.is_available() and args.gpus > 1:
+        assert torch.cuda.device_count() >= args.gpus, f"More gpus demanded than available! Demanded: {args.gpus} Available: {torch.cuda.device_count()}"
+        run_multiple_gpus(args)
+    else:
+        train(args)
+
+
+def run_multiple_gpus(args: argparse.Namespace) -> None:
+
+    processes = [Process(target=train,
+                         args=(args, i)) for i in range(args.gpus)]
+    print(len(processes))
+
+    run_processes({"method": get_progress, "args": [args.epochs]}, processes, Queue(), args.epochs,
+                  "Starting")
+
+
+def get_progress(total: int):
+    return total
+
+
+def train(args: argparse.Namespace, device: Optional[int] = None) -> None:
+    torch.set_float32_matmul_precision('high')
     data_path = Path(args.data_path)
     config_path = Path(args.config_path)
     # define any number of nn.Modules (or use your current ones)
     cfg = load_cfg(config_path)
 
-    tokenizer = init_tokenizer(cfg) # todo: assertion for wrong vocabulary in saved targets.
+    ckpt_dir = Path(f'models/ssm/{args.name}')
+
+    device = device if device else 0
+
+    tokenizer = init_tokenizer(cfg)  # todo: assertion for wrong vocabulary in saved targets.
     print(cfg["vocabulary"]["size"])
 
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {DEVICE} device")
-    print(f"Model config {config_path}")
-
     page_dataset = PageDataset(data_path / "images")
-    test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
+    test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file,
+                                                                            args.split_ratio,
                                                                             page_dataset)
     kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
     train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=args.num_workers)
@@ -128,7 +169,7 @@ def main():
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
 
-    lit_model = SSMOCRTrainer(model, batch_size, tokenizer)
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, f"cuda:{device}", None)
 
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
                               num_workers=args.num_workers,
@@ -142,12 +183,16 @@ def main():
                              num_workers=args.num_workers,
                              prefetch_factor=2,
                              persistent_workers=True)
-    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_loss", dirpath=f'models/ssm/{args.name}',
-                                          filename=f'{{epoch}}-{{val_loss:.2f}}-')
 
-    trainer = lightning.Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], devices=1)
+    checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_levenshtein", dirpath=ckpt_dir,
+                                          filename=f'{device}-{{epoch}}-{{val_dist:.2f}}')
+
+    logger = TensorBoardLogger(f"logs/{args.name}", name=f"{args.name}-{device}")
+    trainer = Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], logger=logger,
+                      devices=[device], val_check_interval=0.5, limit_val_batches=0.5)  # type: ignore
     trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
-    print(checkpoint_callback.best_model_path)
+
+    lit_model = SSMOCRTrainer.load_from_checkpoint(checkpoint_callback.best_model_path)
     trainer.test(lit_model, dataloaders=test_loader)
 
 

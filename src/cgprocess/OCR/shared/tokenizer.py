@@ -94,6 +94,6 @@ class OCRTokenizer(Tokenizer):
             token = self.inverse[token.item()]
             if token == '<END>':
                 break
-            text += token if self.print_special_tokens or (token not in ['<PAD>', '<START>', '<NAN>']) else ' '
+            text += token if self.print_special_tokens or (token not in ['<PAD>', '<START>', '<NAN>']) else ''
 
         return text
