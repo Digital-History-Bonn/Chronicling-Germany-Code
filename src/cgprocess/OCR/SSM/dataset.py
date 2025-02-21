@@ -185,6 +185,9 @@ class SSMDataset(TrainDataset):
             self.targets.extend(data["targets"])
             self.texts.extend(data["texts"])
 
+            # pil_image = Image.fromarray(self.crops[-1].astype('uint8')[0])
+            # pil_image.save("data/output/pre_mask.png")
+
     def extract_data(self) -> None:
         """Load ALL xml files and save result image.
         Calls read and draw functions"""
