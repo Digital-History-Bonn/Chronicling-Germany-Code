@@ -105,7 +105,12 @@ def get_args() -> argparse.Namespace:
         default=1,
         help="If cuda is available, this determines the number of processes launched, each receiving a single gpu.",
     )
-
+    parser.add_argument(
+        "--eval",
+        type=str,
+        default=None,
+        help="If a model path is provided, this will execute the test run on said model.",
+    )
     return parser.parse_args()
 
 
@@ -127,7 +132,6 @@ def main():
 
 
 def run_multiple_gpus(args: argparse.Namespace) -> None:
-
     processes = [Process(target=train,
                          args=(args, i)) for i in range(args.gpus)]
     print(len(processes))
@@ -140,7 +144,7 @@ def get_progress(total: int):
     return total
 
 
-def train(args: argparse.Namespace, device: Optional[int] = None) -> None:
+def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     torch.set_float32_matmul_precision('high')
     data_path = Path(args.data_path)
     config_path = Path(args.config_path)
@@ -149,7 +153,7 @@ def train(args: argparse.Namespace, device: Optional[int] = None) -> None:
 
     ckpt_dir = Path(f'models/ssm/{args.name}')
 
-    device = device if device else 0
+    device_id = device_id if device_id else 0
 
     tokenizer = init_tokenizer(cfg)  # todo: assertion for wrong vocabulary in saved targets.
     print(cfg["vocabulary"]["size"])
@@ -158,10 +162,11 @@ def train(args: argparse.Namespace, device: Optional[int] = None) -> None:
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file,
                                                                             args.split_ratio,
                                                                             page_dataset)
-    kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-    train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=args.num_workers)
-    kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
-    val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
+    if not args.eval:
+        kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
+        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=args.num_workers)
+        kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
+        val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     model = Recognizer(cfg).train()
@@ -169,31 +174,43 @@ def train(args: argparse.Namespace, device: Optional[int] = None) -> None:
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
 
-    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, f"cuda:{device}", None)
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, f"cuda:{device_id}", None)
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
-                              num_workers=args.num_workers,
-                              prefetch_factor=2,
-                              persistent_workers=True)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
-                            num_workers=args.num_workers,
-                            prefetch_factor=2,
-                            persistent_workers=True)
+    if not args.eval:
+        train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
+                                  num_workers=args.num_workers,
+                                  prefetch_factor=2,
+                                  persistent_workers=True)
+        val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
+                                num_workers=args.num_workers,
+                                prefetch_factor=2,
+                                persistent_workers=True)
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn,
                              num_workers=args.num_workers,
                              prefetch_factor=2,
                              persistent_workers=True)
 
     checkpoint_callback = ModelCheckpoint(save_top_k=1, monitor="val_levenshtein", dirpath=ckpt_dir,
-                                          filename=f'{device}-{{epoch}}-{{val_dist:.2f}}')
+                                          filename=f'{device_id}-{{epoch}}')
 
-    logger = TensorBoardLogger(f"logs/{args.name}", name=f"{args.name}-{device}")
+    logger = TensorBoardLogger(f"logs/{args.name}", name=f"{device_id}")
     trainer = Trainer(max_epochs=args.epochs, callbacks=[checkpoint_callback], logger=logger,
-                      devices=[device], val_check_interval=0.5, limit_val_batches=0.5)  # type: ignore
-    trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+                      devices=[device_id], val_check_interval=0.5, limit_val_batches=0.5)  # type: ignore
 
-    lit_model = SSMOCRTrainer.load_from_checkpoint(checkpoint_callback.best_model_path)
-    trainer.test(lit_model, dataloaders=test_loader)
+    if args.eval:
+        eval_path = Path(args.eval)
+        model_path = eval_path / [f for f in os.listdir(eval_path) if f.startswith(f"{device_id}")][0]
+        model = Recognizer(cfg).eval()
+        lit_model = SSMOCRTrainer.load_from_checkpoint(model_path, model=model, tokenizer=tokenizer,
+                                                       device=f"cuda:{device_id}", batch_size=batch_size)
+        trainer.test(lit_model, dataloaders=test_loader)
+    else:
+        trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+
+        lit_model = SSMOCRTrainer.load_from_checkpoint(checkpoint_callback.best_model_path, model=model,
+                                                       tokenizer=tokenizer, device=f"cuda:{device_id}",
+                                                       batch_size=batch_size)
+        trainer.test(lit_model, dataloaders=test_loader)
 
 
 if __name__ == '__main__':

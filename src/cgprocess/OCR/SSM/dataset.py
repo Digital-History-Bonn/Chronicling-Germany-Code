@@ -235,7 +235,7 @@ class SSMDataset(TrainDataset):
             kernel_size: kernel_size for gaussian blurring
         """
         pad_kernel = kernel_size if image_width <= kernel_size else 0
-        scale = (1 + random.random() * 1.5)
+        scale = (1 + random.random() * 1)
         resize_to = int(self.image_height // scale), int(image_width // scale) + 1
         crop_size = resize_to[0], image_width
         pad_y = self.image_height - resize_to[0]
