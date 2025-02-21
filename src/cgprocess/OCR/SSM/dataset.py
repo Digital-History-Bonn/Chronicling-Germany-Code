@@ -68,7 +68,7 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
 
     # initialize
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1]
+    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1].clone()
 
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
@@ -85,10 +85,6 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
 
     if crop.shape[-1] < crop_height:
         return
-
-    # apply mask
-    crop *= mask
-    crops.append(crop.numpy())
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
@@ -163,7 +159,7 @@ class SSMDataset(TrainDataset):
 
         self.cfg = cfg
 
-        self.crops: List[torch.Tensor] = []
+        self.crops: List[np.ndarray] = []
         self.targets: List[torch.Tensor] = []
         self.texts: List[str] = []
 
@@ -198,7 +194,6 @@ class SSMDataset(TrainDataset):
         path_queue: Queue = Queue()
         total = len(file_stems)
 
-        set_start_method('spawn')
         print(f"num processes: {self.num_processes}")
         processes = [Process(target=extract_page,
                              args=(path_queue, (self.image_path, self.annotations_path, self.target_path),
@@ -213,7 +208,6 @@ class SSMDataset(TrainDataset):
         run_processes({"method": get_progress, "args": [self.target_path]}, processes, path_queue, total,
                       "Page converting")
 
-        set_start_method('fork')
 
     def __len__(self) -> int:
         return len(self.crops)
@@ -225,7 +219,7 @@ class SSMDataset(TrainDataset):
             data = augment(data)
         return data, torch.tensor(self.targets[idx]).long(), self.texts[idx]
 
-    def get_augmentations(self, image_width: int, resize_prob: float = 0.3, kernel_size: int = 5) -> transforms.Compose:
+    def get_augmentations(self, image_width: int, resize_prob: float = 0.1, kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be

@@ -174,7 +174,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
 
-    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, f"cuda:{device_id}", None)
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, f"cuda:{device_id}")
 
     if not args.eval:
         train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
