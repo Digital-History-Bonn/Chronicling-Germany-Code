@@ -30,6 +30,8 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
     crops: List[list] = []
     ids = []
 
+    print("start preprocessing")
+
     threads = []
     for line in text_lines:
         if line_has_text(line) or predict:
@@ -37,7 +39,7 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
                             args=(crops, image, line, image_height))
             thread.start()
             threads.append(thread)
-            if len(threads) >= 8:
+            if len(threads) >= 4:
                 for thread in threads:
                     thread.join()
                 threads = []
@@ -85,6 +87,9 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
 
     if crop.shape[-1] < crop_height:
         return
+
+    crop *= mask
+    crops.append(crop.numpy())
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
