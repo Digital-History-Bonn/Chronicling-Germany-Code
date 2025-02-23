@@ -221,7 +221,7 @@ class SSMDataset(TrainDataset):
             data = augment(data)
         return data / 255, torch.tensor(target).long(), text
 
-    def get_augmentations(self, image_width: int, resize_prob: float = 0.1, kernel_size: int = 5) -> transforms.Compose:
+    def get_augmentations(self, image_width: int, resize_prob: float = 0.2, kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
@@ -239,43 +239,43 @@ class SSMDataset(TrainDataset):
         pad_x = kernel_size - image_width if image_width < kernel_size else pad_x
         return transforms.Compose(
             [
-                transforms.Pad((pad_kernel, 0, 0, 0)),
+                # transforms.Pad((pad_kernel, 0, 0, 0)),
                 transforms.RandomApply(
                     [
                         transforms.GaussianBlur(5, (0.1, 1.5))
                     ],
-                    p=0.1,
+                    p=0.2,
                 ),
-                # transforms.RandomErasing(scale=(0.02, 0.1)),
-                transforms.RandomApply(
-                    [
-                        transforms.RandomChoice(
-                            [
-                                transforms.Compose([
-                                    transforms.RandomCrop(
-                                        size=crop_size,
-                                    ),
-                                    transforms.Resize(
-                                        (self.image_height, int(image_width * scale)),
-                                        antialias=True,
-                                    ), ]),
-                                transforms.Compose(
-                                    [
-                                        transforms.Resize(
-                                            resize_to,
-                                            antialias=True,
-                                        ),
-                                        transforms.RandomChoice(
-                                            [
-                                                transforms.Pad((pad_x, pad_y, 0, 0)),
-                                                transforms.Pad((0, 0, pad_x, pad_y))
-                                            ]),
-                                    ]
-                                ),
-                            ]
-                        )
-                    ],
-                    p=resize_prob,
-                ),
+                transforms.RandomErasing(scale=(0.02, 0.1), p=0.2),
+                # transforms.RandomApply(
+                #     [
+                #         transforms.RandomChoice(
+                #             [
+                #                 transforms.Compose([
+                #                     transforms.RandomCrop(
+                #                         size=crop_size,
+                #                     ),
+                #                     transforms.Resize(
+                #                         (self.image_height, int(image_width * scale)),
+                #                         antialias=True,
+                #                     ), ]),
+                #                 transforms.Compose(
+                #                     [
+                #                         transforms.Resize(
+                #                             resize_to,
+                #                             antialias=True,
+                #                         ),
+                #                         transforms.RandomChoice(
+                #                             [
+                #                                 transforms.Pad((pad_x, pad_y, 0, 0)),
+                #                                 transforms.Pad((0, 0, pad_x, pad_y))
+                #                             ]),
+                #                     ]
+                #                 ),
+                #             ]
+                #         )
+                #     ],
+                #     p=resize_prob,
+                # ),
             ]
         )

@@ -166,7 +166,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
                                                                             page_dataset)
     if not args.eval:
         kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=False, num_processes=1)
+        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=1)
         kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
         val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
