@@ -1,12 +1,15 @@
 """Module for running lightning trainer."""
 import argparse
+import json
 import os
 from multiprocessing import set_start_method, Value, Process, Queue
 from multiprocessing.sharedctypes import Synchronized
 from pathlib import Path
 from typing import Optional, List
 
+import numpy as np
 import torch
+from PIL import Image
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
@@ -134,7 +137,6 @@ def main():
 def run_multiple_gpus(args: argparse.Namespace) -> None:
     processes = [Process(target=train,
                          args=(args, i)) for i in range(args.gpus)]
-    print(len(processes))
 
     run_processes({"method": get_progress, "args": [args.epochs]}, processes, Queue(), args.epochs,
                   "Starting")
@@ -156,7 +158,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     device_id = device_id if device_id else 0
 
     tokenizer = init_tokenizer(cfg)  # todo: assertion for wrong vocabulary in saved targets.
-    print(cfg["vocabulary"]["size"])
+    print(f"vocab size: {cfg['vocabulary']['size']}")
 
     page_dataset = PageDataset(data_path / "images")
     test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file,
@@ -164,7 +166,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
                                                                             page_dataset)
     if not args.eval:
         kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=args.num_workers//4)
+        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=False, num_processes=1)
         kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
         val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
@@ -174,7 +176,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
 
-    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, f"cuda:{device_id}")
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer)
 
     if not args.eval:
         train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn,
@@ -202,13 +204,13 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         model_path = eval_path / [f for f in os.listdir(eval_path) if f.startswith(f"{device_id}")][0]
         model = Recognizer(cfg).eval()
         lit_model = SSMOCRTrainer.load_from_checkpoint(model_path, model=model, tokenizer=tokenizer,
-                                                       device=f"cuda:{device_id}", batch_size=batch_size)
+                                                       batch_size=batch_size)
         trainer.test(lit_model, dataloaders=test_loader)
     else:
         trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
         lit_model = SSMOCRTrainer.load_from_checkpoint(checkpoint_callback.best_model_path, model=model,
-                                                       tokenizer=tokenizer, device=f"cuda:{device_id}",
+                                                       tokenizer=tokenizer,
                                                        batch_size=batch_size)
         trainer.test(lit_model, dataloaders=test_loader)
 

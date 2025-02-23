@@ -4,7 +4,7 @@ import json
 import lzma
 import os
 import random
-from multiprocessing import Queue, Process, set_start_method
+from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
 from typing import Tuple, List, Dict, Optional
@@ -24,38 +24,28 @@ from src.cgprocess.shared.datasets import TrainDataset
 from src.cgprocess.shared.multiprocessing_handler import run_processes, get_cpu_count
 
 
-def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int, predict: bool = False) -> Tuple[
-    List[list], List[str], List[str]]:
+def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int, predict: bool = False) -> \
+        Tuple[
+            List[np.ndarray], List[str], List[str]]:
     texts = []
-    crops: List[list] = []
+    crops: List[np.ndarray] = []
     ids = []
 
-    print("start preprocessing")
-
-    threads = []
     for line in text_lines:
         if line_has_text(line) or predict:
-            thread = Thread(target=extract_crop,
-                            args=(crops, image, line, image_height))
-            thread.start()
-            threads.append(thread)
-            if len(threads) >= 4:
-                for thread in threads:
-                    thread.join()
-                threads = []
-
+            valid = extract_crop(crops, image, line, image_height)
+            if not valid:
+                continue
             if predict:
                 ids.append(line["id"])
             else:
                 texts.append(line.find('Unicode').text)
 
-    for thread in threads:
-        thread.join()
     return crops, texts, ids
 
 
 # todo: make this stuff in its own class
-def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> None:
+def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> bool:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
     Args:
@@ -86,10 +76,11 @@ def extract_crop(crops: List[torch.Tensor], image: torch.Tensor, line: Beautiful
     mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
 
     if crop.shape[-1] < crop_height:
-        return
+        return False
 
     crop *= mask
     crops.append(crop.numpy())
+    return True
 
 
 def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
@@ -164,29 +155,33 @@ class SSMDataset(TrainDataset):
 
         self.cfg = cfg
 
-        self.crops: List[np.ndarray] = []
-        self.targets: List[torch.Tensor] = []
-        self.texts: List[str] = []
+        self.data: List[Tuple[np.ndarray, torch.Tensor, str]] = []
 
         self.prepare_data()
 
     def get_data(self):
+        threads = []
         for file_stem in tqdm(self.file_stems, desc="Loading data", unit="Pages"):
-            with lzma.open(self.target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
-                json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
 
-            json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
-            data = json.loads(json_str)
+            thread = Thread(target=self.load_preprocessed_data,
+                            args=[file_stem])
+            thread.start()
+            threads.append(thread)
+            if len(threads) >= 16:
+                for thread in threads:
+                    thread.join()
+                threads = []
+        for thread in threads:
+            thread.join()
 
-            crops_dict = np.load(self.target_path / f"{file_stem}.npz")
-            for i in range(len(crops_dict)):
-                self.crops.append(crops_dict[str(i)])
-
-            self.targets.extend(data["targets"])
-            self.texts.extend(data["texts"])
-
-            # pil_image = Image.fromarray(self.crops[-1].astype('uint8')[0])
-            # pil_image.save("data/output/pre_mask.png")
+    def load_preprocessed_data(self, file_stem: str) -> None:
+        with lzma.open(self.target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
+            json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
+        json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
+        data = json.loads(json_str)
+        crops_dict = np.load(self.target_path / f"{file_stem}.npz")
+        for i in range(len(crops_dict)):
+            self.data.append((crops_dict[str(i)], data["targets"][i], data["texts"][i]))
 
     def extract_data(self) -> None:
         """Load ALL xml files and save result image.
@@ -202,7 +197,6 @@ class SSMDataset(TrainDataset):
         path_queue: Queue = Queue()
         total = len(file_stems)
 
-        print(f"num processes: {self.num_processes}")
         processes = [Process(target=extract_page,
                              args=(path_queue, (self.image_path, self.annotations_path, self.target_path),
                                    self.image_extension,
@@ -216,16 +210,16 @@ class SSMDataset(TrainDataset):
         run_processes({"method": get_progress, "args": [self.target_path]}, processes, path_queue, total,
                       "Page converting")
 
-
     def __len__(self) -> int:
-        return len(self.crops)
+        return len(self.data)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, str]:
-        data = torch.tensor(self.crops[idx]).float()
+        crop, target, text = self.data[idx]
+        data = torch.tensor(crop).float()
         if self.augmentation:
             augment = self.get_augmentations(data.shape[-1])
             data = augment(data)
-        return data, torch.tensor(self.targets[idx]).long(), self.texts[idx]
+        return data / 255, torch.tensor(target).long(), text
 
     def get_augmentations(self, image_width: int, resize_prob: float = 0.1, kernel_size: int = 5) -> transforms.Compose:
         """
