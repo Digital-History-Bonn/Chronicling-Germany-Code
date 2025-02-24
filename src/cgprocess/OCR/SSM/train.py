@@ -9,6 +9,7 @@ from typing import Optional, List
 
 import numpy as np
 import torch
+import yaml
 from PIL import Image
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -166,7 +167,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
                                                                             page_dataset)
     if not args.eval:
         kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
-        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=1)
+        train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=2)
+        return
         kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
         val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
@@ -208,6 +210,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         trainer.test(lit_model, dataloaders=test_loader)
     else:
         trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+        with open(ckpt_dir / "model.yml", 'w', encoding="utf-8") as file:
+            yaml.safe_dump(cfg)
 
         lit_model = SSMOCRTrainer.load_from_checkpoint(checkpoint_callback.best_model_path, model=model,
                                                        tokenizer=tokenizer,

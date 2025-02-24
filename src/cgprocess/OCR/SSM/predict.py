@@ -4,6 +4,7 @@ import glob
 import json
 import lzma
 import os
+import shutil
 from multiprocessing import set_start_method, Queue, Process, Value
 from multiprocessing.sharedctypes import Synchronized
 from pathlib import Path
@@ -11,10 +12,15 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
-from ssr import Recognizer
+from PIL import Image
+from bs4 import BeautifulSoup
+from ssr import Recognizer, SSMOCRTrainer
+from torch.xpu import device
+from torchvision import transforms
 from tqdm import tqdm
 
 from src.cgprocess.OCR.SSM.dataset import extract_page
+from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
 from src.cgprocess.shared.multiprocessing_handler import MPPredictor, get_cpu_count, run_processes, get_queue_progress
 
 
@@ -66,12 +72,15 @@ class OCRPreprocess:
 
         for file_stem in tqdm(file_stems, desc="Put paths in queue"):
             if file_stem in target_stems:
+                result_queue.put((file_stem, annotations_path, output_path, False))
                 continue
             path_queue.put((file_stem, False))
         total = path_queue.qsize()
 
-        self.manager = Process(target=run_processes, args=({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total, "Preprocessing"))
-        self.manager.start() # needs to be joined externally
+        run_processes({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total, "Preprocessing")
+        #
+        # self.manager = Process(target=run_processes, args=({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total, "Preprocessing"))
+        # self.manager.start() # needs to be joined externally
 
         return result_queue, total
 
@@ -105,33 +114,18 @@ def get_args() -> argparse.Namespace:
         help="path for folder with layout xml files."
     )
     parser.add_argument(
-        "--batch-size",
-        "-b",
-        dest="batch_size",
-        metavar="B",
-        type=int,
-        help="Batch size",
-    )
-    parser.add_argument(
-        "--processes",
+        "--num-processes",
         "-p",
         type=int,
         default=None,
         help="Number of processes that are used for preprocessing.",
     )
-    # parser.add_argument(
-    #     "--thread-count",
-    #     "-t",
-    #     type=int,
-    #     default=1,
-    #     help="Select number of threads that are launched per process.",
-    # )
     parser.add_argument(
         "--model-path",
         "-m",
         type=str,
         default="model.pt",
-        help="path to model .pt or .ckpt file",
+        help="directory with a single .pt or .ckpt file and a single config.yml",
     )
     parser.add_argument(
         "--extension",
@@ -154,9 +148,12 @@ def main() -> None:
     image_paths = list(glob.glob(f'{image_path}/*.jpg'))
     layout_paths = [f'{layout_path}/{os.path.basename(path)[:-4]}.xml' for path in image_paths]
 
-    cfg = torch.load(model_path).cfg #todo: is this valid?
+    cfg = load_cfg(model_path / "config.yml")
 
     preprocess = OCRPreprocess(cfg, args.num_processes)
+
+    if not os.path.exists(layout_path / "temp"):
+        os.makedirs(layout_path / "temp")
     path_queue, total = preprocess.extract_data(image_path, layout_path, output_path=layout_path / "temp",
                                                 extension=args.extension)
 
@@ -164,7 +161,7 @@ def main() -> None:
 
     num_gpus = torch.cuda.device_count()
 
-    model_list = create_model_list(model_path, cfg, num_gpus)
+    model_list = create_model_list(model_path, num_gpus)
     files_done = Value('i', 0, lock=True)
 
     predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, str(image_path), True)
@@ -172,8 +169,10 @@ def main() -> None:
 
     preprocess.join_manager()
 
+
 def predict(args, model) -> None:
     file_stem, anno_path, target_path, _ = args # todo rename target path everywhere for prediction. THose are preprocessed data and no ML targets.
+    device = model.device
 
     with lzma.open(target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
         json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
@@ -186,15 +185,73 @@ def predict(args, model) -> None:
     crops_dict = np.load(target_path / f"{file_stem}.npz")
     for i in range(len(crops_dict)):
         crops.append(crops_dict[str(i)])
-        length.append(len(crops[i]))
+        length.append(crops[i].shape[-1])
 
-    ids = data["ids"]
+    sorted_indices = np.argsort(np.array(length))
+    ids = np.array(data["ids"])[sorted_indices]
 
-    #todo: sort crops
+    batches = len(crops) // model.batch_size
+    pred_list: List[str] = []
 
-    pred = model.inference(crops, batch_size, tokenizer)
+    for i in range(batches):
+        batch = create_batch(crops, sorted_indices, i*model.batch_size, (i+1)*model.batch_size)
+        # for j in range(len(batch)):
+        #     image = Image.fromarray(torch.squeeze(batch[j]*255).type(torch.uint8).numpy())
+        #     image.save(f"test_output/{j}.png")
+        pred_list.extend(model.inference(batch.to(device)))
 
-    # todo: save xml
+    # if batches*model.batch_size < len(crops):
+    #     diff = model.batch_size - (len(crops) - batches * model.batch_size)
+    #     batch = create_batch(crops, sorted_indices, batches*model.batch_size, None)
+        # todo: extend batch with padding
+        # pred_list.extend(model.inference(batch.to(device))[:-diff])
+
+    with open(anno_path / f"{file_stem}.xml", "r", encoding="utf-8") as file:
+        data = file.read()
+    soup = BeautifulSoup(data, 'xml')
+    page = soup.find('Page')
+    text_lines = page.find_all('TextLine')
+    id_dict = {}
+    for i, text_line in enumerate(text_lines):
+        id_dict[text_line.attrs["id"]] = i
+    for i, pred_line in enumerate(pred_list):
+        bs4_line = text_lines[id_dict[ids[i]]]
+        textequiv = soup.new_tag('TextEquiv')
+        unicode = soup.new_tag('Unicode')
+        unicode.string = pred_line.strip()
+        textequiv.append(unicode)
+        bs4_line.append(textequiv)
+
+    # save results
+    with open(anno_path / f"{file_stem}.xml", 'w', encoding='utf-8') as file:
+        file.write(soup.prettify()
+                   .replace("<Unicode>\n      ", "<Unicode>")
+                   .replace("\n     </Unicode>", "</Unicode>"))
+
+    # shutil.rmtree(target_path / f"{file_stem}.json", ignore_errors=True)
+    # shutil.rmtree(target_path / f"{file_stem}.npz", ignore_errors=True)
+
+
+def create_batch(crops: list, sorted_indices: np.ndarray, start: int, end: Optional[int]) -> torch.Tensor:
+    batch = []
+    padded_batch = []
+    max_width = 0
+
+    for index in sorted_indices[start:end]:
+        crop = torch.unsqueeze(torch.tensor(crops[index]), 0).float()/255
+        batch.append(crop)
+        width = crop.shape[-1]
+        if width > max_width:
+            max_width = width
+
+    for crop in batch:
+        if crop.shape[-1] < max_width:
+            transform = transforms.Pad((0, 0, max_width - crop.shape[-1], 0))
+            padded_batch.append(transform(crop))
+        else:
+            padded_batch.append(crop)
+    return torch.vstack(padded_batch)
+
 
 
 def get_progress(files_done: Synchronized, total) -> int:
@@ -219,21 +276,30 @@ def create_path_queue(annotations: List[str], images: List[str]) -> Queue:
     return path_queue
 
 
-def create_model_list(model_path: Path, num_gpus: int, cfg) -> list:
+def create_model_list(model_path: Path, num_gpus: int) -> list:
     """
     Create OCR model list containing one separate model for each process.
     """
-    model_list = [[model_path, cfg, f"cuda:{i}"] for i in
+    model_list = [[model_path, f"cuda:{i}"] for i in
                    range(num_gpus)] if (
             torch.cuda.is_available() and num_gpus > 0) else \
-        [[model_path, cfg, "cpu"]]
-    return model_list #todo: do this without cfg, if it is loadable
+        [[model_path, "cpu"]]
+    return model_list
 
 
-def init_model(model_path: Path, cfg: dict, device: str) -> Recognizer:
+def init_model(model_path: Path, device: str) -> Recognizer:
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
-    model = Recognizer(cfg) #todo: do this without cfg, if it is loadable
-    return model.load(model_path, device=device)
+    cfg = load_cfg(model_path / "config.yml")
+    tokenizer = init_tokenizer(cfg)
+    model = Recognizer(cfg)
+    model.tokenizer = tokenizer
+    model_path = model_path / [f for f in os.listdir(model_path) if f.endswith(".pt") or f.endswith(".ckpt")][0]
+    trainer = SSMOCRTrainer.load_from_checkpoint(model_path, model=model,
+                                       tokenizer=model.tokenizer,
+                                       batch_size=model.batch_size)
+    trainer.model.device = device
+    model.eval()
+    return model.to(device)
 
 
 if __name__ == '__main__':

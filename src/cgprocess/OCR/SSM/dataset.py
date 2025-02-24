@@ -7,11 +7,12 @@ import random
 from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
+from time import time
 from typing import Tuple, List, Dict, Optional
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 from bs4 import BeautifulSoup
 from skimage import draw
 from torchvision import transforms
@@ -38,6 +39,8 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
                 continue
             if predict:
                 ids.append(line["id"])
+                if line_has_text(line):
+                    texts.append(line.find('Unicode').text)
             else:
                 texts.append(line.find('Unicode').text)
 
@@ -64,16 +67,18 @@ def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSo
 
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
-    # create mask
-    mask = np.zeros((crop.shape[0] + 1, crop.shape[1] + 1), dtype=np.uint8)
-    x_coords, y_coords = draw.polygon(local_polygon[:, 1], local_polygon[:, 0])
-    mask[x_coords, y_coords] = 1
+    img = Image.new("1", (crop.shape[0] + 1, crop.shape[1] + 1), 0)
+    draw = ImageDraw.Draw(img)
+    draw.polygon(list(map(tuple, np.roll(local_polygon, 1, axis=1))), fill=1)
+
+    transform = transforms.PILToTensor()
+    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8)
 
     # scale to crop_height
     scale = crop_height / crop.shape[-2]
     rescale = transforms.Resize((crop_height, int(crop.shape[-1] * scale)))
     crop = rescale(torch.unsqueeze(crop, 0))
-    mask = rescale(torch.unsqueeze(torch.tensor(mask[:-1, :-1]), 0))
+    mask = rescale(mask[:, :-1, :-1])
 
     if crop.shape[-1] < crop_height:
         return False
@@ -124,7 +129,7 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
 
         if result_Queue:
-            result_Queue.put((file_stem, annotations_path, target_path, False), block=True)
+            result_Queue.put((file_stem, annotations_path, target_path, False))
 
 
 def get_progress(output_path) -> int:

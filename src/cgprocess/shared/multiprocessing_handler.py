@@ -38,18 +38,18 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
             args = queue.get()
             if args[-1]:
                 break
-            try:
-                thread: Union[None, Thread] = predict_function(args, model)
-                if thread is not None:
-                    threads.append(thread)
-                if len(threads) >= num_threads:
-                    join_threads(threads)
-                    threads = []
-                if save_done:
-                    done_queue.put(args[0], block=True)
-            except Exception as e:
-                failed_queue.put(args[0], block=True)
-                print(e)
+            # try:
+            thread: Union[None, Thread] = predict_function(args, model)
+            if thread is not None:
+                threads.append(thread)
+            if len(threads) >= num_threads:
+                join_threads(threads)
+                threads = []
+            if save_done:
+                done_queue.put(args[0], block=True)
+            # except Exception as e:
+            #     failed_queue.put(args[0], block=True)
+            #     print(e)
 
 
 def launch_threads(done_queue: Queue, failed_queue: Queue, model: object, num_threads: int, predict_function: Callable,
