@@ -20,7 +20,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.cgprocess.OCR.SSM.dataset import extract_page
-from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
+from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg, line_has_text
 from src.cgprocess.shared.multiprocessing_handler import MPPredictor, get_cpu_count, run_processes, get_queue_progress
 
 
@@ -50,8 +50,7 @@ class OCRPreprocess:
             self.manager.join()
             self.manager = None
 
-    def extract_data(self, image_path: Path, annotations_path: Path, output_path: Path, extension: str) -> Tuple[
-        Queue, int]:
+    def extract_data(self, image_path: Path, annotations_path: Path, output_path: Path, extension: str) -> Queue:
         """Launch processes for preprocessing files, saving them and add them to the path queue."""
 
         file_stems = [
@@ -82,7 +81,7 @@ class OCRPreprocess:
         # self.manager = Process(target=run_processes, args=({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total, "Preprocessing"))
         # self.manager.start() # needs to be joined externally
 
-        return result_queue, total
+        return result_queue
 
 
 def get_args() -> argparse.Namespace:
@@ -154,20 +153,24 @@ def main() -> None:
 
     if not os.path.exists(layout_path / "temp"):
         os.makedirs(layout_path / "temp")
-    path_queue, total = preprocess.extract_data(image_path, layout_path, output_path=layout_path / "temp",
+    path_queue = preprocess.extract_data(image_path, layout_path, output_path=layout_path / "temp",
                                                 extension=args.extension)
+
+    total = len(image_paths)
 
     assert len(image_paths) == len(layout_paths), "Images and annotations path numbers do not match."
 
     num_gpus = torch.cuda.device_count()
-
     model_list = create_model_list(model_path, num_gpus)
-    files_done = Value('i', 0, lock=True)
+
+    # files_done = Value('i', 0, lock=True) use this in future to run preprocessing in parallel
+    # instead of ahead of prediction
 
     predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, str(image_path), True)
-    predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_progress, "args": [files_done, total]})
+    # predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_progress, "args": [files_done, total]})
+    predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_queue_progress, "args": (total, path_queue)})
 
-    preprocess.join_manager()
+    # preprocess.join_manager()
 
 
 def predict(args, model) -> None:
@@ -200,11 +203,11 @@ def predict(args, model) -> None:
         #     image.save(f"test_output/{j}.png")
         pred_list.extend(model.inference(batch.to(device)))
 
-    # if batches*model.batch_size < len(crops):
-    #     diff = model.batch_size - (len(crops) - batches * model.batch_size)
-    #     batch = create_batch(crops, sorted_indices, batches*model.batch_size, None)
-        # todo: extend batch with padding
-        # pred_list.extend(model.inference(batch.to(device))[:-diff])
+    if batches*model.batch_size < len(crops):
+        diff = model.batch_size - (len(crops) - batches * model.batch_size)
+        batch = create_batch(crops, sorted_indices, batches*model.batch_size, None)
+        batch = torch.cat([batch, torch.stack([batch[-1].clone()] * diff)])
+        pred_list.extend(model.inference(batch.to(device))[:-diff])
 
     with open(anno_path / f"{file_stem}.xml", "r", encoding="utf-8") as file:
         data = file.read()
@@ -214,8 +217,11 @@ def predict(args, model) -> None:
     id_dict = {}
     for i, text_line in enumerate(text_lines):
         id_dict[text_line.attrs["id"]] = i
+        if text_line.TextEquiv:
+            text_line.TextEquiv.decompose()
     for i, pred_line in enumerate(pred_list):
         bs4_line = text_lines[id_dict[ids[i]]]
+        bs4_line.findall
         textequiv = soup.new_tag('TextEquiv')
         unicode = soup.new_tag('Unicode')
         unicode.string = pred_line.strip()
@@ -294,14 +300,13 @@ def init_model(model_path: Path, device: str) -> Recognizer:
     model = Recognizer(cfg)
     model.tokenizer = tokenizer
     model_path = model_path / [f for f in os.listdir(model_path) if f.endswith(".pt") or f.endswith(".ckpt")][0]
-    trainer = SSMOCRTrainer.load_from_checkpoint(model_path, model=model,
+    SSMOCRTrainer.load_from_checkpoint(model_path, model=model,
                                        tokenizer=model.tokenizer,
                                        batch_size=model.batch_size)
-    trainer.model.device = device
+    model.device = device
     model.eval()
     return model.to(device)
 
 
 if __name__ == '__main__':
-    set_start_method('spawn')
     main()
