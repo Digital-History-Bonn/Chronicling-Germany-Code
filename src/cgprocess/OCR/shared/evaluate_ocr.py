@@ -4,6 +4,7 @@ import difflib
 import json
 import os
 import statistics
+import time
 from typing import List, Any, Tuple, Optional
 
 import Levenshtein
@@ -57,18 +58,25 @@ def main(parsed_args: argparse.Namespace) -> None:
 
         multi_page_correct.append(page_correct)
         multi_page_bad.append(page_bad)
-        multi_page_distance_list.append(distance_list)
+        multi_page_distance_list.extend(distance_list)
         multi_page_bad_list.append(bad_list)
         bleu_sum += bleu_score
 
     print(
         f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
-    print(f"overall correct lines: {calculate_ratio(multi_page_correct)}")
-    print(f"overall bad lines: {calculate_ratio(multi_page_bad)}")
+    print(f"overall correct lines: "
+          f"{sum(multi_page_correct) / len(multi_page_distance_list)}")
+    print(
+        f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
     print(f"overall bleu score: {bleu_sum / len(gt_paths)}")
 
-    with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
-        json.dump(multi_page_bad_list, file)
+    # with open(f'results_{parsed_args.name}.json', 'w', encoding='utf8') as json_file:
+    #     json.dump({"levenshtein": calculate_ratio(multi_page_distance_list), "correct":
+    #         calculate_ratio(multi_page_correct),
+    #                "bad": calculate_ratio(multi_page_bad)}, json_file)
+
+    # with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
+    #     json.dump(multi_page_bad_list, file)
 
 
 def compare_page(confidence_threshold: float,
@@ -265,6 +273,13 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
              "of train, validation and test images. This will only evaluate the test dataset.",
+    )
+    parser.add_argument(
+        "--name",
+        "-n",
+        type=str,
+        default=time.time(),
+        help="Evaluation name. Results will be printed in 'results_name.json'"
     )
     return parser.parse_args()
 

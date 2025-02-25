@@ -1,21 +1,22 @@
 """Evaluation script for baseline detection."""
 import argparse
 import glob
+import json
 import os.path
+import time
 from typing import Tuple, List
 from itertools import product
 
 import numpy as np
 import torch
 from bs4 import BeautifulSoup
-from shapely import intersection, union
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
 from src.cgprocess.OCR.shared.evaluate_ocr import levensthein_distance, calculate_ratio
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from src.cgprocess.baseline_detection.utils import get_tag, adjust_path
-from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
+from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
 # pylint: disable=duplicate-code
@@ -74,8 +75,8 @@ def matching(predictions: List[Polygon],
     unions = []
 
     for pred, tar in product(predictions, targets):
-        intersects.append(intersection(pred, tar).area)
-        unions.append(union(pred, tar).area)
+        intersects.append(pred.intersection(tar.buffer(0)).area)
+        unions.append(pred.union(tar.buffer(0)).area)
 
     ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(predictions), len(targets))
 
@@ -104,7 +105,7 @@ def matching(predictions: List[Polygon],
     return mapping
 
 
-def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[List[Tuple[int, int]], float]:
+def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[List[Tuple[int, int]], float, list, list]:
     """
     Evaluates the baseline detection.
 
@@ -136,17 +137,20 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[List[Tuple
     lev_dis, lev_med, ratio_list, distance_list, _, bleu_score = results
 
     char_ratio = calculate_ratio(distance_list)
+
+    correct_lines = np.array(ratio_list)[np.array(ratio_list) == 1.0].tolist()
+    bad_lines = np.array(ratio_list)[np.array(ratio_list) < 0.9].tolist()
     print(f"{prediction_file} correct lines: "
-          f"{len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
+          f"{len(correct_lines) / len(ratio_list)}")
     print(
-        f"{prediction_file} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
+        f"{prediction_file} bad lines: {len(bad_lines) / len(ratio_list)}")
     print(f"{prediction_file} normalized levensthein distance per line: {lev_dis}")
     print(f"{prediction_file} normalized levensthein distance per character: {char_ratio}")
     print(f"{prediction_file} levensthein median: {lev_med}")
     print(f"{prediction_file} levensthein worst line: {min(ratio_list)}\n")
     print(f"{prediction_file} bleu score normalized per line: {bleu_score}")
 
-    return distance_list, bleu_score
+    return distance_list, bleu_score, correct_lines, bad_lines
 
 
 # pylint: disable=duplicate-code
@@ -173,8 +177,16 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with ground truth xml files."
     )
+    parser.add_argument(
+        "--name",
+        "-n",
+        type=str,
+        default=time.time(),
+        help="Evaluation name. Results will be printed in 'results_name.json'"
+    )
 
     return parser.parse_args()
+
 
 # pylint: disable=duplicate-code
 def main() -> None:
@@ -188,23 +200,37 @@ def main() -> None:
     predictions = [f"{pred_dir}/{os.path.basename(x)}" for x in targets]
 
     overall_distance_list = []
+    overall_correct_lines = []
+    overall_bad_lines = []
     ratios = []
     bleu_sum = 0.0
 
     for prediction, target in tqdm(zip(predictions, targets), total=len(targets),
                                    desc='evaluation'):
-        distance_list, bleu_score = evaluation(prediction, target)
+        distance_list, bleu_score, correct_lines, bad_lines = evaluation(prediction, target)
         bleu_sum += bleu_score
         overall_distance_list += distance_list
+        overall_correct_lines += correct_lines
+        overall_bad_lines += bad_lines
         ratios.append(calculate_ratio(distance_list))
 
     if len(targets) > 0:
         overall_ratio = calculate_ratio(overall_distance_list)
-        print(f"\n\n{overall_ratio=}")
-        print(
-            f"{np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
-            f"{np.max(ratios)}")
+        print(args.name)
+        print(f"\n\noverall levensthein distance per character: {overall_ratio}")
+        # print(
+        #     f"levensthein distance per character per page: {np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
+        #     f"{np.max(ratios)}")
         print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
+        print(f"overall correct lines: "
+              f"{len(overall_correct_lines) / len(overall_distance_list)}")
+        print(
+            f"overall bad lines: {len(overall_bad_lines) / len(overall_distance_list)}")
+
+        with open(f'results_{args.name}.json', 'w', encoding='utf8') as json_file:
+            json.dump({"levenshtein": overall_ratio, "correct":
+                len(overall_correct_lines) / len(overall_distance_list),
+                       "bad": len(overall_bad_lines) / len(overall_distance_list)}, json_file)
 
 
 if __name__ == '__main__':

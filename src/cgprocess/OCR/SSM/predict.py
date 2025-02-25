@@ -302,7 +302,7 @@ def init_model(model_path: Path, device: str) -> Recognizer:
     model_path = model_path / [f for f in os.listdir(model_path) if f.endswith(".pt") or f.endswith(".ckpt")][0]
     SSMOCRTrainer.load_from_checkpoint(model_path, model=model,
                                        tokenizer=model.tokenizer,
-                                       batch_size=model.batch_size)
+                                       batch_size=model.batch_size, map_location=device)
     model.device = device
     model.eval()
     return model.to(device)
