@@ -4,18 +4,15 @@ import glob
 import json
 import lzma
 import os
-import shutil
-from multiprocessing import set_start_method, Queue, Process, Value
+from multiprocessing import Queue, Process
 from multiprocessing.sharedctypes import Synchronized
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
-from PIL import Image
 from bs4 import BeautifulSoup
-from ssr import Recognizer, SSMOCRTrainer
-from torch.xpu import device
+from ssr import Recognizer, SSMOCRTrainer # pylint: disable=import-error
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -44,7 +41,7 @@ class OCRPreprocess:
         self.cfg = cfg
         self.manager: Optional[Process] = None
 
-    def join_manager(self):
+    def join_manager(self) -> None:
         """Join manager process if one is present"""
         if self.manager:
             self.manager.join()
@@ -76,9 +73,11 @@ class OCRPreprocess:
             path_queue.put((file_stem, False))
         total = path_queue.qsize()
 
-        run_processes({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total, "Preprocessing")
+        run_processes({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total,
+                      "Preprocessing")
         #
-        # self.manager = Process(target=run_processes, args=({"method": get_queue_progress, "args": (total, path_queue)}, processes, path_queue, total, "Preprocessing"))
+        # self.manager = Process(target=run_processes, args=({"method": get_queue_progress, "args":
+        # (total, path_queue)}, processes, path_queue, total, "Preprocessing"))
         # self.manager.start() # needs to be joined externally
 
         return result_queue
@@ -154,7 +153,7 @@ def main() -> None:
     if not os.path.exists(layout_path / "temp"):
         os.makedirs(layout_path / "temp")
     path_queue = preprocess.extract_data(image_path, layout_path, output_path=layout_path / "temp",
-                                                extension=args.extension)
+                                         extension=args.extension)
 
     total = len(image_paths)
 
@@ -168,52 +167,78 @@ def main() -> None:
 
     predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, str(image_path), True)
     # predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_progress, "args": [files_done, total]})
-    predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_queue_progress, "args": (total, path_queue)})
+    predictor.launch_processes(num_gpus, total=total,
+                               get_progress={"method": get_queue_progress, "args": (total, path_queue)})
 
     # preprocess.join_manager()
 
 
-def predict(args, model) -> None:
-    file_stem, anno_path, target_path, _ = args # todo rename target path everywhere for prediction. THose are preprocessed data and no ML targets.
+def predict(args: list, model: Recognizer) -> None:
+    """
+    Load preprocessed data and run OCR for all text-line crops. Save results inot xml files.
+    Args:
+        args: list with file stem, annotation path and path for preprocessed data.
+        model: State space recognition model
+    """
+    file_stem, anno_path, data_path, _ = args
     device = model.device
 
-    with lzma.open(target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
-        json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
-
-    json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
-    data = json.loads(json_str)
-
-    crops = []
-    length = []
-    crops_dict = np.load(target_path / f"{file_stem}.npz")
-    for i in range(len(crops_dict)):
-        crops.append(crops_dict[str(i)])
-        length.append(crops[i].shape[-1])
-
-    sorted_indices = np.argsort(np.array(length))
-    ids = np.array(data["ids"])[sorted_indices]
+    crops, ids, sorted_indices = load_data(data_path, file_stem)
 
     batches = len(crops) // model.batch_size
     pred_list: List[str] = []
 
     for i in range(batches):
-        batch = create_batch(crops, sorted_indices, i*model.batch_size, (i+1)*model.batch_size)
+        batch = create_batch(crops, sorted_indices, i * model.batch_size, (i + 1) * model.batch_size)
         # for j in range(len(batch)):
         #     image = Image.fromarray(torch.squeeze(batch[j]*255).type(torch.uint8).numpy())
         #     image.save(f"test_output/{j}.png")
         pred_list.extend(model.inference(batch.to(device)))
 
-    if batches*model.batch_size < len(crops):
+    if batches * model.batch_size < len(crops):
         diff = model.batch_size - (len(crops) - batches * model.batch_size)
-        batch = create_batch(crops, sorted_indices, batches*model.batch_size, None)
+        batch = create_batch(crops, sorted_indices, batches * model.batch_size, None)
         batch = torch.cat([batch, torch.stack([batch[-1].clone()] * diff)])
         pred_list.extend(model.inference(batch.to(device))[:-diff])
 
+    save_results_to_xml(anno_path, file_stem, ids, pred_list)
+
+    # shutil.rmtree(target_path / f"{file_stem}.json", ignore_errors=True)
+    # shutil.rmtree(target_path / f"{file_stem}.npz", ignore_errors=True)
+
+
+def load_data(data_path: Path,
+              file_stem: str) -> Tuple[List[np.ndarray], np.ndarray, np.ndarray]:
+    """
+    Load preprocessed data and sort crops after their width.
+    Return:
+        Unsorted crops list, sorted ids and indices for later sorting of crops list.
+    """
+    with lzma.open(data_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
+        json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
+    json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
+    data = json.loads(json_str)
+    crops = []
+    length = []
+    crops_dict = np.load(data_path / f"{file_stem}.npz")
+    for i in range(len(crops_dict)):
+        crops.append(crops_dict[str(i)])
+        length.append(crops[i].shape[-1])
+    sorted_indices = np.argsort(np.array(length))
+    ids = np.array(data["ids"])[sorted_indices]
+    return crops, ids, sorted_indices
+
+
+def save_results_to_xml(anno_path: Path, file_stem: str, ids: np.ndarray, pred_list: List[str]) -> None:
+    """
+    Load xml file and insert ocr results for all test-lines. Text lines are identified via their ids.
+    Already present textual data is removed.
+    """
     with open(anno_path / f"{file_stem}.xml", "r", encoding="utf-8") as file:
         data = file.read()
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
-    text_lines = page.find_all('TextLine')
+    text_lines = page.find_all('TextLine') # type: ignore
     id_dict = {}
     for i, text_line in enumerate(text_lines):
         id_dict[text_line.attrs["id"]] = i
@@ -221,34 +246,31 @@ def predict(args, model) -> None:
             text_line.TextEquiv.decompose()
     for i, pred_line in enumerate(pred_list):
         bs4_line = text_lines[id_dict[ids[i]]]
-        bs4_line.findall
         textequiv = soup.new_tag('TextEquiv')
         unicode = soup.new_tag('Unicode')
         unicode.string = pred_line.strip()
         textequiv.append(unicode)
         bs4_line.append(textequiv)
-
     # save results
     with open(anno_path / f"{file_stem}.xml", 'w', encoding='utf-8') as file:
         file.write(soup.prettify()
                    .replace("<Unicode>\n      ", "<Unicode>")
-                   .replace("\n     </Unicode>", "</Unicode>"))
-
-    # shutil.rmtree(target_path / f"{file_stem}.json", ignore_errors=True)
-    # shutil.rmtree(target_path / f"{file_stem}.npz", ignore_errors=True)
+                   .replace("\n     </Unicode>", "</Unicode>")) # type: ignore
 
 
-def create_batch(crops: list, sorted_indices: np.ndarray, start: int, end: Optional[int]) -> torch.Tensor:
+def create_batch(crops: List[np.ndarray], sorted_indices: np.ndarray, start: int, end: Optional[int]) -> torch.Tensor:
+    """
+    Pad sorted crops to form a batch of crops with uniform width.
+    """
     batch = []
     padded_batch = []
     max_width = 0
 
     for index in sorted_indices[start:end]:
-        crop = torch.unsqueeze(torch.tensor(crops[index]), 0).float()/255
+        crop = torch.unsqueeze(torch.tensor(crops[index]), 0).float() / 255
         batch.append(crop)
         width = crop.shape[-1]
-        if width > max_width:
-            max_width = width
+        max_width = max(max_width, width)
 
     for crop in batch:
         if crop.shape[-1] < max_width:
@@ -257,7 +279,6 @@ def create_batch(crops: list, sorted_indices: np.ndarray, start: int, end: Optio
         else:
             padded_batch.append(crop)
     return torch.vstack(padded_batch)
-
 
 
 def get_progress(files_done: Synchronized, total) -> int:
@@ -287,7 +308,7 @@ def create_model_list(model_path: Path, num_gpus: int) -> list:
     Create OCR model list containing one separate model for each process.
     """
     model_list = [[model_path, f"cuda:{i}"] for i in
-                   range(num_gpus)] if (
+                  range(num_gpus)] if (
             torch.cuda.is_available() and num_gpus > 0) else \
         [[model_path, "cpu"]]
     return model_list

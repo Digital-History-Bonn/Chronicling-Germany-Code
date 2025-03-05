@@ -10,7 +10,8 @@ import numpy as np
 from tqdm import tqdm
 
 
-def merge_files(args, output_path, paths):
+def merge_files(args, output_path, paths) -> None:
+    """Merge data and save it to disc."""
     page_csv = []
     page_json = []
     for path in tqdm(paths):

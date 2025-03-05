@@ -7,10 +7,6 @@ from pathlib import Path
 from typing import Tuple, Union, List, Optional, Any
 
 import numpy as np
-import torch
-# pylint thinks torch has no name randperm this is wrong
-# pylint: disable-next=no-name-in-module
-from torch import randperm
 from torch.utils.data import Dataset
 
 from src.cgprocess.shared.utils import initialize_random_split, get_file_stems, prepare_file_loading
@@ -130,8 +126,8 @@ class TrainDataset(Dataset, ABC):
                                    f"with size {len(self.file_stems)}.")
             self.file_stems = self.file_stems[:limit]
 
-    def prepare_data(self):
-
+    def prepare_data(self) -> None:
+        """Call extract data method if no preprocessed files are found, load data otherwise."""
         if not os.path.exists(self.target_path):
             print(f"creating {self.target_path}.")
             os.makedirs(self.target_path)  # type: ignore
@@ -157,9 +153,8 @@ class TrainDataset(Dataset, ABC):
         return False
 
     @abstractmethod
-    def get_data(self):
+    def get_data(self) -> None:
         """Loads data and appends it to class attributes that store data until needed."""
-        pass
 
     @abstractmethod
     def __len__(self) -> int:
@@ -167,7 +162,6 @@ class TrainDataset(Dataset, ABC):
         Returns:
             int: number of items in dateset
         """
-        pass
 
     @abstractmethod
     def __getitem__(self, item: int) -> Any:
@@ -175,9 +169,7 @@ class TrainDataset(Dataset, ABC):
         Returns:
             tuple: Input and target tensors
         """
-        pass
 
     @abstractmethod
     def extract_data(self) -> None:
         """Extract data and save files inside the target directory."""
-        pass

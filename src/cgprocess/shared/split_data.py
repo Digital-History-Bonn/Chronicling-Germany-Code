@@ -46,7 +46,7 @@ def get_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
-def main():
+def main() -> None:
     """
     Copies images and xml files according to the specified split. As target a 'datasets' folder is created, in which
     one folder for each dataset is created. xml files will be copied into a folder named page inside the respective

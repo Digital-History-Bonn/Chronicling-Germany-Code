@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Tuple, List, Callable, Optional, Union
 
 import torch
+# pylint thinks torch has no name randperm this is wrong
+# pylint: disable-next=no-name-in-module
 from torch import randperm
 from torch.utils.data import Dataset
 
@@ -129,7 +131,7 @@ def get_bbox(points: Union[torch.Tensor],  # type: ignore
     x_max, x_min = points[:, 0].max(), points[:, 0].min()
     y_max, y_min = points[:, 1].max(), points[:, 1].min()
 
-    return x_min.item(), y_min.item(), x_max.item(), y_max.item()
+    return x_min.item(), y_min.item(), x_max.item(), y_max.item() # type: ignore
 
 def enforce_image_limits(polygon: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     """

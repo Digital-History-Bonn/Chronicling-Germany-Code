@@ -1,22 +1,18 @@
 """Module for running lightning trainer."""
 import argparse
-import json
 import os
-from multiprocessing import set_start_method, Value, Process, Queue
-from multiprocessing.sharedctypes import Synchronized
+from multiprocessing import Process, Queue
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
-import numpy as np
 import torch
 import yaml
-from PIL import Image
+from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
+from ssr import SSMOCRTrainer, Recognizer, collate_fn  # pylint: disable=import-error
 from torch.utils.data import DataLoader
-from lightning.pytorch import Trainer
 from torchsummary import summary
-from ssr import SSMOCRTrainer, Recognizer, collate_fn
 
 from src.cgprocess.OCR.SSM.dataset import SSMDataset
 from src.cgprocess.OCR.shared.utils import load_cfg, init_tokenizer
@@ -26,6 +22,7 @@ from src.cgprocess.shared.utils import get_file_stem_split
 
 
 def get_args() -> argparse.Namespace:
+    # pylint: disable=duplicate-code
     """
     Defines arguments.
 
@@ -119,6 +116,7 @@ def get_args() -> argparse.Namespace:
 
 
 def main():
+    """Launch processes for each gpu if possible, otherwise call train directly."""
     args = get_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -129,13 +127,15 @@ def main():
     print(f"Model config {config_path}")
 
     if torch.cuda.is_available() and args.gpus > 1:
-        assert torch.cuda.device_count() >= args.gpus, f"More gpus demanded than available! Demanded: {args.gpus} Available: {torch.cuda.device_count()}"
+        assert torch.cuda.device_count() >= args.gpus, (f"More gpus demanded than available! Demanded: "
+                                                        f"{args.gpus} Available: {torch.cuda.device_count()}")
         run_multiple_gpus(args)
     else:
         train(args)
 
 
 def run_multiple_gpus(args: argparse.Namespace) -> None:
+    """Launch a process for each gpu."""
     processes = [Process(target=train,
                          args=(args, i)) for i in range(args.gpus)]
 
@@ -144,10 +144,12 @@ def run_multiple_gpus(args: argparse.Namespace) -> None:
 
 
 def get_progress(total: int):
+    """Return total as progress to skip progress bar."""
     return total
 
 
 def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
+    """Initialize config, datasets and dataloader and run the lightning trainer."""
     torch.set_float32_matmul_precision('high')
     data_path = Path(args.data_path)
     config_path = Path(args.config_path)
@@ -168,9 +170,9 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     if not args.eval:
         kwargs = {"data_path": data_path, "file_stems": train_file_stems, "name": "train"}
         train_set = SSMDataset(kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=2)
-        return
         kwargs = {"data_path": data_path, "file_stems": val_file_stems, "name": "validation"}
         val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
+
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["image_height"], cfg)
     model = Recognizer(cfg).train()
@@ -209,9 +211,10 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
                                                        batch_size=batch_size)
         trainer.test(lit_model, dataloaders=test_loader)
     else:
+        # pylint: disable=possibly-used-before-assignment
         trainer.fit(model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader)
         with open(ckpt_dir / "model.yml", 'w', encoding="utf-8") as file:
-            yaml.safe_dump(cfg)
+            yaml.safe_dump(cfg, file)
 
         lit_model = SSMOCRTrainer.load_from_checkpoint(checkpoint_callback.best_model_path, model=model,
                                                        tokenizer=tokenizer,

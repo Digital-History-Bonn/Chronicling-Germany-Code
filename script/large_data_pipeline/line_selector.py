@@ -1,6 +1,5 @@
 """Scipt for extracting random lines from one file. E.g. to select random files from a list of files. 
 Extract file list through sftp: ' echo ls -f -1 | sftp HOST:/FOLDER > data/file_list.txt'"""
-import random
 import argparse
 import re
 from pathlib import Path
@@ -8,17 +7,20 @@ from pathlib import Path
 import numpy as np
 
 
-def select_random_lines(input_file: Path, output_file: Path, num_lines: int, file_transfer: str):
+def select_random_lines(input_file: Path, output_file: Path, num_lines: int, file_transfer: str) -> None:
+    """Load file, select lines randomly, remove them from the input file and save them in a new file.
+    The output file is a shell script, establishing a sftp connection and downloading all files."""
     try:
         # Read all lines from the input file
         print(f"loading input file {input_file}, please be patient.")
-        with open(input_file, 'r') as infile:
+        with open(input_file, 'r', encoding="utf-8") as infile:
             lines = np.array(infile.readlines())
 
         # Check if the file has fewer lines than the requested number
         if len(lines) < num_lines:
             print(f"Warning: The file contains only {len(lines)} lines. Selecting all of them.")
             selected_lines = lines.tolist()
+            not_selected_lines = []
         else:
             # Randomly select the specified number of lines
             print("sampling random lines")
@@ -37,17 +39,17 @@ def select_random_lines(input_file: Path, output_file: Path, num_lines: int, fil
 
         print(f"writing result to output file  {output_file}.")
         # Write the selected lines to the output file
-        with open(output_file, 'w') as outfile:
+        with open(output_file, 'w', encoding="utf-8") as outfile:
             outfile.writelines(result_list)
 
-        with open(input_file, 'w') as infile:
+        with open(input_file, 'w', encoding="utf-8") as infile:
             infile.writelines(not_selected_lines)
 
         print(f"{len(result_list)} lines have been written to {output_file}.")
 
     except FileNotFoundError:
         print(f"Error: The file {input_file} was not found.")
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-exception-caught
         print(f"An unexpected error occurred: {e}")
 
 

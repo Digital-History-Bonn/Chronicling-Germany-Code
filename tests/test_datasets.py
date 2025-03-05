@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+# pylint: disable-next=no-name-in-module
 import pytest
 import torch
 from bs4 import BeautifulSoup
@@ -18,7 +19,8 @@ DATA_PATH = "./tests/data/newsdataset/"
 CONFIG_PATH = "./tests/ressources/test_config.yml/"
 
 
-def test_extract_crop():
+def test_extract_crop() -> None:
+    """Tests extract crop method by loading ground truth from disc and comparing with the generated crops."""
     image = torch.ones(1, 1200, 1000, dtype=torch.uint8) * 5
     crop_height = 64
     result_list = []
@@ -48,7 +50,7 @@ class TestOCRDataset:
             num_processes=1,
         )
 
-    def test_init(self):
+    def test_init(self) -> None:
         """verify file names list and data shapes"""
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
@@ -80,7 +82,7 @@ class TestLayoutDataset:
             file_stems=pytest.page_dataset.file_stems,
         )
 
-    def test_init(self):
+    def test_init(self) -> None:
         """verify file names list and length"""
         with open(f"{DATA_PATH}output/file_names.json", encoding="utf-8") as file:
             ground_truth = json.load(file)
@@ -94,7 +96,7 @@ class TestLayoutDataset:
             and pytest.news_dataset.data[0].shape == (4, 256, 256)
         )
 
-    def test_getitem(self):
+    def test_getitem(self) -> None:
         """Verify get_item. Particulary important is, that data ist in the right format.
         For example, RGB Values from 0 to 1 for images"""
         pytest.news_dataset.augmentations = False
@@ -115,7 +117,7 @@ class TestLayoutDataset:
         assert news_data[0].dtype == torch.float
         assert news_targets[0].dtype == torch.long
 
-    def test_split(self):
+    def test_split(self) -> None:
         """verify splitting operation"""
 
         page_dataset_1, page_dataset_2, page_dataset_3 = pytest.page_dataset.random_split(

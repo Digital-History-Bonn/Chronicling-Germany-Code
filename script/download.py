@@ -12,7 +12,7 @@ MODELS_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Da
               "archive/main/Chronicling-Germany-Dataset-main.zip?path=models")
 
 
-def download_extract(url: str, target_path: str):
+def download_extract(url: str, target_path: str) -> None:
     """
     Downloads data from given url, saves and extracts it to target folder.
 
@@ -91,7 +91,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Downloads dataset and our models."""
     print('Please be patient downloading process can take a while...')
     args = get_args()
@@ -101,11 +101,11 @@ def main():
 
     if args.dataset or args.all:
         print("downloading dataset ...")
-        download_extract(DATASET_URL, dataset_path)
+        download_extract(DATASET_URL, dataset_path) # type: ignore
 
     if args.models or args.all:
         print("downloading models ...")
-        download_extract(MODELS_URL, model_path)
+        download_extract(MODELS_URL, model_path) # type: ignore
 
 
 if __name__ == '__main__':

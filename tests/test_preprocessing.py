@@ -1,6 +1,7 @@
 """Test class for preprocessing"""
 
 import numpy as np
+# pylint: disable-next=no-name-in-module
 import pytest
 from PIL import Image
 import torch
@@ -196,26 +197,6 @@ class TestClassPreprocessing:
 
         assert result_image.shape == (channels, size, size)
         assert result_target.shape == (size, size)
-
-    def test_crop(self):
-        """Verify crop_img."""
-        size = 100
-        channels = 4
-        crop_size = 25
-        image = np.random.rand(channels, size, size) * 255
-        pytest.preprocessing.crop_size = crop_size
-        pytest.preprocessing.crop_factor = 1
-
-        windows = Preprocessing.crop_img(crop_size, 1,
-            image
-        )  # pylint: disable=protected-access
-
-        assert windows.shape == (
-            int(size / crop_size) ** 2,
-            channels,
-            crop_size,
-            crop_size,
-        )
 
     def test_crop(self):
         """Verify crop_img."""

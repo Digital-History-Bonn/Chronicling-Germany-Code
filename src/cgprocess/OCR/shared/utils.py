@@ -4,7 +4,7 @@ import os
 import random
 from multiprocessing import Queue
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, List, Any
 
 import numpy as np
 import torch
@@ -32,9 +32,9 @@ def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
     elements_with_points = soup.find_all(attrs={"points": True})
 
     for element in elements_with_points:
-        points = element['points']
+        points: str = element['points'] # type: ignore
         padded_points = pad_points(points, pad_value)
-        element['points'] = padded_points
+        element['points'] = padded_points # type: ignore
 
     return soup
 
@@ -123,6 +123,7 @@ def load_image(image_path: str) -> torch.Tensor:
     Returns:
         torch tensor of shape (H, W, C) with values in the range [0, 1]
     """
+    # pylint: disable=duplicate-code
     image = torch.from_numpy(io.imread(image_path))
     # image is black and white
     if image.dim() == 2:
@@ -157,7 +158,7 @@ def create_path_queue(annotations: List[str], args: argparse.Namespace, images: 
     return path_queue
 
 
-def init_model(model: object):
+def init_model(model: Any) -> Any:
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
     return model
 
@@ -182,7 +183,7 @@ def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str], List[torch.T
     texts = []
     region_polygons = []
 
-    text_lines = page.find_all('TextLine')
+    text_lines = page.find_all('TextLine') # type: ignore
     for line in text_lines:
         if line_has_text(line):
             region_polygon = torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"]))
@@ -206,12 +207,14 @@ def create_unicode_alphabet(length: int) -> List[str]:
 
 
 def load_cfg(config_path: Path) -> dict:
+    """Load yml config from supplied path."""
     with open(config_path, 'r', encoding="utf-8") as file:
         cfg: dict = yaml.safe_load(file)
     return cfg
 
 
 def init_tokenizer(cfg: dict) -> OCRTokenizer:
+    """Initialize tokenizer by creating the vocabulary and setting config accordingly."""
     unicode_alphabet = create_unicode_alphabet(cfg["vocabulary"]["unicode"])
     custom_alphabet = cfg["vocabulary"].get("custom", [])
     for char in custom_alphabet:

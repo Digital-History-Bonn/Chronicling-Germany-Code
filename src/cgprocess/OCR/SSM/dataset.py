@@ -3,22 +3,18 @@
 import json
 import lzma
 import os
-import random
 from multiprocessing import Queue, Process
 from pathlib import Path
 from threading import Thread
-from time import time
-from typing import Tuple, List, Dict, Optional
+from typing import Tuple, List, Optional
 
 import numpy as np
 import torch
 from PIL import Image, ImageDraw
 from bs4 import BeautifulSoup
-from skimage import draw
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import line_has_text, init_tokenizer
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox, enforce_image_limits
 from src.cgprocess.shared.datasets import TrainDataset
@@ -28,6 +24,7 @@ from src.cgprocess.shared.multiprocessing_handler import run_processes, get_cpu_
 def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_height: int, predict: bool = False) -> \
         Tuple[
             List[np.ndarray], List[str], List[str]]:
+    """Extract crop for each text-line and append ids or textual data if needed."""
     texts = []
     crops: List[np.ndarray] = []
     ids = []
@@ -40,14 +37,13 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
             if predict:
                 ids.append(line["id"])
                 if line_has_text(line):
-                    texts.append(line.find('Unicode').text)
+                    texts.append(line.find('Unicode').text) # type: ignore
             else:
-                texts.append(line.find('Unicode').text)
+                texts.append(line.find('Unicode').text) # type: ignore
 
-    return crops, texts, ids
+    return crops, texts, ids # type: ignore
 
 
-# todo: make this stuff in its own class
 def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> bool:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
@@ -58,18 +54,18 @@ def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSo
         crop_height: fixed height for all crops"""
     assert image.dtype == torch.uint8
 
-    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])),
+    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), # type: ignore
                                           (image.shape[2], image.shape[1]))
 
     # initialize
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1].clone()
+    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1].clone() # type: ignore
 
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
     img = Image.new("1", (crop.shape[0] + 1, crop.shape[1] + 1), 0)
-    draw = ImageDraw.Draw(img)
-    draw.polygon(list(map(tuple, np.roll(local_polygon, 1, axis=1))), fill=1)
+    draw_polygon = ImageDraw.Draw(img)
+    draw_polygon.polygon(list(map(tuple, np.roll(local_polygon, 1, axis=1))), fill=1)
 
     transform = transforms.PILToTensor()
     mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8)
@@ -98,7 +94,7 @@ def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[Beau
     # Parse the XML data
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
-    text_lines = page.find_all('TextLine')
+    text_lines = page.find_all('TextLine') # type: ignore
     return image, text_lines
 
 
@@ -132,7 +128,8 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
             result_Queue.put((file_stem, annotations_path, target_path, False))
 
 
-def get_progress(output_path) -> int:
+def get_progress(output_path: Path) -> int:
+    """Get progress by counting number of json files in output path."""
     return len([f for f in os.listdir(output_path) if f.endswith(".json")])
 
 
@@ -164,7 +161,8 @@ class SSMDataset(TrainDataset):
 
         self.prepare_data()
 
-    def get_data(self):
+    def get_data(self) -> None:
+        """Start threads for loading preprocessed data."""
         threads = []
         for file_stem in tqdm(self.file_stems, desc="Loading data", unit="Pages"):
 
@@ -226,7 +224,9 @@ class SSMDataset(TrainDataset):
             data = augment(data)
         return data / 255, torch.tensor(target).long(), text
 
-    def get_augmentations(self, image_width: int, resize_prob: float = 0.2, kernel_size: int = 5) -> transforms.Compose:
+    def get_augmentations(self) -> transforms.Compose:
+    # def get_augmentations(self, image_width: int, resize_prob: float = 0.2,
+    #                       kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
@@ -235,13 +235,13 @@ class SSMDataset(TrainDataset):
         Args:
             kernel_size: kernel_size for gaussian blurring
         """
-        pad_kernel = kernel_size if image_width <= kernel_size else 0
-        scale = (1 + random.random() * 1)
-        resize_to = int(self.image_height // scale), int(image_width // scale) + 1
-        crop_size = resize_to[0], image_width
-        pad_y = self.image_height - resize_to[0]
-        pad_x = kernel_size - resize_to[1] if resize_to[1] < kernel_size else 0
-        pad_x = kernel_size - image_width if image_width < kernel_size else pad_x
+        # pad_kernel = kernel_size if image_width <= kernel_size else 0
+        # scale = (1 + random.random() * 1)
+        # resize_to = int(self.image_height // scale), int(image_width // scale) + 1
+        # crop_size = resize_to[0], image_width
+        # pad_y = self.image_height - resize_to[0]
+        # pad_x = kernel_size - resize_to[1] if resize_to[1] < kernel_size else 0
+        # pad_x = kernel_size - image_width if image_width < kernel_size else pad_x
         return transforms.Compose(
             [
                 # transforms.Pad((pad_kernel, 0, 0, 0)),

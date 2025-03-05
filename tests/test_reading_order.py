@@ -13,7 +13,7 @@ DATA_PATH = "./tests/data/"
 class TestClassExport:
     """Class for testing prediction and export scripts"""
 
-    def test_get_reading_order(self):
+    def test_get_reading_order(self) ->None:
         """Tests reading order calculation based on bboxes. Elements contain id, label and bbox top left and
         bottom right corner"""
         with open(DATA_PATH + "export/reading_order.json", encoding="utf-8") as file:
@@ -26,7 +26,7 @@ class TestClassExport:
         result = page.get_reading_order()
         assert result == ground_truth
 
-    def test_splitting_regions(self):
+    def test_splitting_regions(self) -> None:
         """Test spliting regions detection with threshold"""
         properties = np.array([[1, 4, 1, 1, 10, 10], [2, 7, 1, 100, 50, 20], [3, 3, 1, 11, 10, 21],
                                [4, 5, 15, 1, 25, 10], [5, 4, 10, 40, 25, 21],

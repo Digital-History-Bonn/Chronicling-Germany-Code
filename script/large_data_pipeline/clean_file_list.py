@@ -1,20 +1,21 @@
+"""Script to clean up a file name list, loaded from a txt file."""
 import argparse
 from pathlib import Path
 
 
+# pylint: disable=duplicate-code
+
 def main(data_path):
-    with open(data_path / "file_list.txt", 'r') as infile:
+    """Load txt file and remove all lines, that are not .jpeg or .jpg files."""
+    with open(data_path / "file_list.txt", 'r', encoding="utf-8") as infile:
         lines = infile.readlines()
     result_list = []
     for line in lines:
         line = line[:-1]
         if line[-5:] == ".jpeg" or line[-4:] == ".jpg":
             result_list.append(f"{line}\n")
-    with open(data_path / "clean_file_list.txt", 'w') as outfile:
+    with open(data_path / "clean_file_list.txt", 'w', encoding="utf-8") as outfile:
         outfile.writelines(result_list)
-
-
-
 
 
 def get_args() -> argparse.Namespace:

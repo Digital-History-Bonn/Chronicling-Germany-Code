@@ -23,6 +23,7 @@ def create_vocab(regions: ResultSet, vocab: Dict[str, int]) -> None:
 
 
 def main(parsed_args) -> None:
+    """Main method loading xml data and saving extracted vocab."""
     data_path = Path(parsed_args.data_path)
     paths = [
         f[:-4] for f in os.listdir(data_path) if f.endswith(".xml")
@@ -45,6 +46,7 @@ def main(parsed_args) -> None:
 
 
 def get_args() -> argparse.Namespace:
+    # pylint: disable=duplicate-code
     """defines arguments"""
     parser = argparse.ArgumentParser(description="predict")
     parser.add_argument(

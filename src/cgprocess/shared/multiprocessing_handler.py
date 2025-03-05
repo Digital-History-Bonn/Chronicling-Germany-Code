@@ -10,8 +10,6 @@ from typing import Callable, List, Union, Dict, Tuple, Any, Optional
 from tqdm import tqdm
 
 
-# TODO: create an abstract class(interface) for prediction that is implemented in layout, baseline and ocr versions
-#  and used here insead of multiple functions. Create Class which contains and handles all Queues, such as bools.
 def run_process(predict_function: Callable, init_model_function: Callable, queue: Queue, failed_queue: Queue,
                 done_queue: Queue, num_threads: int, model_args: list, page_level_threads: bool,
                 save_done: bool) -> None:
@@ -47,7 +45,7 @@ def run_process(predict_function: Callable, init_model_function: Callable, queue
                     threads = []
                 if save_done:
                     done_queue.put(args[0], block=True)
-            except Exception as e:
+            except Exception as e: # pylint: disable=broad-exception-caught
                 failed_queue.put(args[0], block=True)
                 print(e)
 
@@ -86,7 +84,7 @@ def run_thread(args: list, predict_function: Callable, failed_queue: Queue,
         predict_function(args, model)
         if save_done:
             done_queue.put(args[0], block=True)
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-exception-caught
         failed_queue.put(args[0], block=True)
         print(e)
 
@@ -99,7 +97,7 @@ def join_threads(threads: List[Thread]) -> None:
         thread.join()
 
 
-# todo: make super class that is not intended for prediction?
+# make super class that is not intended for prediction?
 class MPPredictor:
     """Class for handling multiprocessing for prediction and can be used with an arbitrary model."""
 

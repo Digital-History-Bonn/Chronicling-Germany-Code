@@ -189,6 +189,7 @@ def run_text_extraction(data_path: Path, output_path: Path, path_queue: Queue, l
 
 
 def get_args() -> argparse.Namespace:
+    # pylint: disable=duplicate-code
     """defines arguments"""
     parser = argparse.ArgumentParser(description="predict")
     parser.add_argument(
