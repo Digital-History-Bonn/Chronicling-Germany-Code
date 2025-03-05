@@ -9,11 +9,12 @@ import os
 import warnings
 from multiprocessing.pool import ThreadPool
 from time import time
-from typing import Tuple, Union
+from typing import Tuple, Union, Any
 
 import numpy as np
 import torch
 from numpy import ndarray
+from prettytable import PrettyTable
 from torch import Tensor
 from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
@@ -24,20 +25,18 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.train_config import (BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY,
-                                                            LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS,
-                                                            EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT)
 from src.cgprocess.layout_segmentation.helper.train_helper import (init_model, load_score, focal_loss,
                                                                    calculate_scores,
                                                                    initiate_dataloader, initiate_evaluation_dataloader)
-from src.cgprocess.layout_segmentation.utils import split_batches, adjust_path, collapse_prediction
-from src.cgprocess.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
 from src.cgprocess.layout_segmentation.helper.train_helper import multi_precison_recall
+from src.cgprocess.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
+from src.cgprocess.layout_segmentation.train_config import (BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY,
+                                                            LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS,
+                                                            EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT)
+from src.cgprocess.layout_segmentation.utils import split_batches, adjust_path, collapse_prediction
 
-from prettytable import PrettyTable
 
-
-def count_parameters(model):
+def count_parameters(model: Any) -> int:
     table = PrettyTable(["Modules", "Parameters", "Median"])
     total_params = 0
     for name, parameter in model.named_parameters():

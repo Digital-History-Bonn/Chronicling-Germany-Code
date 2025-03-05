@@ -467,6 +467,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    with warnings.catch_warnings(): # TODO: remove. ignores pil decompression bomb DOS warning
-        warnings.simplefilter("ignore")
-        main()
+    main()

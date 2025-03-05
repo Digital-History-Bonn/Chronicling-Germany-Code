@@ -8,12 +8,10 @@ from pathlib import Path
 from threading import Thread
 from typing import Dict, List, Tuple, Union, Callable
 
-import numpy as np
 import torch
 
 # pylint thinks torch has no name randperm this is wrong
 # pylint: disable-next=no-name-in-module
-from torch import randperm
 from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm

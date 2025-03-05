@@ -166,7 +166,8 @@ def apply_polygon_mask(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tens
     """
 
     bounds = list(Polygon(roi).bounds)
-    bounds = enforce_image_limits(torch.tensor(bounds).reshape((2,2)), (image.shape[2], image.shape[1])).flatten().tolist()
+    bounds = enforce_image_limits(torch.tensor(bounds).reshape((2, 2)),
+                                  (image.shape[2], image.shape[1])).flatten().tolist()
     offset = np.array([bounds[0], bounds[1]], dtype=int)
     shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
     mask = draw.polygon2mask(shape, roi[:, ::-1] - offset[::-1])

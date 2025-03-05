@@ -9,7 +9,7 @@ from typing import List, Tuple
 import torch
 from torchvision import transforms
 import numpy as np
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image, ImageDraw
 from skimage import draw
 from shapely.ops import split
 from shapely.geometry import LineString, Polygon
@@ -308,10 +308,11 @@ def main() -> None:
         process.join()
 
 
-def preprocess(path_queue, i):
+def preprocess(path_queue: Queue, i: int) -> None:
+    """Get Paths from Queue and save data after preprocessing."""
     print(f"process {i}")
     while True:
-        document_name, img_path, output_path, tar_path, to_tensor, done = path_queue.get()
+        document_name, _, output_path, tar_path, _, done = path_queue.get()
         if done:
             break
         print(f"process {i} start page")

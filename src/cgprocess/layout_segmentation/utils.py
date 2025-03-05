@@ -163,6 +163,6 @@ def create_path_queue(file_names: List[str], args: argparse.Namespace, dataset: 
     index 0 and the bool variable for terminating processes at index -1.
     """
     path_queue: Queue = Queue()
-    for i in range(len(file_names)):
-        path_queue.put((file_names[i], args, dataset, False))
+    for file_name in enumerate(file_names):
+        path_queue.put((file_name, args, dataset, False))
     return path_queue

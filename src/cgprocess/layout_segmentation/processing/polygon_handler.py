@@ -115,8 +115,8 @@ def prediction_to_region_polygons(pred: ndarray, tolerance: List[float], bbox_si
     bbox_dict = {}
     for label, mask in masks.items():
         # TODO: fix this, by introducing a class variable for classes excluded from polygon extraction.
-        if export or label == 3 and not label in [1, 5, 8, 9,
-                                                  2]:  # for sclice export only paragraph and separator are processed (obsolete)
+        if export or label == 3 and not label in [1, 5, 8, 9, 2]:
+            # for sclice export only paragraph and separator are processed (obsolete)
             segment, bbox = create_mask_polygons(np.array(mask), label, tolerance, bbox_size, export)
             segmentations[label], bbox_dict[label] = segment, bbox
 

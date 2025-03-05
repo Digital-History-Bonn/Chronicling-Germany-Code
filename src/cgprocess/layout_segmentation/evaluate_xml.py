@@ -1,3 +1,4 @@
+"""Module for evaluating predictions from xml data, instead of in the training environment."""
 import argparse
 import glob
 import os
@@ -13,7 +14,8 @@ from tqdm import tqdm
 from tabulate import tabulate
 
 
-def read_xml(xml_path):
+def read_xml(xml_path: str) -> Dict[str: list]:
+    """Read data from xml file, returning dictionary with keys for all classes."""
     data = {"caption": [],
             "table": [],
             "paragraph": [],
@@ -44,7 +46,7 @@ def read_xml(xml_path):
             type_value = custom_attr[type_start:type_end]
 
             # Check if this type is in the list of desired types
-            if type_value in data.keys():
+            if type_value in data:
                 # Extract Coords element and get the points
                 coords = text_region.find('Coords')
                 if coords:
@@ -61,7 +63,8 @@ def read_xml(xml_path):
     return data
 
 
-def remove_duplicate_points(polygon):
+def remove_duplicate_points(polygon: Polygon) -> Polygon:
+    """Remove non unique points from polygon."""
     coords = list(polygon.exterior.coords)
     unique_coords = []
     for coord in coords:
@@ -158,7 +161,8 @@ def detection_metrics(prediction: List[Polygon],
     return results
 
 
-def compare(pred_xml: str, gt_xml: str, threshold: float = .5):
+def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> dict:
+    """Compare prediction and ground truth based on classes."""
     categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",
                   "separator_horizontal", "image", "inverted_text"]
 
@@ -185,15 +189,14 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5):
 
     return data
 
-
 def get_args() -> argparse.Namespace:
+    # pylint: disable=duplicate-code
     """
     Defines arguments.
 
     Returns:
         Namespace with parsed arguments.
     """
-    # pylint: disable=duplicate-code
     parser = argparse.ArgumentParser(description="evaluate_xml")
 
     parser.add_argument(
