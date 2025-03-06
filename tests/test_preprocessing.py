@@ -27,7 +27,7 @@ class TestClassPreprocessing:
         """
         image, target = pytest.preprocessing.load(
             f"{DATA_PATH}input/test-image.jpg",
-            f"{DATA_PATH}input/test-target.npy",
+            f"{DATA_PATH}input/test-target.npz",
             "test",
             dataset="transcibus",
         )

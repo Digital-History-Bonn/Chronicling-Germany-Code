@@ -109,7 +109,7 @@ def get_reading_order_idx(textregion: BeautifulSoup) -> int:
          Reading Order Index as int
     """
     desc = textregion['custom']
-    match = re.search(r"readingOrder\s*\{index:(\d+);\}", desc)
+    match = re.search(r"readingOrder\s*\{index:(\d+);\}", desc) # type: ignore
     if match is None:
         return -1
     return int(match.group(1))
