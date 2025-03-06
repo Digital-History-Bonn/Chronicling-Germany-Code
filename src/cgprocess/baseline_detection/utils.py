@@ -92,13 +92,13 @@ def get_tag(textregion: BeautifulSoup) -> str:
         Given tag of that Textregion
     """
     desc = textregion['custom']
-    match = re.search(r"\{type:.*;\}", desc)
+    match = re.search(r"\{type:.*;\}", desc) # type: ignore
     if match is None:
         return 'UnknownRegion'
     return match.group()[6:-2]
 
 
-def get_reading_order_idx(textregion: element) -> int:
+def get_reading_order_idx(textregion: BeautifulSoup) -> int:
     """
     Extracts reading order from textregion PageElement.
 

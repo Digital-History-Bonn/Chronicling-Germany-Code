@@ -10,8 +10,7 @@ import torch
 from bs4 import BeautifulSoup
 
 from src.cgprocess.OCR.SSM.dataset import SSMDataset, extract_crop
-from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.OCR.shared.utils import create_unicode_alphabet, load_cfg
+from src.cgprocess.OCR.shared.utils import load_cfg
 from src.cgprocess.shared.datasets import PageDataset
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
@@ -60,8 +59,9 @@ class TestOCRDataset:
             ground_truth = json.load(file)
         file_quantity = 30
 
-        assert pytest.ocr_dataset.file_stems == ground_truth
         assert len(pytest.ocr_dataset.file_stems) == file_quantity
+        pytest.ocr_dataset.file_stems.sort()
+        assert pytest.ocr_dataset.file_stems == ground_truth
 
         assert pytest.ocr_dataset[0][0].dtype == torch.float32
         assert pytest.ocr_dataset[0][0].shape[1] == pytest.image_height

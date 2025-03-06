@@ -11,8 +11,7 @@ except ModuleNotFoundError:
     from abc import ABC, abstractmethod
     warnings.warn("Warning: ssr package not found. Tokenizer will be loaded locally.")
 
-    # type: ignore
-    class Tokenizer(ABC):
+    class Tokenizer(ABC): # type: ignore
         """Abstract tokenizer class, enforcing pad, start, nan and end tokens."""
 
         def __init__(self, alphabet: Dict[str, int]):
