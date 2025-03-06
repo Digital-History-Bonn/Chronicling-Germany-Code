@@ -174,7 +174,7 @@ class UpScaleBlock(nn.Module):
     Decoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, in_up: int, in_copy: int, out_channels: int, double_scaling = False):
+    def __init__(self, in_up: int, in_copy: int, out_channels: int, double_scaling: bool = False):
         """
         Decoder Block
         :param in_up: number of input feature maps from up-scaling-path

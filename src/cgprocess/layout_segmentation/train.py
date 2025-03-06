@@ -37,6 +37,7 @@ from src.cgprocess.layout_segmentation.utils import split_batches, adjust_path, 
 
 
 def count_parameters(model: Any) -> int:
+    """Count total number of parameters and create table visualizing number of parameters and their medium value."""
     table = PrettyTable(["Modules", "Parameters", "Median"])
     total_params = 0
     for name, parameter in model.named_parameters():

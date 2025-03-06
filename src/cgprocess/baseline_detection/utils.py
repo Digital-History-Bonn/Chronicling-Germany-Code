@@ -8,7 +8,7 @@ from typing import Tuple, Union, List, Dict, Optional
 import bs4
 import numpy as np
 import torch
-from bs4 import PageElement, BeautifulSoup
+from bs4 import PageElement, BeautifulSoup, element
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString
 from skimage import io
@@ -17,7 +17,7 @@ from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
 
 
-def order_lines(region: bs4.element) -> None:
+def order_lines(region: element) -> None:
     """Sort lines by estimating columns and sorting columns from left to right and lines inside a column
     from top to bottom."""
     lines = region.find_all("TextLine")
@@ -83,7 +83,7 @@ def is_valid(box: torch.Tensor) -> bool:
 
 
 
-def get_tag(textregion: PageElement) -> str:
+def get_tag(textregion: element) -> str:
     """
     Returns the tag of the given textregion.
 
@@ -100,7 +100,7 @@ def get_tag(textregion: PageElement) -> str:
     return match.group()[6:-2]
 
 
-def get_reading_order_idx(textregion: PageElement) -> int:
+def get_reading_order_idx(textregion: element) -> int:
     """
     Extracts reading order from textregion PageElement.
 
@@ -309,7 +309,7 @@ def add_baselines(layout_xml: str,
 
     # Write the modified XML back to file with proper formatting
     with open(output_file, 'w', encoding='utf-8') as file:
-        file.write(soup.prettify())
+        file.write(soup.prettify()) # type: ignore
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:

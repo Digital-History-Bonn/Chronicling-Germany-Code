@@ -211,16 +211,16 @@ def read_lines(
         coords_list = []
         conf_list = []
         for line in lines:
-            if line_has_text(line):
+            if line_has_text(line): # type: ignore
                 text_list.append(line.TextEquiv.Unicode.contents[0])
                 coords_list.append(
                     [tuple(pair.split(",")) for pair in line.Coords["points"].split()])
-                conf_list.append(line_confidence(confidence, line))
+                conf_list.append(line_confidence(confidence, line)) # type: ignore
                 lines_data.append(line)
         region_text_list.append(text_list)
         region_coords_list.append(coords_list)
         region_conf_list.append(conf_list)
-    return region_text_list, region_coords_list, region_conf_list, lines_data
+    return region_text_list, region_coords_list, region_conf_list, lines_data # type: ignore
 
 
 def line_confidence(confidence: bool, line: BeautifulSoup) -> float:
@@ -228,7 +228,7 @@ def line_confidence(confidence: bool, line: BeautifulSoup) -> float:
     if not confidence:
         return 0.0
     if "conf" in line.TextEquiv.attrs:
-        return float(line.TextEquiv.attrs["conf"])
+        return float(line.TextEquiv.attrs["conf"]) # type: ignore
     return 0.0
 
 

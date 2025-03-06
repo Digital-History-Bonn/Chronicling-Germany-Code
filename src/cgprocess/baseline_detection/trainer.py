@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import warnings
 from typing import Union, Tuple, Dict
 
 import numpy as np

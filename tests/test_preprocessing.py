@@ -2,6 +2,7 @@
 
 import numpy as np
 # pylint: disable-next=no-name-in-module
+# pylint: disable-next=import-error
 import pytest
 from PIL import Image
 import torch

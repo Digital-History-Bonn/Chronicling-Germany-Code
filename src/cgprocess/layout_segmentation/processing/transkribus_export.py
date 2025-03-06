@@ -5,7 +5,7 @@ import re
 from typing import Dict, List, Tuple
 
 import numpy as np
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, Tag, PageElement
 from shapely.geometry import Polygon
 
 from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
@@ -40,16 +40,17 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
             data = f.read()
         xml_data = BeautifulSoup(data, "xml")
         page = xml_data.find("Page")
-        page["imageFilename"] = f"{file}"
-        page["imageHeight"] = f"{shape[1]}"
-        page["imageWidth"] = f"{shape[2]}"
+        assert page, "XML Template is missing page element!"
+        page["imageFilename"] = f"{file}" # type: ignore
+        page["imageHeight"] = f"{shape[1]}" # type: ignore
+        page["imageWidth"] = f"{shape[2]}" # type: ignore
         xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     with open(
             f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
             "w",
             encoding="utf-8",
-    ) as xml_file:
-        xml_file.write(xml_data.prettify())
+    ) as xml_file:  # type: ignore
+        xml_file.write(xml_data.prettify())  # type: ignore
 
 
 def create_xml(
@@ -74,7 +75,7 @@ def create_xml(
     return xml_data
 
 
-def add_regions_to_xml(order_group: Tag, page: BeautifulSoup, reading_order: Dict[int, int],
+def add_regions_to_xml(order_group: Tag, page: PageElement, reading_order: Dict[int, int],
                        segmentations: Dict[int, List[List[float]]], xml_data: BeautifulSoup, scale: float) -> None:
     """
     Add ReadingOrder XML and Text Region List to Page
@@ -157,7 +158,7 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
 
         custom_match = re.search(
             r"(structure \{type:.+?;})", region["custom"]
-        )
+        ) # type: ignore
 
         class_info = "structure {type:UnkownRegion;}" if custom_match is None else custom_match.group(1)
         region.attrs['custom'] = f"readingOrder {{index:{order};}} {class_info}"
@@ -171,18 +172,18 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
         page.append(region)
 
 
-def sort_lines(region: BeautifulSoup) -> None:
+def sort_lines(region: Tag) -> None:
     """Sort lines by ascending height."""
     lines = region.find_all("TextLine")
     height_list = []
     for line in lines:
-        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()]) # type: ignore
         # pylint: disable=no-member
         height_list.append(line_polygon.centroid.y)
     sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
     for i, line in enumerate(lines):
         custom_match = re.search(
-            r"(structure \{type:.+?;})", line["custom"]
+            r"(structure \{type:.+?;})", line["custom"] # type: ignore
         )
         class_info = "" if custom_match is None else custom_match.group(1)
         line.attrs['custom'] = f"readingOrder {{index:{sorted_heights[i]};}} {class_info}"

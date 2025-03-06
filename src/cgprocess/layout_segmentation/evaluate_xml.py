@@ -13,6 +13,8 @@ from shapely.validation import explain_validity
 from tqdm import tqdm
 from tabulate import tabulate
 
+# type: ignore
+# todo: make this mypy typechecking conform
 
 def read_xml(xml_path: str) -> Dict[str: list]:
     """Read data from xml file, returning dictionary with keys for all classes."""
@@ -219,6 +221,7 @@ def get_args() -> argparse.Namespace:
 
 
 def print_table(count, tp, fp, fn, precision, recall, f1_score):
+    """Assembles table in md format for layout evaluation results."""
     categories = ["caption", "table", "paragraph", "heading", "header",
                   "separator_vertical", "separator_horizontal", "image", "inverted_text", "all"]
 
@@ -266,6 +269,7 @@ def print_table(count, tp, fp, fn, precision, recall, f1_score):
 
 
 def main():
+    """Assemble data and print table to command line."""
     args = get_args()
 
     categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",

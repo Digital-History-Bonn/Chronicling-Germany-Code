@@ -14,18 +14,20 @@ from shapely.validation import explain_validity
 from tqdm import tqdm
 from tabulate import tabulate
 
+# type: ignore
+# todo: make this mypy typechecking conform
 
-def read_xml(xml_path) -> Dict[str, list]:
+def read_xml(xml_path: str) -> Dict[str, list]:
     """Reads xml files and returns shapely polygons of all desired regions."""
-    data = {"caption": [],
-            "table": [],
-            "paragraph": [],
-            "heading": [],
-            "header": [],
-            "separator_vertical": [],
-            "separator_horizontal": [],
-            "image": [],
-            "inverted_text": []}
+    data: Dict[str, list] = {"caption": [],
+                             "table": [],
+                             "paragraph": [],
+                             "heading": [],
+                             "header": [],
+                             "separator_vertical": [],
+                             "separator_horizontal": [],
+                             "image": [],
+                             "inverted_text": []}
 
     # Read the XML file content
     with open(xml_path, 'r', encoding='utf-8') as file:
@@ -44,7 +46,7 @@ def read_xml(xml_path) -> Dict[str, list]:
         if 'structure {type:' in custom_attr:
             type_start = custom_attr.index('structure {type:') + len('structure {type:')
             type_end = custom_attr.index(';', type_start)
-            type_value = custom_attr[type_start:type_end]
+            type_value = custom_attr[type_start:type_end]  # type: ignore
 
             # Check if this type is in the list of desired types
             if type_value in data:
@@ -61,12 +63,12 @@ def read_xml(xml_path) -> Dict[str, list]:
                     if len(points) <= 2:
                         continue
                     polygon = Polygon(points)
-                    data[type_value].append(polygon.buffer(0))
+                    data[type_value].append(polygon.buffer(0))  # type: ignore
 
     return data
 
 
-def remove_duplicate_points(polygon):
+def remove_duplicate_points(polygon: Polygon) -> Polygon:
     """Removes duplicate points inside a shapely polygon."""
     coords = list(polygon.exterior.coords)
     unique_coords = []
@@ -164,12 +166,12 @@ def detection_metrics(prediction: List[Polygon],
     return results
 
 
-def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, list]:
+def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, dict]:
     """Compares read xml data and returns comparisons."""
     categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",
                   "separator_horizontal", "image", "inverted_text"]
 
-    data = {key: {} for key in categories}
+    data: dict = {key: {} for key in categories}
 
     pred_objects = read_xml(pred_xml)
     gt_objects = read_xml(gt_xml)
@@ -184,7 +186,6 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, list
     pred_classes = [key for key, values in pred_objects.items() for _ in values]
     gt_classes = [key for key, values in gt_objects.items() for _ in values]
 
-
     data['all'] = detection_metrics(pred_all, gt_all,
                                     threshold=threshold,
                                     pred_classes=pred_classes,
@@ -193,7 +194,8 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, list
     return data
 
 
-def print_table(count, tp, fp, fn, precision, recall, f1_score):
+def print_table(count: np.ndarray, tp: np.ndarray, fp: np.ndarray, fn: np.ndarray, precision: np.ndarray,
+                recall: np.ndarray, f1_score: np.ndarray) -> None:
     """Prints markdown table."""
     categories = ["caption", "table", "paragraph", "heading", "header",
                   "separator_vertical", "separator_horizontal", "image", "inverted_text", "all"]

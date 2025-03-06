@@ -520,8 +520,8 @@ def main() -> None:
 
     model_list = create_model_list(args, num_gpus, num_processes)
 
-    predictor = MPPredictor("Baseline prediction", predict, init_model, path_queue, model_list, input_dir,
-                            False, False)
+    predictor = MPPredictor("Baseline prediction", predict, init_model, path_queue, # type: ignore
+                            model_list, input_dir,False, False) # type: ignore
     predictor.launch_processes(num_gpus, args.thread_count)
 
 

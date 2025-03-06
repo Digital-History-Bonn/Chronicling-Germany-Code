@@ -37,7 +37,7 @@ def read_transkribus(
     page = bs_data.find("Page")
 
     if log:
-        check_tags(page, tags_dict)
+        check_tags(page, tags_dict) # type: ignore
 
     if page:
         return {
@@ -91,13 +91,13 @@ def find_regions(
         if region_type not in tags_dict:
             tags_dict[region_type] = []
         tags_dict[region_type].append(
-            xml_polygon_to_polygon_list(region.Coords["points"])
+            xml_polygon_to_polygon_list(region.Coords["points"]) # type: ignore
         )
         if id_dict is not None:
             if region_type not in id_dict:
                 id_dict[region_type] = []
             id_dict[region_type].append(
-                region["id"]
+                region["id"] # type: ignore
             )
 
         if search_children:

@@ -12,7 +12,7 @@ from src.cgprocess.layout_segmentation.processing.preprocessing import (
 )
 
 
-def validate(args):
+def validate(args: argparse.Namespace) -> None:
     """Load data to validate shape"""
     # read all file names
     preprocessing = Preprocessing()
@@ -63,7 +63,7 @@ def validate(args):
             print(f"{file}")
 
 
-def count_classes(args: argparse.Namespace):
+def count_classes(args: argparse.Namespace) -> None:
     """Load data with increasing amount of workers"""
     preprocessing = Preprocessing(scale=0.5, crop_factor=1, crop_size=512)
     dataset = TrainDataset(preprocessing, image_path=f"{args.data_path}images/",

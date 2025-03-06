@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 # pylint: disable-next=no-name-in-module
+# pylint: disable-next=import-error
 import pytest
 import torch
 from bs4 import BeautifulSoup
@@ -38,6 +39,7 @@ def test_extract_crop() -> None:
     assert np.all(result_list[0] == (ground_truth * 5))
 
 class TestOCRDataset:
+    """Test class for OCRDataset"""
     @pytest.fixture(autouse=True, scope="class")
     def setup(self):
         """will initiate NewsDataset for every test"""

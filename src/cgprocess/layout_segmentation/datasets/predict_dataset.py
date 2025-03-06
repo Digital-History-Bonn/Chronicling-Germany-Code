@@ -32,7 +32,7 @@ class PredictDataset(Dataset):
             image_path: str,
             scale: float,
             target_path: Optional[str] = None,
-            file_names : List[str] = None,
+            file_names : Optional[List[str]] = None,
     ) -> None:
         """
         load images and targets from folder
@@ -97,8 +97,6 @@ class PredictDataset(Dataset):
     def __getitem__(self, item: int) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
         """
         returns one datapoint
-        Image and Target are padded to a multiple of the fixed value 256, which allows for at least 8 downscale operations.
-        Dh segment 2 requires 7.
         :param item: number of the datapoint
         :return (tuple): torch tensor of image, torch tensor of annotation, tuple of mask
         """

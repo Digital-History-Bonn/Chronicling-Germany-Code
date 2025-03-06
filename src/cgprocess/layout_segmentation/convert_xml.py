@@ -198,5 +198,5 @@ def save_xml(bs_data: BeautifulSoup, output_path: object, file_stem: object) -> 
             encoding="utf-8",
     ) as xml_file:
         xml_file.write(
-            bs_data.prettify().replace("<Unicode>\n      ", "<Unicode>")
-            .replace("\n     </Unicode>", "</Unicode>"))
+            bs_data.prettify().replace("<Unicode>\n      ", "<Unicode>") # type: ignore
+            .replace("\n     </Unicode>", "</Unicode>")) # type: ignore

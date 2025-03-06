@@ -11,6 +11,7 @@ except ModuleNotFoundError:
     from abc import ABC, abstractmethod
     warnings.warn("Warning: ssr package not found. Tokenizer will be loaded locally.")
 
+    # pylint: disable=no-redef
     class Tokenizer(ABC):
         """Abstract tokenizer class, enforcing pad, start, nan and end tokens."""
 

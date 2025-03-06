@@ -22,7 +22,7 @@ def create_vocab(regions: ResultSet, vocab: Dict[str, int]) -> None:
                     vocab[char] = vocab.get(char, 0) + 1
 
 
-def main(parsed_args) -> None:
+def main(parsed_args: argparse.Namespace) -> None:
     """Main method loading xml data and saving extracted vocab."""
     data_path = Path(parsed_args.data_path)
     paths = [

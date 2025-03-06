@@ -37,11 +37,11 @@ def preprocess_data(image: torch.Tensor, text_lines: List[BeautifulSoup], image_
             if predict:
                 ids.append(line["id"])
                 if line_has_text(line):
-                    texts.append(line.find('Unicode').text) # type: ignore
+                    texts.append(line.find('Unicode').text)  # type: ignore
             else:
-                texts.append(line.find('Unicode').text) # type: ignore
+                texts.append(line.find('Unicode').text)  # type: ignore
 
-    return crops, texts, ids # type: ignore
+    return crops, texts, ids  # type: ignore
 
 
 def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSoup, crop_height: int) -> bool:
@@ -54,12 +54,12 @@ def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSo
         crop_height: fixed height for all crops"""
     assert image.dtype == torch.uint8
 
-    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])), # type: ignore
-                                          (image.shape[2], image.shape[1]))
+    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])),
+                                          (image.shape[2], image.shape[1]))  # type: ignore
 
     # initialize
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1].clone() # type: ignore
+    crop = image.squeeze()[bbox[1]:bbox[3] + 1, bbox[0]:bbox[2] + 1].clone()  # type: ignore
 
     local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
 
@@ -94,7 +94,7 @@ def load_data(image_path: Path, xml_path: Path) -> Tuple[torch.Tensor, List[Beau
     # Parse the XML data
     soup = BeautifulSoup(data, 'xml')
     page = soup.find('Page')
-    text_lines = page.find_all('TextLine') # type: ignore
+    text_lines = page.find_all('TextLine')  # type: ignore
     return image, text_lines
 
 
@@ -178,6 +178,7 @@ class SSMDataset(TrainDataset):
             thread.join()
 
     def load_preprocessed_data(self, file_stem: str) -> None:
+        """Load crops, targets and texts and append them as tuple to the self.data list."""
         with lzma.open(self.target_path / f"{file_stem}.json", 'r') as file:  # 4. gzip
             json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
         json_str = json_bytes.decode('utf-8')  # 2. string (i.e. JSON)
@@ -220,13 +221,14 @@ class SSMDataset(TrainDataset):
         crop, target, text = self.data[idx]
         data = torch.tensor(crop).float()
         if self.augmentation:
-            augment = self.get_augmentations(data.shape[-1])
+            # augment = self.get_augmentations(data.shape[-1])
+            augment = self.get_augmentations()
             data = augment(data)
         return data / 255, torch.tensor(target).long(), text
 
     def get_augmentations(self) -> transforms.Compose:
-    # def get_augmentations(self, image_width: int, resize_prob: float = 0.2,
-    #                       kernel_size: int = 5) -> transforms.Compose:
+        # def get_augmentations(self, image_width: int, resize_prob: float = 0.2,
+        #                       kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be

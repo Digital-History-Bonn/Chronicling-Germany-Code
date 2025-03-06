@@ -209,7 +209,8 @@ def run_processes(get_progress: Dict[str, Any], processes: List[Process], path_q
     """
     Launches basic processes.
     Args:
-        get_progress(dict): Dictionary containing the get progress method and its arguments with keys 'method' and 'args'.
+        get_progress(dict): Dictionary containing the get progress method and its arguments with keys 'method'
+        and 'args'.
     """
     # todo: integrate this in MPPredictor
     for process in processes:
@@ -234,6 +235,6 @@ def get_cpu_count() -> int:
     return cpu_count()
 
 
-def get_queue_progress(total: int, queue: Queue):
+def get_queue_progress(total: int, queue: Queue) -> int:
     """Returns difference between total and queue size."""
     return total - queue.qsize()

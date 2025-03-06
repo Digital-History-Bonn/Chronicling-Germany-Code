@@ -16,7 +16,7 @@ from src.cgprocess.layout_segmentation.utils import adjust_path
 
 TAG_LIST = ["TextRegion", "SeparatorRegion", "ImageRegion", "GraphicRegion", "TableRegion"]
 
-def rescale(args: argparse.Namespace):
+def rescale(args: argparse.Namespace) -> None:
     """Rescale data according to scaling parameter in the provided directory."""
     scale = args.scale ** -1 if args.reverse else args.scale
     print(f"scale: {scale}")
@@ -49,7 +49,7 @@ def rescale(args: argparse.Namespace):
                     print(f"round {i}: scale {random_scale}")
                     random_scale = random_scale if np.random.rand() < 0.5 else random_scale ** -1
 
-                image = scale_image(random_scale, data_path, extension, name)
+                image = scale_image(random_scale, data_path, extension, name) # type: ignore
                 image.save(output_path + name + number + extension)
 
                 if xml:
@@ -84,27 +84,27 @@ def scale_xml(scale: int, data_path: str, name: str, tag_list: List[str]) -> Bea
     for tag in tag_list:
         regions = bs_data.find_all(tag)
         for region in regions:
-            scale_coordinates(region, scale)
+            scale_coordinates(region, scale) # type: ignore
             lines = region.find_all("TextLine")
             for line in lines:
-                scale_coordinates(line, scale, True)
+                scale_coordinates(line, scale, True) # type: ignore
 
     return bs_data
 
 
-def scale_coordinates(tag: Tag, scale: int, is_line: bool = False):
+def scale_coordinates(tag: Tag, scale: int, is_line: bool = False) -> None:
     """
     Extracts coordinates from bs4.Tag object, converts it to an ndarray and scales all coordinates.
     Finally, reconverts coordinates to update the bs4.Tag object.
     """
-    polygon = xml_polygon_to_polygon_list(tag.Coords["points"])
+    polygon = xml_polygon_to_polygon_list(tag.Coords["points"]) # type: ignore
     polygon_ndarray = np.array(polygon, dtype=int).flatten()*scale
     polygon_string = polygon_to_string(polygon_ndarray.tolist(), 1)
     tag.Coords["points"] = polygon_string
 
     if is_line:
         if tag.Baseline and tag.Baseline["points"]:
-            baseline = xml_polygon_to_polygon_list(tag.Baseline["points"])
+            baseline = xml_polygon_to_polygon_list(tag.Baseline["points"]) # type: ignore
             baseline_ndarray = np.array(baseline, dtype=int).flatten()*scale
             baseline_string = polygon_to_string(baseline_ndarray.tolist(), 1)
             tag.Baseline["points"] = baseline_string

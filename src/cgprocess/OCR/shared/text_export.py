@@ -20,7 +20,7 @@ from src.cgprocess.OCR.shared.utils import line_has_text
 
 
 # todo: tests
-def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool, export: Dict[str, bool]) -> Tuple[
+def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool) -> Tuple[
     ndarray, list]:
     """
     Sorts regions and lines by the supplied reading order and assembles ndarray for csv export and
@@ -45,7 +45,7 @@ def extract_text(xml_data: BeautifulSoup, path: str, export_lines: bool, export:
         region_confidence_list = []
         for _, line_id in enumerate(lines_order):
             line = xml_data.find(attrs={'id': f'{line_id}'})
-            if line_has_text(line):
+            if line_has_text(line): # type: ignore
                 region_text_list.append(line.TextEquiv.Unicode.contents[0])
                 region_confidence_list.append(line.TextEquiv.attrs["conf"])
 
@@ -141,8 +141,10 @@ def main(args: argparse.Namespace) -> None:
         merge_files(args, output_path, paths)
 
 
-def launch_processes(args, data_path, output_path, paths, total):
-    path_queue = Queue()
+def launch_processes(args: argparse.Namespace, data_path: Path, output_path: Path, paths: list, total: int):
+    """Launch processes for text extraction."""
+    # todo: integrate this into multiprocessing handler
+    path_queue: Queue = Queue()
     processes = [Process(target=run_text_extraction,
                          args=(data_path, output_path, path_queue, args.lines, {"csv": args.csv, "json": args.json}))
                  for _ in range(args.process_count)]
@@ -170,6 +172,7 @@ def launch_processes(args, data_path, output_path, paths, total):
 
 def run_text_extraction(data_path: Path, output_path: Path, path_queue: Queue, lines: bool,
                         export: Dict[str, bool]) -> None:
+    """Get path from MP Queue and save data to npz or json file."""
     while True:
         path, done = path_queue.get()
         if done:
@@ -177,7 +180,7 @@ def run_text_extraction(data_path: Path, output_path: Path, path_queue: Queue, l
         with open(data_path / f"{path}.xml", "r", encoding="utf-8") as file:
             data = file.read()
         xml_data = BeautifulSoup(data, "xml")
-        region_csv, region_json = extract_text(xml_data, path, lines, export)
+        region_csv, region_json = extract_text(xml_data, path, lines)
         if (len(region_csv) == 0 and export["csv"]) or (len(region_json) == 0 and export["json"]):
             print(f"{path}.xml contains no text")
             continue

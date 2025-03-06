@@ -121,9 +121,9 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
             textline.append(textequiv)
     # save results
     with open(out_path, 'w', encoding='utf-8') as file:
-        file.write(soup.prettify()
-                   .replace("<Unicode>\n      ", "<Unicode>")
-                   .replace("\n     </Unicode>", "</Unicode>"))
+        file.write(soup.prettify() # type: ignore
+                   .replace("<Unicode>\n      ", "<Unicode>") # type: ignore
+                   .replace("\n     </Unicode>", "</Unicode>")) # type: ignore
 
 
 def get_args() -> argparse.Namespace:

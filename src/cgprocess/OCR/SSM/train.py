@@ -115,7 +115,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Launch processes for each gpu if possible, otherwise call train directly."""
     args = get_args()
 
@@ -143,7 +143,7 @@ def run_multiple_gpus(args: argparse.Namespace) -> None:
                   "Starting")
 
 
-def get_progress(total: int):
+def get_progress(total: int) -> int:
     """Return total as progress to skip progress bar."""
     return total
 
@@ -160,7 +160,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
 
     device_id = device_id if device_id else 0
 
-    tokenizer = init_tokenizer(cfg)  # todo: assertion for wrong vocabulary in saved targets.
+    tokenizer = init_tokenizer(cfg)  # todo: assertion for wrong vocabulary in saved targets, as well as image height.
     print(f"vocab size: {cfg['vocabulary']['size']}")
 
     page_dataset = PageDataset(data_path / "images")

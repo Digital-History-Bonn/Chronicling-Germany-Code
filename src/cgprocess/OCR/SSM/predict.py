@@ -17,7 +17,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.cgprocess.OCR.SSM.dataset import extract_page
-from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg, line_has_text
+from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
 from src.cgprocess.shared.multiprocessing_handler import MPPredictor, get_cpu_count, run_processes, get_queue_progress
 
 
@@ -166,7 +166,8 @@ def main() -> None:
     # instead of ahead of prediction
 
     predictor = MPPredictor("OCR prediction", predict, init_model, path_queue, model_list, str(image_path), True)
-    # predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_progress, "args": [files_done, total]})
+    # predictor.launch_processes(num_gpus, total=total, get_progress={"method": get_progress, "args":
+    # [files_done, total]})
     predictor.launch_processes(num_gpus, total=total,
                                get_progress={"method": get_queue_progress, "args": (total, path_queue)})
 
@@ -253,8 +254,8 @@ def save_results_to_xml(anno_path: Path, file_stem: str, ids: np.ndarray, pred_l
         bs4_line.append(textequiv)
     # save results
     with open(anno_path / f"{file_stem}.xml", 'w', encoding='utf-8') as file:
-        file.write(soup.prettify()
-                   .replace("<Unicode>\n      ", "<Unicode>")
+        file.write(soup.prettify() # type: ignore
+                   .replace("<Unicode>\n      ", "<Unicode>") # type: ignore
                    .replace("\n     </Unicode>", "</Unicode>")) # type: ignore
 
 
@@ -281,7 +282,7 @@ def create_batch(crops: List[np.ndarray], sorted_indices: np.ndarray, start: int
     return torch.vstack(padded_batch)
 
 
-def get_progress(files_done: Synchronized, total) -> int:
+def get_progress(files_done: Synchronized, total: int) -> int:
     """Returns value of shared variable, or the supplied total to indicade processing is done, if value is < 0."""
     value = files_done.value
     return total if value < 0 else value

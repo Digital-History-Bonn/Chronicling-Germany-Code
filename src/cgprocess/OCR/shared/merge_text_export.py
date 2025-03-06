@@ -5,12 +5,13 @@ import json
 import os
 import shutil
 from pathlib import Path
+from typing import List
 
 import numpy as np
 from tqdm import tqdm
 
 
-def merge_files(args, output_path, paths) -> None:
+def merge_files(args: argparse.Namespace, output_path: Path, paths: List[str]) -> None:
     """Merge data and save it to disc."""
     page_csv = []
     page_json = []

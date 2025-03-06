@@ -28,7 +28,7 @@ from src.cgprocess.shared.utils import get_file_stem_split
 
 
 def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
-               skip_cbam: bool = False, overwrite_load_channels: int = OUT_CHANNELS) -> Any:
+               skip_cbam: bool = False) -> Any:
     """
     Initialise model
     :param overwrite_load_channels: overwrites standart output channels, if a loaded model has a different size than
@@ -44,10 +44,10 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         model: Any = DhSegment(
             [3, 4, 6, 4],
             in_channels=IN_CHANNELS,
-            out_channel=overwrite_load_channels,
+            out_channel=OUT_CHANNELS,
             load_resnet_weights=True,
         )
-        model = setup_dh_segment(device, load, model, freeze, overwrite_load_channels)
+        model = setup_dh_segment(device, load, model, freeze)
     elif model_str == "trans_unet":
         load_backbone = not load
         model = VisionTransformer(
@@ -86,8 +86,7 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
 
 
 def setup_dh_segment(
-        device: str, load: Union[str, None], model: Any, freeze: bool,
-        override_load_channels: int = OUT_CHANNELS) -> Any:
+        device: str, load: Union[str, None], model: Any, freeze: bool) -> Any:
     """
     Setup function for dh_segment and dh_segment_cbam
     :param override_load_channels: overrides the out channel number with that a model will be loaded.

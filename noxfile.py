@@ -56,7 +56,6 @@ def mypy(session):
         "src/cgprocess/OCR/SSM",
         "src/cgprocess/OCR/shared",
         "src/cgprocess/shared",
-        "tests",
         "script",
     )
 

@@ -219,7 +219,8 @@ def main() -> None:
         print(args.name)
         print(f"\n\noverall levensthein distance per character: {overall_ratio}")
         # print(
-        #     f"levensthein distance per character per page: {np.mean(ratios)} ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
+        #     f"levensthein distance per character per page: {np.mean(ratios)}
+        #     ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
         #     f"{np.max(ratios)}")
         print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
         print(f"overall correct lines: "
