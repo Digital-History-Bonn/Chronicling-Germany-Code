@@ -1,3 +1,6 @@
+# type: ignore
+# todo: make this mypy typechecking conform
+
 """Evaluation script for layout segmentation on object level. This will evaluate each bounding box of a detected
 polygon if it matches a corresponding polygon in the target data. """
 import argparse
@@ -13,9 +16,6 @@ from shapely.geometry import Polygon
 from shapely.validation import explain_validity
 from tqdm import tqdm
 from tabulate import tabulate
-
-# type: ignore
-# todo: make this mypy typechecking conform
 
 def read_xml(xml_path: str) -> Dict[str, list]:
     """Reads xml files and returns shapely polygons of all desired regions."""

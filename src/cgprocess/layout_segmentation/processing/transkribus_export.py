@@ -69,7 +69,7 @@ def create_xml(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
     )
 
-    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale)
+    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale) # type: ignore
     order.append(order_group)
     page.insert(0, order)
     return xml_data

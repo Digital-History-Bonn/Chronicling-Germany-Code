@@ -88,7 +88,7 @@ class TrainDataset(Dataset):
                                 args=(dataset, extension, file, get_file_name, image_path, target_path))
                 thread.start()
                 threads.append(thread)
-                if i != 0 and i % 32 == 0:
+                if i != 0 and i % 1 == 0:
                     for thread in threads:
                         thread.join()
                     threads = []

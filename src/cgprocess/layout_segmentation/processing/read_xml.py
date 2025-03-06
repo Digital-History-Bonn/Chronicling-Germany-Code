@@ -82,7 +82,7 @@ def find_regions(
 
     for region in regions:
         region_type_matches = re.search(
-            r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
+            r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"] # type: ignore
         )
         if region_type_matches is None:
             region_type = 'image' if tag in ('ImageRegion', 'GraphicRegion') else "UnknownRegion"

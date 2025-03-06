@@ -54,8 +54,9 @@ def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSo
         crop_height: fixed height for all crops"""
     assert image.dtype == torch.uint8
 
-    region_polygon = enforce_image_limits(torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])),
-                                          (image.shape[2], image.shape[1]))  # type: ignore
+    region_polygon = enforce_image_limits(  # type: ignore
+        torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])),  # type: ignore
+        (image.shape[2], image.shape[1]))  # type: ignore
 
     # initialize
     bbox = get_bbox(region_polygon)
@@ -69,6 +70,9 @@ def extract_crop(crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSo
 
     transform = transforms.PILToTensor()
     mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8)
+
+    if crop.shape[-1] <= 0 or crop.shape[-2] <= 0:
+        return False
 
     # scale to crop_height
     scale = crop_height / crop.shape[-2]
@@ -110,7 +114,7 @@ def extract_page(queue: Queue, paths: Tuple[Path, Path, Path], image_extension: 
         file_stem, _ = arguments
         image, text_lines = load_data(image_path / f"{file_stem}{image_extension}",
                                       annotations_path / f"{file_stem}.xml")
-        crops, texts, ids = preprocess_data(image, text_lines, cfg["image_height"], predict)
+        crops, texts, ids = preprocess_data(image, text_lines, cfg["preprocessing"]["image_height"], predict)
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
 
         json_str = json.dumps({"texts": texts, "targets": targets, "ids": ids})

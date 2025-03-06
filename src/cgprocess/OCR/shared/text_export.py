@@ -141,7 +141,7 @@ def main(args: argparse.Namespace) -> None:
         merge_files(args, output_path, paths)
 
 
-def launch_processes(args: argparse.Namespace, data_path: Path, output_path: Path, paths: list, total: int):
+def launch_processes(args: argparse.Namespace, data_path: Path, output_path: Path, paths: list, total: int) -> None:
     """Launch processes for text extraction."""
     # todo: integrate this into multiprocessing handler
     path_queue: Queue = Queue()

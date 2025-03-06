@@ -5,7 +5,7 @@ from pathlib import Path
 
 # pylint: disable=duplicate-code
 
-def main(data_path: Path):
+def main(data_path: Path) -> None:
     """Load txt file and remove all lines, that are not .jpeg or .jpg files."""
     with open(data_path / "file_list.txt", 'r', encoding="utf-8") as infile:
         lines = infile.readlines()

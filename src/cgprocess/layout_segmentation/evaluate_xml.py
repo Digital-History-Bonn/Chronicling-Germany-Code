@@ -1,3 +1,6 @@
+# type: ignore
+# todo: make this mypy typechecking conform
+
 """Module for evaluating predictions from xml data, instead of in the training environment."""
 import argparse
 import glob
@@ -12,9 +15,6 @@ from shapely.geometry import Polygon
 from shapely.validation import explain_validity
 from tqdm import tqdm
 from tabulate import tabulate
-
-# type: ignore
-# todo: make this mypy typechecking conform
 
 def read_xml(xml_path: str) -> Dict[str: list]:
     """Read data from xml file, returning dictionary with keys for all classes."""

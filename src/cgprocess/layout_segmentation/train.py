@@ -96,8 +96,7 @@ class Trainer:
         print(f"Using {self.device} device")
 
         self.model = DataParallel(
-            init_model(load, self.device, args.model, args.freeze, args.skip_cbam,
-                       args.override_load_channels))
+            init_model(load, self.device, args.model, args.freeze, args.skip_cbam))
 
         # set optimizer and loss_fn
         count_parameters(self.model)

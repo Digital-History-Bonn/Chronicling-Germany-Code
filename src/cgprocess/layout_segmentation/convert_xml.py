@@ -44,7 +44,8 @@ def main(parsed_args: argparse.Namespace) -> None:
 
     # todo: use run process from multiprocessing handler
     path_queue: Queue = Queue()
-    processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
+    processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths))
+                 for _ in range(parsed_args.process_count)]
     for process in processes:
         process.start()
     for path in tqdm(paths, desc="Put paths in queue"):
@@ -80,7 +81,7 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
         if done:
             break
         if path in target_paths:
-            return
+            continue
         read = (
             # pylint: disable=unnecessary-lambda-assignment
             lambda file: read_xml.read_transkribus(path=file, log=parsed_args.log)
@@ -89,7 +90,7 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
         )
         annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
         if len(annotation) < 1:
-            return
+            continue
         img = draw_img(annotation)
 
         # Debug
@@ -152,7 +153,7 @@ def get_args() -> argparse.Namespace:
         help="path for output folder",
     )
     parser.add_argument(
-        "--image-path",
+        "--image-debug-path",
         "-i",
         type=str,
         dest="image_path",
@@ -171,6 +172,14 @@ def get_args() -> argparse.Namespace:
         "--json",
         action="store_true",
         help="Activates json dump of polygon dictionary.",
+    )
+    parser.add_argument(
+        "--process-count",
+        "-p",
+        type=int,
+        default=1,
+        help="Select number of processes that are launched per graphics card. This must be used carefully, as it can "
+             "lead to a CUDA out of memory error.",
     )
 
     return parser.parse_args()

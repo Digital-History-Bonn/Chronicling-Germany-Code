@@ -5,10 +5,9 @@ import re
 from multiprocessing import Queue
 from typing import Tuple, Union, List, Dict, Optional
 
-import bs4
 import numpy as np
 import torch
-from bs4 import PageElement, BeautifulSoup, element
+from bs4 import BeautifulSoup
 from scipy import ndimage
 from shapely.geometry import Polygon, LineString
 from skimage import io
@@ -17,7 +16,7 @@ from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
 
 
-def order_lines(region: element) -> None:
+def order_lines(region: BeautifulSoup) -> None:
     """Sort lines by estimating columns and sorting columns from left to right and lines inside a column
     from top to bottom."""
     lines = region.find_all("TextLine")
@@ -82,8 +81,7 @@ def is_valid(box: torch.Tensor) -> bool:
     return True
 
 
-
-def get_tag(textregion: element) -> str:
+def get_tag(textregion: BeautifulSoup) -> str:
     """
     Returns the tag of the given textregion.
 

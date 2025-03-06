@@ -9,7 +9,7 @@ from tqdm import tqdm
 from src.cgprocess.layout_segmentation.utils import adjust_path
 
 
-def rescale(args: argparse.Namespace):
+def rescale(args: argparse.Namespace) -> None:
     """Rescale all images according to scaling parameter in the provided directory."""
     data_path = adjust_path(args.data_path)
     output_path = adjust_path(args.output_path)
