@@ -8,26 +8,14 @@ def main():
     args = get_args()
 
     # get weights or params
-    if args.seed == 0:
-        model_file = {"detect": "yolov8n.pt",
-                      "segment": "yolov8n-seg.pt",
-                      "pose": "yolov8n-pose.pt"}[args.task]
-    else:
-        model_file = {"detect": "yolov8n.yaml",
-                      "segment": "yolov8n-seg.yaml",
-                      "pose": "yolov8n-pose.yaml"}[args.task]
+    model_file = "yolov8n.pt" if args.seed == 0 else "yolov8n.yaml"
 
     # Init a model
     model = YOLO(model_file)
 
     # Train the model
-    yaml = {"detect": "data/YOLO_Layout/CGD.yaml",
-            "segment": "data/YOLO_Textlines/CGD.yaml",
-            "pose": "data/YOLO_Baselines/CGD.yaml"}[args.task]
-
-    imgz = {"detect": 2048,
-            "segment": 1024,
-            "pose": 1024}[args.task]
+    yaml = "data/YOLO_Layout/CGD.yaml"
+    imgz = 2048
 
     devices = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else 'cpu'
 
@@ -51,14 +39,6 @@ def get_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="predict")
     # pylint: disable=duplicate-code
-    parser.add_argument(
-        "--task",
-        "-t",
-        type=str,
-        default="detect",
-        help="task to train must be \"detect\" or \"segment\" or \"pose\""
-    )
-
     parser.add_argument(
         "--epochs",
         "-e",
