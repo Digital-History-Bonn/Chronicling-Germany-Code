@@ -1,9 +1,11 @@
+"""Evaluation script for yolo."""
 import argparse
 import glob
 import json
 import re
 import warnings
 from os.path import basename
+from typing import Tuple, List
 
 import numpy as np
 import torch
@@ -57,13 +59,17 @@ def get_tag(textregion: PageElement) -> str:
 def multi_class_f1(
         pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
 ) -> torch.Tensor:
-    """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
+    """
+    Calculates the f1 score.
+
+    Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
     Csi score is used as substitute for accuracy, calculated separately for each class.
     Returns numpy array with an entry for every class. If every prediction is a true negative,
-    the score cant be calculated and the array will contain nan. These cases should be completely ignored.
-    :param pred: prediction tensor
-    :param target: target tensor
-    :return:
+    the score can't be calculated and the array will contain nan. These cases should be completely ignored.
+
+    Args:
+        pred: prediction tensor
+        target: target tensor
     """
     pred = pred.flatten()
     target = target.flatten()
@@ -111,7 +117,16 @@ def read_json(file_path: str):
     return region_coords, region_labels
 
 
-def read_xml(file_path: str):
+def read_xml(file_path: str) -> Tuple[List[Polygon], List[str], int, int]:
+    """
+    Reads in the given XML file.
+
+    Args:
+        file_path: path to the XML file.
+
+    Returns:
+
+    """
     with open(file_path, "r", encoding="utf-8") as file:
         data = file.read()
 
@@ -154,13 +169,16 @@ def read_xml(file_path: str):
     return [Polygon(poly) for poly in region_coords], region_labels, height, width
 
 
-def sort_polygons_and_labels(polygons, labels):
+def sort_polygons_and_labels(polygons: List[Polygon], labels: List[str]):
     """
     Sorts polygons and labels based on a given order of labels.
 
-    :param polygons: List of polygons.
-    :param labels: List of labels corresponding to the polygons.
-    :return: A tuple containing two lists: sorted polygons and sorted labels.
+    Args:
+        polygons: List of polygons.
+        labels: List of labels corresponding to the polygons.
+
+    Returns:
+        A tuple containing two lists: sorted polygons and sorted labels.
     """
     # if lists are empty return
     if len(polygons) == 0:
@@ -180,7 +198,18 @@ def sort_polygons_and_labels(polygons, labels):
     return list(sorted_polygons), list(sorted_labels)
 
 
-def draw_image(polygons, labels, shape):
+def draw_image(polygons: List[Polygon], labels: List[Polygon], shape: Tuple[int, int]) -> np.ndarray:
+    """
+    Draws image using the given polygons and labels.
+
+    Args:
+        polygons: List of polygons.
+        labels: List of labels corresponding to the polygons.
+        shape: Shape of the image.
+
+    Returns:
+        numpy array containing the image.
+    """
     # Create an empty numpy array
     arr = torch.zeros(shape, dtype=torch.uint8)
 
@@ -199,6 +228,16 @@ def draw_image(polygons, labels, shape):
 
 
 def evaluate(target: str, prediction: str):
+    """
+    Calculates the f1 score the given prediction and traget.
+
+    Args:
+        target: Path to target xml file.
+        prediction: Path to prediction xml file.
+
+    Returns:
+
+    """
     pred_polygons, pred_labels = read_json(prediction)
     tar_polygons, tar_labels, width, height = read_xml(target)
 
@@ -219,6 +258,9 @@ def evaluate(target: str, prediction: str):
 
 
 def main():
+    """
+    Calcualtes the f1 score the given prediction and target sets.
+    """
     args = get_args()
 
     pred_dir = adjust_path(args.prediction_dir)
