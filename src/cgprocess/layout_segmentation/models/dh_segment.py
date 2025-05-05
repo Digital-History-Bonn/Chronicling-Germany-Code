@@ -3,6 +3,7 @@ Module contains a U-Net Model. The model is a replica of the dhSegment model fro
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
+
 from typing import Any, Iterator, List, Tuple, Union
 
 import torch
@@ -174,7 +175,9 @@ class UpScaleBlock(nn.Module):
     Decoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, in_up: int, in_copy: int, out_channels: int, double_scaling: bool = False):
+    def __init__(
+        self, in_up: int, in_copy: int, out_channels: int, double_scaling: bool = False
+    ):
         """
         Decoder Block
         :param in_up: number of input feature maps from up-scaling-path
@@ -443,7 +446,7 @@ class DhSegment(nn.Module):
         """
         pred = self(image).argmax(dim=1).float().cpu()
         prediction = torch.squeeze(pred / self.out_channel)
-        return prediction #type: ignore
+        return prediction  # type: ignore
 
     def _load_resnet(self) -> None:
         """

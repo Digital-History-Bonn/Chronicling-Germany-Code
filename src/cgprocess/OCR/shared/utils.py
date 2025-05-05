@@ -1,20 +1,21 @@
 """Utility functions for OCR."""
+
 import argparse
 import os
 import random
 from multiprocessing import Queue
 from pathlib import Path
-from typing import Tuple, List, Any
+from typing import Any, List, Tuple
 
 import numpy as np
 import torch
 import yaml
-from PIL import Image, ImageOps
 from bs4 import BeautifulSoup
+from PIL import Image, ImageOps
 from skimage import io
 
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.shared.utils import xml_polygon_to_polygon_list, get_bbox
+from src.cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
 
 
 def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
@@ -32,9 +33,9 @@ def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
     elements_with_points = soup.find_all(attrs={"points": True})
 
     for element in elements_with_points:
-        points: str = element['points'] # type: ignore
+        points: str = element["points"]  # type: ignore
         padded_points = pad_points(points, pad_value)
-        element['points'] = padded_points # type: ignore
+        element["points"] = padded_points  # type: ignore
 
     return soup
 
@@ -54,12 +55,12 @@ def pad_points(points: str, pad_value: int = 10) -> str:
     padded_points_list = []
 
     for point in points_list:
-        x, y = map(int, point.split(','))
+        x, y = map(int, point.split(","))
         padded_x = x + pad_value
         padded_y = y + pad_value
         padded_points_list.append(f"{padded_x},{padded_y}")
 
-    return ' '.join(padded_points_list)
+    return " ".join(padded_points_list)
 
 
 def pad_image(image: Image.Image, pad: int = 10) -> Image.Image:
@@ -86,7 +87,7 @@ def adjust_path(path: str) -> str:
     Returns:
         path without ending '/'
     """
-    return path if not path or path[-1] != '/' else path[:-1]
+    return path if not path or path[-1] != "/" else path[:-1]
 
 
 def set_seed(seed: int) -> None:
@@ -110,7 +111,11 @@ def line_has_text(line: BeautifulSoup) -> bool:
 
     Returns:
         True if the line has TextEquiv and Unicode xml tags"""
-    return bool(line.TextEquiv and line.TextEquiv.Unicode and len(line.TextEquiv.Unicode.contents))
+    return bool(
+        line.TextEquiv
+        and line.TextEquiv.Unicode
+        and len(line.TextEquiv.Unicode.contents)
+    )
 
 
 def load_image(image_path: str) -> torch.Tensor:
@@ -140,7 +145,9 @@ def load_image(image_path: str) -> torch.Tensor:
     return image / 256
 
 
-def create_path_queue(annotations: List[str], args: argparse.Namespace, images: List[str]) -> Queue:
+def create_path_queue(
+    annotations: List[str], args: argparse.Namespace, images: List[str]
+) -> Queue:
     """
     Create path queue for OCR prediction containing image, annotation (baseline) and ouput path.
     Elements are required to have the image path at
@@ -150,11 +157,8 @@ def create_path_queue(annotations: List[str], args: argparse.Namespace, images: 
     """
     path_queue: Queue = Queue()
     for image_path, annotation_path in zip(images, annotations):
-        output_path = f'{args.output}/{os.path.basename(annotation_path)}'
-        path_queue.put((image_path,
-                        annotation_path,
-                        output_path,
-                        False))
+        output_path = f"{args.output}/{os.path.basename(annotation_path)}"
+        path_queue.put((image_path, annotation_path, output_path, False))
     return path_queue
 
 
@@ -177,19 +181,21 @@ def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str], List[torch.T
         data = file.read()
 
     # Parse the XML data
-    soup = BeautifulSoup(data, 'xml')
-    page = soup.find('Page')
+    soup = BeautifulSoup(data, "xml")
+    page = soup.find("Page")
     bboxes = []
     texts = []
     region_polygons = []
 
-    text_lines = page.find_all('TextLine') # type: ignore
+    text_lines = page.find_all("TextLine")  # type: ignore
     for line in text_lines:
         if line_has_text(line):
-            region_polygon = torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"]))
+            region_polygon = torch.tensor(
+                xml_polygon_to_polygon_list(line.Coords["points"])
+            )
             region_polygons.append(region_polygon)
             bboxes.append(torch.tensor(get_bbox(region_polygon)))
-            texts.append(line.find('Unicode').text)
+            texts.append(line.find("Unicode").text)
 
     return bboxes, texts, region_polygons
 
@@ -203,12 +209,12 @@ def create_unicode_alphabet(length: int) -> List[str]:
     result = []
     for i in range(length):
         result.append(chr(i))
-    return ['<PAD>', '<START>', '<NAN>', '<END>'] + result
+    return ["<PAD>", "<START>", "<NAN>", "<END>"] + result
 
 
 def load_cfg(config_path: Path) -> dict:
     """Load yml config from supplied path."""
-    with open(config_path, 'r', encoding="utf-8") as file:
+    with open(config_path, "r", encoding="utf-8") as file:
         cfg: dict = yaml.safe_load(file)
     return cfg
 

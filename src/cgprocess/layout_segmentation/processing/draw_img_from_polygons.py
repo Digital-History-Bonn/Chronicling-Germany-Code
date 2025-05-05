@@ -1,7 +1,8 @@
 """
 Module for drawing polygon data into images.
 """
-from typing import List, Tuple, Dict
+
+from typing import Dict, List, Tuple
 
 import numpy as np
 from numpy import ndarray
@@ -39,7 +40,7 @@ def draw_img(annotation: dict) -> ndarray:
 
 
 def draw_polygon(
-        img: ndarray, polygon: List[Tuple[str]], label: int = 1, shift: int = 0
+    img: ndarray, polygon: List[Tuple[str]], label: int = 1, shift: int = 0
 ) -> ndarray:
     """Takes corner coordinates and fills entire polygon with label values"""
     polygon_np = np.array(polygon, dtype=int).T
@@ -50,7 +51,7 @@ def draw_polygon(
 
 
 def draw_polygons_into_image(
-        segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
+    segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]
 ) -> ndarray:
     """
     Takes segmentation dictionary and draws polygons with assigned labels into a new image.

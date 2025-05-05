@@ -1,11 +1,12 @@
 """Evaluation script for baseline detection."""
+
 import argparse
 import glob
 import json
 import os.path
 import time
-from typing import Tuple, List
 from itertools import product
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -13,10 +14,12 @@ from bs4 import BeautifulSoup
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.evaluate_ocr import levensthein_distance, calculate_ratio
 from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
-from src.cgprocess.baseline_detection.utils import get_tag, adjust_path
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.baseline_detection.utils import adjust_path, get_tag
+from src.cgprocess.layout_segmentation.processing.read_xml import (
+    xml_polygon_to_polygon_list,
+)
+from src.cgprocess.OCR.shared.evaluate_ocr import calculate_ratio, levensthein_distance
 
 
 # pylint: disable=duplicate-code
@@ -35,28 +38,31 @@ def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
         data = file.read()
 
     # Parse the XML data
-    soup = BeautifulSoup(data, 'xml')
-    page = soup.find('Page')
+    soup = BeautifulSoup(data, "xml")
+    page = soup.find("Page")
     textlines = []
     texts = []
 
-    text_regions = page.find_all('TextRegion')
+    text_regions = page.find_all("TextRegion")
     for region in text_regions:
         if get_tag(region) in TEXT_CLASSES:
-            text_region = region.find_all('TextLine')
+            text_region = region.find_all("TextLine")
             for text_line in text_region:
-                polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
+                polygon = torch.tensor(
+                    xml_polygon_to_polygon_list(text_line.Coords["points"])
+                )
                 polygon = polygon[:, torch.tensor([1, 0])]
                 textlines.append(polygon)
 
-                textequiv = text_line.find('TextEquiv')
-                texts.append(textequiv.find('Unicode').text)
+                textequiv = text_line.find("TextEquiv")
+                texts.append(textequiv.find("Unicode").text)
 
     return textlines, texts
 
 
-def matching(predictions: List[Polygon],
-             targets: List[Polygon]) -> List[Tuple[int, int]]:
+def matching(
+    predictions: List[Polygon], targets: List[Polygon]
+) -> List[Tuple[int, int]]:
     """
     Calcs precision, recall, F1 score for textline polygons.
 
@@ -78,7 +84,9 @@ def matching(predictions: List[Polygon],
         intersects.append(pred.intersection(tar.buffer(0)).area)
         unions.append(pred.union(tar.buffer(0)).area)
 
-    ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(predictions), len(targets))
+    ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(
+        len(predictions), len(targets)
+    )
 
     mapping = []
     pred_line_list = list(range(len(predictions)))
@@ -105,7 +113,9 @@ def matching(predictions: List[Polygon],
     return mapping
 
 
-def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[List[Tuple[int, int]], float, list, list]:
+def evaluation(
+    prediction_file: str, ground_truth_file: str
+) -> Tuple[List[Tuple[int, int]], float, list, list]:
     """
     Evaluates the baseline detection.
 
@@ -125,27 +135,29 @@ def evaluation(prediction_file: str, ground_truth_file: str) -> Tuple[List[Tuple
     # mapping lines bases on iou
     # lines without a match are mapped with the empty string
     mapping = matching(pred_polygons, truth_polygons)
-    pred_texts += ['']
-    gt_texts += ['']
+    pred_texts += [""]
+    gt_texts += [""]
 
     pred_texts = [pred_texts[i] for i, _ in mapping]
     gt_texts = [gt_texts[j] for _, j in mapping]
 
-    results = levensthein_distance(gt=[gt_texts],
-                                   ocr=[pred_texts],
-                                   confidence_list=[[1] * len(pred_texts)])
+    results = levensthein_distance(
+        gt=[gt_texts], ocr=[pred_texts], confidence_list=[[1] * len(pred_texts)]
+    )
     lev_dis, lev_med, ratio_list, distance_list, _, bleu_score = results
 
     char_ratio = calculate_ratio(distance_list)
 
     correct_lines = np.array(ratio_list)[np.array(ratio_list) == 1.0].tolist()
     bad_lines = np.array(ratio_list)[np.array(ratio_list) < 0.9].tolist()
-    print(f"{prediction_file} correct lines: "
-          f"{len(correct_lines) / len(ratio_list)}")
     print(
-        f"{prediction_file} bad lines: {len(bad_lines) / len(ratio_list)}")
+        f"{prediction_file} correct lines: " f"{len(correct_lines) / len(ratio_list)}"
+    )
+    print(f"{prediction_file} bad lines: {len(bad_lines) / len(ratio_list)}")
     print(f"{prediction_file} normalized levensthein distance per line: {lev_dis}")
-    print(f"{prediction_file} normalized levensthein distance per character: {char_ratio}")
+    print(
+        f"{prediction_file} normalized levensthein distance per character: {char_ratio}"
+    )
     print(f"{prediction_file} levensthein median: {lev_med}")
     print(f"{prediction_file} levensthein worst line: {min(ratio_list)}\n")
     print(f"{prediction_file} bleu score normalized per line: {bleu_score}")
@@ -167,7 +179,7 @@ def get_args() -> argparse.Namespace:
         "-p",
         type=str,
         default=None,
-        help="path for folder with prediction xml files."
+        help="path for folder with prediction xml files.",
     )
 
     parser.add_argument(
@@ -175,14 +187,14 @@ def get_args() -> argparse.Namespace:
         "-g",
         type=str,
         default=None,
-        help="path for folder with ground truth xml files."
+        help="path for folder with ground truth xml files.",
     )
     parser.add_argument(
         "--name",
         "-n",
         type=str,
         default=time.time(),
-        help="Evaluation name. Results will be printed in 'results_name.json'"
+        help="Evaluation name. Results will be printed in 'results_name.json'",
     )
 
     return parser.parse_args()
@@ -205,9 +217,12 @@ def main() -> None:
     ratios = []
     bleu_sum = 0.0
 
-    for prediction, target in tqdm(zip(predictions, targets), total=len(targets),
-                                   desc='evaluation'):
-        distance_list, bleu_score, correct_lines, bad_lines = evaluation(prediction, target)
+    for prediction, target in tqdm(
+        zip(predictions, targets), total=len(targets), desc="evaluation"
+    ):
+        distance_list, bleu_score, correct_lines, bad_lines = evaluation(
+            prediction, target
+        )
         bleu_sum += bleu_score
         overall_distance_list += distance_list
         overall_correct_lines += correct_lines
@@ -223,16 +238,24 @@ def main() -> None:
         #     ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
         #     f"{np.max(ratios)}")
         print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
-        print(f"overall correct lines: "
-              f"{len(overall_correct_lines) / len(overall_distance_list)}")
         print(
-            f"overall bad lines: {len(overall_bad_lines) / len(overall_distance_list)}")
+            f"overall correct lines: "
+            f"{len(overall_correct_lines) / len(overall_distance_list)}"
+        )
+        print(
+            f"overall bad lines: {len(overall_bad_lines) / len(overall_distance_list)}"
+        )
 
-        with open(f'results_{args.name}.json', 'w', encoding='utf8') as json_file:
-            json.dump({"levenshtein": overall_ratio, "correct":
-                len(overall_correct_lines) / len(overall_distance_list),
-                       "bad": len(overall_bad_lines) / len(overall_distance_list)}, json_file)
+        with open(f"results_{args.name}.json", "w", encoding="utf8") as json_file:
+            json.dump(
+                {
+                    "levenshtein": overall_ratio,
+                    "correct": len(overall_correct_lines) / len(overall_distance_list),
+                    "bad": len(overall_bad_lines) / len(overall_distance_list),
+                },
+                json_file,
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

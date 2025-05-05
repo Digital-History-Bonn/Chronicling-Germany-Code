@@ -1,8 +1,10 @@
 """Script for splitting the dataset"""
+
 import argparse
 import json
 import os
 import shutil
+
 from tqdm import tqdm
 
 from src.cgprocess.layout_segmentation.utils import adjust_path
@@ -23,7 +25,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
-             "of train, validation and test images. File stem is the file name without the extension.",
+        "of train, validation and test images. File stem is the file name without the extension.",
     )
 
     parser.add_argument(
@@ -32,8 +34,9 @@ def get_args() -> argparse.Namespace:
         nargs="+",
         default=None,
         help="Extract specified datasets. Dataset name has to match the name "
-             "inside the file specified through --custom-split-file. "
-             "Multiple dataset names can be supplied.",)
+        "inside the file specified through --custom-split-file. "
+        "Multiple dataset names can be supplied.",
+    )
 
     parser.add_argument(
         "--data-path",
@@ -45,6 +48,7 @@ def get_args() -> argparse.Namespace:
     )
 
     return parser.parse_args()
+
 
 def main() -> None:
     """
@@ -76,7 +80,11 @@ def main() -> None:
 
             for path in tqdm(dataset, desc=f"Copy {dataset_name} data"):
                 shutil.copy2(image_path + path + ".jpg", dataset_path + path + ".jpg")
-                shutil.copy2(annotations_path + path + ".xml", dataset_path  + "page/" + path + ".xml")
+                shutil.copy2(
+                    annotations_path + path + ".xml",
+                    dataset_path + "page/" + path + ".xml",
+                )
+
 
 if __name__ == "__main__":
     main()

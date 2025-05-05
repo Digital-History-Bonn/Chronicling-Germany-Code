@@ -1,4 +1,5 @@
 """Splits data into training, validation and test split."""
+
 import argparse
 import json
 import os
@@ -18,14 +19,16 @@ def get_args() -> argparse.Namespace:
         Namespace with parsed arguments.
     """
     # pylint: disable=duplicate-code
-    parser = argparse.ArgumentParser(description="preprocess")    # pylint: disable=duplicate-code
+    parser = argparse.ArgumentParser(
+        description="preprocess"
+    )  # pylint: disable=duplicate-code
 
     parser.add_argument(
         "--image_dir",
         "-i",
         type=str,
         default=None,
-        help="path for folder with images. Images need to be jpg."
+        help="path for folder with images. Images need to be jpg.",
     )
 
     parser.add_argument(
@@ -33,7 +36,7 @@ def get_args() -> argparse.Namespace:
         "-a",
         type=str,
         default=None,
-        help="path for folder with layout xml files."
+        help="path for folder with layout xml files.",
     )
 
     parser.add_argument(
@@ -70,13 +73,12 @@ def main() -> None:
     image_dir = adjust_path(args.image_dir)
     annotation_dir = adjust_path(args.annotation_dir)
 
-    with open("neurips-split.json", 'r',
-              encoding='utf-8') as file:
+    with open("neurips-split.json", "r", encoding="utf-8") as file:
         data = json.load(file)
 
-    train_files = data.get('Training', [])
-    valid_files = data.get('Validation', [])
-    test_files = data.get('Test', [])
+    train_files = data.get("Training", [])
+    valid_files = data.get("Validation", [])
+    test_files = data.get("Test", [])
 
     print(f"{len(train_files)=}")
     print(f"{len(valid_files)=}")

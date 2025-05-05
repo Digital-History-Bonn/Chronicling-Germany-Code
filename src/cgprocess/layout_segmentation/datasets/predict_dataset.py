@@ -1,16 +1,18 @@
 """
 module for Dataset class
 """
+
 from __future__ import annotations
 
 import glob
 import os
-from typing import Tuple, Optional, Union, List
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from PIL import Image
 from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type: ignore
+
 # pylint thinks torch has no name randperm this is wrong
 # pylint: disable-next=no-name-in-module
 from torch.utils.data import Dataset
@@ -28,11 +30,11 @@ class PredictDataset(Dataset):
     """
 
     def __init__(
-            self,
-            image_path: str,
-            scale: float,
-            target_path: Optional[str] = None,
-            file_names : Optional[List[str]] = None,
+        self,
+        image_path: str,
+        scale: float,
+        target_path: Optional[str] = None,
+        file_names: Optional[List[str]] = None,
     ) -> None:
         """
         load images and targets from folder
@@ -48,8 +50,11 @@ class PredictDataset(Dataset):
 
         if file_names:
             self.file_names = file_names
-        self.file_names = [file.split(os.sep)[-1] for file in glob.glob(f"{image_path}*.png") +
-                           glob.glob(f"{image_path}*.jpg")]
+        self.file_names = [
+            file.split(os.sep)[-1]
+            for file in glob.glob(f"{image_path}*.png")
+            + glob.glob(f"{image_path}*.jpg")
+        ]
 
     def load_image(self, file: str) -> torch.Tensor:
         """
@@ -61,7 +66,9 @@ class PredictDataset(Dataset):
         image = Image.open(self.image_path + file).convert("RGB")
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
         image = image.resize(shape, resample=BICUBIC)
-        transform = transforms.Compose([transforms.PILToTensor(), transforms.Grayscale(num_output_channels=3)])
+        transform = transforms.Compose(
+            [transforms.PILToTensor(), transforms.Grayscale(num_output_channels=3)]
+        )
 
         data: torch.Tensor = transform(image).float() / 255
         return data
@@ -72,13 +79,17 @@ class PredictDataset(Dataset):
         :param file: path to target
         :return: Tensor of dimensions (BxCxHxW). In this case, the number of batches will always be 1.
         """
-        target:  torch.Tensor = np.load(f"{self.target_path}{file[:-4]}.npz")['array']
+        target: torch.Tensor = np.load(f"{self.target_path}{file[:-4]}.npz")["array"]
         shape = int(target.shape[0] * self.scale), int(target.shape[1] * self.scale)
-        target = torch.nn.functional.interpolate(torch.tensor(target[None, :, :]), size=shape, mode='nearest')
+        target = torch.nn.functional.interpolate(
+            torch.tensor(target[None, :, :]), size=shape, mode="nearest"
+        )
 
         return target
 
-    def load_data_by_path(self, path: str) -> Tuple[torch.Tensor, Union[torch.Tensor, None]]:
+    def load_data_by_path(
+        self, path: str
+    ) -> Tuple[torch.Tensor, Union[torch.Tensor, None]]:
         """Load image and possibly the target by path only without utilizing the entire dataset."""
         image = self.load_image(path)
 
@@ -94,7 +105,9 @@ class PredictDataset(Dataset):
 
         return image, target
 
-    def __getitem__(self, item: int) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
+    def __getitem__(
+        self, item: int
+    ) -> Tuple[torch.Tensor, Union[torch.Tensor, None], str]:
         """
         returns one datapoint
         :param item: number of the datapoint
@@ -103,7 +116,6 @@ class PredictDataset(Dataset):
         file_name = self.file_names[item]
         image, target = self.load_data_by_path(file_name)
         return image, target, file_name
-
 
     def __len__(self) -> int:
         """

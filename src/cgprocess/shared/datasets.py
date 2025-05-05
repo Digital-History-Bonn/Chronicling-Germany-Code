@@ -1,15 +1,20 @@
 """Module for shared Dataset classes."""
+
 from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Tuple, Union, List, Optional, Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from torch.utils.data import Dataset
 
-from src.cgprocess.shared.utils import initialize_random_split, get_file_stems, prepare_file_loading
+from src.cgprocess.shared.utils import (
+    get_file_stems,
+    initialize_random_split,
+    prepare_file_loading,
+)
 
 
 class PageDataset(Dataset):
@@ -18,10 +23,10 @@ class PageDataset(Dataset):
     """
 
     def __init__(
-            self,
-            image_path: Path = Path("images"),
-            dataset: str = "transkribus",
-            file_stems: Union[List[str], None] = None
+        self,
+        image_path: Path = Path("images"),
+        dataset: str = "transkribus",
+        file_stems: Union[List[str], None] = None,
     ) -> None:
 
         self.image_path = image_path
@@ -47,7 +52,7 @@ class PageDataset(Dataset):
         return self.file_stems[item]
 
     def random_split(
-            self, ratio: Tuple[float, float, float]
+        self, ratio: Tuple[float, float, float]
     ) -> Tuple[PageDataset, PageDataset, PageDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -63,17 +68,19 @@ class PageDataset(Dataset):
         train_dataset = PageDataset(
             image_path=self.image_path,
             dataset=self.dataset,
-            file_stems=np.array(self.file_stems)[indices[: splits[0]]].tolist()
+            file_stems=np.array(self.file_stems)[indices[: splits[0]]].tolist(),
         )
         valid_dataset = PageDataset(
             image_path=self.image_path,
             dataset=self.dataset,
-            file_stems=np.array(self.file_stems)[indices[splits[0]: splits[1]]].tolist(),
+            file_stems=np.array(self.file_stems)[
+                indices[splits[0] : splits[1]]
+            ].tolist(),
         )
         test_dataset = PageDataset(
             image_path=self.image_path,
             dataset=self.dataset,
-            file_stems=np.array(self.file_stems)[indices[splits[1]:]].tolist(),
+            file_stems=np.array(self.file_stems)[indices[splits[1] :]].tolist(),
         )
 
         return train_dataset, valid_dataset, test_dataset
@@ -87,13 +94,13 @@ class TrainDataset(Dataset, ABC):
     """
 
     def __init__(
-            self,
-            data_path: Path,
-            limit: Optional[int] = None,
-            data_source: str = "transkribus",
-            file_stems: Optional[List[str]] = None,
-            sort: bool = False,
-            name: str = "default"
+        self,
+        data_path: Path,
+        limit: Optional[int] = None,
+        data_source: str = "transkribus",
+        file_stems: Optional[List[str]] = None,
+        sort: bool = False,
+        name: str = "default",
     ) -> None:
         """
         Args:
@@ -111,7 +118,9 @@ class TrainDataset(Dataset, ABC):
         self.limit = limit
         self.name = name
 
-        self.image_extension, self.get_file_name = prepare_file_loading(data_source)  # get_file_name is only for
+        self.image_extension, self.get_file_name = prepare_file_loading(
+            data_source
+        )  # get_file_name is only for
         # compatability with europeana newspaper data
         if file_stems:
             self.file_stems = file_stems
@@ -121,9 +130,10 @@ class TrainDataset(Dataset, ABC):
             self.file_stems.sort()
 
         if limit is not None:
-            assert limit <= len(
-                self.file_stems), (f"Provided limit with size {limit} is greater than dataset size"
-                                   f"with size {len(self.file_stems)}.")
+            assert limit <= len(self.file_stems), (
+                f"Provided limit with size {limit} is greater than dataset size"
+                f"with size {len(self.file_stems)}."
+            )
             self.file_stems = self.file_stems[:limit]
 
     def prepare_data(self) -> None:

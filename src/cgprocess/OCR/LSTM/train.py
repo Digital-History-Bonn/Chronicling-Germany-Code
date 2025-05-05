@@ -1,17 +1,21 @@
 """Model to train kraken OCR model."""
+
 import argparse
 import glob
 import os
 from pprint import pprint
 
 import torch
-from kraken.lib import default_specs                            # pylint: disable=no-name-in-module, import-error
-from kraken.lib.train import RecognitionModel, KrakenTrainer    # pylint: disable=no-name-in-module, import-error
-from lightning.pytorch.loggers import TensorBoardLogger         # pylint: disable=import-error
+from kraken.lib import default_specs  # pylint: disable=no-name-in-module, import-error
+from kraken.lib.train import (  # pylint: disable=no-name-in-module, import-error
+    KrakenTrainer,
+    RecognitionModel,
+)
+from lightning.pytorch.loggers import TensorBoardLogger  # pylint: disable=import-error
 
-from src.cgprocess.OCR.shared.utils import set_seed, adjust_path
+from src.cgprocess.OCR.shared.utils import adjust_path, set_seed
 
-torch.set_float32_matmul_precision('medium')
+torch.set_float32_matmul_precision("medium")
 
 
 def get_args() -> argparse.Namespace:
@@ -28,7 +32,7 @@ def get_args() -> argparse.Namespace:
         "-n",
         type=str,
         default=None,
-        help="Name of the model and the log files."
+        help="Name of the model and the log files.",
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
@@ -36,7 +40,7 @@ def get_args() -> argparse.Namespace:
         "-t",
         type=str,
         default=None,
-        help="path for folder with images jpg files and annotation xml files to train the model."
+        help="path for folder with images jpg files and annotation xml files to train the model.",
     )
 
     parser.add_argument(
@@ -44,7 +48,7 @@ def get_args() -> argparse.Namespace:
         "-v",
         type=str,
         default=None,
-        help="path for folder with images jpg files and annotation xml files to validate the model."
+        help="path for folder with images jpg files and annotation xml files to validate the model.",
     )
 
     # pylint: disable=duplicate-code
@@ -77,42 +81,48 @@ def main() -> None:
         print("CUDA device is not available.")
 
     # create folder for model saves
-    os.makedirs(f'models/{name}', exist_ok=False)
+    os.makedirs(f"models/{name}", exist_ok=False)
 
     # create training- and evaluation set
     training_files = list(glob.glob(f"{train_path}/*.xml"))
     evaluation_files = list(glob.glob(f"{valid_path}/*.xml"))
 
-    print(f"{len(training_files)} training images and {len(evaluation_files)} validation images.")
+    print(
+        f"{len(training_files)} training images and {len(evaluation_files)} validation images."
+    )
 
     # set some hyperparameters
     hparams = default_specs.RECOGNITION_HYPER_PARAMS.copy()
-    hparams['epochs'] = 5
-    hparams['lrate'] = 0.001
-    hparams['warmup'] = 1
-    hparams['augment'] = True
-    hparams['batch_size'] = 32  # <- 32
+    hparams["epochs"] = 5
+    hparams["lrate"] = 0.001
+    hparams["warmup"] = 1
+    hparams["augment"] = True
+    hparams["batch_size"] = 32  # <- 32
 
     # init model
-    model = RecognitionModel(hyper_params=hparams,
-                             output=f'models/{name}/model',
-                             # model='load_model/german_newspapers_kraken.mlmodel',
-                             num_workers=16,
-                             training_data=training_files,
-                             evaluation_data=evaluation_files,
-                             resize='new',
-                             format_type='page')
+    model = RecognitionModel(
+        hyper_params=hparams,
+        output=f"models/{name}/model",
+        # model='load_model/german_newspapers_kraken.mlmodel',
+        num_workers=16,
+        training_data=training_files,
+        evaluation_data=evaluation_files,
+        resize="new",
+        format_type="page",
+    )
 
     # print hyperparameter of model
     pprint(f"{model.hparams}")
 
     # init logger and training
     logger = TensorBoardLogger("logs", name=name)
-    trainer = KrakenTrainer(pl_logger=logger)  # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
+    trainer = KrakenTrainer(
+        pl_logger=logger
+    )  # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
 
     # start training
     trainer.fit(model)  # pylint: disable=no-member
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,17 +1,19 @@
 """Tokenizer for Transformer based OCR."""
+
 import warnings
-from typing import List, Dict
+from typing import Dict, List
 
 import torch
 import torch.nn.functional as F
 
 try:
-    from ssr import Tokenizer # pylint: disable=import-error
+    from ssr import Tokenizer  # pylint: disable=import-error
 except ModuleNotFoundError:
     from abc import ABC, abstractmethod
+
     warnings.warn("Warning: ssr package not found. Tokenizer will be loaded locally.")
 
-    class Tokenizer(ABC): # type: ignore
+    class Tokenizer(ABC):  # type: ignore
         """Abstract tokenizer class, enforcing pad, start, nan and end tokens."""
 
         def __init__(self, alphabet: Dict[str, int]):
@@ -20,9 +22,15 @@ except ModuleNotFoundError:
             Args:
                 alphabet(Dict[str]): alphabet for tokenization. '<PAD>', '<START>', '<NAN>', '<END>' token are
                 required to have indices 0,1,2,3."""
-            assert alphabet['<PAD>'] == 0 and alphabet['<START>'] == 1 and alphabet['<NAN>'] == 2 and alphabet[
-                '<END>'] == 3, ("Tokenizer alphabet is required to have '<PAD>', '<START>', "
-                                "'<NAN>', '<END>' tokens with indices 0,1,2,3.")
+            assert (
+                alphabet["<PAD>"] == 0
+                and alphabet["<START>"] == 1
+                and alphabet["<NAN>"] == 2
+                and alphabet["<END>"] == 3
+            ), (
+                "Tokenizer alphabet is required to have '<PAD>', '<START>', "
+                "'<NAN>', '<END>' tokens with indices 0,1,2,3."
+            )
             self.alphabet = alphabet
 
         @abstractmethod
@@ -60,7 +68,7 @@ except ModuleNotFoundError:
 
             Returns:
                 str: string representation of token.
-             """
+            """
 
         @abstractmethod
         def to_text(self, token_ids: torch.Tensor) -> str:
@@ -74,12 +82,16 @@ except ModuleNotFoundError:
             """
 
 
-class OCRTokenizer(Tokenizer): # type: ignore
+class OCRTokenizer(Tokenizer):  # type: ignore
     """Tokenizer for Transformer based OCR."""
-    def __init__(self, alphabet: List[str],
-                 pad: bool=False,
-                 max_length: int = 512,
-                 print_nan: bool = False):
+
+    def __init__(
+        self,
+        alphabet: List[str],
+        pad: bool = False,
+        max_length: int = 512,
+        print_nan: bool = False,
+    ):
         """
         Tokenizer for Transformer based OCR.
 
@@ -107,18 +119,22 @@ class OCRTokenizer(Tokenizer): # type: ignore
             Torch tensor with token ids.
         """
         ids = [self.__get_token(t) for t in text]
-        ids.insert(0, self.alphabet['<START>'])
-        ids.append(self.alphabet['<END>'])
+        ids.insert(0, self.alphabet["<START>"])
+        ids.append(self.alphabet["<END>"])
         if self.pad:
             # pylint: disable=not-callable
-            ids = F.pad(torch.tensor(ids),                      # type: ignore
-                        pad=(0, self.max_length - len(ids)),
-                        mode='constant',
-                        value=self.alphabet['<PAD>'])
+            ids = F.pad(
+                torch.tensor(ids),  # type: ignore
+                pad=(0, self.max_length - len(ids)),
+                mode="constant",
+                value=self.alphabet["<PAD>"],
+            )
 
-        return torch.tensor(ids[:self.max_length], dtype=torch.long)
+        return torch.tensor(ids[: self.max_length], dtype=torch.long)
 
-    def __len__(self,) -> int:
+    def __len__(
+        self,
+    ) -> int:
         """returns alphabet length"""
         return len(self.alphabet)
 
@@ -135,15 +151,19 @@ class OCRTokenizer(Tokenizer): # type: ignore
 
     def single_token_to_text(self, input_id: int) -> str:
         """
-         Converts single token id back to text.
-         """
+        Converts single token id back to text.
+        """
         return self.inverse[input_id]
 
     def __get_token(self, input_str: str) -> int:
         """
         Tokenize a single character.
         """
-        return self.alphabet[input_str] if input_str in self.alphabet.keys() else self.alphabet['<NAN>']
+        return (
+            self.alphabet[input_str]
+            if input_str in self.alphabet.keys()
+            else self.alphabet["<NAN>"]
+        )
 
     def to_text(self, token_ids: torch.Tensor) -> str:
         """
@@ -155,13 +175,18 @@ class OCRTokenizer(Tokenizer): # type: ignore
             text
         """
         if token_ids.dim() != 1:
-            raise ValueError('ids must have dimension 1')
+            raise ValueError("ids must have dimension 1")
 
-        text = ''
+        text = ""
         for token in token_ids[1:]:
             token = self.inverse[token.item()]
-            if token == '<END>':
+            if token == "<END>":
                 break
-            text += token if self.print_special_tokens or (token not in ['<PAD>', '<START>', '<NAN>']) else ''
+            text += (
+                token
+                if self.print_special_tokens
+                or (token not in ["<PAD>", "<START>", "<NAN>"])
+                else ""
+            )
 
         return text

@@ -1,4 +1,5 @@
 """Script for downloading dataset and our models"""
+
 import argparse
 import os
 import zipfile
@@ -6,10 +7,14 @@ from typing import Optional
 
 import requests
 
-DATASET_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
-               "archive/main/Chronicling-Germany-Dataset-main.zip?path=data")
-MODELS_URL = ("https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
-              "archive/main/Chronicling-Germany-Dataset-main.zip?path=models")
+DATASET_URL = (
+    "https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
+    "archive/main/Chronicling-Germany-Dataset-main.zip?path=data"
+)
+MODELS_URL = (
+    "https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset/-/"
+    "archive/main/Chronicling-Germany-Dataset-main.zip?path=models"
+)
 
 
 def download_extract(url: str, target_path: str) -> None:
@@ -25,11 +30,11 @@ def download_extract(url: str, target_path: str) -> None:
 
     # download
     r = requests.get(url, timeout=10)
-    with open(f"{target_path}/data.zip", 'wb') as f:
+    with open(f"{target_path}/data.zip", "wb") as f:
         f.write(r.content)
 
     # unzip data
-    with zipfile.ZipFile(f"{target_path}/data.zip", 'r') as zipper:
+    with zipfile.ZipFile(f"{target_path}/data.zip", "r") as zipper:
         zipper.extractall(path=target_path)
 
     os.remove(f"{target_path}/data.zip")
@@ -45,7 +50,7 @@ def adjust_path(path: Optional[str]) -> Optional[str]:
     Returns:
         path without ending '/'
     """
-    return path if not path or path[-1] != '/' else path[:-1]
+    return path if not path or path[-1] != "/" else path[:-1]
 
 
 def get_args() -> argparse.Namespace:
@@ -93,7 +98,7 @@ def get_args() -> argparse.Namespace:
 
 def main() -> None:
     """Downloads dataset and our models."""
-    print('Please be patient downloading process can take a while...')
+    print("Please be patient downloading process can take a while...")
     args = get_args()
 
     dataset_path = adjust_path(args.dataset_path)
@@ -101,12 +106,12 @@ def main() -> None:
 
     if args.dataset or args.all:
         print("downloading dataset ...")
-        download_extract(DATASET_URL, dataset_path) # type: ignore
+        download_extract(DATASET_URL, dataset_path)  # type: ignore
 
     if args.models or args.all:
         print("downloading models ...")
-        download_extract(MODELS_URL, model_path) # type: ignore
+        download_extract(MODELS_URL, model_path)  # type: ignore
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

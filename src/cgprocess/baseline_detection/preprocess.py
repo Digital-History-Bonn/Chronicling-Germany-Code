@@ -1,21 +1,22 @@
 """Preprocess for the Newspaper dataset to predict Textlines."""
+
 import argparse
 import glob
 import os
-from multiprocessing import Queue, Process, set_start_method
+from multiprocessing import Process, Queue, set_start_method
 from time import sleep
 from typing import List, Tuple
 
-import torch
-from torchvision import transforms
 import numpy as np
+import torch
 from PIL import Image, ImageDraw
-from skimage import draw
-from shapely.ops import split
 from shapely.geometry import LineString, Polygon
+from shapely.ops import split
+from skimage import draw
+from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.baseline_detection.utils import extract, adjust_path
+from src.cgprocess.baseline_detection.utils import adjust_path, extract
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:
@@ -34,7 +35,9 @@ def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Pol
     """
     # extend line to avoid not completely intersecting polygone
     points = list(baseline.coords)
-    new_coords = [(-100, points[0][1])] + points + [(points[-1][0] + 100, points[-1][1])]
+    new_coords = (
+        [(-100, points[0][1])] + points + [(points[-1][0] + 100, points[-1][1])]
+    )
     baseline = LineString(new_coords)
 
     # Use the split method to split the polygon
@@ -50,11 +53,12 @@ def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Pol
             descender = parts.geoms[0]
         return ascender, descender
 
-    raise ValueError('Baseline and polygone not intersecting!')
+    raise ValueError("Baseline and polygone not intersecting!")
 
 
-def calc_heights(polygon: Polygon,
-                 baseline: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def calc_heights(
+    polygon: Polygon, baseline: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the heights of the polygon at all x coordinates.
 
@@ -81,29 +85,32 @@ def calc_heights(polygon: Polygon,
     x_coords = []
     y_coords = []
     for i in range(len(baseline) - 1):
-        rr, cc = draw.line(baseline[i, 0],
-                           baseline[i, 1],
-                           baseline[i + 1, 0],
-                           baseline[i + 1, 1])
+        rr, cc = draw.line(
+            baseline[i, 0], baseline[i, 1], baseline[i + 1, 0], baseline[i + 1, 1]
+        )
         x_coords.extend(rr)
         y_coords.extend(cc)
 
     baseline_x = torch.tensor(x_coords)
     baseline_y = torch.tensor(y_coords)
 
-    indices = (baseline_y - torch.tensor([bbox[0]])).long().clip(min=0, max=shape[1] - 1)
+    indices = (
+        (baseline_y - torch.tensor([bbox[0]])).long().clip(min=0, max=shape[1] - 1)
+    )
     values = torch.sum(polygon_image, dim=0)[indices]
 
     return baseline_x, baseline_y, values
 
 
-def draw_baseline_target(shape: Tuple[int, int],
-                         baselines: List[torch.Tensor],
-                         textlines: List[torch.Tensor],
-                         mask_regions: List[torch.Tensor],
-                         textregions: List[torch.Tensor],
-                         name: str,
-                         width: int = 3) -> np.ndarray:
+def draw_baseline_target(
+    shape: Tuple[int, int],
+    baselines: List[torch.Tensor],
+    textlines: List[torch.Tensor],
+    mask_regions: List[torch.Tensor],
+    textregions: List[torch.Tensor],
+    name: str,
+    width: int = 3,
+) -> np.ndarray:
     """
     Draw baseline target for given shape.
 
@@ -158,10 +165,9 @@ def draw_baseline_target(shape: Tuple[int, int],
 
     # draw textregions
     for textregion in textregions:
-        textregion_draw.polygon([(int(x[1]), int(x[0])) for x in textregion],
-                                fill=0,
-                                outline=1,
-                                width=width)
+        textregion_draw.polygon(
+            [(int(x[1]), int(x[0])) for x in textregion], fill=0, outline=1, width=width
+        )
 
     target[:, :, 4] = np.array(textregion_img)
 
@@ -174,7 +180,9 @@ def draw_baseline_target(shape: Tuple[int, int],
     return np.array(target)
 
 
-def draw_limiter(limiter_draw: ImageDraw.ImageDraw, polygon: Polygon, width: int) -> None:
+def draw_limiter(
+    limiter_draw: ImageDraw.ImageDraw, polygon: Polygon, width: int
+) -> None:
     """
     Draw limiter on given polygon.
 
@@ -188,11 +196,13 @@ def draw_limiter(limiter_draw: ImageDraw.ImageDraw, polygon: Polygon, width: int
     limiter_draw.line([(max_x, min_y), (max_x, max_y)], fill=1, width=width)
 
 
-def draw_ascender_descender(polygon: Polygon,
-                            baseline: torch.Tensor,
-                            shape: Tuple[int, int],
-                            target: np.ndarray,
-                            dim: int) -> None:
+def draw_ascender_descender(
+    polygon: Polygon,
+    baseline: torch.Tensor,
+    shape: Tuple[int, int],
+    target: np.ndarray,
+    dim: int,
+) -> None:
     """
     Draws the given ascender oder descender as height values on the baseline positions.
 
@@ -223,7 +233,7 @@ def get_args() -> argparse.Namespace:
         "-i",
         type=str,
         default=None,
-        help="path for folder with images. Images need to be jpg."
+        help="path for folder with images. Images need to be jpg.",
     )
 
     parser.add_argument(
@@ -231,7 +241,7 @@ def get_args() -> argparse.Namespace:
         "-a",
         type=str,
         default=None,
-        help="path for folder with layout xml files."
+        help="path for folder with layout xml files.",
     )
 
     parser.add_argument(
@@ -276,23 +286,29 @@ def main() -> None:
     to_tensor = transforms.PILToTensor()
 
     target_paths = list(glob.glob(f"{target_folder}/*.xml"))
-    image_paths = [f"{image_folder}/{x.split(os.sep)[-1][:-4]}.jpg" for x in target_paths]
+    image_paths = [
+        f"{image_folder}/{x.split(os.sep)[-1][:-4]}.jpg" for x in target_paths
+    ]
 
     print(f"{len(image_paths)=}")
     print(f"{len(target_paths)=}")
 
     path_queue: Queue = Queue()
-    for img_path, tar_path in tqdm(zip(image_paths, target_paths),
-                                   total=len(image_paths),
-                                   desc='put in queue'):
+    for img_path, tar_path in tqdm(
+        zip(image_paths, target_paths), total=len(image_paths), desc="put in queue"
+    ):
         document_name = img_path.split(os.sep)[-1][:-4]
 
         # check if folder already exists if yes skip this image
         if os.path.exists(f"{output_path}/{document_name}.npz"):
             continue
-        path_queue.put((document_name, img_path, output_path, tar_path, to_tensor, False))
+        path_queue.put(
+            (document_name, img_path, output_path, tar_path, to_tensor, False)
+        )
 
-    processes = [Process(target=preprocess, args=(path_queue, i)) for i in range(args.processes)]
+    processes = [
+        Process(target=preprocess, args=(path_queue, i)) for i in range(args.processes)
+    ]
     for process in processes:
         process.start()
     total = path_queue.qsize()
@@ -325,20 +341,17 @@ def preprocess(path_queue: Queue, i: int) -> None:
         textregion: List[torch.Tensor] = []
         for region in regions:
             # save target information
-            masks.extend(region['textline_polygone'])  # type: ignore
-            baselines.extend(region['baselines'])  # type: ignore
-            bboxes.extend(region['bboxes'])  # type: ignore
-            textregion.append(region['textregion'])  # type: ignore
+            masks.extend(region["textline_polygone"])  # type: ignore
+            baselines.extend(region["baselines"])  # type: ignore
+            bboxes.extend(region["bboxes"])  # type: ignore
+            textregion.append(region["textregion"])  # type: ignore
         # create target as numpy array and save it in a compressed file
-        target = draw_baseline_target(shape,
-                                      baselines,
-                                      masks,
-                                      mask_regions,
-                                      textregion,
-                                      document_name)
+        target = draw_baseline_target(
+            shape, baselines, masks, mask_regions, textregion, document_name
+        )
         np.savez_compressed(f"{output_path}/{document_name}", array=target)
 
 
 if __name__ == "__main__":
-    set_start_method('spawn')
+    set_start_method("spawn")
     main()

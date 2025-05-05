@@ -1,4 +1,5 @@
 """Extract a vocabulary containing all unique characters from the XML data."""
+
 import argparse
 import json
 import os
@@ -25,9 +26,7 @@ def create_vocab(regions: ResultSet, vocab: Dict[str, int]) -> None:
 def main(parsed_args: argparse.Namespace) -> None:
     """Main method loading xml data and saving extracted vocab."""
     data_path = Path(parsed_args.data_path)
-    paths = [
-        f[:-4] for f in os.listdir(data_path) if f.endswith(".xml")
-    ]
+    paths = [f[:-4] for f in os.listdir(data_path) if f.endswith(".xml")]
 
     vocab: Dict[str, int] = {}
 

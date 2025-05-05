@@ -1,19 +1,21 @@
 """Test class for newsdataset"""
+
 import json
 from pathlib import Path
 
 import numpy as np
+
 # pylint: disable-next=no-name-in-module
 # pylint: disable-next=import-error
 import pytest
 import torch
 from bs4 import BeautifulSoup
 
-from src.cgprocess.OCR.SSM.dataset import SSMDataset, extract_crop
-from src.cgprocess.OCR.shared.utils import load_cfg
-from src.cgprocess.shared.datasets import PageDataset
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
+from src.cgprocess.OCR.shared.utils import load_cfg
+from src.cgprocess.OCR.SSM.dataset import SSMDataset, extract_crop
+from src.cgprocess.shared.datasets import PageDataset
 
 DATA_PATH = "./tests/data/newsdataset/"
 
@@ -24,10 +26,12 @@ def test_extract_crop() -> None:
     crop_height = 64
     result_list: list = []
 
-    with open(f"{DATA_PATH}additional/single_test_line.xml", "r", encoding="utf-8") as file:
+    with open(
+        f"{DATA_PATH}additional/single_test_line.xml", "r", encoding="utf-8"
+    ) as file:
         data = file.read()
-    soup = BeautifulSoup(data, 'xml')
-    text_line = soup.find_all('TextLine')[0]
+    soup = BeautifulSoup(data, "xml")
+    text_line = soup.find_all("TextLine")[0]
 
     extract_crop(result_list, image, text_line, crop_height)
 
@@ -93,12 +97,12 @@ class TestLayoutDataset:
         file_quantity = 30
 
         assert (
-                pytest.news_dataset.file_stems == ground_truth
-                and len(pytest.news_dataset.file_stems) == file_quantity
+            pytest.news_dataset.file_stems == ground_truth
+            and len(pytest.news_dataset.file_stems) == file_quantity
         )
-        assert (pytest.news_dataset.data[0].dtype == torch.uint8
-                and pytest.news_dataset.data[0].shape == (4, 256, 256)
-                )
+        assert pytest.news_dataset.data[
+            0
+        ].dtype == torch.uint8 and pytest.news_dataset.data[0].shape == (4, 256, 256)
 
     def test_getitem(self) -> None:
         """Verify get_item. Particulary important is, that data ist in the right format.
@@ -124,10 +128,14 @@ class TestLayoutDataset:
     def test_split(self) -> None:
         """verify splitting operation"""
 
-        page_dataset_1, page_dataset_2, page_dataset_3 = pytest.page_dataset.random_split(
-            (0.5, 0.3, 0.2)
+        page_dataset_1, page_dataset_2, page_dataset_3 = (
+            pytest.page_dataset.random_split((0.5, 0.3, 0.2))
         )
-        assert len(page_dataset_1) == 15 and len(page_dataset_2) == 9 and len(page_dataset_3) == 6
+        assert (
+            len(page_dataset_1) == 15
+            and len(page_dataset_2) == 9
+            and len(page_dataset_3) == 6
+        )
 
         dataset_1 = TrainDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
@@ -135,7 +143,7 @@ class TestLayoutDataset:
             target_path=f"{DATA_PATH}target_data/",
             sort=True,
             file_stems=page_dataset_1.file_stems,
-            name="train"
+            name="train",
         )
 
         dataset_2 = TrainDataset(
@@ -144,7 +152,7 @@ class TestLayoutDataset:
             target_path=f"{DATA_PATH}target_data/",
             sort=True,
             file_stems=page_dataset_1.file_stems,
-            name="train"
+            name="train",
         )
 
         dataset_3 = TrainDataset(
@@ -153,7 +161,7 @@ class TestLayoutDataset:
             target_path=f"{DATA_PATH}target_data/",
             sort=True,
             file_stems=page_dataset_1.file_stems,
-            name="train"
+            name="train",
         )
 
         assert dataset_1.data[0].shape == (4, 256, 256)

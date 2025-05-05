@@ -1,4 +1,5 @@
 """Module for polygon conversion"""
+
 from typing import Dict, List, Tuple
 
 import cv2
@@ -27,8 +28,9 @@ def create_label_masks(pred: ndarray) -> Dict[int, Image.Image]:
     return sub_masks
 
 
-def create_mask_polygons(sub_mask: ndarray, label: int, tolerance: List[float], bbox_size: int, export: bool) -> Tuple[
-    List[List[float]], List[List[float]]]:
+def create_mask_polygons(
+    sub_mask: ndarray, label: int, tolerance: List[float], bbox_size: int, export: bool
+) -> Tuple[List[List[float]], List[List[float]]]:
     """Find contours (boundary lines) around each sub-mask
     # Note: there could be multiple contours if the object
     # is partially occluded. (E.g., an elephant behind a tree)
@@ -56,7 +58,7 @@ def create_mask_polygons(sub_mask: ndarray, label: int, tolerance: List[float], 
         poly = Polygon(contour)
         if export:
             poly = poly.simplify(tolerance[label - 1], preserve_topology=False)
-        if poly.geom_type == 'MultiPolygon':
+        if poly.geom_type == "MultiPolygon":
             # pylint: disable=no-member
             multi_polygons = list(poly.geoms)
             for polygon in multi_polygons:
@@ -67,8 +69,12 @@ def create_mask_polygons(sub_mask: ndarray, label: int, tolerance: List[float], 
     return segmentations, bbox_list
 
 
-def append_polygons(poly: Polygon, bbox_list: List[List[float]], segmentations: List[List[float]],
-                    bbox_size: int) -> None:
+def append_polygons(
+    poly: Polygon,
+    bbox_list: List[List[float]],
+    segmentations: List[List[float]],
+    bbox_size: int,
+) -> None:
     """
     Append polygon if it has at least 3 corners
     :param bbox_list: List containing bbox List with uppper left and lower right corner.
@@ -98,8 +104,9 @@ def bbox_sufficient(bbox: List[float], size: int, x_axis: bool = False) -> bool:
     return (bbox[2] - bbox[0]) + (bbox[3] - bbox[1]) > size
 
 
-def prediction_to_region_polygons(pred: ndarray, tolerance: List[float], bbox_size: int, export: bool) -> Tuple[
-    Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+def prediction_to_region_polygons(
+    pred: ndarray, tolerance: List[float], bbox_size: int, export: bool
+) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Converts prediction int ndarray to a dictionary of polygons by splitting the prediction into binary label masks.
     For each mask, polygons are created and appended to a list.
@@ -117,13 +124,17 @@ def prediction_to_region_polygons(pred: ndarray, tolerance: List[float], bbox_si
         # TODO: fix this, by introducing a class variable for classes excluded from polygon extraction.
         if export or label == 3 and not label in [1, 5, 8, 9, 2]:
             # for sclice export only paragraph and separator are processed (obsolete)
-            segment, bbox = create_mask_polygons(np.array(mask), label, tolerance, bbox_size, export)
+            segment, bbox = create_mask_polygons(
+                np.array(mask), label, tolerance, bbox_size, export
+            )
             segmentations[label], bbox_dict[label] = segment, bbox
 
     return segmentations, bbox_dict
 
 
-def uncertainty_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+def uncertainty_to_polygons(
+    pred: ndarray,
+) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Converts the uncertain pixel image into polygones
     :param pred: map of uncertaion pixels ndarray [B, C, H, W]
@@ -133,7 +144,9 @@ def uncertainty_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]]
     bbox_dict: Dict[int, List[List[float]]] = {i: [] for i in range(10)}
 
     # pylint: disable=unpacking-non-sequence
-    contours, hierarchy = cv2.findContours(pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # pylint: disable=no-member
+    contours, hierarchy = cv2.findContours(
+        pred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+    )  # pylint: disable=no-member
 
     # calc inner and outer contours
     inner_outer = []
@@ -148,9 +161,13 @@ def uncertainty_to_polygons(pred: ndarray) -> Tuple[Dict[int, List[List[float]]]
             continue
         contour = contour.squeeze()
         segmentations[1 if inner else 2].append(list(contour.flatten()))
-        bbox_dict[1 if inner else 2].append([contour[:, 0].max(),
-                                             contour[:, 1].min(),
-                                             contour[:, 0].min(),
-                                             contour[:, 1].max()])
+        bbox_dict[1 if inner else 2].append(
+            [
+                contour[:, 0].max(),
+                contour[:, 1].min(),
+                contour[:, 0].min(),
+                contour[:, 1].max(),
+            ]
+        )
 
     return segmentations, bbox_dict

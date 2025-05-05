@@ -1,10 +1,11 @@
 """Module for utility function for training. This includes initialization of the model, dataset and dataloaders, as
 well as computing metrics for validation and test."""
+
 import argparse
 import json
 import warnings
 from pathlib import Path
-from typing import Union, Any, Tuple, List, Dict
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -12,23 +13,26 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
-from src.cgprocess.shared.datasets import PageDataset
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
-
 from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
 from src.cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
 from src.cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
 from src.cgprocess.layout_segmentation.models.dh_segment_small import DhSegmentSmall
 from src.cgprocess.layout_segmentation.models.trans_unet import VisionTransformer
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
-
 from src.cgprocess.layout_segmentation.train_config import IN_CHANNELS, OUT_CHANNELS
 from src.cgprocess.layout_segmentation.utils import adjust_path
+from src.cgprocess.shared.datasets import PageDataset
 from src.cgprocess.shared.utils import get_file_stem_split
 
 
-def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool = True,
-               skip_cbam: bool = False) -> Any:
+def init_model(
+    load: Union[str, None],
+    device: str,
+    model_str: str,
+    freeze: bool = True,
+    skip_cbam: bool = False,
+) -> Any:
     """
     Initialise model
     :param overwrite_load_channels: overwrites standart output channels, if a loaded model has a different size than
@@ -67,7 +71,10 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
         model.encoder.stds = torch.tensor((0.229, 0.224, 0.225))
     elif model_str == "dh_segment_cbam":
         model = DhSegmentCBAM(
-            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True, cbam_skip_connection=skip_cbam
+            in_channels=IN_CHANNELS,
+            out_channel=OUT_CHANNELS,
+            load_resnet_weights=True,
+            cbam_skip_connection=skip_cbam,
         )
         model = setup_dh_segment(device, load, model, freeze)
     elif model_str == "dh_segment_small":
@@ -86,7 +93,8 @@ def init_model(load: Union[str, None], device: str, model_str: str, freeze: bool
 
 
 def setup_dh_segment(
-        device: str, load: Union[str, None], model: Any, freeze: bool) -> Any:
+    device: str, load: Union[str, None], model: Any, freeze: bool
+) -> Any:
     """
     Setup function for dh_segment and dh_segment_cbam
     :param override_load_channels: overrides the out channel number with that a model will be loaded.
@@ -113,7 +121,9 @@ def setup_dh_segment(
     return model
 
 
-def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float, int, int]:
+def load_score(
+    load: Union[str, None], args: argparse.Namespace
+) -> Tuple[float, int, int]:
     """
     Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
     """
@@ -127,10 +137,10 @@ def load_score(load: Union[str, None], args: argparse.Namespace) -> Tuple[float,
 
 
 def focal_loss(
-        prediction: torch.Tensor,
-        target: torch.Tensor,
-        weights: torch.Tensor,
-        gamma: float = 2.0
+    prediction: torch.Tensor,
+    target: torch.Tensor,
+    weights: torch.Tensor,
+    gamma: float = 2.0,
 ) -> torch.Tensor:
     """
     Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
@@ -154,13 +164,20 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     :param data: Combined and flattened prediction and Target with shape [P, C] P being number of pixels.
     The last Channel contains target data.
     """
-    pred = data[:, : -1]
+    pred = data[:, :-1]
     targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
-    jaccard_fun = JaccardIndex(task="multiclass", num_classes=OUT_CHANNELS, average="weighted").to(
-        pred.device)  # type: ignore
-    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(pred.device)
-    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(pred.device)
+    jaccard_fun = JaccardIndex(
+        task="multiclass", num_classes=OUT_CHANNELS, average="weighted"
+    ).to(
+        pred.device
+    )  # type: ignore
+    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(
+        pred.device
+    )
+    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(
+        pred.device
+    )
 
     pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
@@ -172,7 +189,9 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     return jaccard, accuracy, batch_class_acc
 
 
-def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, DataLoader]:
+def initiate_evaluation_dataloader(
+    args: argparse.Namespace, batch_size: int
+) -> Dict[str, DataLoader]:
     """
     Creates a dictionary of dataloaders depending on the args.evaluate dataset names.
     File stems are read from the supplied custom split json or created randomly.
@@ -186,20 +205,29 @@ def initiate_evaluation_dataloader(args: argparse.Namespace, batch_size: int) ->
             split = json.load(file)
             file_stems_dict = {}
             for dataset in args.evaluate:
-                assert dataset in split.keys(), f"'{dataset}' is not a valid key for the custom split dictionary!"
+                assert (
+                    dataset in split.keys()
+                ), f"'{dataset}' is not a valid key for the custom split dictionary!"
                 file_stems_dict[dataset] = split[dataset]
     else:
         _, _, test_pages = page_dataset.random_split(args.split_ratio)
         file_stems_dict = {"Test": test_pages.file_stems}
 
-    dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
+    dataloader_dict = create_dataloader(
+        args, batch_size, file_stems_dict, image_path, preprocessing, target_path
+    )
 
     return dataloader_dict
 
 
-def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict: Dict[str, List[str]], image_path: str,
-                      preprocessing: Preprocessing,
-                      target_path: str) -> Dict[str, DataLoader]:
+def create_dataloader(
+    args: argparse.Namespace,
+    batch_size: int,
+    file_stems_dict: Dict[str, List[str]],
+    image_path: str,
+    preprocessing: Preprocessing,
+    target_path: str,
+) -> Dict[str, DataLoader]:
     """
     Iterates over the file_stems_dict and creates a dataset with dataloader for each file stem list.
     All datasets that are not named "train" are considered validation/test datsets  and therefore no augmentations
@@ -215,12 +243,12 @@ def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict
             dataset=args.dataset,
             scale_aug=args.scale_aug,
             file_stems=file_stems,
-            name=key
+            name=key,
         )
         print(f"{key} size: {len(dataset)}")
         if not key == "Training":
             dataset.augmentations = False
-        dataloader_dict[key] = (DataLoader(
+        dataloader_dict[key] = DataLoader(
             dataset,
             batch_size=batch_size,
             shuffle=key == "train",
@@ -229,24 +257,35 @@ def create_dataloader(args: argparse.Namespace, batch_size: int, file_stems_dict
             prefetch_factor=args.prefetch_factor,
             persistent_workers=True,
             pin_memory=True,
-        ))
-        assert len(dataloader_dict[key]) > 0, (f"Dataset {key} is to small to assemble at least one batch of "
-                                               f"{batch_size} crops!")
+        )
+        assert len(dataloader_dict[key]) > 0, (
+            f"Dataset {key} is to small to assemble at least one batch of "
+            f"{batch_size} crops!"
+        )
     return dataloader_dict
 
 
-def initiate_dataloader(args: argparse.Namespace, batch_size: int) -> Dict[str, DataLoader]:
+def initiate_dataloader(
+    args: argparse.Namespace, batch_size: int
+) -> Dict[str, DataLoader]:
     """
     Creates train, val and test datasets according to train.py args.
     """
     preprocessing = create_preprocess(args)
     image_path, page_dataset, target_path = prepare_paths(args)
 
-    test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(args.custom_split_file, args.split_ratio,
-                                                                            page_dataset)
+    test_file_stems, train_file_stems, val_file_stems = get_file_stem_split(
+        args.custom_split_file, args.split_ratio, page_dataset
+    )
 
-    file_stems_dict = {"Training": train_file_stems, "Validation": val_file_stems, "Test": test_file_stems}
-    dataloader_dict = create_dataloader(args, batch_size, file_stems_dict, image_path, preprocessing, target_path)
+    file_stems_dict = {
+        "Training": train_file_stems,
+        "Validation": val_file_stems,
+        "Test": test_file_stems,
+    }
+    dataloader_dict = create_dataloader(
+        args, batch_size, file_stems_dict, image_path, preprocessing, target_path
+    )
 
     return dataloader_dict
 
@@ -265,13 +304,13 @@ def create_preprocess(args: argparse.Namespace) -> Preprocessing:
         scale=args.scale,
         crop_factor=args.crop_factor,
         crop_size=args.crop_size,
-        reduce_classes=args.reduce_classes
+        reduce_classes=args.reduce_classes,
     )
     return preprocessing
 
 
 def multi_class_csi(
-        pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
+    pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
 ) -> torch.Tensor:
     """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
     Csi score is used as substitute for accuracy, calculated separately for each class.
@@ -295,7 +334,8 @@ def multi_class_csi(
 
 
 def multi_precison_recall(
-        pred: torch.Tensor, target: torch.Tensor, out_channels: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    pred: torch.Tensor, target: torch.Tensor, out_channels: int
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Calculate precision and recall using true positives, true negatives and false negatives from confusion matrix.
     Returns numpy array with an entry for every class. If every prediction is a true negative,
     the score cant be calculated and the array will contain nan. These cases should be completely ignored.
@@ -306,7 +346,9 @@ def multi_precison_recall(
 
     pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
-    metric: MulticlassConfusionMatrix = MulticlassConfusionMatrix(num_classes=out_channels).to(pred.device)
+    metric: MulticlassConfusionMatrix = MulticlassConfusionMatrix(
+        num_classes=out_channels
+    ).to(pred.device)
 
     pred = pred.flatten()
     target = target.flatten()
@@ -318,12 +360,8 @@ def multi_precison_recall(
     false_negative = torch.sum(matrix, dim=0) - true_positive
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        precision = torch.tensor(
-            true_positive / (true_positive + false_positive)
-        )
-        recall = torch.tensor(
-            true_positive / (true_positive + false_negative)
-        )
+        precision = torch.tensor(true_positive / (true_positive + false_positive))
+        recall = torch.tensor(true_positive / (true_positive + false_negative))
         f1_score = torch.tensor(
             2 * true_positive / (2 * true_positive + false_negative + false_positive)
         )

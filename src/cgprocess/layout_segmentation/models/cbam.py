@@ -1,4 +1,5 @@
 """CBAM module from https://github.com/Peachypie98/CBAM"""
+
 import torch
 from torch import nn
 from torch.nn import functional
@@ -79,8 +80,12 @@ class CAM(nn.Module):
         max_value = functional.adaptive_max_pool2d(inputs, output_size=1)
         avg = functional.adaptive_avg_pool2d(inputs, output_size=1)
         batches, channels, _, _ = inputs.size()
-        linear_max = self.linear(max_value.view(batches, channels)).view(batches, channels, 1, 1)
-        linear_avg = self.linear(avg.view(batches, channels)).view(batches, channels, 1, 1)
+        linear_max = self.linear(max_value.view(batches, channels)).view(
+            batches, channels, 1, 1
+        )
+        linear_avg = self.linear(avg.view(batches, channels)).view(
+            batches, channels, 1, 1
+        )
         output: torch.Tensor = linear_max + linear_avg
         output = torch.sigmoid(output) * inputs
         return output
@@ -90,9 +95,12 @@ class CBAM(nn.Module):
     """
     CBAM module consists out of 2 attention mechanisms. One for spatial attention of regions in the image(sam)
     and one for channel attention (cam). Those to modules calculate and apply weights for pixels or channels.
-    Removed addition from output and input at the end. Rest from https://github.com/Peachypie98/CBAM"""
+    Removed addition from output and input at the end. Rest from https://github.com/Peachypie98/CBAM
+    """
 
-    def __init__(self, channels: int, down_scaling: int, skip_connection: bool = False) -> None:
+    def __init__(
+        self, channels: int, down_scaling: int, skip_connection: bool = False
+    ) -> None:
         """
         :param channels: number of channels
         :param down_scaling: Downscaling factor for mlp. the hidden layer will have channels//r many neurons.

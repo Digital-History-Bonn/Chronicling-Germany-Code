@@ -1,20 +1,20 @@
 """Module to compare two transcript files. The transcriptions will be compare region by region and line by line."""
+
 import argparse
 import difflib
 import json
 import os
 import statistics
 import time
-from typing import List, Any, Tuple, Optional
+from typing import Any, List, Optional, Tuple
 
 import Levenshtein
 import numpy as np
 from bs4 import BeautifulSoup
+from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 from tqdm import tqdm  # type: ignore
-from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
-from src.cgprocess.OCR.shared.utils import adjust_path
-from src.cgprocess.OCR.shared.utils import line_has_text
+from src.cgprocess.OCR.shared.utils import adjust_path, line_has_text
 
 
 def main(parsed_args: argparse.Namespace) -> None:
@@ -26,12 +26,8 @@ def main(parsed_args: argparse.Namespace) -> None:
     ocr_path = adjust_path(parsed_args.ocr_path)
     output_path = adjust_path(parsed_args.output_path)
 
-    gt_paths = [
-        f[:-4] for f in os.listdir(ground_truth_path) if f.endswith(".xml")
-    ]
-    ocr_paths = [
-        f[:-4] for f in os.listdir(ocr_path) if f.endswith(".xml")
-    ]
+    gt_paths = [f[:-4] for f in os.listdir(ground_truth_path) if f.endswith(".xml")]
+    ocr_paths = [f[:-4] for f in os.listdir(ocr_path) if f.endswith(".xml")]
 
     if parsed_args.custom_split_file:
         with open(parsed_args.custom_split_file, "r", encoding="utf-8") as file:
@@ -40,7 +36,8 @@ def main(parsed_args: argparse.Namespace) -> None:
     else:
         assert len(gt_paths) == len(ocr_paths), (
             f"Found {len(gt_paths)} ground truth files, but ther are {len(ocr_paths)} "
-            f"ocr files. Make sure, for every ground truth file exists an ocr file")
+            f"ocr files. Make sure, for every ground truth file exists an ocr file"
+        )
 
     if output_path and not os.path.exists(output_path):
         print(f"creating {output_path}.")
@@ -63,11 +60,13 @@ def main(parsed_args: argparse.Namespace) -> None:
         bleu_sum += bleu_score
 
     print(
-        f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}")
-    print(f"overall correct lines: "
-          f"{sum(multi_page_correct) / len(multi_page_distance_list)}")
+        f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}"
+    )
     print(
-        f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
+        f"overall correct lines: "
+        f"{sum(multi_page_correct) / len(multi_page_distance_list)}"
+    )
+    print(f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
     print(f"overall bleu score: {bleu_sum / len(gt_paths)}")
 
     # with open(f'results_{parsed_args.name}.json', 'w', encoding='utf8') as json_file:
@@ -79,34 +78,39 @@ def main(parsed_args: argparse.Namespace) -> None:
     #     json.dump(multi_page_bad_list, file)
 
 
-def compare_page(confidence_threshold: float,
-                 parsed_args: argparse.Namespace,
-                 path: str) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray, float]:
+def compare_page(
+    confidence_threshold: float, parsed_args: argparse.Namespace, path: str
+) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray, float]:
     """
     Load lines from ground truth and ocr files and compare them directly. This function assumes, that the
     lines are already assigned from one file to the other, and text can be directly compare.
     """
-    ground_truth, _, _, _ = read_lines(f"{parsed_args.ground_truth_path}{path}", "TextRegion",
-                                       "TextLine")
-    ocr, _, confidence_list, _ = read_lines(f"{parsed_args.ocr_path}{path}", "TextRegion",
-                                            "TextLine",
-                                            confidence=bool(confidence_threshold))
+    ground_truth, _, _, _ = read_lines(
+        f"{parsed_args.ground_truth_path}{path}", "TextRegion", "TextLine"
+    )
+    ocr, _, confidence_list, _ = read_lines(
+        f"{parsed_args.ocr_path}{path}",
+        "TextRegion",
+        "TextLine",
+        confidence=bool(confidence_threshold),
+    )
     result = difflib.HtmlDiff().make_file(
         merge_lists_conf(ocr, confidence_list, confidence_threshold),
-        merge_lists_conf(ground_truth, confidence_list, confidence_threshold))
+        merge_lists_conf(ground_truth, confidence_list, confidence_threshold),
+    )
     with open(f"{parsed_args.output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
-    lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = levensthein_distance(
-        ground_truth,
-        ocr,
-        confidence_list,
-        confidence_threshold)
+    lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = (
+        levensthein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
+    )
 
     char_ratio = calculate_ratio(distance_list)
     print(
-        f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}")
+        f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}"
+    )
     print(
-        f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}")
+        f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}"
+    )
     print(f"{path} normalized levensthein distance per line: {lev_dis}")
     print(f"{path} normalized levensthein distance per character: {char_ratio}")
     print(f"{path} levensthein median: {lev_med}")
@@ -120,9 +124,11 @@ def compare_page(confidence_threshold: float,
     return page_correct, page_bad, distance_list, page_bad_list, bleu_score
 
 
-def merge_lists_conf(list_list: List[List[Any]], conf_list: List[List[float]],
-                     confidence_threshold: float) -> List[
-    Any]:
+def merge_lists_conf(
+    list_list: List[List[Any]],
+    conf_list: List[List[float]],
+    confidence_threshold: float,
+) -> List[Any]:
     """merges a list, which contains lists. This allows for confidence filtering."""
     result = []
     for element_list, conf_region in zip(list_list, conf_list):
@@ -147,10 +153,14 @@ def calculate_ratio(data_list: List[Tuple[int, int]]) -> float:
     return ratio
 
 
-def levensthein_distance(gt: List[List[str]], ocr: List[List[str]],
-                         confidence_list: List[List[float]],
-                         confidence_threshold: Optional[float] = None) -> Tuple[
-    float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]], float]:
+def levensthein_distance(
+    gt: List[List[str]],
+    ocr: List[List[str]],
+    confidence_list: List[List[float]],
+    confidence_threshold: Optional[float] = None,
+) -> Tuple[
+    float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]], float
+]:
     """
     Computes the levensthein ratio between all lines and returns the mean, median and list of all ratios.
     """
@@ -165,8 +175,11 @@ def levensthein_distance(gt: List[List[str]], ocr: List[List[str]],
         count += len(gt_region)
         for gt_line, ocr_line, conf in zip(gt_region, ocr_region, conf_region):
             if sufficient_confidence(conf, confidence_threshold):
-                bleu_sum += sentence_bleu([ocr_line.split(" ")], gt_line.split(" "),
-                                          smoothing_function=chencherry.method1)
+                bleu_sum += sentence_bleu(
+                    [ocr_line.split(" ")],
+                    gt_line.split(" "),
+                    smoothing_function=chencherry.method1,
+                )
                 ratio = Levenshtein.ratio(gt_line, ocr_line)
                 distance = Levenshtein.distance(gt_line, ocr_line)
                 distance_list.append((distance, len(gt_line) + len(ocr_line)))
@@ -174,16 +187,21 @@ def levensthein_distance(gt: List[List[str]], ocr: List[List[str]],
                 ratio_sum += ratio
                 ratio_list.append(ratio)
 
-    return 1 - ratio_sum / count, 1 - statistics.median(
-        ratio_list), ratio_list, distance_list, text_list, bleu_sum / count
+    return (
+        1 - ratio_sum / count,
+        1 - statistics.median(ratio_list),
+        ratio_list,
+        distance_list,
+        text_list,
+        bleu_sum / count,
+    )
 
 
 def read_lines(
-        path: str,
-        tag: str,
-        child_tag: str,
-        confidence: bool = False
-) -> Tuple[List[List[str]], List[List[List[Tuple]]], List[List[float]], List[BeautifulSoup]]:
+    path: str, tag: str, child_tag: str, confidence: bool = False
+) -> Tuple[
+    List[List[str]], List[List[List[Tuple]]], List[List[float]], List[BeautifulSoup]
+]:
     """
     Reads xml file and extracts all the lines from specified regions.
     :param confidence_threshold: lines below this threshold are ignored
@@ -211,16 +229,17 @@ def read_lines(
         coords_list = []
         conf_list = []
         for line in lines:
-            if line_has_text(line): # type: ignore
+            if line_has_text(line):  # type: ignore
                 text_list.append(line.TextEquiv.Unicode.contents[0])
                 coords_list.append(
-                    [tuple(pair.split(",")) for pair in line.Coords["points"].split()])
-                conf_list.append(line_confidence(confidence, line)) # type: ignore
+                    [tuple(pair.split(",")) for pair in line.Coords["points"].split()]
+                )
+                conf_list.append(line_confidence(confidence, line))  # type: ignore
                 lines_data.append(line)
         region_text_list.append(text_list)
         region_coords_list.append(coords_list)
         region_conf_list.append(conf_list)
-    return region_text_list, region_coords_list, region_conf_list, lines_data # type: ignore
+    return region_text_list, region_coords_list, region_conf_list, lines_data  # type: ignore
 
 
 def line_confidence(confidence: bool, line: BeautifulSoup) -> float:
@@ -228,7 +247,7 @@ def line_confidence(confidence: bool, line: BeautifulSoup) -> float:
     if not confidence:
         return 0.0
     if "conf" in line.TextEquiv.attrs:
-        return float(line.TextEquiv.attrs["conf"]) # type: ignore
+        return float(line.TextEquiv.attrs["conf"])  # type: ignore
     return 0.0
 
 
@@ -248,7 +267,7 @@ def get_args() -> argparse.Namespace:
         "-oc",
         type=str,
         default="data/ocr/",
-        help="path for folder with ocr prediction xml files. Names have to match exactly to the ground truth files"
+        help="path for folder with ocr prediction xml files. Names have to match exactly to the ground truth files",
     )
     parser.add_argument(
         "--output-path",
@@ -265,21 +284,21 @@ def get_args() -> argparse.Namespace:
         dest="confidence_threshold",
         default=None,
         help="Confidence Threshold. Only lines above the threshold are compared. If this is None, or no confidence is "
-             "supplied in the ocr xml files, no threshold will be applied.",
+        "supplied in the ocr xml files, no threshold will be applied.",
     )
     parser.add_argument(
         "--custom-split-file",
         type=str,
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
-             "of train, validation and test images. This will only evaluate the test dataset.",
+        "of train, validation and test images. This will only evaluate the test dataset.",
     )
     parser.add_argument(
         "--name",
         "-n",
         type=str,
         default=time.time(),
-        help="Evaluation name. Results will be printed in 'results_name.json'"
+        help="Evaluation name. Results will be printed in 'results_name.json'",
     )
     return parser.parse_args()
 

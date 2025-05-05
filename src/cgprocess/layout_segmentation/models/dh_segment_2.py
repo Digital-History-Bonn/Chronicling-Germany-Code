@@ -1,15 +1,22 @@
 """Module for updated dh segment version with lower capacity but a higher receptive field."""
+
 # coding=utf-8
 from __future__ import absolute_import, division, print_function
 
 import logging
-from typing import Dict, Iterator, Union, List
+from typing import Dict, Iterator, List, Union
 
 import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, UpScaleBlock, Bottleneck, conv1x1, Block
+from src.cgprocess.layout_segmentation.models.dh_segment import (
+    Block,
+    Bottleneck,
+    DhSegment,
+    UpScaleBlock,
+    conv1x1,
+)
 
 # pylint: disable=duplicate-code
 logger = logging.getLogger(__name__)
@@ -39,7 +46,7 @@ class Encoder(nn.Module):
         self.maxpool_block3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         planes = 128
-        self.first_channels = planes*Bottleneck.expansion
+        self.first_channels = planes * Bottleneck.expansion
         self.block3 = self.make_layer(
             planes,
             layers[2],
@@ -173,7 +180,9 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
         # pylint: disable=duplicate-code
-        tensor_x: torch.Tensor = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
+        tensor_x: torch.Tensor = self.up_block1(
+            encoder_results["copy_4"], encoder_results["copy_3"]
+        )
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
         tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
@@ -189,7 +198,10 @@ class DhSegment2(nn.Module):
     https://github.com/Peachypie98/CBAM"""
 
     def __init__(
-            self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool = True
+        self,
+        in_channels: int = 3,
+        out_channel: int = 3,
+        load_resnet_weights: bool = True,
     ) -> None:
         """
         :param in_channels: input image channels eg 3 for RGB

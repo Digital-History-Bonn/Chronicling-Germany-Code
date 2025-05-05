@@ -1,4 +1,5 @@
 """Test class for reading xml scripts"""
+
 import json
 
 import numpy as np

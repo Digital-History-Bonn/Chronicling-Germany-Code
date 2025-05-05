@@ -1,14 +1,15 @@
 """Splits and preprocesses data for training."""
+
 import argparse
 import json
 import os
 from typing import List
 
-from PIL import Image
 from bs4 import BeautifulSoup
+from PIL import Image
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import pad_xml, pad_image, adjust_path
+from src.cgprocess.OCR.shared.utils import adjust_path, pad_image, pad_xml
 
 
 def copy_and_pad_xml(input_path: str, output_dir: str, pad_value: int = 10) -> None:
@@ -24,11 +25,11 @@ def copy_and_pad_xml(input_path: str, output_dir: str, pad_value: int = 10) -> N
     os.makedirs(output_dir, exist_ok=True)
 
     # Read the XML file
-    with open(input_path, 'r', encoding='utf-8') as file:
+    with open(input_path, "r", encoding="utf-8") as file:
         xml_content = file.read()
 
     # Parse the XML content
-    soup = BeautifulSoup(xml_content, 'xml')
+    soup = BeautifulSoup(xml_content, "xml")
     soup = pad_xml(soup, pad_value=pad_value)
 
     # Extract the file name from the input path
@@ -38,7 +39,7 @@ def copy_and_pad_xml(input_path: str, output_dir: str, pad_value: int = 10) -> N
     output_path = os.path.join(output_dir, file_name)
 
     # Save the modified XML content
-    with open(output_path, 'w', encoding='utf-8') as file:
+    with open(output_path, "w", encoding="utf-8") as file:
         file.write(str(soup))
 
 
@@ -61,12 +62,14 @@ def copy_and_pad_image(input_path: str, output_dir: str, pad_value: int = 10) ->
     padded_image.save(os.path.join(output_dir, file_name))
 
 
-def preprocess(train_paths: List[str],
-               valid_paths: List[str],
-               test_paths: List[str],
-               image_dir: str,
-               annotation_dir: str,
-               output_dir: str) -> None:
+def preprocess(
+    train_paths: List[str],
+    valid_paths: List[str],
+    test_paths: List[str],
+    image_dir: str,
+    annotation_dir: str,
+    output_dir: str,
+) -> None:
     """
     Preprocesses and splits data and saves it.
 
@@ -88,17 +91,17 @@ def preprocess(train_paths: List[str],
     os.makedirs(test_dir, exist_ok=True)
 
     # Copy file pairs to the respective directories
-    for base_path in tqdm(train_paths, desc='Preprocessing Training data'):
-        copy_and_pad_image(f'{image_dir}/{base_path}.jpg', train_dir)
-        copy_and_pad_xml(f'{annotation_dir}/{base_path}.xml', train_dir)
+    for base_path in tqdm(train_paths, desc="Preprocessing Training data"):
+        copy_and_pad_image(f"{image_dir}/{base_path}.jpg", train_dir)
+        copy_and_pad_xml(f"{annotation_dir}/{base_path}.xml", train_dir)
 
-    for base_path in tqdm(valid_paths, desc='Preprocessing Validation data'):
-        copy_and_pad_image(f'{image_dir}/{base_path}.jpg', valid_dir)
-        copy_and_pad_xml(f'{annotation_dir}/{base_path}.xml', valid_dir)
+    for base_path in tqdm(valid_paths, desc="Preprocessing Validation data"):
+        copy_and_pad_image(f"{image_dir}/{base_path}.jpg", valid_dir)
+        copy_and_pad_xml(f"{annotation_dir}/{base_path}.xml", valid_dir)
 
-    for base_path in tqdm(test_paths, desc='Preprocessing Test data'):
-        copy_and_pad_image(f'{image_dir}/{base_path}.jpg', test_dir)
-        copy_and_pad_xml(f'{annotation_dir}/{base_path}.xml', test_dir)
+    for base_path in tqdm(test_paths, desc="Preprocessing Test data"):
+        copy_and_pad_image(f"{image_dir}/{base_path}.jpg", test_dir)
+        copy_and_pad_xml(f"{annotation_dir}/{base_path}.xml", test_dir)
 
 
 def get_args() -> argparse.Namespace:
@@ -115,7 +118,7 @@ def get_args() -> argparse.Namespace:
         "-i",
         type=str,
         default=None,
-        help="path for folder with images. Need to be jpg."
+        help="path for folder with images. Need to be jpg.",
     )
 
     parser.add_argument(
@@ -123,7 +126,7 @@ def get_args() -> argparse.Namespace:
         "-a",
         type=str,
         default=None,
-        help="path for folder with annotation xml files."
+        help="path for folder with annotation xml files.",
     )
 
     parser.add_argument(
@@ -156,20 +159,21 @@ def main() -> None:
         raise ValueError("Please enter a valid output path!")
 
     # pylint: disable=duplicate-code
-    with open("neurips-split.json", 'r',
-              encoding='utf-8') as file:
+    with open("neurips-split.json", "r", encoding="utf-8") as file:
         data = json.load(file)
 
-    train_files = data.get('Training', [])
-    valid_files = data.get('Validation', [])
-    test_files = data.get('Test', [])
+    train_files = data.get("Training", [])
+    valid_files = data.get("Validation", [])
+    test_files = data.get("Test", [])
 
     print(f"{len(train_files)=}")
     print(f"{len(valid_files)=}")
     print(f"{len(test_files)=}")
 
-    preprocess(train_files, valid_files, test_files, images_dir, annotation_dir, output_dir)
+    preprocess(
+        train_files, valid_files, test_files, images_dir, annotation_dir, output_dir
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

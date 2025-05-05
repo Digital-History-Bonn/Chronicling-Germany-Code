@@ -1,14 +1,13 @@
 """Module for trans_unet largly from https://github.com/Beckschen/TransUNet"""
+
 # coding=utf-8
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import copy
 import logging
 import math
 from posixpath import join as pjoin
-from typing import Dict, Tuple, Iterator, Union, Any
+from typing import Any, Dict, Iterator, Tuple, Union
 
 import ml_collections
 import numpy as np
@@ -16,7 +15,7 @@ import torch
 from ml_collections.config_dict import ConfigDict
 from positional_encodings.torch_encodings import PositionalEncoding2D
 from torch import nn
-from torch.nn import Dropout, Softmax, Linear, Conv2d, LayerNorm
+from torch.nn import Conv2d, Dropout, LayerNorm, Linear, Softmax
 from torch.nn.modules.utils import _pair
 from torch.nn.parameter import Parameter
 
@@ -40,7 +39,7 @@ def np2th(weights: Any, conv: bool = False) -> torch.Tensor:
     """Possibly convert HWIO to OIHW. from https://github.com/Beckschen/TransUNet"""
     if conv:
         weights = weights.transpose([3, 2, 0, 1])
-    return torch.from_numpy(weights) #type: ignore
+    return torch.from_numpy(weights)  # type: ignore
 
 
 def swish(inputs: Any) -> Any:
@@ -52,7 +51,11 @@ def swish(inputs: Any) -> Any:
     return inputs * torch.sigmoid(inputs)
 
 
-ACT2FN = {"gelu": torch.nn.functional.gelu, "relu": torch.nn.functional.relu, "swish": swish}
+ACT2FN = {
+    "gelu": torch.nn.functional.gelu,
+    "relu": torch.nn.functional.relu,
+    "swish": swish,
+}
 
 
 class Attention(nn.Module):
@@ -79,9 +82,12 @@ class Attention(nn.Module):
         :param inputs:
         :return:
         """
-        new_x_shape = inputs.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        new_x_shape = inputs.size()[:-1] + (
+            self.num_attention_heads,
+            self.attention_head_size,
+        )
         inputs = inputs.view(*new_x_shape)
-        return inputs.permute(0, 2, 1, 3) #type: ignore
+        return inputs.permute(0, 2, 1, 3)  # type: ignore
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         """
@@ -128,10 +134,12 @@ class Embeddings(nn.Module):
 
         patch_size = _pair(config.patches["size"])
 
-        self.patch_embeddings = Conv2d(in_channels=in_channels,
-                                       out_channels=config.hidden_size,
-                                       kernel_size=patch_size,
-                                       stride=patch_size)
+        self.patch_embeddings = Conv2d(
+            in_channels=in_channels,
+            out_channels=config.hidden_size,
+            kernel_size=patch_size,
+            stride=patch_size,
+        )
         self.position_embeddings = PositionalEncoding2D(config.hidden_size)
 
         self.dropout = Dropout(config.transformer["dropout_rate"])
@@ -141,7 +149,9 @@ class Embeddings(nn.Module):
         :param x_tensor: input
         :return: return positional embedding
         """
-        x_tensor = self.patch_embeddings(x_tensor)  # (B, hidden, n_patches_w, n_patches_h)
+        x_tensor = self.patch_embeddings(
+            x_tensor
+        )  # (B, hidden, n_patches_w, n_patches_h)
         patch_shape = (int(x_tensor.shape[2]), int(x_tensor.shape[3]))
         embedding = self.position_embeddings(torch.permute(x_tensor, (0, 2, 3, 1)))
         embeddings = x_tensor + torch.permute(embedding, (0, 3, 1, 2))
@@ -188,13 +198,26 @@ class Block(nn.Module):
         """
         root = f"Transformer/encoderblock_{n_block}"
         with torch.no_grad():
-            query_weight = np2th(weights[pjoin(root, ATTENTION_Q, "kernel")]).view(self.hidden_size,
-                                                                                   self.hidden_size).t()
-            key_weight = np2th(weights[pjoin(root, ATTENTION_K, "kernel")]).view(self.hidden_size, self.hidden_size).t()
-            value_weight = np2th(weights[pjoin(root, ATTENTION_V, "kernel")]).view(self.hidden_size,
-                                                                                   self.hidden_size).t()
-            out_weight = np2th(weights[pjoin(root, ATTENTION_OUT, "kernel")]).view(self.hidden_size,
-                                                                                   self.hidden_size).t()
+            query_weight = (
+                np2th(weights[pjoin(root, ATTENTION_Q, "kernel")])
+                .view(self.hidden_size, self.hidden_size)
+                .t()
+            )
+            key_weight = (
+                np2th(weights[pjoin(root, ATTENTION_K, "kernel")])
+                .view(self.hidden_size, self.hidden_size)
+                .t()
+            )
+            value_weight = (
+                np2th(weights[pjoin(root, ATTENTION_V, "kernel")])
+                .view(self.hidden_size, self.hidden_size)
+                .t()
+            )
+            out_weight = (
+                np2th(weights[pjoin(root, ATTENTION_OUT, "kernel")])
+                .view(self.hidden_size, self.hidden_size)
+                .t()
+            )
 
             query_bias = np2th(weights[pjoin(root, ATTENTION_Q, "bias")]).view(-1)
             key_bias = np2th(weights[pjoin(root, ATTENTION_K, "bias")]).view(-1)
@@ -220,8 +243,12 @@ class Block(nn.Module):
             self.ffn.fc1.bias.copy_(mlp_bias_0)
             self.ffn.fc2.bias.copy_(mlp_bias_1)
 
-            self.attention_norm.weight.copy_(np2th(weights[pjoin(root, ATTENTION_NORM, "scale")]))
-            self.attention_norm.bias.copy_(np2th(weights[pjoin(root, ATTENTION_NORM, "bias")]))
+            self.attention_norm.weight.copy_(
+                np2th(weights[pjoin(root, ATTENTION_NORM, "scale")])
+            )
+            self.attention_norm.bias.copy_(
+                np2th(weights[pjoin(root, ATTENTION_NORM, "bias")])
+            )
             self.ffn_norm.weight.copy_(np2th(weights[pjoin(root, MLP_NORM, "scale")]))
             self.ffn_norm.bias.copy_(np2th(weights[pjoin(root, MLP_NORM, "bias")]))
 
@@ -266,8 +293,7 @@ class Mlp(nn.Module):
         self._init_weights()
 
     def _init_weights(self) -> None:
-        """
-        """
+        """ """
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.xavier_uniform_(self.fc2.weight)
         nn.init.normal_(self.fc1.bias, std=1e-6)
@@ -329,8 +355,14 @@ class Encoder(nn.Module):
         result, copy_3 = self.block3(result)
         result = self.maxpool_2(result)
 
-        return {"result": result, "identity": identity, "copy_0": copy_0, "copy_1": copy_1, "copy_2": copy_2,
-                "copy_3": copy_3}
+        return {
+            "result": result,
+            "identity": identity,
+            "copy_0": copy_0,
+            "copy_1": copy_1,
+            "copy_2": copy_2,
+            "copy_3": copy_3,
+        }
 
     def freeze_encoder(self, requires_grad: bool = False) -> None:
         """
@@ -365,7 +397,9 @@ class Decoder(nn.Module):
 
         self.patch_size = _pair(config.patches["size"])
         self.hidden_output = config.hidden_output
-        self.up_conv = nn.ConvTranspose2d(config.hidden_size, self.hidden_output, self.patch_size, self.patch_size)
+        self.up_conv = nn.ConvTranspose2d(
+            config.hidden_size, self.hidden_output, self.patch_size, self.patch_size
+        )
         # pylint: disable=duplicate-code
         self.up_block1 = dhsegment.up_block1
         self.up_block2 = dhsegment.up_block2
@@ -376,8 +410,12 @@ class Decoder(nn.Module):
         self.conv2 = dhsegment.conv2
 
     # pylint: disable=duplicate-code
-    def forward(self, transformer_result: torch.Tensor, encoder_results: Dict[str, torch.Tensor],
-                patch_shape: Tuple[int, int]) -> torch.Tensor:
+    def forward(
+        self,
+        transformer_result: torch.Tensor,
+        encoder_results: Dict[str, torch.Tensor],
+        patch_shape: Tuple[int, int],
+    ) -> torch.Tensor:
         """
         forward path of cnn decoder. First converting transformer tokens to 2d Data. Then applying decoder
         upsampling layers.
@@ -387,16 +425,25 @@ class Decoder(nn.Module):
         """
 
         # Convert transformer tokens
-        batch, n_patch, hidden = transformer_result.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
-        transformer_result = transformer_result.contiguous().view(batch * n_patch, hidden, 1, 1)
+        batch, n_patch, hidden = (
+            transformer_result.size()
+        )  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
+        transformer_result = transformer_result.contiguous().view(
+            batch * n_patch, hidden, 1, 1
+        )
         tensor_x: torch.Tensor = self.up_conv(transformer_result)
-        tensor_x = tensor_x.contiguous().view(batch, n_patch, self.hidden_output,
-                                              self.patch_size[0] * self.patch_size[1])
+        tensor_x = tensor_x.contiguous().view(
+            batch, n_patch, self.hidden_output, self.patch_size[0] * self.patch_size[1]
+        )
         tensor_x = tensor_x.permute(0, 2, 1, 3)
-        tensor_x = tensor_x.contiguous().view(batch, self.hidden_output, patch_shape[0] * self.patch_size[0],
-                                              patch_shape[1] * self.patch_size[1])
+        tensor_x = tensor_x.contiguous().view(
+            batch,
+            self.hidden_output,
+            patch_shape[0] * self.patch_size[0],
+            patch_shape[1] * self.patch_size[1],
+        )
 
-        #actual decoder
+        # actual decoder
         tensor_x = self.up_block1(tensor_x, encoder_results["copy_3"])
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
@@ -434,13 +481,13 @@ class Conv2dReLU(nn.Sequential):
     """Conv2drelu class from https://github.com/Beckschen/TransUNet"""
 
     def __init__(
-            self,
-            in_channels: int,
-            out_channels: int,
-            kernel_size: int,
-            padding: int = 0,
-            stride: int = 1,
-            use_batchnorm: bool = True,
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        padding: int = 0,
+        stride: int = 1,
+        use_batchnorm: bool = True,
     ) -> None:
         conv = nn.Conv2d(
             in_channels,
@@ -461,8 +508,13 @@ class VisionTransformer(nn.Module):
     """Implements Trans-UNet vision transformer.
     Most layers are from https://github.com/Beckschen/TransUNet"""
 
-    def __init__(self, in_channels: int = 3, out_channel: int = 3,
-                 load_backbone: bool =False, load_resnet_weights: bool =True) -> None:
+    def __init__(
+        self,
+        in_channels: int = 3,
+        out_channel: int = 3,
+        load_backbone: bool = False,
+        load_resnet_weights: bool = True,
+    ) -> None:
         """
         :param config:
         :param in_channels:
@@ -470,8 +522,12 @@ class VisionTransformer(nn.Module):
         :param zero_head:
         """
         super().__init__()
-        dhsegment = DhSegment([3, 4, 6, 1], in_channels=in_channels, out_channel=out_channel,
-                              load_resnet_weights=load_resnet_weights)
+        dhsegment = DhSegment(
+            [3, 4, 6, 1],
+            in_channels=in_channels,
+            out_channel=out_channel,
+            load_resnet_weights=load_resnet_weights,
+        )
         self.encoder = Encoder(dhsegment, in_channels)
         self.config = get_r50_b16_config()
         self.transformer = Transformer(self.config)
@@ -485,7 +541,9 @@ class VisionTransformer(nn.Module):
         :return: unet result
         """
         encoder_results = self.encoder(x_tensor)
-        x_tensor, patch_shape = self.transformer(encoder_results["result"])  # (B, n_patch, hidden)
+        x_tensor, patch_shape = self.transformer(
+            encoder_results["result"]
+        )  # (B, n_patch, hidden)
         x_tensor = self.decoder(x_tensor, encoder_results, patch_shape)
         return x_tensor
 
@@ -539,7 +597,7 @@ class VisionTransformer(nn.Module):
 def get_r50_b16_config() -> ConfigDict:
     """Returns the ViT-B/16 configuration."""
     config = ml_collections.ConfigDict()
-    config.patches = ml_collections.ConfigDict({'size': (8, 8)})
+    config.patches = ml_collections.ConfigDict({"size": (8, 8)})
     config.hidden_size = 768
     config.transformer = ml_collections.ConfigDict()
     config.transformer.mlp_dim = 3072
@@ -547,7 +605,7 @@ def get_r50_b16_config() -> ConfigDict:
     config.transformer.num_layers = 12
     config.transformer.attention_dropout_rate = 0.0
     config.transformer.dropout_rate = 0.1
-    config.classifier = 'token'
+    config.classifier = "token"
     config.representation_size = None
     config.patches.grid = (8, 8)
     config.hidden_input = 1024

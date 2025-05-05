@@ -1,24 +1,29 @@
 """Utility Module"""
+
 import argparse
 from multiprocessing import Queue
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 import torch
+
 # from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type:ignore
 from matplotlib import pyplot as plt
 from numpy import ndarray
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 
-from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES, REDUCE_CLASSES
-from src.cgprocess.layout_segmentation.class_config import cmap
+from src.cgprocess.layout_segmentation.class_config import (
+    LABEL_NAMES,
+    REDUCE_CLASSES,
+    cmap,
+)
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:
     """
     Make sure, there is a slash at the end of a (folder) spath string.
     """
-    return path if not path or path[-1] == '/' else path + '/'
+    return path if not path or path[-1] == "/" else path + "/"
 
 
 def draw_prediction(img: ndarray, path: str) -> None:
@@ -64,7 +69,9 @@ def calculate_x_axis_center(bbox: List[float]) -> float:
     return bbox[0] + abs(bbox[2] - bbox[0]) / 2
 
 
-def split_batches(tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores_splits: int) -> torch.Tensor:
+def split_batches(
+    tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores_splits: int
+) -> torch.Tensor:
     """
     Splits tensor into self.num_scores_splits chunks. This is necessary to not overload the multiprocessing Queue.
     :param permutation: permutation for this tensor. On a tensor with feature dimensions,
@@ -76,7 +83,9 @@ def split_batches(tensor: torch.Tensor, permutation: Tuple[int, ...], num_scores
     return torch.stack(torch.split(tensor, tensor.shape[0] // num_scores_splits))  # type: ignore
 
 
-def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float) -> Tuple[int, int]:
+def calculate_padding(
+    pad: Tuple[int, int], shape: Tuple[int, ...], scale: float
+) -> Tuple[int, int]:
     """
     Calculate padding values to be added to the right and bottom of the image.
     :param image: tensor image
@@ -86,10 +95,7 @@ def calculate_padding(pad: Tuple[int, int], shape: Tuple[int, ...], scale: float
     #        (crop_size - (image.shape[2] % crop_size)) % crop_size)
     pad = (int(pad[0] * scale), int(pad[1] * scale))
 
-    assert (
-            pad[1] >= shape[-2]
-            and pad[0] >= shape[-1]
-    ), (
+    assert pad[1] >= shape[-2] and pad[0] >= shape[-1], (
         f"Final size has to be greater than actual image size. "
         f"Padding to {pad[0]} x {pad[1]} "
         f"but image has shape of {shape[-1]} x {shape[-2]}"
@@ -144,20 +150,43 @@ def collapse_prediction(pred: torch.Tensor) -> torch.Tensor:
     return pred
 
 
-def create_model_list(args: argparse.Namespace, num_gpus: int, num_processes: int) -> List[tuple]:
+def create_model_list(
+    args: argparse.Namespace, num_gpus: int, num_processes: int
+) -> List[tuple]:
     """
     Create list of tuples that contain all information for model initialization. Tuple is used as arguments for
     train_helper.model_init()
     """
-    models = [(args.model_path, f"cuda:{i % num_gpus}", args.model_architecture, args.skip_cbam,
-                         False, args.override_load_channels) for i in range(num_gpus * num_processes)] \
-        if torch.cuda.is_available() else [(args.model_path, "cpu", args.model_architecture, args.skip_cbam,
-                         False, args.override_load_channels)]
+    models = (
+        [
+            (
+                args.model_path,
+                f"cuda:{i % num_gpus}",
+                args.model_architecture,
+                args.skip_cbam,
+                False,
+                args.override_load_channels,
+            )
+            for i in range(num_gpus * num_processes)
+        ]
+        if torch.cuda.is_available()
+        else [
+            (
+                args.model_path,
+                "cpu",
+                args.model_architecture,
+                args.skip_cbam,
+                False,
+                args.override_load_channels,
+            )
+        ]
+    )
     return models
 
 
-def create_path_queue(file_names: List[str], args: argparse.Namespace, dataset: object)\
-        -> Queue:
+def create_path_queue(
+    file_names: List[str], args: argparse.Namespace, dataset: object
+) -> Queue:
     """
     Creates and fills path queue with image paths to be predicted. Elements are required to have the image path at
     index 0 and the bool variable for terminating processes at index -1.

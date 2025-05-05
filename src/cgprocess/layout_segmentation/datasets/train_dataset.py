@@ -1,12 +1,13 @@
 """
 module for Dataset class
 """
+
 from __future__ import annotations
 
 import random
 from pathlib import Path
 from threading import Thread
-from typing import Dict, List, Tuple, Union, Callable
+from typing import Callable, Dict, List, Tuple, Union
 
 import torch
 
@@ -17,10 +18,15 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
-from src.cgprocess.shared.utils import initialize_random_split, get_file_stems, prepare_file_loading
+from src.cgprocess.shared.utils import (
+    get_file_stems,
+    initialize_random_split,
+    prepare_file_loading,
+)
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
+
 
 # todo: implement shared TrainDataset
 class TrainDataset(Dataset):
@@ -29,18 +35,18 @@ class TrainDataset(Dataset):
     """
 
     def __init__(
-            self,
-            preprocessing: Preprocessing,
-            image_path: str = IMAGE_PATH,
-            target_path: str = TARGET_PATH,
-            data: Union[List[torch.Tensor], None] = None,
-            limit: Union[int, None] = None,
-            dataset: str = "transkribus",
-            sort: bool = False,
-            full_image: bool = False,
-            scale_aug: bool = True,
-            file_stems: Union[List[str], None] = None,
-            name: str = "default"
+        self,
+        preprocessing: Preprocessing,
+        image_path: str = IMAGE_PATH,
+        target_path: str = TARGET_PATH,
+        data: Union[List[torch.Tensor], None] = None,
+        limit: Union[int, None] = None,
+        dataset: str = "transkribus",
+        sort: bool = False,
+        full_image: bool = False,
+        scale_aug: bool = True,
+        file_stems: Union[List[str], None] = None,
+        name: str = "default",
     ) -> None:
         """
         load images and targets from folder
@@ -76,16 +82,28 @@ class TrainDataset(Dataset):
                 self.file_stems.sort()
 
             if limit is not None:
-                assert limit <= len(
-                    self.file_stems), (f"Provided limit with size {limit} is greater than the train dataset "
-                                       f"with size {len(self.file_stems)}.")
+                assert limit <= len(self.file_stems), (
+                    f"Provided limit with size {limit} is greater than the train dataset "
+                    f"with size {len(self.file_stems)}."
+                )
                 self.file_stems = self.file_stems[:limit]
 
             # iterate over files
             threads = []
-            for i, file in enumerate(tqdm(self.file_stems, desc=f"cropping {name} images", unit="image")):
-                thread = Thread(target=self.process_image,
-                                args=(dataset, extension, file, get_file_name, image_path, target_path))
+            for i, file in enumerate(
+                tqdm(self.file_stems, desc=f"cropping {name} images", unit="image")
+            ):
+                thread = Thread(
+                    target=self.process_image,
+                    args=(
+                        dataset,
+                        extension,
+                        file,
+                        get_file_name,
+                        image_path,
+                        target_path,
+                    ),
+                )
                 thread.start()
                 threads.append(thread)
                 if i != 0 and i % 1 == 0:
@@ -97,8 +115,15 @@ class TrainDataset(Dataset):
 
         self.augmentations = True
 
-    def process_image(self, dataset: str, extension: str, file: str, get_file_name: Callable, image_path: str,
-                      target_path: str) -> None:
+    def process_image(
+        self,
+        dataset: str,
+        extension: str,
+        file: str,
+        get_file_name: Callable,
+        image_path: str,
+        target_path: str,
+    ) -> None:
         """
         Loads and processes images.
         """
@@ -134,6 +159,13 @@ class TrainDataset(Dataset):
             data = augmentations["default"](data)
             img = augmentations["images"](data[:-1]).float() / 255
             # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
+
+            if random.random() < 0.05:
+                invert = transforms.RandomInvert(p=1)
+                img = invert(img)
+                data[-1][torch.isin(data[-1], torch.tensor([1, 2, 3, 4, 5]))] = 9
+                data[-1][data[-1] == 9] = 4
+
         else:
             gray_transform = transforms.Grayscale(num_output_channels=3)
             img = gray_transform(data[:-1]).float() / 255
@@ -141,7 +173,7 @@ class TrainDataset(Dataset):
         return img, data[-1].long()
 
     def random_split(
-            self, ratio: Tuple[float, float, float]
+        self, ratio: Tuple[float, float, float]
     ) -> Tuple[TrainDataset, TrainDataset, TrainDataset]:
         """
         splits the dataset in parts of size given in ratio
@@ -157,28 +189,30 @@ class TrainDataset(Dataset):
             target_path=self.target_path,
             data=list(torch_data[indices[: splits[0]]]),
             dataset=self.dataset,
-            scale_aug=self.scale_aug
+            scale_aug=self.scale_aug,
         )
         valid_dataset = TrainDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
-            data=list(torch_data[indices[splits[0]: splits[1]]]),
+            data=list(torch_data[indices[splits[0] : splits[1]]]),
             dataset=self.dataset,
-            scale_aug=self.scale_aug
+            scale_aug=self.scale_aug,
         )
         test_dataset = TrainDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
-            data=list(torch_data[indices[splits[1]:]]),
+            data=list(torch_data[indices[splits[1] :]]),
             dataset=self.dataset,
-            scale_aug=self.scale_aug
+            scale_aug=self.scale_aug,
         )
 
         return train_dataset, valid_dataset, test_dataset
 
-    def get_augmentations(self, resize_prob: float = 0.75) -> Dict[str, transforms.Compose]:
+    def get_augmentations(
+        self, resize_prob: float = 0.75
+    ) -> Dict[str, transforms.Compose]:
         """Defines transformations
         :param resize_prob: Probability of resize. This allows to deactivate the scaling augmentation.
         """
@@ -203,7 +237,7 @@ class TrainDataset(Dataset):
                                                 resize_to,
                                                 antialias=True,
                                             ),
-                                            transforms.Pad([0,0,pad,pad]),
+                                            transforms.Pad([0, 0, pad, pad]),
                                         ]
                                     ),
                                 ]
@@ -214,16 +248,20 @@ class TrainDataset(Dataset):
                     transforms.RandomPerspective(p=0.2),
                 ]
             ),
-            "images": transforms.Compose([
-                transforms.RandomErasing(),
-                transforms.RandomApply(
+            "images": transforms.Compose(
                 [
-                    transforms.Compose(
+                    transforms.Grayscale(num_output_channels=3),
+                    transforms.RandomErasing(),
+                    transforms.RandomApply(
                         [
-                            transforms.GaussianBlur(9, (0.1, 1.5)),
-                        ]
+                            transforms.Compose(
+                                [
+                                    transforms.GaussianBlur(9, (0.1, 1.5)),
+                                ]
+                            ),
+                        ],
+                        p=0.2,
                     ),
-                ],
-                p=0.2,
-            ), ])
+                ]
+            ),
         }  # originally 0.8
