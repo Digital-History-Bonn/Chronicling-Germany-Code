@@ -82,6 +82,7 @@ def append_polygons(
     :param segmentations: List containing polygons
     :param bbox_size: size to which the edges must at least sum to
     """
+    poly = poly.buffer(0)
     segmentation = np.array(poly.exterior.coords).ravel().tolist()
     if len(segmentation) > 2:
         bbox = poly.bounds
