@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
 from src.cgprocess.OCR.shared.utils import adjust_path, set_seed
-from src.cgprocess.OCR.Transformer import (
+from src.cgprocess.OCR.Transformer.config import (
     ALPHABET,
     BATCH_SIZE,
     LR,

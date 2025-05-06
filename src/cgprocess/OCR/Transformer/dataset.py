@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import load_image, read_xml
-from src.cgprocess.OCR.Transformer import (
+from src.cgprocess.OCR.Transformer.config import (
     ALPHABET,
     MAX_SEQUENCE_LENGTH,
     PAD_HEIGHT,
