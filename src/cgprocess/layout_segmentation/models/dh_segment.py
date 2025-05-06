@@ -3,6 +3,7 @@ Module contains a U-Net Model. The model is a replica of the dhSegment model fro
 Most of the code of this model is from the implementation of ResNet
 from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
 """
+
 from typing import Any, Iterator, List, Tuple, Union
 
 import torch
@@ -174,17 +175,25 @@ class UpScaleBlock(nn.Module):
     Decoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, in_up: int, in_copy: int, out_channels: int):
+    def __init__(
+        self, in_up: int, in_copy: int, out_channels: int, double_scaling: bool = False
+    ):
         """
         Decoder Block
         :param in_up: number of input feature maps from up-scaling-path
         :param in_copy: number of input feature maps from shortpath
         :param out_channels: number of output feature maps
+        :param double: activates double up scaling to upscale by a factor of 4 instead of 2.
         """
         super().__init__()
         self.upscale = nn.ConvTranspose2d(
             in_channels=in_up, out_channels=in_up, kernel_size=2, stride=2
         )
+        self.double_scaling = double_scaling
+        if self.double_scaling:
+            self.upscale_2 = nn.ConvTranspose2d(
+                in_channels=in_up, out_channels=in_up, kernel_size=2, stride=2
+            )
         self.conv = conv3x3(in_copy + in_up, out_channels)
         self.relu = nn.ReLU(inplace=True)
 
@@ -196,6 +205,8 @@ class UpScaleBlock(nn.Module):
         :return: output
         """
         prev_up = self.upscale(prev_up)
+        if self.double_scaling:
+            prev_up = self.upscale_2(prev_up)
         feat_x = torch.concat((copy, prev_up), 1)
         feat_x = self.conv(feat_x)
         return self.relu(feat_x)  # type: ignore
@@ -255,18 +266,18 @@ class DhSegment(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.block1 = self._make_layer(self.first_channels, layers[0])
-        self.block2 = self._make_layer(
+        self.block1 = self.make_layer(self.first_channels, layers[0])
+        self.block2 = self.make_layer(
             128, layers[1], stride=2, dilate=replace_stride_with_dilation[0]
         )
-        self.block3 = self._make_layer(
+        self.block3 = self.make_layer(
             256,
             layers[2],
             stride=2,
             dilate=replace_stride_with_dilation[1],
             conv_out=True,
         )
-        self.block4 = self._make_layer(
+        self.block4 = self.make_layer(
             512,
             layers[3],
             stride=2,
@@ -314,7 +325,7 @@ class DhSegment(nn.Module):
         freeze(self.block4.conv.parameters())  # type: ignore
         freeze(self.block4.layers[3].parameters())  # type: ignore
 
-    def _make_layer(
+    def make_layer(
         self,
         planes: int,
         blocks: int,
@@ -323,7 +334,8 @@ class DhSegment(nn.Module):
         conv_out: bool = False,
     ) -> nn.Module:
         """
-        creates a Block of the ResNet Encoder
+        Creates a layer of the ResNet50 Encoder. First Block scales image down, and doubles the feature
+        maps.
         :param planes: ???
         :param blocks: Number of Bottleneck-Blocks
         :param stride: stride for convolutional-Layer
@@ -434,7 +446,7 @@ class DhSegment(nn.Module):
         """
         pred = self(image).argmax(dim=1).float().cpu()
         prediction = torch.squeeze(pred / self.out_channel)
-        return prediction #type: ignore
+        return prediction  # type: ignore
 
     def _load_resnet(self) -> None:
         """

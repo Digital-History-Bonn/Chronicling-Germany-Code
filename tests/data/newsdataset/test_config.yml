@@ -1,0 +1,39 @@
+encoder:
+    channels: [2,4] # Channel expansion factor for initial downscaling 2d-convolutions. Have to be exactly two values.
+    input_dimension: 32 # Initial number of features for 1D-data. This is proportional to the last channels value.
+    layers:
+        downscale_expand: 2 # Activates downscaling and sets expansion factor of the hidden dimension.
+        num_blocks: # Number of blocks per layer
+            - 2
+            - 2
+            - 2
+    block:
+        feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
+        state: 32 # SSM state expansion factor
+        expand: 8 # Block expansion factor
+        conv_width: 4 # Local convolution width
+decoder:
+    layers:
+        downscale_expand: False # Activates downscaling and sets expansion factor of the hidden dimension.
+        num_blocks: # Number of blocks per layer
+            - 2
+    block:
+        feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
+        state: 64 # SSM state expansion factor
+        expand: 16 # Block expansion factor
+        conv_width: 4 # Local convolution width
+tokenizer: # tokenizer default parameters
+    pad: False
+    max_length: 512
+    print_nan: False
+vocabulary:
+    unicode: 128 # number of Unicode characters that should be included additionally to custom characters.
+    custom_vocab: ["B", "e", "r", "l", "i", "n", ",", " ", "M", "o", "t", "a", "g", "d", "D", "s", "c", "h", "A", "u", "m", "\u00e4", "z", "w", ".", "b", "-", "P", ":", "v", "j", "f", "\u00fc", "2", "T", "1", "5", "S", "3", "/", "I", "G", "p", "Z", "\u00f6", "6", "U", ";", "F", "9", "4", "O", "C", "8", "N", "k", "0", "\u2014", "7", "(", "W", ")", "\u201e", "\u201d", "K", "H", "E", "J", "L", "y", "x", "\u00a3", "Y", "V", "R", "\u00e8", "'", "\u201c", "Q", "q", "\u00b4", "%", "\u00e9", "\"", "\u00df", "\u00e0", "\u2019", "&", "\u00a7", "[", "]", "\u017f", "!", "\ua75b", "\u00b0", "*", "=", "?", "X", "\u00bb", "\u00ab", "+", "\u00c9", "\u008d", "\u00c4", "\u00dc", "\u00d6", "\u2020", "\u00e1", "|", "\u0090", "_", "\u204a", "\u00eb", "\u00f4", "\u201a", "\u201b", "\u0364", "#", "\u00e7", "\u00e2", "\u2018", "`", "\u03bf", "\u03b1", "\u00fb", "\u00ea", "\u2606", "\u2670", "\u00ee", "\u0391", "\u03b9", "\u2039", "\u03c3", "\u03c4", "\u00f3", "$", "\u0395", "\u039c", "\u00f1", "^", "\u03c1", "\u039a", "\t", "\u008f", "\u201f", "\u00e6", "}", "{"]
+preprocessing:
+    image_height: 32 # Height all crops are scaled to. Preprocessing has to be run again, when changing this.
+confidence_threshold: 0.5 # Confidence threshold for characters. Otherwise, a NAN-Token is returned.
+inference:
+    batch_size: 32 # Batch size in inference mode. Can be overwritten by command line.
+training:
+    learning_rate: 1e-04
+    weight_decay: 1e-05

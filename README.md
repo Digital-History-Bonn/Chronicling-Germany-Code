@@ -70,17 +70,15 @@ python -m cgprocess.layout_segmentation.train -e 100 -n experiment_name -b 64 -d
 ### Prediction
 
 Prediction takes in images and processes them with a specified model. The image is processed in its entirety. 
-This can lead to cuda out of memory errors, if the resulution is too high.
-Furthermore, one has to specifiy an image size, to which the image will be padded. 
-If the number of pixel on one of the side is not divisible at least 6 times by 2, the prediction will fail.
+This can lead to cuda out of memory errors, if the resolution is too high.
 
 If an output folder is specified, images of the prediction will be saved in that folder. However, this option seriously
 increases execution time and should only be used for debugging. If the -e option is active, the xml files will be 
 exported to a page folder within the data folder. If there are already xml files, those will be overwritten.
 
 Example for calling the predict script.
-```` bash
-python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
+````
+python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_best.pt -t 0.6 -s 0.5 -e -bt 100````
 ````
 
 ### Evaluation
@@ -96,9 +94,9 @@ python -m cgprocess.layout_segmentation.train -n evaluate -b 64 -d data_folder/ 
 We added a --uncertainty-predict option to the prediction function to analyze the model's predictions. With this option, the predict
 function does not output the prediction. Instead, it outputs the areas of uncertainty of the models. These areas are all 
 pixels that have a predicted probability under the given threshold for the ground truth class. 
-For this, images and ground truth are required.
-```` bash
-python -m cgprocess.layout_segmentation.predict -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --uncertainty-predict
+For this, images and groud truth are required.
+````
+python -m cgprocess.layout_segmentation.predict -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -s 0.5 --transkribus-export --uncertainty-predict
 ````
 
 ## Baseline detection

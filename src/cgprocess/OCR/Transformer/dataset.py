@@ -2,40 +2,49 @@
 
 import glob
 import os
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
 
 import torch
 import torch.nn.functional as F
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from src.cgprocess.OCR.Transformer.config import PAD_HEIGHT, PAD_WIDTH, MAX_SEQUENCE_LENGTH, ALPHABET
-from src.cgprocess.OCR.Transformer.tokenizer import Tokenizer
-from src.cgprocess.OCR.utils import get_bbox, load_image
-from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
+from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
+from src.cgprocess.OCR.shared.utils import load_image, read_xml
+from src.cgprocess.OCR.Transformer.config import (
+    ALPHABET,
+    MAX_SEQUENCE_LENGTH,
+    PAD_HEIGHT,
+    PAD_WIDTH,
+)
 
 
 class Dataset(torch.utils.data.Dataset):
     """
     Dataset class for Transformer based OCR.
     """
-    def __init__(self, image_path: str,
-                 target_path: str,
-                 pad_seq: bool = False,
-                 cache_images: bool = False):
+
+    def __init__(
+        self,
+        image_path: str,
+        target_path: str,
+        pad_seq: bool = False,
+        cache_images: bool = False,
+    ):
         """
-        
+
         Args:
             image_path: path to folder with images
             target_path: path to folder with xml files
             pad_seq: boolean to activate padding for sequences
-            cache_images: load all images into cache (needs a lot of RAM!) 
+            cache_images: load all images into cache (needs a lot of RAM!)
         """
         self.image_path = image_path
         self.target_path = target_path
         self.cache_images = cache_images
 
-        self.tokenizer = Tokenizer(ALPHABET, pad=pad_seq, max_length=MAX_SEQUENCE_LENGTH)
+        self.tokenizer = OCRTokenizer(
+            ALPHABET, pad=pad_seq, max_length=MAX_SEQUENCE_LENGTH
+        )
 
         self.images: List[str] = []
         self.bboxes: List[torch.Tensor] = []
@@ -47,20 +56,22 @@ class Dataset(torch.utils.data.Dataset):
 
     def get_data(self) -> None:
         """Loads the data by reading the annotation."""
-        image_paths = list(glob.glob(os.path.join(self.image_path, '*.jpg')))
+        image_paths = list(glob.glob(os.path.join(self.image_path, "*.jpg")))
         xml_paths = [f"{x[:-4]}.xml" for x in image_paths]
 
-        for image_path, xml_path in tqdm(zip(image_paths, xml_paths),
-                                         total=len(image_paths),
-                                         desc='loading dataset'):
+        for image_path, xml_path in tqdm(
+            zip(image_paths, xml_paths), total=len(image_paths), desc="loading dataset"
+        ):
 
-            bboxes, texts = read_xml(xml_path)
+            bboxes, texts, _ = read_xml(xml_path)
             self.bboxes.extend(bboxes)
             self.texts.extend(texts)
             self.targets.extend([self.tokenizer(line) for line in texts])
             self.images.extend([image_path] * len(bboxes))
 
-            if image_path not in self.image_dict.keys() and self.cache_images:  # pylint: disable=consider-iterating-dictionary
+            if (
+                image_path not in self.image_dict.keys() and self.cache_images
+            ):  # pylint: disable=consider-iterating-dictionary
                 self.image_dict[image_path] = load_image(image_path)
 
     def __len__(self) -> int:
@@ -77,7 +88,7 @@ class Dataset(torch.utils.data.Dataset):
         text = self.texts[idx]
 
         # pylint: disable=duplicate-code
-        crop = image[:, bbox[1]:bbox[3], bbox[0]:bbox[2]]
+        crop = image[:, bbox[1] : bbox[3], bbox[0] : bbox[2]]
 
         pad_height = max(0, PAD_HEIGHT - crop.shape[1])
         pad_width = max(0, PAD_WIDTH - crop.shape[2])
@@ -87,35 +98,9 @@ class Dataset(torch.utils.data.Dataset):
         return crop.float() / 255, target, text
 
 
-def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
-    """
-    Reads the xml files.
-    Args:
-        xml_path: path to xml file with annotations.
-
-    Returns:
-        bboxes: bounding boxes text lines.
-        texts: text of text lines.
-    """
-    with open(xml_path, "r", encoding="utf-8") as file:
-        data = file.read()
-
-    # Parse the XML data
-    soup = BeautifulSoup(data, 'xml')
-    page = soup.find('Page')
-    bboxes = []
-    texts = []
-
-    text_lines = page.find_all('TextLine')
-    for line in text_lines:
-        region_polygon = torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"]))
-        bboxes.append(torch.tensor(get_bbox(region_polygon)))
-        texts.append(line.find('Unicode').text)
-
-    return bboxes, texts
-
-
-if __name__ == '__main__':
-    dataset = Dataset(image_path='data/preprocessedOCR/train',
-                      target_path='data/preprocessedOCR/train',
-                      cache_images=True)
+if __name__ == "__main__":
+    dataset = Dataset(
+        image_path="data/preprocessedOCR/train",
+        target_path="data/preprocessedOCR/train",
+        cache_images=True,
+    )

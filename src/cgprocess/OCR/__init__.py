@@ -1,1 +1,1 @@
-"""OCR module."""   # pylint: disable=invalid-name
+"""OCR module."""  # pylint: disable=invalid-name

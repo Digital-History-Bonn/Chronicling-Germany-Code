@@ -1,7 +1,9 @@
 """Dataset class for Transformer baseline detection model training."""
-import os
+
 import glob
-from typing import Tuple, Optional
+import os
+import random
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -15,9 +17,12 @@ from torchvision import transforms
 class CustomDataset(Dataset):  # type: ignore
     """Newspaper Class for training."""
 
-    def __init__(self, data_path: str,
-                 augmentations: Optional[Module] = None,
-                 cropping: bool = True) -> None:
+    def __init__(
+        self,
+        data_path: str,
+        augmentations: Optional[Module] = None,
+        cropping: bool = True,
+    ) -> None:
         """
         Newspaper Class for training.
 
@@ -46,27 +51,40 @@ class CustomDataset(Dataset):  # type: ignore
         """
         image = torch.tensor(io.imread(f"{self.data_path}/{self.data[index]}.jpg"))
         image = image.permute(2, 0, 1) / 256
-        target = torch.tensor(np.load(f"{self.data_path}/{self.data[index]}.npz")['array'])
+        target = torch.tensor(
+            np.load(f"{self.data_path}/{self.data[index]}.npz")["array"]
+        )
         target = target.permute(2, 0, 1).float()
 
         # mask image
         image = image * target[None, 5, :, :]
         target = target[:4, :, :]
 
-        # pad image to ensure size is big enough for cropping
-        width_pad = max(256 - image.shape[1], 0)
-        height_pad = max(256 - image.shape[2], 0)
-        image = F.pad(image, (0, height_pad, 0, width_pad))     # pylint: disable=not-callable
-        target = F.pad(target, (0, height_pad, 0, width_pad))   # pylint: disable=not-callable
-
         _, width, height = image.shape
         resize = transforms.Resize((width // 2, height // 2))
         image = resize(image)
         target = F.max_pool2d(target, 2)
 
+        if self.augmentations and random.random() < 0.5:
+            resize = transforms.Resize((width // 4, height // 4))
+            image = resize(image)
+            target = F.max_pool2d(target, 2)
+
+        # pad image to ensure size is big enough for cropping
+        width_pad = max(256 - image.shape[1], 0)
+        height_pad = max(256 - image.shape[2], 0)
+        image = F.pad(
+            image, (0, height_pad, 0, width_pad)
+        )  # pylint: disable=not-callable
+        target = F.pad(
+            target, (0, height_pad, 0, width_pad)
+        )  # pylint: disable=not-callable
+
         # crop image and target
         if self.cropping:
-            i, j, h, w = transforms.RandomCrop.get_params(image, output_size=self.crop_size)
+            i, j, h, w = transforms.RandomCrop.get_params(
+                image, output_size=self.crop_size
+            )
             image = transforms.functional.crop(image, i, j, h, w)
             target = transforms.functional.crop(target, i, j, h, w)
         else:

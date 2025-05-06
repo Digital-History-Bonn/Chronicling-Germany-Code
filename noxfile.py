@@ -1,4 +1,5 @@
 """This module implements our CI function calls."""
+
 import nox
 
 
@@ -23,12 +24,17 @@ def lint(session):
     """Check code conventions."""
     session.install(".")
     session.install("pylint")
-    session.run("pylint",
-                "src/cgprocess/baseline_detection",
-                "src/cgprocess/layout_segmentation",
-                "src/cgprocess/OCR/LSTM",
-                "tests",
-                "script")
+    session.run(
+        "pylint",
+        "src/cgprocess/baseline_detection",
+        "src/cgprocess/layout_segmentation",
+        "src/cgprocess/OCR/LSTM",
+        "src/cgprocess/OCR/SSM",
+        "src/cgprocess/OCR/shared",
+        "src/cgprocess/shared",
+        "tests",
+        "script",
+    )
 
 
 @nox.session(name="typing")
@@ -50,6 +56,10 @@ def mypy(session):
         "src/cgprocess/baseline_detection",
         "src/cgprocess/layout_segmentation",
         "src/cgprocess/OCR/LSTM",
+        "src/cgprocess/OCR/SSM",
+        "src/cgprocess/OCR/shared",
+        "src/cgprocess/shared",
+        "script",
     )
 
 

@@ -1,19 +1,25 @@
 """Module for creating Transkribus PAGE XML data."""
+
 import argparse
 import os
 import re
 from typing import Dict, List, Tuple
 
 import numpy as np
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, PageElement, Tag
 from shapely.geometry import Polygon
 
 from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
 from src.cgprocess.layout_segmentation.utils import adjust_path
 
 
-def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int, int],
-               segmentations: Dict[int, List[List[float]]], shape: Tuple[int, ...]) -> None:
+def export_xml(
+    args: argparse.Namespace,
+    file: str,
+    reading_order_dict: Dict[int, int],
+    segmentations: Dict[int, List[List[float]]],
+    shape: Tuple[int, ...],
+) -> None:
     """
     Open pre created transkribus xml files and save polygon xml data. If xml files already exist, the regions are
     overwritten. Otherwise, it will be created from template.
@@ -25,36 +31,48 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
     """
     if not os.path.exists(f"{adjust_path(args.data_path)}page/"):
         os.makedirs(f"{adjust_path(args.data_path)}page/")
-    if os.path.exists(f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml"):
+    if os.path.exists(
+        f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml"
+    ):
         with open(
-                f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
-                "r",
-                encoding="utf-8",
+            f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
+            "r",
+            encoding="utf-8",
         ) as xml_file:
             xml_data = BeautifulSoup(xml_file, "xml")
             page = xml_data.find("Page")
             page.clear()
-            xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
+            xml_data = create_xml(
+                xml_data, segmentations, reading_order_dict, args.scale
+            )
     else:
-        with open("src/layout_segmentation/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
+        with open(
+            "src/cgprocess/layout_segmentation/templates/annotation_file.xml",
+            "r",
+            encoding="utf-8",
+        ) as f:
             data = f.read()
         xml_data = BeautifulSoup(data, "xml")
         page = xml_data.find("Page")
-        page["imageFilename"] = f"{file}"
-        page["imageHeight"] = f"{shape[1]}"
-        page["imageWidth"] = f"{shape[2]}"
+        assert page, "XML Template is missing page element!"
+        page["imageFilename"] = f"{file}"  # type: ignore
+        page["imageHeight"] = f"{shape[1]}"  # type: ignore
+        page["imageWidth"] = f"{shape[2]}"  # type: ignore
         xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     with open(
-            f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
-            "w",
-            encoding="utf-8",
-    ) as xml_file:
-        xml_file.write(xml_data.prettify())
+        f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
+        "w",
+        encoding="utf-8",
+    ) as xml_file:  # type: ignore
+        xml_file.write(xml_data.prettify())  # type: ignore
 
 
 def create_xml(
-        xml_data: BeautifulSoup, segmentations: Dict[int, List[List[float]]], reading_order: Dict[int, int],
-        scale: float) -> BeautifulSoup:
+    xml_data: BeautifulSoup,
+    segmentations: Dict[int, List[List[float]]],
+    reading_order: Dict[int, int],
+    scale: float,
+) -> BeautifulSoup:
     """
     Creates a soup object containing Page Tag and Regions
     :param xml_file: xml file, to which the page data will be written
@@ -68,14 +86,20 @@ def create_xml(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
     )
 
-    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale)
+    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale)  # type: ignore
     order.append(order_group)
     page.insert(0, order)
     return xml_data
 
 
-def add_regions_to_xml(order_group: Tag, page: BeautifulSoup, reading_order: Dict[int, int],
-                       segmentations: Dict[int, List[List[float]]], xml_data: BeautifulSoup, scale: float) -> None:
+def add_regions_to_xml(
+    order_group: Tag,
+    page: PageElement,
+    reading_order: Dict[int, int],
+    segmentations: Dict[int, List[List[float]]],
+    xml_data: BeautifulSoup,
+    scale: float,
+) -> None:
     """
     Add ReadingOrder XML and Text Region List to Page
     :param order_group: BeautifulSOup Object for ReadingOrder
@@ -101,11 +125,13 @@ def add_regions_to_xml(order_group: Tag, page: BeautifulSoup, reading_order: Dic
                 attrs={
                     "id": str(index),
                     "custom": f"readingOrder {{index:{reading_order[index]};}} structure "
-                              f"{{type:{get_label_name(label)};}}",
+                    f"{{type:{get_label_name(label)};}}",
                 },
             )
             region.append(
-                xml_data.new_tag("Coords", attrs={"points": polygon_to_string(polygon, scale ** -1)})
+                xml_data.new_tag(
+                    "Coords", attrs={"points": polygon_to_string(polygon, scale**-1)}
+                )
             )
             page.append(region)
             index += 1
@@ -138,8 +164,12 @@ def polygon_to_string(input_list: List[float], scale: float = 1) -> str:
     return string
 
 
-def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
-             reading_order_dict: dict[int, int]) -> None:
+def copy_xml(
+    bs_copy: BeautifulSoup,
+    bs_data: BeautifulSoup,
+    id_list: List[str],
+    reading_order_dict: dict[int, int],
+) -> None:
     """
     Copy regions into new BeautifulSoup object with corrected reading order.
     :param bs_copy: copy of xml data, to be overwritten
@@ -153,14 +183,18 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
         "OrderedGroup", attrs={"caption": "Regions reading order"}
     )
     for key, order in reading_order_dict.items():
-        region = bs_data.find(attrs={'id': f'{id_list[int(key)]}'})
+        region = bs_data.find(attrs={"id": f"{id_list[int(key)]}"})
 
         custom_match = re.search(
             r"(structure \{type:.+?;})", region["custom"]
-        )
+        )  # type: ignore
 
-        class_info = "structure {type:UnkownRegion;}" if custom_match is None else custom_match.group(1)
-        region.attrs['custom'] = f"readingOrder {{index:{order};}} {class_info}"
+        class_info = (
+            "structure {type:UnkownRegion;}"
+            if custom_match is None
+            else custom_match.group(1)
+        )
+        region.attrs["custom"] = f"readingOrder {{index:{order};}} {class_info}"
 
         order_group.append(
             bs_copy.new_tag(
@@ -171,18 +205,22 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
         page.append(region)
 
 
-def sort_lines(region: BeautifulSoup) -> None:
+def sort_lines(region: Tag) -> None:
     """Sort lines by ascending height."""
     lines = region.find_all("TextLine")
     height_list = []
     for line in lines:
-        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])  # type: ignore
         # pylint: disable=no-member
         height_list.append(line_polygon.centroid.y)
-    sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
+    sorted_heights = {
+        int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))
+    }
     for i, line in enumerate(lines):
         custom_match = re.search(
-            r"(structure \{type:.+?;})", line["custom"]
+            r"(structure \{type:.+?;})", line["custom"]  # type: ignore
         )
         class_info = "" if custom_match is None else custom_match.group(1)
-        line.attrs['custom'] = f"readingOrder {{index:{sorted_heights[i]};}} {class_info}"
+        line.attrs["custom"] = (
+            f"readingOrder {{index:{sorted_heights[i]};}} {class_info}"
+        )
