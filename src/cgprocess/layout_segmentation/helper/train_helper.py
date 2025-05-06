@@ -151,9 +151,10 @@ def focal_loss(
     :param gamma: Focusing parameter `>=0`. It controls the contribution of higher confidence predictions.
       Defaults to 2.
     :return: loss tensor [batches, ...]"""
-    probalbilites = torch.nn.functional.softmax(prediction, dim=1)
-    focus = torch.pow(1 - probalbilites, gamma)
-    loss = 1 - target * weights[None, :, None, None] * focus * probalbilites
+    probalbilities = torch.nn.functional.softmax(prediction, dim=1)
+    probalbilities = target * probalbilities + (1 - target) * (1 - probalbilities)
+    focus = torch.pow(1 - probalbilities, gamma)
+    loss = - weights[None, :, None, None] * focus * torch.log(probalbilities+1e-15)
     return torch.sum(loss, dim=1) / OUT_CHANNELS  # type: ignore
 
 

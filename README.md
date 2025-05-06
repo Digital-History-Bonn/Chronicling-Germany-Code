@@ -13,14 +13,14 @@ All tasks are trained and evaluated individually but work together to extract te
 
 ## Installation
 The code has been tested on Python 3.10.
-````
+```` bash
 git clone https://github.com/Digital-History-Bonn/Chronicling-Germany-Code.git && cd Chronicling-Germany-Code
 pip install .
 ````
 
 ## Download
 To download our dataset and our model, the download.py script can be used:
-````
+```` bash
 python script/download.py --all
 ````
 Use `--all` to download the dataset and the models. With --dataset and --models you can download only 
@@ -55,7 +55,7 @@ Before starting the training process all data has to be converted.
 This command loads xml annotation data and converts it to .npy files.
 ```` bash
 python -m cgprocess.layout_segmentation.convert_xml -a annotations/ -o targets/
-```` bash
+```` 
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.
 ```` bash
@@ -77,7 +77,7 @@ increases execution time and should only be used for debugging. If the -e option
 exported to a page folder within the data folder. If there are already xml files, those will be overwritten.
 
 Example for calling the predict script.
-````
+```` bash
 python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_best.pt -t 0.6 -s 0.5 -e -bt 100````
 ````
 
@@ -95,7 +95,7 @@ We added a --uncertainty-predict option to the prediction function to analyze th
 function does not output the prediction. Instead, it outputs the areas of uncertainty of the models. These areas are all 
 pixels that have a predicted probability under the given threshold for the ground truth class. 
 For this, images and groud truth are required.
-````
+```` bash
 python -m cgprocess.layout_segmentation.predict -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -s 0.5 --transkribus-export --uncertainty-predict
 ````
 

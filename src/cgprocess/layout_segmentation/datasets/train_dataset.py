@@ -160,11 +160,11 @@ class TrainDataset(Dataset):
             img = augmentations["images"](data[:-1]).float() / 255
             # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
 
-            if random.random() < 0.05:
-                invert = transforms.RandomInvert(p=1)
-                img = invert(img)
-                data[-1][torch.isin(data[-1], torch.tensor([1, 2, 3, 4, 5]))] = 9
-                data[-1][data[-1] == 9] = 4
+            # if random.random() < 0.1:
+            #     invert = transforms.RandomInvert(p=1)
+            #     img = invert(img)
+            #     data[-1][torch.isin(data[-1], torch.tensor([1, 2, 3, 4, 5]))] = 9
+            #     data[-1][data[-1] == 9] = 4
 
         else:
             gray_transform = transforms.Grayscale(num_output_channels=3)
