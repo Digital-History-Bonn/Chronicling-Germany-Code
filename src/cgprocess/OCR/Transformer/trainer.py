@@ -400,7 +400,7 @@ def main() -> None:
     print(f"training with {len(trainset)} samples for training and {len(validset)} "
           f"samples for validation.")
 
-    with open("src/OCR/Transformer/config.json", "r", encoding='utf-8') as file:
+    with open("src/cgprocess/OCR/Transformer/config.json", "r", encoding='utf-8') as file:
         json_data = json.load(file)
 
     net: transformer.TransformerOCR = transformer.build_net(net=json_data,
