@@ -130,10 +130,20 @@ def predict(anno_path: str, image_path: str, model: TorchSeqRecognizer, out_path
 
         # single model recognition
         pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
-        lines = list(pred_it)
+        try:
+            lines = list(pred_it)
+        except:
+            print(f'Failed to predict {image_path}')
+            print(region)
+
 
         textlines = region.find_all('TextLine')
+
         for pred_line, textline in zip(lines, textlines):
+            for dev in textline.find_all('Word'):
+                dev.decompose()
+            for dev in textline.find_all('TextEquiv'):
+                dev.decompose()
             textequiv = soup.new_tag('TextEquiv')
             if pred_line.confidences:
                 textequiv['conf'] = str(min(pred_line.confidences))

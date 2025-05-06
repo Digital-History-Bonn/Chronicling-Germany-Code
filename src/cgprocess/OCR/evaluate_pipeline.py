@@ -45,6 +45,8 @@ def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
         if get_tag(region) in TEXT_CLASSES:
             text_region = region.find_all('TextLine')
             for text_line in text_region:
+                for word in soup.find_all("Word"):
+                    word.decompose()
                 polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
                 polygon = polygon[:, torch.tensor([1, 0])]
                 textlines.append(polygon)
