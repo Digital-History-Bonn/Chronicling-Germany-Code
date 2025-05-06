@@ -119,15 +119,20 @@ class Dataset(torch.utils.data.Dataset):
         # pylint: disable=duplicate-code
         print(f"{bbox=}")
         crop = image[:, bbox[1]:bbox[3], bbox[0]:bbox[2]]
-        print(f"{crop.shape=}, {crop.max()=}, {crop.min()=}")
+        print(f"before pad: {crop.shape=}, {crop.max()=}, {crop.min()=}")
 
         pad_height = max(0, PAD_HEIGHT - crop.shape[1])
         pad_width = max(0, PAD_WIDTH - crop.shape[2])
         crop = F.pad(crop, (pad_width, 0, pad_height, 0), "constant", 0)
         crop = crop[:, :PAD_HEIGHT]
 
+        print(f"before aug: {crop.shape=}, {crop.max()=}, {crop.min()=}")
+
         if self.augmentations:
             crop = self.augmentations(crop)
+
+        print(f"after aug:{crop.shape=}, {crop.max()=}, {crop.min()=}")
+
 
         return crop.float(), target, text
 
