@@ -166,6 +166,6 @@ if __name__ == '__main__':
                       cache_images=True)
 
     crop, target, text = dataset[0]
-    plt.imshow(crop)
+    plt.imshow(crop.permute(1, 2, 0))
     plt.savefig('data/deleteMe/crop.png')
     plt.close()
