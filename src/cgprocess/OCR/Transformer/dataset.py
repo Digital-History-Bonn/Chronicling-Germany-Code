@@ -131,8 +131,7 @@ class Dataset(torch.utils.data.Dataset):
         if self.augmentations:
             crop = self.augmentations(crop)
 
-        print(f"after aug:{crop.shape=}, {crop.max()=}, {crop.min()=}")
-
+        print(f"after aug: {crop.shape=}, {crop.max()=}, {crop.min()=}")
 
         return crop.float(), target, text
 
@@ -174,7 +173,7 @@ if __name__ == '__main__':
 
     crop, target, text = dataset[1]
     print(text)
-    plt.imshow(crop.permute(1, 2, 0))
+    plt.imshow((crop.permute(1, 2, 0) * 256).int())
     plt.axis('off')
     plt.savefig('data/deleteMe/crop.png')
     plt.close()
