@@ -161,11 +161,12 @@ def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    dataset = Dataset(image_path='data/preprocessedOCR/train',
-                      target_path='data/preprocessedOCR/train',
+    dataset = Dataset(image_path='data/preprocessedOCR/valid',
+                      target_path='data/preprocessedOCR/valid',
                       cache_images=True)
 
-    crop, target, text = dataset[0]
+    crop, target, text = dataset[1]
+    print(text)
     plt.imshow(crop.permute(1, 2, 0))
     plt.savefig('data/deleteMe/crop.png')
     plt.close()
