@@ -129,7 +129,7 @@ class Dataset(torch.utils.data.Dataset):
         if self.augmentations:
             crop = self.augmentations(crop)
 
-        return crop.float() / 255, target, text
+        return crop.float(), target, text
 
 
 def read_xml(xml_path: str) -> Tuple[List[torch.Tensor], List[str]]:
@@ -170,5 +170,6 @@ if __name__ == '__main__':
     crop, target, text = dataset[1]
     print(text)
     plt.imshow(crop.permute(1, 2, 0))
+    plt.axis('off')
     plt.savefig('data/deleteMe/crop.png')
     plt.close()
