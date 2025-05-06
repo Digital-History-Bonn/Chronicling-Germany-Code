@@ -163,6 +163,7 @@ if __name__ == '__main__':
 
     dataset = Dataset(image_path='data/preprocessedOCR/valid',
                       target_path='data/preprocessedOCR/valid',
+                      augmentations=True,
                       cache_images=True)
 
     crop, target, text = dataset[1]
