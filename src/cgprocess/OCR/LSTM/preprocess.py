@@ -127,6 +127,14 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--split",
+        "-s",
+        type=str,
+        default=None,
+        help="path to the split json."
+    )
+
+    parser.add_argument(
         "--output",
         "-o",
         type=str,
@@ -156,7 +164,7 @@ def main() -> None:
         raise ValueError("Please enter a valid output path!")
 
     # pylint: disable=duplicate-code
-    with open("neurips-split.json", 'r',
+    with open(args.split, 'r',
               encoding='utf-8') as file:
         data = json.load(file)
 
