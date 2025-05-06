@@ -117,7 +117,9 @@ class Dataset(torch.utils.data.Dataset):
         text = self.texts[idx]
 
         # pylint: disable=duplicate-code
+        print(f"{bbox=}")
         crop = image[:, bbox[1]:bbox[3], bbox[0]:bbox[2]]
+        print(f"{crop.shape=}, {crop.max()=}, {crop.min()=}")
 
         pad_height = max(0, PAD_HEIGHT - crop.shape[1])
         pad_width = max(0, PAD_WIDTH - crop.shape[2])
