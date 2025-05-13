@@ -1,3 +1,4 @@
+import argparse
 import glob
 import json
 import os
@@ -10,6 +11,8 @@ from shapely.geometry import Polygon
 from skimage import io
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
+from src.cgprocess.OCR.shared.utils import adjust_path
 
 LABEL_ASSIGNMENTS = {
     "caption": 0,
@@ -217,8 +220,58 @@ def main(annotation_path, image_path, split_file, output_path):
         yaml.dump(dataset_config, file, default_flow_style=False)
 
 
+def get_args() -> argparse.Namespace:
+    """
+    Defines arguments.
+
+    Returns:
+        Namespace with parsed arguments.
+    """
+    # pylint: disable=duplicate-code
+    parser = argparse.ArgumentParser(description="predict")
+    parser.add_argument(
+        "--images",
+        "-i",
+        type=str,
+        default=None,
+        help="path for folder with images. Need to be jpg."
+    )
+
+    parser.add_argument(
+        "--annotations",
+        "-a",
+        type=str,
+        default=None,
+        help="path for folder with annotation xml files."
+    )
+
+    parser.add_argument(
+        "--split",
+        "-s",
+        type=str,
+        default=None,
+        help="path to the split json."
+    )
+
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        default=None,
+        help="path to the folder where to save the preprocessed files",
+    )
+
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    main(annotation_path="data/Chronicling-Germany-Dataset-main-data/data/annotations",
-         image_path="data/Chronicling-Germany-Dataset-main-data/data/images",
-         split_file="data/Chronicling-Germany-Dataset-main-data/data/split.json",
-         output_path="data/YOLO_Layout")
+    args = get_args()
+
+    images_dir = adjust_path(args.images)
+    annotation_dir = adjust_path(args.annotations)
+    output_dir = adjust_path(args.output)
+
+    main(annotation_path=annotation_dir,
+         image_path=images_dir,
+         split_file=args.split,
+         output_path=output_dir)
