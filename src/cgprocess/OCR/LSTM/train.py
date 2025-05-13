@@ -116,7 +116,7 @@ def main() -> None:
     pprint(f"{model.hparams}")
 
     # init logger and training
-    logger = TensorBoardLogger("logs", name=name)
+    logger = TensorBoardLogger("logs/OCR", name=name)
     trainer = KrakenTrainer(
         pl_logger=logger
     )  # pylint: disable=unexpected-keyword-arg, no-value-for-parameter
