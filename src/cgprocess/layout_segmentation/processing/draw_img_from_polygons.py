@@ -22,13 +22,6 @@ def draw_img(annotation: dict) -> ndarray:
     x_size, y_size = annotation["size"]
     img = np.zeros((y_size + 2 * shift, x_size + 2 * shift), dtype=np.uint8)
 
-    # first draw all unkown regions
-    for key, polygons in annotation["tags"].items():
-        if key not in LABEL_ASSIGNMENTS:
-            for polygon in polygons:
-                if len(polygon) > 0:
-                    img = draw_polygon(img, polygon, shift=shift)
-
     # then draw regions in order if label equals zero, the region is skipped, because it would draw zeros in an image
     # initialized with zeros.
     for key, label in LABEL_ASSIGNMENTS.items():

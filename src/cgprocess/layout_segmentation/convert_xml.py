@@ -107,9 +107,9 @@ def convert_file(
         if parsed_args.json:
             with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
                 json.dump(annotation, file)
-
         # save ndarray
         np_save(f"{output_path}{path}", img)
+        del img, annotation
 
 
 def np_save(file: str, img: np.ndarray) -> None:
