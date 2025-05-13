@@ -14,7 +14,7 @@ def main():
     model = YOLO(model_file)
 
     # Train the model
-    yaml = "data/YOLO_Layout/CGD.yaml"
+    yaml = args.data
     imgz = 2048
 
     devices = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else 'cpu'
@@ -45,6 +45,13 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=500,
         help="Number of epochs to train."
+    )
+
+    parser.add_argument(
+        "--data",
+        "-d",
+        type=str,
+        help="Path to the preprocessed data."
     )
 
     parser.add_argument(

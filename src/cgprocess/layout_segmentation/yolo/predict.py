@@ -3,7 +3,7 @@ import glob
 import json
 import os
 from os.path import basename, dirname
-from typing import List, Union
+from typing import List
 
 import torch
 from bs4 import BeautifulSoup
