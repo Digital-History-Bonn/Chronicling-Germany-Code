@@ -14,7 +14,7 @@ def main():
     model = YOLO(model_file)
 
     # Train the model
-    yaml = f"{args.name}/CGD.yaml"
+    yaml = f"{args.data}/CGD.yaml"
     imgz = 2048
 
     devices = list(range(torch.cuda.device_count())) if torch.cuda.is_available() else 'cpu'
