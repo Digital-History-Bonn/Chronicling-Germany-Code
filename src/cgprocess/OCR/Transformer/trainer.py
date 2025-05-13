@@ -322,7 +322,7 @@ class Trainer:
             self.writer.add_text(
                 f"{dataset}/{key}",
                 text,  # type: ignore
-                global_step=self.epoch if step is None else step,
+                global_step=self.epoch if step is None else step
             )  # type: ignore
 
         self.writer.flush()  # type: ignore
@@ -344,7 +344,7 @@ class Trainer:
             self.writer.add_scalar(
                 f"{dataset}/{key}",
                 value,
-                global_step=self.epoch if step is None else step,
+                global_step=self.epoch if step is None else step
             )  # type: ignore
 
         self.writer.flush()  # type: ignore
@@ -364,11 +364,15 @@ def get_args() -> argparse.Namespace:
         "-n",
         type=str,
         default="model",
-        help="Name of the model and the log files.",
+        help="Name of the model and the log files."
     )
 
     parser.add_argument(
-        "--epochs", "-e", type=int, default=1, help="Number of epochs to train."
+        "--epochs",
+        "-e",
+        type=int,
+        default=1,
+        help="Number of epochs to train."
     )
 
     # pylint: disable=duplicate-code
@@ -377,7 +381,7 @@ def get_args() -> argparse.Namespace:
         "-t",
         type=str,
         default=None,
-        help="path for folder with images jpg files and annotation xml files to train the model.",
+        help="path for folder with images jpg files and annotation xml files to train the model."
     )
 
     parser.add_argument(
@@ -385,7 +389,7 @@ def get_args() -> argparse.Namespace:
         "-v",
         type=str,
         default=None,
-        help="path for folder with images jpg files and annotation xml files to validate the model.",
+        help="path for folder with images jpg files and annotation xml files to validate the model."
     )
 
     # pylint: disable=duplicate-code
@@ -410,13 +414,15 @@ def main() -> None:
     train_path = adjust_path(args.train_data)
     valid_path = adjust_path(args.valid_data)
 
-    trainset = Dataset(
-        image_path=train_path, target_path=train_path, pad_seq=False, cache_images=True
-    )
+    trainset = Dataset(image_path=train_path,
+                       target_path=train_path,
+                       pad_seq=False,
+                       cache_images=True)
 
-    validset = Dataset(
-        image_path=valid_path, target_path=valid_path, pad_seq=False, cache_images=True
-    )
+    validset = Dataset(image_path=valid_path,
+                       target_path=valid_path,
+                       pad_seq=False,
+                       cache_images=True)
 
     print(
         f"training with {len(trainset)} samples for training and {len(validset)} "

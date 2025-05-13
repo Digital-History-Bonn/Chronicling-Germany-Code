@@ -7,6 +7,9 @@ from typing import Dict, List, Tuple
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+import cv2
+from albumentations import Blur, Compose, ElasticTransform, MedianBlur, MotionBlur, OneOf, \
+    SafeRotate, OpticalDistortion, PixelDropout, ToFloat
 
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.shared.utils import load_image, read_xml
@@ -18,18 +21,49 @@ from src.cgprocess.OCR.Transformer.config import (
 )
 
 
+class DefaultAugmenter:
+    """Default Augmenter form kraken.
+
+    Source: https://github.com/mittagessen/kraken/blob/main/kraken/lib/dataset/recognition.py
+
+    """
+
+    def __init__(self):
+        cv2.setNumThreads(0)
+
+        self._transforms = Compose([
+            ToFloat(),
+            PixelDropout(p=0.2),
+            OneOf([
+                MotionBlur(p=0.2),
+                MedianBlur(blur_limit=3, p=0.1),
+                Blur(blur_limit=3, p=0.1),
+            ], p=0.2),
+            OneOf([
+                OpticalDistortion(p=0.3),
+                ElasticTransform(alpha=7, sigma=25, p=0.1),
+                SafeRotate(limit=(-3, 3), border_mode=cv2.BORDER_CONSTANT, p=0.2)
+            ], p=0.2),
+        ], p=0.5)
+
+    def __call__(self, image):
+        im = image.permute((1, 2, 0)).numpy()
+        o = self._transforms(image=im)
+
+        return torch.tensor(o['image'].transpose(2, 0, 1))
+
+
 class Dataset(torch.utils.data.Dataset):
     """
     Dataset class for Transformer based OCR.
     """
 
-    def __init__(
-        self,
-        image_path: str,
-        target_path: str,
-        pad_seq: bool = False,
-        cache_images: bool = False,
-    ):
+    def __init__(self,
+                 image_path: str,
+                 target_path: str,
+                 augmentations: bool = True,
+                 pad_seq: bool = False,
+                 cache_images: bool = False):
         """
 
         Args:
@@ -40,6 +74,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         self.image_path = image_path
         self.target_path = target_path
+        self.augmentations = DefaultAugmenter() if augmentations else None
         self.cache_images = cache_images
 
         self.tokenizer = OCRTokenizer(
@@ -59,9 +94,9 @@ class Dataset(torch.utils.data.Dataset):
         image_paths = list(glob.glob(os.path.join(self.image_path, "*.jpg")))
         xml_paths = [f"{x[:-4]}.xml" for x in image_paths]
 
-        for image_path, xml_path in tqdm(
-            zip(image_paths, xml_paths), total=len(image_paths), desc="loading dataset"
-        ):
+        for image_path, xml_path in tqdm(zip(image_paths, xml_paths),
+                                         total=len(image_paths),
+                                         desc='loading dataset'):
 
             bboxes, texts, _ = read_xml(xml_path)
             self.bboxes.extend(bboxes)
@@ -95,7 +130,10 @@ class Dataset(torch.utils.data.Dataset):
         crop = F.pad(crop, (pad_width, 0, pad_height, 0), "constant", 0)
         crop = crop[:, :PAD_HEIGHT]
 
-        return crop.float() / 255, target, text
+        if self.augmentations:
+            crop = self.augmentations(crop)
+
+        return crop.float(), target, text
 
 
 if __name__ == "__main__":

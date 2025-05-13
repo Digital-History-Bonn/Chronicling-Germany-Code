@@ -117,10 +117,21 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
 
         # single model recognition
         pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
-        lines = list(pred_it)
+        try:
+            lines = list(pred_it)
+        except:
+            print(f'Failed to predict {image_path}')
+            print(region)
+
+
+        textlines = region.find_all('TextLine')
 
         textlines = region.find_all("TextLine")
         for pred_line, textline in zip(lines, textlines):
+            for dev in textline.find_all("Word"):
+                dev.decompose()
+            for dev in textline.find_all("TextEquiv"):
+                dev.decompose()
             textequiv = soup.new_tag("TextEquiv")
             if pred_line.confidences:
                 textequiv["conf"] = str(min(pred_line.confidences))
@@ -153,7 +164,7 @@ def get_args() -> argparse.Namespace:
         "-i",
         type=str,
         default=None,
-        help="path for folder with images. Need to be jpg.",
+        help="path for folder with images. Need to be jpg."
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
@@ -161,7 +172,7 @@ def get_args() -> argparse.Namespace:
         "-l",
         type=str,
         default=None,
-        help="path for folder with layout xml files.",
+        help="path for folder with layout xml files."
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
@@ -194,7 +205,7 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Select number of threads that are launched per process. This must be used carefully, as it can "
-        "lead to a CUDA out of memory error.",
+             "lead to a CUDA out of memory error.",
     )
 
     parser.add_argument(
@@ -203,7 +214,7 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Select number of processes that are launched per graphics card. This must be used carefully, as it can "
-        "lead to a CUDA out of memory error.",
+             "lead to a CUDA out of memory error.",
     )
 
     return parser.parse_args()
@@ -253,11 +264,6 @@ def main() -> None:
     predictor.launch_processes(num_gpus, args.thread_count)
 
 
-if __name__ == "__main__":
-    set_start_method("spawn")
-    main()
-
-
 def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
     """
     Create OCR model list containing one separate model for each process.
@@ -271,3 +277,10 @@ def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
         else [[models.load_any(args.model, device="cpu")]]
     )
     return model_list
+
+
+if __name__ == "__main__":
+    set_start_method("spawn")
+    main()
+
+

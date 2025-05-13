@@ -118,7 +118,7 @@ def get_args() -> argparse.Namespace:
         "-i",
         type=str,
         default=None,
-        help="path for folder with images. Need to be jpg.",
+        help="path for folder with images. Need to be jpg."
     )
 
     parser.add_argument(
@@ -126,7 +126,15 @@ def get_args() -> argparse.Namespace:
         "-a",
         type=str,
         default=None,
-        help="path for folder with annotation xml files.",
+        help="path for folder with annotation xml files."
+    )
+
+    parser.add_argument(
+        "--split",
+        "-s",
+        type=str,
+        default=None,
+        help="path to the split json."
     )
 
     parser.add_argument(
@@ -159,7 +167,8 @@ def main() -> None:
         raise ValueError("Please enter a valid output path!")
 
     # pylint: disable=duplicate-code
-    with open("neurips-split.json", "r", encoding="utf-8") as file:
+    with open(args.split, "r",
+              encoding="utf-8") as file:
         data = json.load(file)
 
     train_files = data.get("Training", [])

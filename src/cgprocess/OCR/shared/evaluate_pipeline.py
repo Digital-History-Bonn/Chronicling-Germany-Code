@@ -51,6 +51,9 @@ def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
                 polygon = torch.tensor(
                     xml_polygon_to_polygon_list(text_line.Coords["points"])
                 )
+                for word in soup.find_all("Word"):
+                    word.decompose()
+                polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
                 polygon = polygon[:, torch.tensor([1, 0])]
                 textlines.append(polygon)
 
@@ -179,7 +182,7 @@ def get_args() -> argparse.Namespace:
         "-p",
         type=str,
         default=None,
-        help="path for folder with prediction xml files.",
+        help="path for folder with prediction xml files."
     )
 
     parser.add_argument(
@@ -187,14 +190,14 @@ def get_args() -> argparse.Namespace:
         "-g",
         type=str,
         default=None,
-        help="path for folder with ground truth xml files.",
+        help="path for folder with ground truth xml files."
     )
     parser.add_argument(
         "--name",
         "-n",
         type=str,
         default=time.time(),
-        help="Evaluation name. Results will be printed in 'results_name.json'",
+        help="Evaluation name. Results will be printed in 'results_name.json'"
     )
 
     return parser.parse_args()
