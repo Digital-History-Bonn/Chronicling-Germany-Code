@@ -20,5 +20,5 @@ PAD_WIDTH = 16
 
 # Training parameter
 LR = 1e-4
-VALID_EVERY = 25600
+LOG_EVERY = 1280
 BATCH_SIZE = 128

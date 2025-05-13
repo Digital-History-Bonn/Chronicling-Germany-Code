@@ -19,7 +19,7 @@ from src.cgprocess.OCR.Transformer.config import (
     BATCH_SIZE,
     LR,
     PAD_HEIGHT,
-    VALID_EVERY,
+    LOG_EVERY,
 )
 from src.cgprocess.OCR.Transformer.dataset import Dataset
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
@@ -125,6 +125,13 @@ class Trainer:
             print(f"start epoch {self.epoch}:")
             self.train_epoch()
 
+            avgloss = self.valid()
+
+            # early stopping
+            if self.bestavgloss is None or self.bestavgloss > avgloss:
+                self.bestavgloss = avgloss
+                self.save(f"{self.name}_es.pt")
+
         # save model after training
         self.save(f"{self.name}_end.pt")
 
@@ -151,22 +158,16 @@ class Trainer:
                     f"training loss: {np.mean(loss_lst[-BATCH_SIZE:])}"
                 )
 
-            if self.step % VALID_EVERY == 0:
+            if self.step % LOG_EVERY == 0:
                 self.log_loss(
                     "Training",
                     step=self.step,
-                    step_loss=np.mean(loss_lst[-VALID_EVERY:]),
+                    step_loss=float(np.mean(loss_lst[-LOG_EVERY:])),
                 )
-                avgloss = self.valid(part=0.1)
-
-                # early stopping
-                if self.bestavgloss is None or self.bestavgloss > avgloss:
-                    self.bestavgloss = avgloss
-                    self.save(f"{self.name}_es.pt")
 
             del crop, target, output, loss
 
-        self.log_loss("Training", loss=np.mean(loss_lst))
+        self.log_loss("Training", loss=float(np.mean(loss_lst)))
 
         del loss_lst
 
@@ -202,10 +203,10 @@ class Trainer:
             if counter >= int(len(self.testloader) * part):
                 break
 
-        self.log_loss("Valid", step=self.step, loss=np.mean(loss_lst))
+        self.log_loss("Valid", step=self.step, loss=float(np.mean(loss_lst)))
 
         self.log_loss(
-            "Valid", step=self.step, levenshtein=np.mean(levenshtein_lst)
+            "Valid", step=self.step, levenshtein=float(np.mean(levenshtein_lst))
         )  # type: ignore
 
         self.log_examples("Training")
