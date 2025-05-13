@@ -46,6 +46,8 @@ def draw_prediction(img: ndarray, path: str) -> None:
     # plt.legend(handles=patches, bbox_to_anchor=(1.3, -0.10), loc="lower right")
     plt.autoscale(tight=True)
     plt.savefig(path, bbox_inches=0, pad_inches=0, dpi=500)
+    plt.clf()
+    del img
     # plt.show()
 
 
