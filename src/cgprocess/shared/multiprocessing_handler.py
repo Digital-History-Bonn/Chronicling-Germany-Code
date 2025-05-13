@@ -2,6 +2,7 @@
 
 import json
 import os
+import traceback
 from multiprocessing import Process, Queue, cpu_count
 from pathlib import Path
 from threading import Thread
@@ -65,6 +66,7 @@ def run_process(
             except Exception as e:  # pylint: disable=broad-exception-caught
                 failed_queue.put(args[0], block=True)
                 print(e)
+                traceback.print_exc()
 
 
 def launch_threads(
@@ -128,6 +130,7 @@ def run_thread(
     except Exception as e:  # pylint: disable=broad-exception-caught
         failed_queue.put(args[0], block=True)
         print(e)
+        traceback.print_exc()
 
 
 def join_threads(threads: List[Thread]) -> None:
@@ -190,6 +193,22 @@ class MPPredictor:
         done_queue: Queue = Queue()
 
         # todo: fill path queue after process start to avoid a full queue exception.
+        # todo: add proper debug option
+
+        # DEBUG RUN WITHOUT PROCESS
+        # run_process(
+        #             self.predict_function,
+        #             self.init_model_function,
+        #             self.path_queue,
+        #             failed_queue,
+        #             done_queue,
+        #             num_threads,
+        #             self.model_list[0],
+        #             self.page_level_threads,
+        #             self.save_done,
+        #         )
+        # sleep(1)
+        # self.path_queue.put(("", "", "", True))
 
         processes = [
             Process(

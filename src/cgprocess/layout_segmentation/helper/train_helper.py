@@ -37,8 +37,8 @@ def init_model(
     Initialise model
     :param overwrite_load_channels: overwrites standart output channels, if a loaded model has a different size than
     intended for training or prediction
-    :param args:
     :param load: contains path to load the model from. If False, the model will be initialised randomly
+    :param model_str: contains model architecture name
     :param freeze: activates encoder freezing
     :param skip_cbam: activates cbam skip connection
     :return: loaded model

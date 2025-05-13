@@ -165,9 +165,8 @@ def create_model_list(
                 args.model_path,
                 f"cuda:{i % num_gpus}",
                 args.model_architecture,
-                args.skip_cbam,
                 False,
-                args.override_load_channels,
+                args.skip_cbam,
             )
             for i in range(num_gpus * num_processes)
         ]
@@ -177,9 +176,8 @@ def create_model_list(
                 args.model_path,
                 "cpu",
                 args.model_architecture,
-                args.skip_cbam,
                 False,
-                args.override_load_channels,
+                args.skip_cbam,
             )
         ]
     )
@@ -194,6 +192,6 @@ def create_path_queue(
     index 0 and the bool variable for terminating processes at index -1.
     """
     path_queue: Queue = Queue()
-    for file_name in enumerate(file_names):
+    for file_name in file_names:
         path_queue.put((file_name, args, dataset, False))
     return path_queue
