@@ -94,6 +94,7 @@ def main() -> None:
     # set some hyperparameters
     hparams = default_specs.RECOGNITION_HYPER_PARAMS.copy()
     hparams["epochs"] = 5
+    hparams["quit"] = "fixed"
     hparams["lrate"] = 0.001
     hparams["warmup"] = 1
     hparams["augment"] = True
