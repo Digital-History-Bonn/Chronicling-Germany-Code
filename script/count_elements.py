@@ -2,7 +2,9 @@
 
 import argparse
 import os
+from pathlib import Path
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -61,6 +63,21 @@ def validate(args: argparse.Namespace) -> None:
         except:
             print(f"{file}")
 
+
+def count_classes(args: argparse.Namespace) -> None:
+    """Load data with increasing amount of workers"""
+    parameter_args = get_args()
+    data_path = Path(parameter_args.data_path)
+    class_counts = torch.zeros((10), dtype=torch.long)
+
+    for path in tqdm(data_path.iterdir(), desc="counting classes", unit=" files"):
+        if path.suffix == ".npz":
+            img = np.load(path)["array"]
+            class_counts += torch.bincount(torch.tensor(img.flatten()), minlength=10)
+    print(class_counts)
+    print(class_counts / torch.sum(class_counts))
+
+
 def get_args() -> argparse.Namespace:
     """defines arguments"""
     parser = argparse.ArgumentParser(description="validate dataset")
@@ -73,33 +90,9 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="path for folder with folders 'images' and 'targets'",
     )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        default="transkribus",
-        help="which dataset to expect. Options are 'transkribus' and 'HLNA2013' "
-        "(europeaner newspaper project)",
-    )
-    parser.add_argument(
-        "--num-workers",
-        "-w",
-        type=int,
-        default=1,
-        help="Number of workers for the Dataloader",
-    )
-    parser.add_argument(
-        "--batch-size",
-        "-b",
-        dest="batch_size",
-        metavar="B",
-        type=int,
-        default=1,
-        help="Batch size",
-    )
-
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     parameter_args = get_args()
-    validate(parameter_args)
+    count_classes(parameter_args)
