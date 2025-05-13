@@ -66,14 +66,13 @@ def validate(args: argparse.Namespace) -> None:
 
 def count_classes(args: argparse.Namespace) -> None:
     """Load data with increasing amount of workers"""
-    parameter_args = get_args()
-    data_path = Path(parameter_args.data_path)
+    data_path = Path(args.data_path)
     class_counts = torch.zeros((10), dtype=torch.long)
 
     for path in tqdm(data_path.iterdir(), desc="counting classes", unit=" files"):
         if path.suffix == ".npz":
             img = np.load(path)["array"]
-            class_counts += torch.bincount(torch.tensor(img.flatten()), minlength=10)
+            class_counts += torch.nan_to_num(torch.bincount(torch.tensor(img.flatten()), minlength=10))
     print(class_counts)
     print(class_counts / torch.sum(class_counts))
 
