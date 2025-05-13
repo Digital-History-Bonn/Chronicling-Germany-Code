@@ -3,33 +3,40 @@
 import argparse
 import json
 import os
-from typing import Union, Optional
+from typing import Optional, Union
 
+import Levenshtein
 import numpy as np
 import torch
 from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
-import Levenshtein
 
-from src.cgprocess.OCR.Transformer.config import ALPHABET, VALID_EVERY, BATCH_SIZE, LR, PAD_HEIGHT
-from src.cgprocess.OCR.Transformer.ocr_engine import transformer
+from src.cgprocess.OCR.shared.utils import adjust_path, set_seed
+from src.cgprocess.OCR.Transformer.config import (
+    ALPHABET,
+    BATCH_SIZE,
+    LR,
+    PAD_HEIGHT,
+    VALID_EVERY,
+)
 from src.cgprocess.OCR.Transformer.dataset import Dataset
-from src.cgprocess.OCR.utils import set_seed, adjust_path
+from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 
 
 class Trainer:
     """Class to train models."""
 
-    def __init__(self,
-                 model: transformer.TransformerOCR,
-                 traindataset: Dataset,
-                 testdataset: Dataset,
-                 optimizer: Optimizer,
-                 name: str,
-                 cuda: int = 0,
-                 ) -> None:
+    def __init__(
+        self,
+        model: transformer.TransformerOCR,
+        traindataset: Dataset,
+        testdataset: Dataset,
+        optimizer: Optimizer,
+        name: str,
+        cuda: int = 0,
+    ) -> None:
         """
         Trainer class to train models.
 
@@ -71,12 +78,19 @@ class Trainer:
         print(f"{train_log_dir=}")
         self.writer = SummaryWriter(train_log_dir)  # type: ignore
 
-        self.valid_example_image, self.valid_example_label, self.valid_example_text = testdataset[2]
-        self.train_example_image, self.train_example_label, self.train_example_text = traindataset[
-            0]
+        self.valid_example_image, self.valid_example_label, self.valid_example_text = (
+            testdataset[2]
+        )
+        self.train_example_image, self.train_example_label, self.train_example_text = (
+            traindataset[0]
+        )
 
-        self.log_text(dataset='Valid', step=self.step, ground_truth=self.valid_example_text)
-        self.log_text(dataset='Training', step=self.step, ground_truth=self.train_example_text)
+        self.log_text(
+            dataset="Valid", step=self.step, ground_truth=self.valid_example_text
+        )
+        self.log_text(
+            dataset="Training", step=self.step, ground_truth=self.train_example_text
+        )
 
     def save(self, name: str = "") -> None:
         """
@@ -98,9 +112,7 @@ class Trainer:
         Args:
             name: name of the model
         """
-        self.model.load_state_dict(
-            torch.load(f"models/{name}.pt")
-        )
+        self.model.load_state_dict(torch.load(f"models/{name}.pt"))
 
     def train(self, epoch: int) -> None:
         """
@@ -136,11 +148,15 @@ class Trainer:
                 self.optimizer.zero_grad()
 
                 process_bar.set_description(
-                    f"training loss: {np.mean(loss_lst[-BATCH_SIZE:])}")
+                    f"training loss: {np.mean(loss_lst[-BATCH_SIZE:])}"
+                )
 
             if self.step % VALID_EVERY == 0:
-                self.log_loss('Training', step=self.step,
-                              step_loss=np.mean(loss_lst[-VALID_EVERY:]))
+                self.log_loss(
+                    "Training",
+                    step=self.step,
+                    step_loss=np.mean(loss_lst[-VALID_EVERY:]),
+                )
                 avgloss = self.valid(part=0.1)
 
                 # early stopping
@@ -150,7 +166,7 @@ class Trainer:
 
             del crop, target, output, loss
 
-        self.log_loss('Training', loss=np.mean(loss_lst))
+        self.log_loss("Training", loss=np.mean(loss_lst))
 
         del loss_lst
 
@@ -186,25 +202,26 @@ class Trainer:
             if counter >= int(len(self.testloader) * part):
                 break
 
-        self.log_loss('Valid',
-                      step=self.step,
-                      loss=np.mean(loss_lst))
+        self.log_loss("Valid", step=self.step, loss=np.mean(loss_lst))
 
-        self.log_loss('Valid',
-                      step=self.step,
-                      levenshtein=np.mean(levenshtein_lst))  # type: ignore
+        self.log_loss(
+            "Valid", step=self.step, levenshtein=np.mean(levenshtein_lst)
+        )  # type: ignore
 
-        self.log_examples('Training')
-        self.log_examples('Valid')
+        self.log_examples("Training")
+        self.log_examples("Valid")
 
         self.model.train()
 
         return np.mean(loss_lst)  # type: ignore
 
-    def predict(self, images: torch.Tensor,
-                max_length: int = 100,
-                start_token_idx: int = 1,
-                eos_token_idx: int = 3) -> str:
+    def predict(
+        self,
+        images: torch.Tensor,
+        max_length: int = 100,
+        start_token_idx: int = 1,
+        eos_token_idx: int = 3,
+    ) -> str:
         """
         Perform autoregressive prediction using the transformer decoder.
 
@@ -224,8 +241,9 @@ class Trainer:
 
         # Step 2: Initialize the generated sequences with the start token
         batch_size = images.size(0)
-        generated_sequences = torch.full((1, batch_size), start_token_idx, dtype=torch.long).to(
-            images.device)
+        generated_sequences = torch.full(
+            (1, batch_size), start_token_idx, dtype=torch.long
+        ).to(images.device)
 
         # Step 3: Iteratively generate the sequence
         for _ in range(max_length - 1):  # Already have <START> as the first token
@@ -240,13 +258,16 @@ class Trainer:
             tgt_embs = self.model.pos_encoder(tgt_embs)
 
             # Step 3c: Pass through the decoder
-            decoder_output = self.model.trans_decoder(tgt_embs, encoder_output, tgt_mask=dec_mask)
+            decoder_output = self.model.trans_decoder(
+                tgt_embs, encoder_output, tgt_mask=dec_mask
+            )
 
             # Step 3d: Project the decoder output to vocabulary size and get the next token
             # Use the last step's output for next token
             output_logits = self.model.dec_out_proj(decoder_output[-1, :, :])
-            next_token = output_logits.argmax(dim=-1,
-                                              keepdim=True)  # Get the most likely next token
+            next_token = output_logits.argmax(
+                dim=-1, keepdim=True
+            )  # Get the most likely next token
 
             # Append the next token to the generated sequence
             generated_sequences = torch.cat([generated_sequences, next_token], dim=0)
@@ -268,21 +289,26 @@ class Trainer:
         """
         self.model.eval()
 
-        example = self.train_example_image if dataset == 'Training' else self.valid_example_image
-        text = self.train_example_text if dataset == 'Training' else self.valid_example_text
+        example = (
+            self.train_example_image
+            if dataset == "Training"
+            else self.valid_example_image
+        )
+        text = (
+            self.train_example_text
+            if dataset == "Training"
+            else self.valid_example_text
+        )
 
         pred_text = self.predict(example[None].to(self.device))
         ratio = Levenshtein.distance(pred_text, text) / max(len(pred_text), len(text))
-        print(f"{dataset} prediction (L: {ratio}): \"{pred_text}\"")
+        print(f'{dataset} prediction (L: {ratio}): "{pred_text}"')
 
-        self.log_text(dataset=dataset,
-                      step=self.step,
-                      prediction=pred_text)
+        self.log_text(dataset=dataset, step=self.step, prediction=pred_text)
 
         self.model.train()
 
-    def log_text(self, dataset: str, step: Optional[int] = None,
-                 **kwargs: str) -> None:
+    def log_text(self, dataset: str, step: Optional[int] = None, **kwargs: str) -> None:
         """
         Logs given images under the given dataset label.
 
@@ -301,8 +327,9 @@ class Trainer:
 
         self.writer.flush()  # type: ignore
 
-    def log_loss(self, dataset: str, step: Optional[int] = None,
-                 **kwargs: float) -> None:
+    def log_loss(
+        self, dataset: str, step: Optional[int] = None, **kwargs: float
+    ) -> None:
         """
         Logs the loss values to tensorboard.
 
@@ -397,26 +424,32 @@ def main() -> None:
                        pad_seq=False,
                        cache_images=True)
 
-    print(f"training with {len(trainset)} samples for training and {len(validset)} "
-          f"samples for validation.")
+    print(
+        f"training with {len(trainset)} samples for training and {len(validset)} "
+        f"samples for validation."
+    )
 
-    with open("src/cgprocess/OCR/Transformer/config.json", "r", encoding='utf-8') as file:
+    with open("src/OCR/Transformer/config.json", "r", encoding="utf-8") as file:
         json_data = json.load(file)
 
-    net: transformer.TransformerOCR = transformer.build_net(net=json_data,
-                                                            input_height=PAD_HEIGHT,
-                                                            input_channels=3,
-                                                            nb_output_symbols=len(ALPHABET) - 2)
+    net: transformer.TransformerOCR = transformer.build_net(
+        net=json_data,
+        input_height=PAD_HEIGHT,
+        input_channels=3,
+        nb_output_symbols=len(ALPHABET) - 2,
+    )
     optimizer = AdamW(net.parameters(), lr=LR)
 
-    trainer = Trainer(model=net,
-                      traindataset=trainset,
-                      testdataset=validset,
-                      optimizer=optimizer,
-                      name=args.name)
+    trainer = Trainer(
+        model=net,
+        traindataset=trainset,
+        testdataset=validset,
+        optimizer=optimizer,
+        name=args.name,
+    )
 
     trainer.train(args.epochs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

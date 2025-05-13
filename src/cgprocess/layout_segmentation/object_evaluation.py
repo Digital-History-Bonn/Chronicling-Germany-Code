@@ -1,67 +1,73 @@
+# type: ignore
+# todo: make this mypy typechecking conform
+
 """Evaluation script for layout segmentation on object level. This will evaluate each bounding box of a detected
-polygon if it matches a corresponding polygon in the target data. """
+polygon if it matches a corresponding polygon in the target data."""
 import argparse
 import glob
 import os
-from typing import List, Dict, Optional
 from itertools import product
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
 from bs4 import BeautifulSoup
 from shapely.geometry import Polygon
 from shapely.validation import explain_validity
-from tqdm import tqdm
 from tabulate import tabulate
+from tqdm import tqdm
 
 
-def read_xml(xml_path: str) -> Dict[str, List[Polygon]]:
+def read_xml(xml_path: str) -> Dict[str, list]:
     """Reads xml files and returns shapely polygons of all desired regions."""
-    data: Dict[str, List[Polygon]] = {"caption": [],
-                                      "table": [],
-                                      "paragraph": [],
-                                      "heading": [],
-                                      "header": [],
-                                      "separator_vertical": [],
-                                      "separator_horizontal": [],
-                                      "image": [],
-                                      "inverted_text": []}
+    data: Dict[str, list] = {
+        "caption": [],
+        "table": [],
+        "paragraph": [],
+        "heading": [],
+        "header": [],
+        "separator_vertical": [],
+        "separator_horizontal": [],
+        "image": [],
+        "inverted_text": [],
+    }
 
     # Read the XML file content
-    with open(xml_path, 'r', encoding='utf-8') as file:
+    with open(xml_path, "r", encoding="utf-8") as file:
         xml_content = file.read()
 
     # Parse the XML content with BeautifulSoup
-    soup = BeautifulSoup(xml_content, 'xml')
+    soup = BeautifulSoup(xml_content, "xml")
 
     # Iterate over all TextRegion elements
     for text_region in soup.find_all(
-            ['TextRegion', 'TableRegion', 'GraphicRegion', 'SeparatorRegion']):
+        ["TextRegion", "TableRegion", "GraphicRegion", "SeparatorRegion"]
+    ):
         # Extract the custom attribute
-        custom_attr = text_region.get('custom', '')
+        custom_attr = text_region.get("custom", "")
 
         # Extract the type from the custom attribute
-        if 'structure {type:' in custom_attr:
-            type_start = custom_attr.index('structure {type:') + len('structure {type:')
-            type_end = custom_attr.index(';', type_start)
-            type_value = custom_attr[type_start:type_end]
+        if "structure {type:" in custom_attr:
+            type_start = custom_attr.index("structure {type:") + len("structure {type:")
+            type_end = custom_attr.index(";", type_start)
+            type_value = custom_attr[type_start:type_end]  # type: ignore
 
             # Check if this type is in the list of desired types
             if type_value in data:
                 # Extract Coords element and get the points
-                coords = text_region.find('Coords')
+                coords = text_region.find("Coords")
                 if coords:
-                    points_str = coords.get('points', '')
+                    points_str = coords.get("points", "")
                     # Convert points string to a list of tuples
                     points = [
-                        tuple(map(int, point.split(',')))
+                        tuple(map(int, point.split(",")))
                         for point in points_str.split()
                     ]
                     # Create a Shapely Polygon and add to the list
                     if len(points) <= 2:
                         continue
                     polygon = Polygon(points)
-                    data[type_value].append(polygon.buffer(0))
+                    data[type_value].append(polygon.buffer(0))  # type: ignore
 
     return data
 
@@ -76,8 +82,7 @@ def remove_duplicate_points(polygon: Polygon) -> Polygon:
     return Polygon(unique_coords)
 
 
-def calc_metrics(ious: torch.Tensor,
-                 threshold: float = .7) -> Dict[str, float]:
+def calc_metrics(ious: torch.Tensor, threshold: float = 0.7) -> Dict[str, float]:
     """
     calculates precision, recall and f1_score for iou matrix.
 
@@ -107,27 +112,35 @@ def calc_metrics(ious: torch.Tensor,
 
     precision = 1.0 if (tp + fp) == 0 else tp / (tp + fp)
     recall = 1.0 if (tp + fn) == 0 else tp / (tp + fn)
-    f1_score = 0 if precision + recall == 0 else 2 * (precision * recall) / (precision + recall)
+    f1_score = (
+        0
+        if precision + recall == 0
+        else 2 * (precision * recall) / (precision + recall)
+    )
 
-    return {'precision': precision,
-            'recall': recall,
-            'f1': f1_score,
-            'TP': tp,
-            'FP': fp,
-            'FN': fn,
-            'count': ious.shape[1]}
+    return {
+        "precision": precision,
+        "recall": recall,
+        "f1": f1_score,
+        "TP": tp,
+        "FP": fp,
+        "FN": fn,
+        "count": ious.shape[1],
+    }
 
 
-def detection_metrics(prediction: List[Polygon],
-                      target: List[Polygon],
-                      threshold: float = .5,
-                      pred_classes: Optional[List[str]] = None,
-                      gt_classes: Optional[List[str]] = None) -> Dict[str, float]:
+def detection_metrics(
+    prediction: List[Polygon],
+    target: List[Polygon],
+    threshold: float = 0.5,
+    pred_classes: Optional[List[str]] = None,
+    gt_classes: Optional[List[str]] = None,
+) -> Dict[str, float]:
     """
     Calcs precision, recall, F1 score for textline polygons.
 
     Textline is considered as detected if IoU is above threshold.
-    Also, textline predictions are considerd as correct if IoU is above threshold.
+    Also textline predictions are considerd as correct if IoU is above threshold.
 
     Args:
         prediction: List of predicted textlines.
@@ -143,33 +156,47 @@ def detection_metrics(prediction: List[Polygon],
     for pred_idx, tar_idx in product(range(len(prediction)), range(len(target))):
         pred = prediction[pred_idx]
         tar = target[tar_idx]
-        if pred_classes is None or gt_classes is None or pred_classes[pred_idx] == gt_classes[
-            tar_idx]:
+        if (
+            pred_classes is None
+            or gt_classes is None
+            or pred_classes[pred_idx] == gt_classes[tar_idx]
+        ):
             if pred.is_valid and tar.is_valid:
                 intersects.append(pred.intersection(tar).area)
                 unions.append(pred.union(tar).area)
             else:
                 intersects.append(0.0)
                 unions.append(1.0)
-                print(f'polygone not valid! {pred.is_valid=} and {tar.is_valid=}')
+                print(f"polygone not valid! {pred.is_valid=} and {tar.is_valid=}")
                 print(explain_validity(tar))
         else:
             intersects.append(0.0)
             unions.append(1.0)
 
-    ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(len(prediction), len(target))
+    ious = (torch.tensor(intersects) / torch.tensor(unions)).reshape(
+        len(prediction), len(target)
+    )
 
     results = calc_metrics(ious, threshold=threshold)
 
     return results
 
 
-def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, Dict[str, float]]:
+def compare(pred_xml: str, gt_xml: str, threshold: float = 0.5) -> Dict[str, dict]:
     """Compares read xml data and returns comparisons."""
-    categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",
-                  "separator_horizontal", "image", "inverted_text"]
+    categories = [
+        "caption",
+        "table",
+        "paragraph",
+        "heading",
+        "header",
+        "separator_vertical",
+        "separator_horizontal",
+        "image",
+        "inverted_text",
+    ]
 
-    data: Dict[str, Dict[str, float]] = {key: {} for key in categories}
+    data: dict = {key: {} for key in categories}
 
     pred_objects = read_xml(pred_xml)
     gt_objects = read_xml(gt_xml)
@@ -184,20 +211,39 @@ def compare(pred_xml: str, gt_xml: str, threshold: float = .5) -> Dict[str, Dict
     pred_classes = [key for key, values in pred_objects.items() for _ in values]
     gt_classes = [key for key, values in gt_objects.items() for _ in values]
 
-    data['all'] = detection_metrics(pred_all, gt_all,
-                                    threshold=threshold,
-                                    pred_classes=pred_classes,
-                                    gt_classes=gt_classes)
+    data["all"] = detection_metrics(
+        pred_all,
+        gt_all,
+        threshold=threshold,
+        pred_classes=pred_classes,
+        gt_classes=gt_classes,
+    )
 
     return data
 
 
-def print_table(count: Dict[str, float], tp: Dict[str, List[float]], fp: Dict[str, List[float]],
-                fn: Dict[str, List[float]], precision: Dict[str, List[float]],
-                recall: Dict[str, List[float]], f1_score: Dict[str, List[float]]) -> None:
+def print_table(
+    count: np.ndarray,
+    tp: np.ndarray,
+    fp: np.ndarray,
+    fn: np.ndarray,
+    precision: np.ndarray,
+    recall: np.ndarray,
+    f1_score: np.ndarray,
+) -> None:
     """Prints markdown table."""
-    categories = ["caption", "table", "paragraph", "heading", "header",
-                  "separator_vertical", "separator_horizontal", "image", "inverted_text", "all"]
+    categories = [
+        "caption",
+        "table",
+        "paragraph",
+        "heading",
+        "header",
+        "separator_vertical",
+        "separator_horizontal",
+        "image",
+        "inverted_text",
+        "all",
+    ]
 
     # Prepare data for tabulate
     table_data = []
@@ -218,25 +264,35 @@ def print_table(count: Dict[str, float], tp: Dict[str, List[float]], fp: Dict[st
 
         precision_score = np.sum(tp[cat]) / (np.sum(tp[cat]) + np.sum(fp[cat]))
         recall_score = np.sum(tp[cat]) / (np.sum(tp[cat]) + np.sum(fn[cat]))
-        f1_score_calc = 2 * (precision_score * recall_score) / (precision_score + recall_score)
+        f1_score_calc = (
+            2 * (precision_score * recall_score) / (precision_score + recall_score)
+        )
 
         # Append row to table data
-        table_data.append([
-            cat,
-            f"{count[cat]}",
-            f"{precision_mean:.4f} ({precision_median:.4f}) ± {precision_std:.4f}",
-            f"{recall_mean:.4f} ({recall_median:.4f}) ± {recall_std:.4f}",
-            f"{f1_mean:.4f} ({f1_median:.4f}) ± {f1_std:.4f}",
-            f"{precision_score:.4f}",
-            f"{recall_score:.4f}",
-            f"{f1_score_calc:.4f}"
-        ])
+        table_data.append(
+            [
+                cat,
+                f"{count[cat]}",
+                f"{precision_mean:.4f} ({precision_median:.4f}) ± {precision_std:.4f}",
+                f"{recall_mean:.4f} ({recall_median:.4f}) ± {recall_std:.4f}",
+                f"{f1_mean:.4f} ({f1_median:.4f}) ± {f1_std:.4f}",
+                f"{precision_score:.4f}",
+                f"{recall_score:.4f}",
+                f"{f1_score_calc:.4f}",
+            ]
+        )
 
     # Define headers for the table
-    headers = ["Category", "count in ground truth", "Precision (mean(median) ± std)",
-               "Recall (mean(median) ± std)",
-               "F1 Score (mean(median) ± std)", "Precision (overall)", "Recall (overall)",
-               "F1 Score (overall)"]
+    headers = [
+        "Category",
+        "count in ground truth",
+        "Precision (mean(median) ± std)",
+        "Recall (mean(median) ± std)",
+        "F1 Score (mean(median) ± std)",
+        "Precision (overall)",
+        "Recall (overall)",
+        "F1 Score (overall)",
+    ]
 
     # Use tabulate to format the data into a table and print
     print(tabulate(table_data, headers, tablefmt="grid"))
@@ -257,7 +313,7 @@ def get_args() -> argparse.Namespace:
         "-p",
         type=str,
         default=None,
-        help="path for folder with images. Images need to be jpg."
+        help="path for folder with images. Images need to be jpg.",
     )
 
     parser.add_argument(
@@ -265,46 +321,58 @@ def get_args() -> argparse.Namespace:
         "-g",
         type=str,
         default=None,
-        help="path for folder with layout xml files."
+        help="path for folder with layout xml files.",
     )
 
     return parser.parse_args()
 
 
-def main() -> None:
+def main():
     """Main function of layout object evaluation script. Prepares file paths and concatenates comparison results."""
     args = get_args()
 
-    categories = ["caption", "table", "paragraph", "heading", "header", "separator_vertical",
-                  "separator_horizontal", "image", "inverted_text", "all"]
+    categories = [
+        "caption",
+        "table",
+        "paragraph",
+        "heading",
+        "header",
+        "separator_vertical",
+        "separator_horizontal",
+        "image",
+        "inverted_text",
+        "all",
+    ]
 
     pred_paths = list(glob.glob(f"{args.pred_dir}/*.xml"))
     gt_paths = [f"{args.gt_dir}/{os.path.basename(x)}" for x in pred_paths]
 
-    # pylint: disable=duplicate-code
-    tp: Dict[str, List[float]] = {c: [] for c in categories}
-    fp: Dict[str, List[float]] = {c: [] for c in categories}
-    fn: Dict[str, List[float]] = {c: [] for c in categories}
-    precision: Dict[str, List[float]] = {c: [] for c in categories}
-    recall: Dict[str, List[float]] = {c: [] for c in categories}
-    f1_score: Dict[str, List[float]] = {c: [] for c in categories}
-    count: Dict[str, float] = {c: 0 for c in categories}
+    # pred_paths = ['data/pipeline_test_dataset/Koelnische_Zeitung_1866-06_1866-09_Anzeigen_0308.xml']
+    # gt_paths=['data/newSplit2/test/annos/Koelnische_Zeitung_1866-06_1866-09_Anzeigen_0308.xml']
+
+    tp = {c: [] for c in categories}
+    fp = {c: [] for c in categories}
+    fn = {c: [] for c in categories}
+    precision = {c: [] for c in categories}
+    recall = {c: [] for c in categories}
+    f1_score = {c: [] for c in categories}
+    count = {c: 0 for c in categories}
 
     for pred, gt in tqdm(zip(pred_paths, gt_paths), total=len(pred_paths)):
-        data = compare(pred, gt, threshold=.5)
+        data = compare(pred, gt, threshold=0.5)
         for cat in categories:
             if data[cat]:
-                count[cat] += data[cat]['count']
-                tp[cat].append(data[cat]['TP'])
-                fp[cat].append(data[cat]['FP'])
-                fn[cat].append(data[cat]['FN'])
-                precision[cat].append(data[cat]['precision'])
-                recall[cat].append(data[cat]['recall'])
-                f1_score[cat].append(data[cat]['f1'])
+                count[cat] += data[cat]["count"]
+                tp[cat].append(data[cat]["TP"])
+                fp[cat].append(data[cat]["FP"])
+                fn[cat].append(data[cat]["FN"])
+                precision[cat].append(data[cat]["precision"])
+                recall[cat].append(data[cat]["recall"])
+                f1_score[cat].append(data[cat]["f1"])
 
     print(args.pred_dir)
     print_table(count, tp, fp, fn, precision, recall, f1_score)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

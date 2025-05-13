@@ -22,7 +22,7 @@ TOLERANCE = [
     1.0,  # "separator_vertical"
     1.0,  # "separator"
     5.0,  # "image",
-    5.0  # "inverted_text"
+    5.0,  # "inverted_text"
 ]
 
 # The order dictates the priority in the drawing process. Eg. "image": 10 assigns label 10 to image regions, but the
@@ -73,21 +73,19 @@ REGION_TYPES = {
 
 VALID_TAGS = [
     "paragraph",
-    'caption',
-    'heading',
-    'header',
-    'image',
-    'table',
-    'inverted_text',
-    'separator_vertical',
-    'separator_horizontal',
-    'UnknownRegion'
+    "caption",
+    "heading",
+    "header",
+    "image",
+    "table",
+    "inverted_text",
+    "separator_vertical",
+    "separator_horizontal",
+    "UnknownRegion",
 ]
 
 
-REDUCE_CLASSES = {
-    3: [1, 4, 5]
-}
+REDUCE_CLASSES = {3: [1, 5], 0: [8, 9]}
 
 # REDUCE_CLASSES = {
 #     6: [7]

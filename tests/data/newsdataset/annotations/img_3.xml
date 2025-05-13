@@ -1,0 +1,2555 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PcGts xmlns="http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15 http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15/pagecontent.xsd">
+ <Metadata>
+  <Creator>
+   Transkribus
+  </Creator>
+  <Created>
+   2023-06-27T12:16:46.019+02:00
+  </Created>
+  <LastChange>
+   2024-10-16T11:26:46.316+02:00
+  </LastChange>
+  <TranskribusMetadata docId="2449099" imageId="57195148" imgUrl="https://files.transkribus.eu/Get?id=SDIRBAYCUECRIYXZYDWBVLFB&amp;fileType=view" pageId="71326323" pageNr="138" status="IN_PROGRESS" tsid="194069165" userId="190483" xmlUrl="https://files.transkribus.eu/Get?id=KNEDNCCJFYAVAWAPBIYSEZQJ"/>
+ </Metadata>
+ <Page imageFilename="Koelnische_Zeitung_1924_0138.jpg" imageHeight="7209" imageWidth="5031">
+  <ReadingOrder>
+   <OrderedGroup caption="Regions reading order" id="ro_1729683431788">
+    <RegionRefIndexed index="1" regionRef="region_1701884353717_2027"/>
+    <RegionRefIndexed index="3" regionRef="region_1701884367449_2036"/>
+    <RegionRefIndexed index="5" regionRef="TextRegion_1714144933558_1157"/>
+    <RegionRefIndexed index="29" regionRef="region_1701885384096_2212"/>
+    <RegionRefIndexed index="31" regionRef="region_1701885106302_2129"/>
+    <RegionRefIndexed index="32" regionRef="region_1701885398954_2216"/>
+    <RegionRefIndexed index="34" regionRef="region_1701885404157_2219"/>
+    <RegionRefIndexed index="37" regionRef="region_1701884358052_2030"/>
+    <RegionRefIndexed index="40" regionRef="region_1701885429546_2231"/>
+    <RegionRefIndexed index="42" regionRef="region_1701885113896_2132"/>
+    <RegionRefIndexed index="43" regionRef="region_1701885421500_2228"/>
+    <RegionRefIndexed index="45" regionRef="region_1701885408219_2222"/>
+    <RegionRefIndexed index="47" regionRef="region_1701885414094_2225"/>
+    <RegionRefIndexed index="49" regionRef="region_1701884361211_2033"/>
+    <RegionRefIndexed index="50" regionRef="region_1701885447530_2234"/>
+    <RegionRefIndexed index="52" regionRef="region_1701885466576_2238"/>
+    <RegionRefIndexed index="53" regionRef="region_1701885123911_2135"/>
+    <RegionRefIndexed index="54" regionRef="region_1701885470482_2241"/>
+    <RegionRefIndexed index="55" regionRef="region_1701885128757_2138"/>
+    <RegionRefIndexed index="56" regionRef="region_1701885473997_2244"/>
+    <RegionRefIndexed index="59" regionRef="region_1701885502402_2249"/>
+    <RegionRefIndexed index="60" regionRef="region_1701885136946_2144"/>
+    <RegionRefIndexed index="61" regionRef="region_1701885507293_2252"/>
+    <RegionRefIndexed index="64" regionRef="region_1714145006759_1172"/>
+   </OrderedGroup>
+  </ReadingOrder>
+  <SeparatorRegion custom="readingOrder {index:0;} structure {type:separator_vertical;}" id="Separator_1701884794749_2065">
+   <Coords points="245,462 264,462 264,625 245,625"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:1;} structure {type:caption;}" id="region_1701884353717_2027" type="caption">
+   <Coords points="283,369 730,393 736,442 292,428"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701884353717_2027_tl_1">
+    <Coords points="738,439 738,392 735,392 681,392 633,392 586,389 536,389 485,389 438,387 390,384 341,381 285,381 285,429 339,429 384,431 738,439"/>
+    <Baseline points="285,417 339,417 388,420 436,423 485,426 536,426 584,426 633,428 681,428 738,428"/>
+    <TextEquiv>
+     <Unicode>Freltag, 18. Januar</Unicode>
+    </TextEquiv>
+   </TextLine>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:2;} structure {type:separator_short;}" id="Separator_1701884787796_2059">
+   <Coords points="247,455 431,471 611,470 1310,469 1310,485 606,489 437,484 247,471"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:3;} structure {type:heading;}" id="region_1701884367449_2036" type="heading">
+   <Coords points="326,495 1239,495 1239,595 326,595"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701884367449_2036_tl_1">
+    <Coords points="491,605 520,606 580,606 791,604 827,603 906,603 935,603 1032,597 1133,597 1238,600 1241,600 1243,508 929,510 925,510 903,510 795,511 723,513 622,513 526,513 520,513 517,513 419,510 319,505 316,505 311,597 491,605"/>
+    <Baseline points="312,579 417,584 520,587 622,587 724,587 827,584 929,584 1032,579 1134,579 1241,582"/>
+    <TextEquiv>
+     <Unicode>Handel, Gewerbe, Verkehr</Unicode>
+    </TextEquiv>
+   </TextLine>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:4;} structure {type:separator_short;}" id="Separator_1701884791218_2062">
+   <Coords points="256,607 542,619 1311,617 1311,634 541,637 256,624"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:5;} structure {type:heading;}" id="TextRegion_1714144933558_1157" type="heading">
+   <Coords points="366,635 1227,635 1227,685 1069,682 1061,705 959,715 955,721 722,721 638,727 635,722 526,722 486,687 366,685"/>
+   <TextLine custom="readingOrder {index:0;}" id="TextRegion_1714144933558_1157_tl_1">
+    <Coords points="552,683 573,683 646,680 664,680 1029,672 1040,672 1125,672 1228,678 1230,639 1046,633 1029,633 934,636 837,639 743,642 657,642 603,643 551,644 456,642 443,641 356,639 355,678 455,680 511,682 552,683"/>
+    <Baseline points="356,668 455,671 552,673 646,671 743,671 838,668 935,665 1029,663 1126,663 1228,668"/>
+    <TextEquiv>
+     <Unicode>Berliner Börte vom 17. Januar 1924.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;} structure {type:corrected;}" id="TextRegion_1714144933558_1157_tl_2">
+    <Coords points="496,720 498,720 948,711 994,709 1051,709 1061,709 1061,676 1040,676 946,679 931,679 869,682 807,685 746,685 683,687 622,687 560,687 496,687 496,720"/>
+    <Baseline points="496,711 560,711 622,711 684,711 746,708 808,708 870,706 932,703 994,700 1061,700"/>
+    <TextEquiv>
+     <Unicode>(Kurse in Billionen Prozent)</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Berliner Börte vom 17. Januar 1924.
+(Kurse in Billionen Prozent)
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:6;} structure {type:table;}" id="TextRegion_1714144933558_1156">
+   <Coords points="638,727 722,721 955,721 939,747 660,757"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:7;} structure {type:table;}" id="region_1701884890823_2083">
+   <Coords points="234,765 1218,756 1326,765 1326,1228 1286,4178 1266,5009 1229,6904 127,6836 148,6374 160,5301 172,4166 208,2783 209,2087 234,1228"/>
+  </TableRegion>
+  <SeparatorRegion custom="readingOrder {index:8;} structure {type:separator_vertical;}" id="Separator_1701884933961_2087">
+   <Coords points="1267,5502 1286,4664 1333,1729 1346,472 1361,473 1345,1726 1301,4663 1283,5501 1261,6874 1247,6872"/>
+  </SeparatorRegion>
+  <SeparatorRegion custom="readingOrder {index:9;} structure {type:separator_vertical;}" id="Separator_1701884800124_2068">
+   <Coords points="1311,469 1337,469 1337,636 1311,636"/>
+  </SeparatorRegion>
+  <TableRegion custom="readingOrder {index:10;} structure {type:table;}" id="region_1701885197820_2152">
+   <Coords points="1369,472 2455,472 2455,918 1369,918"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:11;} structure {type:table;}" id="region_1701885066412_2102">
+   <Coords points="1780,928 2047,928 2047,960 1780,960"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:12;} structure {type:table;}" id="region_1701885201366_2155">
+   <Coords points="1356,963 2460,963 2460,1026 1356,1026"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:13;} structure {type:table;}" id="region_1701885069366_2105">
+   <Coords points="1798,1036 2022,1036 2022,1073 1798,1073"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:14;} structure {type:table;}" id="region_1701885208835_2158">
+   <Coords points="1359,1066 2448,1066 2448,1581 1359,1581"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:15;} structure {type:table;}" id="region_1701885074209_2108">
+   <Coords points="1687,1586 2116,1586 2116,1625 1687,1625"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:16;} structure {type:table;}" id="region_1701885211897_2161">
+   <Coords points="1355,1622 2449,1622 2449,1718 1355,1718"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:17;} structure {type:table;}" id="region_1701885078037_2111">
+   <Coords points="1553,1725 2248,1725 2248,1756 1553,1756"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:18;} structure {type:table;}" id="region_1701885215866_2164">
+   <Coords points="1357,1764 2451,1764 2451,1874 1357,1874"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:19;} structure {type:table;}" id="region_1701885081615_2114">
+   <Coords points="1639,1878 2146,1878 2146,1911 1639,1911"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:20;} structure {type:table;}" id="region_1701885220131_2167">
+   <Coords points="1346,1912 2427,1912 2427,1976 1346,1976"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:21;} structure {type:table;}" id="region_1701885084115_2117">
+   <Coords points="1723,1990 2045,1990 2045,2018 1723,2018"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:22;} structure {type:table;}" id="region_1701885223928_2170">
+   <Coords points="1352,2027 2444,2027 2444,2115 1352,2115"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:23;} structure {type:table;}" id="region_1701885088380_2120">
+   <Coords points="1786,2120 1998,2120 1998,2156 1786,2156"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:24;} structure {type:table;}" id="region_1701885228490_2173">
+   <Coords points="1346,2168 2435,2168 2435,2329 1346,2329"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:25;} structure {type:table;}" id="region_1701885094817_2123">
+   <Coords points="1499,2341 2272,2341 2272,2376 1499,2376"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:26;} structure {type:table;}" id="region_1701885232052_2176">
+   <Coords points="1341,2375 2426,2375 2426,2776 1341,2776"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:27;} structure {type:table;}" id="region_1701885099598_2126">
+   <Coords points="1440,2779 2334,2779 2334,2824 1440,2824"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:28;} structure {type:table;}" id="region_1701885237724_2179">
+   <Coords points="1338,2814 2433,2814 2433,3008 1338,3008"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:29;} structure {type:paragraph;}" id="region_1701885384096_2212">
+   <Coords points="1308,4657 1332,3004 2406,3004 2406,4662 1331,4679 1332,4662"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885384096_2212_tl_1">
+    <Coords points="1357,3033 1479,3036 1594,3036 1713,3041 1829,3044 1947,3047 2063,3047 2181,3050 2297,3052 2421,3052 2421,3018 2297,3018 2182,3015 2064,3013 1947,3013 1829,3010 1714,3007 1596,3002 1479,3002 1358,2999 1357,3033"/>
+    <Baseline points="1357,3025 1479,3027 1594,3027 1713,3033 1829,3035 1947,3038 2063,3038 2182,3041 2297,3043 2421,3043"/>
+    <TextEquiv>
+     <Unicode>Die Börse verlief heute in ziemlich freundlicher</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885384096_2212_tl_2">
+    <Coords points="1325,3060 1449,3066 1570,3068 1691,3071 1812,3074 1931,3077 2052,3079 2173,3079 2295,3082 2421,3082 2421,3048 2295,3048 2174,3045 2052,3045 1932,3042 1813,3040 1692,3037 1571,3034 1450,3032 1326,3026 1325,3048 1325,3060"/>
+    <Baseline points="1325,3051 1449,3057 1570,3060 1691,3062 1813,3065 1931,3068 2052,3070 2173,3070 2295,3073 2421,3073"/>
+    <TextEquiv>
+     <Unicode>Stimmuns. Bevorzugt waren festverfinsliche Werte.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;}" id="region_1701885384096_2212_tl_3">
+    <Coords points="2424,3108 2424,3080 2297,3080 2177,3078 2056,3075 1934,3072 1813,3072 1692,3067 1571,3064 1450,3061 1326,3059 1325,3093 1449,3095 1570,3098 1691,3101 1813,3106 1934,3106 2055,3109 2176,3112 2297,3114 2423,3114 2424,3108"/>
+    <Baseline points="1325,3084 1449,3086 1570,3089 1691,3092 1813,3097 1934,3097 2055,3100 2176,3103 2297,3105 2424,3105"/>
+    <TextEquiv>
+     <Unicode>Der jünast verölfentlichte Ausweis über die Finanzgebarung des</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885384096_2212_tl_4">
+    <Coords points="2421,3141 2421,3110 2295,3110 2174,3107 2053,3105 1932,3102 1813,3102 1692,3097 1570,3097 1450,3094 1326,3089 1325,3122 1449,3128 1570,3130 1691,3130 1813,3136 1931,3136 2052,3138 2173,3141 2295,3144 2421,3144 2421,3141"/>
+    <Baseline points="1325,3113 1449,3119 1570,3121 1691,3121 1813,3127 1931,3127 2052,3130 2173,3132 2295,3135 2421,3135"/>
+    <TextEquiv>
+     <Unicode>Roicha wirkte anregend. Deckungskäufe der Spekulation gaben der</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885384096_2212_tl_5">
+    <Coords points="1324,3155 1376,3155 1425,3158 1475,3158 1524,3160 1575,3160 1624,3163 1675,3163 1724,3163 1780,3163 1780,3128 1724,3128 1675,3128 1624,3128 1577,3126 1524,3126 1477,3123 1425,3123 1378,3120 1324,3120 1324,3155"/>
+    <Baseline points="1324,3146 1376,3146 1425,3148 1476,3148 1524,3151 1576,3151 1624,3154 1675,3154 1724,3154 1780,3154"/>
+    <TextEquiv>
+     <Unicode>Börse einen guten Halt.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;}" id="region_1701885384096_2212_tl_6">
+    <Coords points="2421,3171 2295,3169 2173,3169 2056,3166 1934,3163 1816,3161 1695,3158 1576,3155 1455,3153 1331,3150 1330,3184 1454,3187 1575,3190 1694,3193 1815,3195 1934,3198 2055,3201 2173,3203 2294,3203 2421,3206 2421,3203 2421,3171"/>
+    <Baseline points="1330,3175 1454,3178 1576,3181 1694,3183 1815,3186 1934,3189 2055,3192 2173,3194 2295,3194 2421,3197"/>
+    <TextEquiv>
+     <Unicode>Außer den wie bereits gemeldet stärker gefragten Reichsanleihen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;}" id="region_1701885384096_2212_tl_7">
+    <Coords points="2421,3203 2295,3201 2174,3198 2053,3195 1932,3193 1810,3190 1689,3190 1568,3187 1447,3185 1324,3182 1323,3217 1446,3220 1567,3222 1689,3225 1810,3225 1931,3228 2052,3230 2173,3233 2294,3236 2421,3238 2421,3232 2421,3203"/>
+    <Baseline points="1323,3208 1446,3210 1567,3213 1689,3216 1810,3216 1931,3218 2052,3221 2173,3224 2295,3227 2421,3229"/>
+    <TextEquiv>
+     <Unicode>und Konsols waren auch Provinz- und sonstige Anleihen stark</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;}" id="region_1701885384096_2212_tl_8">
+    <Coords points="2421,3233 2295,3230 2173,3230 2053,3227 1932,3225 1810,3222 1689,3222 1568,3219 1447,3217 1323,3214 1323,3249 1446,3252 1567,3255 1689,3257 1810,3257 1931,3260 2052,3263 2173,3265 2294,3265 2421,3268 2421,3259 2421,3233"/>
+    <Baseline points="1323,3240 1446,3243 1567,3245 1689,3248 1810,3248 1931,3251 2052,3253 2173,3256 2295,3256 2421,3259"/>
+    <TextEquiv>
+     <Unicode>geSteigert. 22er Kheinprovinzanleihe lebhaft, aber im</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;}" id="region_1701885384096_2212_tl_9">
+    <Coords points="2421,3262 2295,3262 2173,3262 2053,3259 1932,3257 1810,3254 1689,3254 1569,3249 1446,3249 1323,3246 1323,3246 1323,3282 1446,3284 1567,3284 1689,3290 1810,3290 1931,3292 2052,3295 2173,3298 2295,3298 2421,3298 2421,3264 2421,3262"/>
+    <Baseline points="1323,3272 1446,3275 1567,3275 1689,3280 1810,3280 1931,3283 2052,3286 2173,3288 2295,3288 2421,3288"/>
+    <TextEquiv>
+     <Unicode>Kurse unverändert. Auch Stadtanleihen gut getragt, insbesondere</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;}" id="region_1701885384096_2212_tl_10">
+    <Coords points="2421,3324 2421,3292 2294,3294 2174,3292 2052,3292 1932,3289 1810,3286 1689,3286 1568,3284 1447,3281 1324,3276 1322,3304 1322,3311 1446,3317 1567,3319 1689,3322 1810,3322 1931,3325 2052,3328 2173,3328 2295,3330 2421,3328 2421,3324"/>
+    <Baseline points="1322,3302 1446,3307 1567,3310 1689,3313 1810,3313 1931,3315 2052,3318 2173,3318 2295,3321 2421,3318"/>
+    <TextEquiv>
+     <Unicode>23Altonder, 26er Berliner und Groß-Berliner. 23er Kölner</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;}" id="region_1701885384096_2212_tl_11">
+    <Coords points="2421,3332 2296,3327 2173,3327 2053,3321 1931,3321 1810,3321 1690,3316 1567,3316 1447,3313 1323,3310 1322,3346 1446,3349 1567,3352 1688,3352 1810,3357 1931,3357 2052,3357 2173,3363 2294,3363 2421,3368 2421,3354 2421,3332"/>
+    <Baseline points="1322,3337 1446,3340 1567,3342 1689,3342 1810,3348 1931,3348 2052,3348 2173,3353 2295,3353 2421,3359"/>
+    <TextEquiv>
+     <Unicode>Stadt leicht abgeschwächt. Pfandbriefe zum Teil verdoppelt.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;} structure {type:corrected;}" id="region_1701885384096_2212_tl_12">
+    <Coords points="2421,3362 2295,3359 2173,3359 2053,3356 1932,3354 1810,3351 1689,3348 1568,3346 1446,3346 1322,3343 1321,3379 1446,3381 1567,3381 1688,3384 1810,3387 1931,3390 2052,3392 2173,3395 2294,3395 2421,3398 2421,3377 2421,3362"/>
+    <Baseline points="1322,3369 1446,3372 1567,3372 1689,3375 1810,3377 1931,3380 2052,3383 2173,3385 2295,3385 2421,3388"/>
+    <TextEquiv>
+     <Unicode>so 23er Rhein.-Westf. Boden-Kommunalobligationen, ferner West-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;}" id="region_1701885384096_2212_tl_13">
+    <Coords points="2422,3396 2295,3394 2174,3391 2053,3388 1932,3385 1810,3383 1689,3380 1567,3380 1447,3377 1321,3375 1321,3411 1446,3414 1567,3417 1688,3417 1810,3419 1931,3422 2052,3425 2173,3427 2294,3430 2421,3433 2422,3409 2422,3396"/>
+    <Baseline points="1321,3402 1446,3404 1567,3407 1689,3407 1810,3410 1931,3412 2052,3415 2173,3418 2295,3420 2421,3423"/>
+    <TextEquiv>
+     <Unicode>deutsche Bodenkreditanstalt-Kommunalobligationen. Stark gesteigert</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:13;}" id="region_1701885384096_2212_tl_14">
+    <Coords points="2422,3428 2298,3426 2177,3423 2056,3420 1934,3420 1813,3418 1692,3415 1571,3412 1450,3410 1323,3407 1322,3443 1449,3446 1570,3449 1691,3451 1812,3454 1934,3457 2055,3457 2176,3460 2297,3462 2422,3465 2422,3428"/>
+    <Baseline points="1322,3434 1449,3437 1570,3439 1691,3442 1813,3445 1934,3447 2055,3447 2176,3450 2297,3453 2422,3455"/>
+    <TextEquiv>
+     <Unicode>Westdeutsche Bodenkreditpfandbrieîe Reihe 13. Im</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:14;}" id="region_1701885384096_2212_tl_15">
+    <Coords points="2422,3460 2295,3458 2174,3455 2053,3452 1931,3452 1810,3450 1689,3447 1568,3444 1447,3442 1321,3444 1320,3481 1446,3479 1567,3481 1688,3484 1810,3487 1931,3489 2052,3489 2173,3492 2294,3495 2421,3497 2422,3468 2422,3460"/>
+    <Baseline points="1320,3472 1446,3469 1567,3472 1689,3474 1810,3477 1931,3480 2052,3480 2173,3482 2295,3485 2421,3488"/>
+    <TextEquiv>
+     <Unicode>freien Verkohr waren 23er K-Schätze zu 40 Mill. 24er K-Schätze</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:15;} structure {type:corrected;}" id="region_1701885384096_2212_tl_16">
+    <Coords points="2422,3493 2295,3490 2174,3487 2053,3484 1931,3484 1810,3482 1689,3479 1567,3479 1447,3476 1322,3476 1322,3514 1446,3514 1567,3516 1688,3516 1810,3519 1931,3522 2052,3522 2173,3524 2294,3527 2421,3530 2422,3497 2422,3493"/>
+    <Baseline points="1322,3504 1446,3504 1567,3507 1689,3507 1810,3509 1931,3512 2052,3512 2173,3515 2295,3517 2421,3520"/>
+    <TextEquiv>
+     <Unicode>zu 45 000% gefragt, ferner Münchner Stadt zu 350 - 375 000%. Frank-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:16;} structure {type:corrected;}" id="region_1701885384096_2212_tl_17">
+    <Coords points="2422,3528 2295,3525 2175,3520 2052,3520 1932,3517 1810,3514 1689,3514 1568,3511 1447,3509 1320,3506 1319,3543 1446,3546 1567,3549 1689,3551 1810,3551 1931,3554 2052,3557 2173,3557 2294,3562 2421,3565 2422,3529 2422,3528"/>
+    <Baseline points="1320,3534 1446,3536 1567,3539 1689,3542 1810,3542 1931,3544 2052,3547 2173,3547 2295,3552 2421,3555"/>
+    <TextEquiv>
+     <Unicode>furter zu 250 000% gehandelt. 7 - 15 prοz. Walchensee Anleihe</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:17;}" id="region_1701885384096_2212_tl_18">
+    <Coords points="1320,3578 1446,3578 1567,3581 1688,3584 1810,3586 1931,3586 2052,3589 2173,3592 2294,3594 2421,3597 2422,3560 2295,3557 2174,3555 2053,3552 1932,3549 1810,3549 1689,3547 1568,3544 1447,3541 1320,3541 1320,3578"/>
+    <Baseline points="1320,3569 1446,3569 1567,3571 1689,3574 1810,3577 1931,3577 2052,3579 2173,3582 2295,3585 2421,3587"/>
+    <TextEquiv>
+     <Unicode>16 Milliarden Prozent G., Bαvτ, Großwasser- und Bayernwerkanleihe</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:18;} structure {type:corrected;}" id="region_1701885384096_2212_tl_19">
+    <Coords points="1317,3605 1317,3610 1443,3610 1565,3613 1686,3616 1807,3618 1928,3621 2049,3621 2171,3624 2292,3626 2419,3626 2419,3590 2292,3590 2171,3587 2050,3584 1928,3584 1808,3582 1687,3579 1565,3576 1444,3574 1318,3574 1317,3605"/>
+    <Baseline points="1317,3601 1444,3601 1565,3604 1686,3606 1807,3609 1928,3612 2050,3612 2171,3614 2292,3617 2419,3617"/>
+    <TextEquiv>
+     <Unicode>300 - 400 Miliarden Prozent G. Russen-Anleihen 1902er 4 1/2 - 5. 1905er</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:19;} structure {type:corrected;}" id="region_1701885384096_2212_tl_20">
+    <Coords points="2422,3633 2422,3628 2293,3626 2172,3620 2050,3618 1928,3618 1805,3615 1684,3612 1563,3609 1441,3609 1317,3607 1316,3642 1441,3645 1562,3645 1683,3648 1804,3650 1928,3653 2049,3653 2170,3656 2292,3661 2420,3664 2422,3633"/>
+    <Baseline points="1316,3633 1441,3636 1562,3636 1683,3639 1804,3641 1928,3644 2050,3644 2171,3647 2292,3652 2420,3655"/>
+    <TextEquiv>
+     <Unicode>8 1/8 - 8 1/2. 1880er 5 Billionen Prozent. Sachwertanleihen meist</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:20;}" id="region_1701885384096_2212_tl_21">
+    <Coords points="1317,3672 1443,3674 1565,3677 1686,3677 1807,3680 1928,3683 2050,3685 2171,3685 2292,3688 2418,3691 2419,3656 2293,3653 2171,3651 2050,3651 1929,3648 1808,3645 1687,3643 1565,3643 1444,3640 1318,3637 1317,3672"/>
+    <Baseline points="1317,3663 1444,3666 1565,3668 1686,3668 1807,3671 1928,3674 2050,3676 2171,3676 2292,3679 2419,3682"/>
+    <TextEquiv>
+     <Unicode>wenig verändert. Rheln.-Westf. Bodenkredit Roggen-Kommunal-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:21;} structure {type:corrected;}" id="region_1701885384096_2212_tl_22">
+    <Coords points="2419,3688 2419,3684 2292,3684 2171,3681 2050,3678 1928,3678 1808,3676 1687,3673 1565,3670 1444,3670 1318,3665 1317,3698 1444,3704 1565,3704 1686,3707 1807,3709 1928,3712 2049,3712 2171,3715 2292,3717 2417,3717 2419,3688"/>
+    <Baseline points="1317,3690 1444,3695 1565,3695 1686,3698 1807,3701 1928,3703 2050,3703 2171,3706 2292,3709 2417,3709"/>
+    <TextEquiv>
+     <Unicode>Pfandbriefe etwes höher mit 4 Milliarden Prozent, 5proz. West-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:22;}" id="region_1701885384096_2212_tl_23">
+    <Coords points="2417,3716 2290,3711 2168,3711 2047,3711 1926,3708 1806,3703 1684,3700 1562,3700 1441,3697 1315,3695 1314,3728 1441,3731 1562,3734 1683,3734 1804,3736 1925,3742 2047,3744 2168,3744 2289,3744 2415,3750 2417,3716"/>
+    <Baseline points="1314,3719 1441,3722 1562,3725 1683,3725 1804,3727 1926,3733 2047,3736 2168,3736 2289,3736 2415,3741"/>
+    <TextEquiv>
+     <Unicode>deutsche Bodenkredit-Gold unverändert. Walchensee-Feingold</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:23;}" id="region_1701885384096_2212_tl_24">
+    <Coords points="1314,3758 1357,3758 1398,3761 1438,3761 1475,3761 1516,3763 1557,3763 1594,3763 1635,3763 1681,3763 1681,3729 1635,3729 1594,3729 1557,3729 1516,3729 1478,3726 1438,3726 1398,3726 1359,3724 1314,3724 1314,3758"/>
+    <Baseline points="1314,3749 1357,3749 1398,3752 1438,3752 1476,3752 1516,3754 1557,3754 1594,3754 1635,3754 1681,3754"/>
+    <TextEquiv>
+     <Unicode>1.6 Billionen Mark G.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:24;} structure {type:corrected;}" id="region_1701885384096_2212_tl_25">
+    <Coords points="2414,3775 2293,3772 2174,3769 2056,3767 1936,3767 1819,3764 1699,3764 1582,3759 1462,3759 1342,3753 1341,3787 1462,3793 1581,3793 1699,3798 1818,3798 1936,3801 2055,3801 2173,3804 2292,3806 2412,3809 2414,3775"/>
+    <Baseline points="1341,3779 1462,3784 1581,3784 1699,3789 1818,3789 1936,3792 2055,3792 2173,3795 2292,3798 2412,3800"/>
+    <TextEquiv>
+     <Unicode>Für Bahnen bestand nur geringes Interesse. Canada bisher ohne</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:25;}" id="region_1701885384096_2212_tl_26">
+    <Coords points="2410,3828 2410,3802 2284,3802 2163,3800 2042,3797 1920,3797 1800,3794 1678,3792 1557,3789 1436,3786 1312,3784 1311,3817 1435,3820 1557,3822 1678,3825 1799,3828 1920,3830 2041,3830 2163,3833 2284,3836 2410,3836 2410,3828"/>
+    <Baseline points="1312,3808 1436,3811 1557,3814 1678,3816 1799,3819 1920,3822 2041,3822 2163,3824 2284,3827 2410,3827"/>
+    <TextEquiv>
+     <Unicode>Umsatz Hochbahn etwas nahgebend. Schiffahrts aktion über-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:26;} structure {type:corrected;}" id="region_1701885384096_2212_tl_27">
+    <Coords points="2410,3836 2410,3832 2284,3832 2163,3829 2042,3827 1921,3824 1800,3821 1678,3821 1557,3819 1436,3816 1312,3813 1311,3847 1435,3849 1557,3852 1678,3855 1799,3855 1920,3857 2041,3860 2162,3863 2284,3866 2410,3866 2410,3836"/>
+    <Baseline points="1312,3838 1436,3841 1557,3843 1678,3846 1799,3846 1920,3849 2041,3851 2163,3854 2284,3857 2410,3857"/>
+    <TextEquiv>
+     <Unicode>wiegend bofestigt. so Deutsch-Australier +2 1/2 Bill. Prz. ferner</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:27;} structure {type:corrected;}" id="region_1701885384096_2212_tl_28">
+    <Coords points="2410,3861 2284,3861 2163,3859 2042,3856 1920,3856 1800,3850 1678,3850 1557,3848 1436,3848 1313,3842 1311,3876 1436,3882 1557,3882 1678,3885 1799,3885 1920,3890 2041,3890 2162,3893 2284,3895 2410,3895 2410,3861"/>
+    <Baseline points="1312,3868 1436,3873 1557,3873 1678,3876 1799,3876 1920,3881 2041,3881 2163,3884 2284,3886 2410,3886"/>
+    <TextEquiv>
+     <Unicode>etwas hoher Lloyd. Hapag, Roland und Ver. Εlbe, dagegen Kosmos</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:28;}" id="region_1701885384096_2212_tl_29">
+    <Coords points="1309,3909 1368,3909 1422,3912 1476,3912 1530,3912 1586,3912 1640,3914 1694,3914 1748,3917 1810,3917 1810,3882 1748,3882 1695,3879 1640,3879 1588,3877 1530,3877 1476,3877 1422,3877 1369,3874 1309,3874 1309,3909"/>
+    <Baseline points="1309,3900 1368,3900 1422,3903 1476,3903 1530,3903 1586,3903 1640,3905 1694,3905 1748,3908 1810,3908"/>
+    <TextEquiv>
+     <Unicode>und Hamburz-Süd schwächer.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:29;}" id="region_1701885384096_2212_tl_30">
+    <Coords points="2410,3922 2287,3922 2169,3919 2050,3917 1932,3914 1813,3914 1695,3911 1576,3908 1458,3906 1333,3906 1333,3941 1457,3941 1575,3944 1694,3947 1813,3949 1931,3949 2049,3952 2168,3955 2287,3957 2409,3957 2410,3922"/>
+    <Baseline points="1333,3932 1457,3932 1576,3935 1694,3938 1813,3940 1931,3940 2050,3943 2168,3946 2287,3948 2409,3948"/>
+    <TextEquiv>
+     <Unicode>Nachbôrslich konnte sich die Stimmung gut be-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:30;}" id="region_1701885384096_2212_tl_31">
+    <Coords points="2409,3954 2282,3952 2161,3949 2039,3949 1918,3946 1796,3946 1676,3944 1555,3941 1433,3938 1307,3935 1306,3967 1306,3971 1433,3974 1554,3976 1675,3979 1796,3982 1917,3982 2039,3985 2160,3985 2281,3987 2409,3990 2409,3954"/>
+    <Baseline points="1306,3962 1433,3964 1554,3967 1675,3970 1796,3973 1918,3973 2039,3975 2160,3975 2281,3978 2409,3981"/>
+    <TextEquiv>
+     <Unicode>haunten. Es trat etwac Kaufneigung hervor Heimische</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:31;} structure {type:corrected;}" id="region_1701885384096_2212_tl_32">
+    <Coords points="1306,4003 1430,4006 1551,4009 1673,4012 1794,4012 1915,4014 2036,4017 2157,4017 2279,4020 2405,4020 2405,3984 2279,3984 2158,3981 2036,3981 1916,3978 1794,3976 1673,3976 1552,3973 1431,3970 1307,3968 1306,4003"/>
+    <Baseline points="1306,3994 1430,3997 1551,4000 1673,4002 1794,4002 1915,4005 2036,4008 2157,4008 2279,4010 2405,4010"/>
+    <TextEquiv>
+     <Unicode>Anleihen weiter stark gefragt. Kriegsanleihe 195. Schutz-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:32;} structure {type:corrected;}" id="region_1701885384096_2212_tl_33">
+    <Coords points="1306,4036 1430,4039 1551,4041 1673,4044 1794,4044 1915,4047 2036,4049 2157,4049 2278,4052 2405,4055 2406,4019 2279,4016 2158,4013 2036,4013 1916,4011 1794,4008 1673,4008 1552,4005 1431,4002 1307,4000 1306,4036"/>
+    <Baseline points="1306,4026 1430,4029 1551,4032 1673,4035 1794,4035 1915,4037 2036,4040 2157,4040 2279,4043 2405,4045"/>
+    <TextEquiv>
+     <Unicode>gebietsanleihe haussierend und 2500. 3 1/2 prοz, Konsols 800. 4 prοz.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:33;}" id="region_1701885384096_2212_tl_34">
+    <Coords points="1306,4068 1430,4071 1551,4074 1673,4076 1794,4076 1915,4079 2036,4082 2157,4082 2278,4084 2405,4087 2406,4051 2279,4048 2158,4046 2036,4046 1916,4043 1794,4040 1673,4040 1552,4037 1431,4035 1307,4032 1306,4068"/>
+    <Baseline points="1306,4059 1430,4061 1551,4064 1673,4067 1794,4067 1915,4070 2036,4072 2157,4072 2279,4075 2405,4078"/>
+    <TextEquiv>
+     <Unicode>Konsole 900 Milliarden Procent. Man hörte Phönix zu 41, Gelsen-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:34;} structure {type:corrected;}" id="region_1701885384096_2212_tl_35">
+    <Coords points="1306,4100 1430,4103 1551,4106 1673,4109 1794,4109 1915,4111 2036,4111 2157,4114 2278,4114 2405,4117 2406,4081 2279,4078 2157,4078 2037,4075 1915,4075 1794,4072 1673,4072 1552,4070 1431,4067 1307,4064 1306,4100"/>
+    <Baseline points="1306,4091 1430,4094 1551,4096 1673,4099 1794,4099 1915,4102 2036,4102 2157,4105 2279,4105 2405,4107"/>
+    <TextEquiv>
+     <Unicode>kirchen 60 1/2. Barmer Bankverein 5. Diskonto-Gesellschaft 19G. öster-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:35;}" id="region_1701885384096_2212_tl_36">
+    <Coords points="1309,4133 1433,4135 1554,4138 1675,4141 1796,4141 1915,4143 2036,4146 2157,4146 2279,4149 2405,4149 2405,4113 2279,4113 2158,4110 2036,4110 1916,4107 1797,4105 1675,4105 1555,4102 1433,4099 1310,4097 1309,4133"/>
+    <Baseline points="1309,4123 1433,4126 1554,4129 1675,4131 1796,4131 1915,4134 2036,4137 2157,4137 2279,4140 2405,4140"/>
+    <TextEquiv>
+     <Unicode>reichische Bankaktien leicht befestigt. Hapag 392. Lloyd 926, Petro-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:36;} structure {type:corrected;}" id="region_1701885384096_2212_tl_37">
+    <Coords points="1309,4165 1433,4168 1554,4170 1675,4173 1796,4176 1915,4176 2036,4179 2157,4178 2279,4181 2405,4181 2405,4145 2279,4145 2158,4143 2036,4143 1916,4140 1796,4140 1676,4137 1555,4135 1433,4132 1310,4129 1309,4165"/>
+    <Baseline points="1309,4156 1433,4158 1554,4161 1675,4164 1796,4166 1915,4166 2036,4169 2157,4169 2279,4172 2405,4172"/>
+    <TextEquiv>
+     <Unicode>leum 24, Stöhr 86. A. E. G. 12 3/4. Folgende Bezugsrechte wurden</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:37;}" id="region_1701885384096_2212_tl_38">
+    <Coords points="1306,4197 1430,4200 1551,4200 1672,4203 1794,4208 1915,4208 2036,4211 2157,4213 2279,4213 2405,4213 2405,4178 2279,4178 2157,4178 2037,4175 1915,4173 1794,4173 1674,4167 1552,4165 1430,4165 1307,4162 1306,4197"/>
+    <Baseline points="1306,4188 1430,4191 1551,4191 1673,4193 1794,4199 1915,4199 2036,4201 2157,4204 2279,4204 2405,4204"/>
+    <TextEquiv>
+     <Unicode>heute gehandelt: Vereinigte Chemische Charlottenburg 18. Düssel-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:38;}" id="region_1701885384096_2212_tl_39">
+    <Coords points="1306,4230 1433,4230 1554,4232 1675,4235 1796,4238 1917,4240 2039,4243 2160,4246 2281,4246 2408,4246 2408,4210 2281,4210 2160,4210 2039,4208 1918,4205 1797,4202 1676,4199 1555,4197 1433,4194 1306,4194 1306,4230"/>
+    <Baseline points="1306,4220 1433,4220 1554,4223 1675,4226 1796,4228 1918,4231 2039,4234 2160,4237 2281,4237 2408,4237"/>
+    <TextEquiv>
+     <Unicode>dorf Weyer +.70. Jülich Zucker 65. Nationale Autornobil 0,055. Am</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:39;}" id="region_1701885384096_2212_tl_40">
+    <Coords points="1304,4265 1430,4265 1551,4265 1672,4267 1794,4273 1915,4273 2036,4275 2157,4278 2279,4281 2405,4278 2405,4243 2278,4246 2158,4243 2037,4240 1915,4237 1794,4237 1674,4232 1552,4229 1430,4229 1304,4229 1304,4265"/>
+    <Baseline points="1304,4255 1430,4255 1551,4255 1673,4258 1794,4263 1915,4263 2036,4266 2157,4269 2279,4272 2405,4269"/>
+    <TextEquiv>
+     <Unicode>unnotierten Markt waren Huttenlocher-Bezüge gestr. G., für Be-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:40;}" id="region_1701885384096_2212_tl_41">
+    <Coords points="1304,4297 1398,4297 1489,4297 1581,4300 1672,4300 1761,4302 1853,4305 1944,4305 2036,4308 2133,4308 2133,4272 2036,4272 1945,4270 1853,4270 1762,4267 1673,4264 1581,4264 1490,4262 1398,4262 1304,4262 1304,4297"/>
+    <Baseline points="1304,4288 1398,4288 1489,4288 1581,4290 1673,4290 1761,4293 1853,4296 1945,4296 2036,4298 2133,4298"/>
+    <TextEquiv>
+     <Unicode>2υg Thüringer Uhren kam keine Notiz zustando.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:41;}" id="region_1701885384096_2212_tl_42">
+    <Coords points="2405,4329 2405,4308 2279,4308 2158,4305 2036,4305 1915,4302 1797,4299 1676,4297 1555,4294 1433,4294 1309,4291 1309,4326 1433,4329 1554,4329 1675,4332 1796,4334 1915,4337 2036,4340 2157,4340 2279,4343 2405,4343 2405,4329"/>
+    <Baseline points="1309,4317 1433,4320 1554,4320 1675,4323 1796,4325 1915,4328 2036,4331 2157,4331 2279,4333 2405,4333"/>
+    <TextEquiv>
+     <Unicode>Am Markt der nichtnotierten Werte janden ebenfalls bei</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:42;} structure {type:corrected;}" id="region_1701885384096_2212_tl_43">
+    <Coords points="1303,4359 1427,4361 1548,4361 1670,4364 1791,4367 1912,4370 2033,4370 2155,4370 2276,4370 2402,4372 2403,4337 2276,4334 2155,4334 2033,4334 1912,4334 1792,4332 1670,4329 1549,4326 1427,4326 1304,4324 1303,4359"/>
+    <Baseline points="1304,4350 1427,4352 1549,4352 1670,4355 1791,4358 1912,4360 2033,4360 2155,4360 2276,4360 2402,4363"/>
+    <TextEquiv>
+     <Unicode>teilweise leicht befestigten Kursen vereinzelt Rückkäufe</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:43;}" id="region_1701885384096_2212_tl_44">
+    <Coords points="1303,4388 1427,4391 1548,4394 1670,4396 1791,4396 1912,4399 2033,4402 2155,4402 2276,4402 2402,4405 2403,4369 2276,4367 2155,4367 2033,4367 1913,4364 1792,4361 1670,4361 1549,4359 1428,4356 1303,4353 1303,4388"/>
+    <Baseline points="1303,4379 1427,4382 1549,4385 1670,4387 1791,4387 1912,4390 2033,4393 2155,4393 2276,4393 2402,4395"/>
+    <TextEquiv>
+     <Unicode>statt. so wurden z. B. Ufa leibhafter eetragt mit anfangs 8 Bill..</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:44;}" id="region_1701885384096_2212_tl_45">
+    <Coords points="1303,4421 1427,4423 1549,4426 1670,4426 1791,4429 1910,4431 2031,4431 2152,4431 2273,4434 2400,4434 2400,4399 2273,4399 2152,4397 2031,4397 1910,4397 1792,4394 1670,4391 1549,4391 1428,4389 1304,4386 1303,4421"/>
+    <Baseline points="1304,4412 1427,4414 1549,4417 1670,4417 1791,4420 1910,4422 2031,4422 2152,4422 2273,4425 2400,4425"/>
+    <TextEquiv>
+     <Unicode>äter 9 Bill. Der Petroleum markt verkenrte ebenfalls in freund-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:45;}" id="region_1701885384096_2212_tl_46">
+    <Coords points="2401,4432 2276,4432 2155,4429 2033,4429 1912,4429 1792,4426 1670,4424 1549,4424 1428,4421 1303,4418 1303,4453 1427,4456 1549,4458 1670,4458 1791,4461 1912,4464 2033,4464 2154,4464 2276,4466 2400,4466 2401,4432"/>
+    <Baseline points="1303,4444 1427,4447 1549,4449 1670,4449 1791,4452 1912,4455 2033,4455 2155,4455 2276,4457 2401,4457"/>
+    <TextEquiv>
+     <Unicode>licherer Haituna. Gefragt waren auch einigo der gestern besonders</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:46;}" id="region_1701885384096_2212_tl_47">
+    <Coords points="2400,4482 2400,4459 2273,4459 2152,4459 2031,4459 1910,4459 1789,4457 1667,4457 1546,4454 1425,4454 1303,4451 1302,4485 1425,4488 1546,4488 1667,4490 1788,4490 1910,4493 2031,4493 2152,4493 2273,4493 2399,4493 2400,4482"/>
+    <Baseline points="1302,4476 1425,4479 1546,4479 1667,4482 1788,4482 1910,4484 2031,4484 2152,4484 2273,4484 2400,4484"/>
+    <TextEquiv>
+     <Unicode>scharf geworfenen Kaliaktien wie Heldburg Krügershall. Halle,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:47;}" id="region_1701885384096_2212_tl_48">
+    <Coords points="1302,4518 1425,4518 1546,4520 1667,4520 1786,4523 1907,4523 2028,4523 2147,4523 2268,4523 2394,4526 2395,4491 2268,4489 2147,4489 2028,4489 1907,4489 1786,4489 1668,4486 1546,4486 1425,4483 1302,4483 1302,4518"/>
+    <Baseline points="1302,4509 1425,4509 1546,4511 1667,4511 1786,4514 1907,4514 2028,4514 2147,4514 2268,4514 2394,4517"/>
+    <TextEquiv>
+     <Unicode>Hannover. Becker werte kaum verändert. Hochfrequenz und Ver.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:48;} structure {type:corrected;}" id="region_1701885384096_2212_tl_49">
+    <Coords points="1302,4547 1346,4547 1387,4550 1427,4550 1468,4550 1510,4550 1551,4553 1592,4553 1632,4553 1681,4553 1681,4517 1632,4517 1592,4517 1551,4517 1513,4515 1468,4515 1427,4515 1387,4515 1348,4512 1302,4512 1302,4547"/>
+    <Baseline points="1302,4538 1347,4538 1387,4541 1427,4541 1468,4541 1511,4541 1551,4544 1592,4544 1632,4544 1681,4544"/>
+    <TextEquiv>
+     <Unicode>Zeitzer stärker gefragt.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:49;}" id="region_1701885384096_2212_tl_50">
+    <Coords points="1312,4582 1441,4582 1559,4585 1678,4588 1797,4588 1915,4585 2034,4585 2152,4582 2270,4585 2394,4585 2394,4550 2270,4550 2153,4547 2033,4550 1915,4550 1796,4553 1678,4553 1560,4550 1441,4547 1312,4547 1312,4582"/>
+    <Baseline points="1312,4573 1441,4573 1559,4576 1678,4579 1796,4579 1915,4576 2033,4576 2152,4573 2270,4576 2394,4576"/>
+    <TextEquiv>
+     <Unicode>E-stnals nottert wurden heute an der Börse 6proz. K9h lenwert-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:50;}" id="region_1701885384096_2212_tl_51">
+    <Coords points="2396,4580 2270,4580 2150,4577 2027,4580 1906,4583 1788,4583 1667,4583 1547,4580 1425,4580 1302,4577 1301,4612 1425,4614 1546,4614 1667,4617 1788,4617 1907,4617 2028,4614 2149,4612 2270,4614 2395,4614 2396,4580"/>
+    <Baseline points="1302,4603 1425,4605 1546,4605 1667,4608 1788,4608 1907,4608 2028,4605 2149,4603 2270,4605 2395,4605"/>
+    <TextEquiv>
+     <Unicode>anleiho Großkra�twerk Mannheim zu 113 Bill. Mark je</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:51;} structure {type:corrected;}" id="region_1701885384096_2212_tl_52">
+    <Coords points="2028,4644 2394,4644 2394,4635 2394,4610 2268,4610 2147,4610 2028,4610 1906,4612 1788,4612 1667,4612 1549,4610 1427,4610 1304,4607 1303,4642 1427,4644 1548,4644 1667,4647 1788,4647 1907,4647 2027,4644 2028,4644"/>
+    <Baseline points="1304,4632 1427,4635 1549,4635 1667,4638 1788,4638 1907,4638 2028,4635 2147,4635 2268,4635 2394,4635"/>
+    <TextEquiv>
+     <Unicode>Tonne, ferner 8 - 18proz. Schleswig-Holsteinische Provinzialanleihe</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:52;}" id="region_1701885384096_2212_tl_53">
+    <Coords points="1301,4674 1373,4674 1385,4674 1914,4677 1923,4677 1922,4642 1847,4645 1780,4645 1713,4645 1646,4645 1576,4645 1509,4642 1441,4642 1375,4639 1301,4639 1301,4674"/>
+    <Baseline points="1301,4665 1374,4665 1441,4667 1508,4667 1576,4670 1646,4670 1713,4670 1780,4670 1848,4670 1923,4667"/>
+    <TextEquiv>
+     <Unicode>Ausaahæ 12 mit 15 Miliianden Prozent.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Die Börse verlief heute in ziemlich freundlicher
+Stimmuns. Bevorzugt waren festverfinsliche Werte.
+Der jünast verölfentlichte Ausweis über die Finanzgebarung des
+Roicha wirkte anregend. Deckungskäufe der Spekulation gaben der
+Börse einen guten Halt.
+Außer den wie bereits gemeldet stärker gefragten Reichsanleihen
+und Konsols waren auch Provinz- und sonstige Anleihen stark
+geSteigert. 22er Kheinprovinzanleihe lebhaft, aber im
+Kurse unverändert. Auch Stadtanleihen gut getragt, insbesondere
+23Altonder, 26er Berliner und Groß-Berliner. 23er Kölner
+Stadt leicht abgeschwächt. Pfandbriefe zum Teil verdoppelt.
+so 23er Rhein.-Westf. Boden-Kommunalobligationen, ferner West-
+deutsche Bodenkreditanstalt-Kommunalobligationen. Stark gesteigert
+Westdeutsche Bodenkreditpfandbrieîe Reihe 13. Im
+freien Verkohr waren 23er K-Schätze zu 40 Mill. 24er K-Schätze
+zu 45 000% gefragt, ferner Münchner Stadt zu 350 - 375 000%. Frank-
+furter zu 250 000% gehandelt. 7 - 15 prοz. Walchensee Anleihe
+16 Milliarden Prozent G., Bαvτ, Großwasser- und Bayernwerkanleihe
+300 - 400 Miliarden Prozent G. Russen-Anleihen 1902er 4 1/2 - 5. 1905er
+8 1/8 - 8 1/2. 1880er 5 Billionen Prozent. Sachwertanleihen meist
+wenig verändert. Rheln.-Westf. Bodenkredit Roggen-Kommunal-
+Pfandbriefe etwes höher mit 4 Milliarden Prozent, 5proz. West-
+deutsche Bodenkredit-Gold unverändert. Walchensee-Feingold
+1.6 Billionen Mark G.
+Für Bahnen bestand nur geringes Interesse. Canada bisher ohne
+Umsatz Hochbahn etwas nahgebend. Schiffahrts aktion über-
+wiegend bofestigt. so Deutsch-Australier +2 1/2 Bill. Prz. ferner
+etwas hoher Lloyd. Hapag, Roland und Ver. Εlbe, dagegen Kosmos
+und Hamburz-Süd schwächer.
+Nachbôrslich konnte sich die Stimmung gut be-
+haunten. Es trat etwac Kaufneigung hervor Heimische
+Anleihen weiter stark gefragt. Kriegsanleihe 195. Schutz-
+gebietsanleihe haussierend und 2500. 3 1/2 prοz, Konsols 800. 4 prοz.
+Konsole 900 Milliarden Procent. Man hörte Phönix zu 41, Gelsen-
+kirchen 60 1/2. Barmer Bankverein 5. Diskonto-Gesellschaft 19G. öster-
+reichische Bankaktien leicht befestigt. Hapag 392. Lloyd 926, Petro-
+leum 24, Stöhr 86. A. E. G. 12 3/4. Folgende Bezugsrechte wurden
+heute gehandelt: Vereinigte Chemische Charlottenburg 18. Düssel-
+dorf Weyer +.70. Jülich Zucker 65. Nationale Autornobil 0,055. Am
+unnotierten Markt waren Huttenlocher-Bezüge gestr. G., für Be-
+2υg Thüringer Uhren kam keine Notiz zustando.
+Am Markt der nichtnotierten Werte janden ebenfalls bei
+teilweise leicht befestigten Kursen vereinzelt Rückkäufe
+statt. so wurden z. B. Ufa leibhafter eetragt mit anfangs 8 Bill..
+äter 9 Bill. Der Petroleum markt verkenrte ebenfalls in freund-
+licherer Haituna. Gefragt waren auch einigo der gestern besonders
+scharf geworfenen Kaliaktien wie Heldburg Krügershall. Halle,
+Hannover. Becker werte kaum verändert. Hochfrequenz und Ver.
+Zeitzer stärker gefragt.
+E-stnals nottert wurden heute an der Börse 6proz. K9h lenwert-
+anleiho Großkra�twerk Mannheim zu 113 Bill. Mark je
+Tonne, ferner 8 - 18proz. Schleswig-Holsteinische Provinzialanleihe
+Ausaahæ 12 mit 15 Miliianden Prozent.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:30;} structure {type:separator_short;}" id="Separator_1701884855559_2077">
+   <Coords points="1536,4690 2170,4690 2170,4709 1536,4709"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:31;} structure {type:heading;}" id="region_1701885106302_2129" type="heading">
+   <Coords points="1608,4737 2114,4737 2114,4768 1608,4768"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885106302_2129_tl_1">
+    <Coords points="1597,4772 1656,4772 1710,4772 1767,4772 1821,4772 1875,4772 1931,4772 1985,4772 2039,4772 2101,4772 2101,4730 2039,4730 1985,4730 1931,4730 1875,4730 1821,4730 1767,4730 1710,4730 1656,4730 1597,4730 1597,4772"/>
+    <Baseline points="1597,4762 1656,4762 1710,4762 1767,4762 1821,4762 1875,4762 1931,4762 1985,4762 2039,4762 2101,4762"/>
+    <TextEquiv>
+     <Unicode>Börsenberichte.</Unicode>
+    </TextEquiv>
+   </TextLine>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:32;} structure {type:paragraph;}" id="region_1701885398954_2216">
+   <Coords points="1296,4775 2403,4775 2403,5090 1296,5090"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885398954_2216_tl_1">
+    <Coords points="2268,4779 2268,4779 2149,4779 2034,4776 1916,4774 1799,4776 1680,4779 1565,4779 1446,4779 1446,4779 1326,4774 1325,4808 1446,4813 1565,4813 1681,4813 1799,4811 1915,4808 2033,4811 2149,4813 2268,4813 2392,4813 2392,4779 2268,4779"/>
+    <Baseline points="1325,4799 1446,4805 1565,4805 1681,4805 1799,4802 1915,4799 2033,4802 2149,4805 2268,4805 2392,4805"/>
+    <TextEquiv>
+     <Unicode>*Köln, 17. Jan. Die Haltung der Wertpapierbörse war</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;} structure {type:corrected;}" id="region_1701885398954_2216_tl_2">
+    <Coords points="2392,4812 2266,4809 2144,4809 2026,4806 1904,4806 1782,4809 1664,4809 1543,4809 1421,4812 1299,4809 1298,4829 1298,4843 1422,4846 1543,4843 1664,4843 1783,4843 1904,4840 2025,4840 2144,4843 2265,4843 2391,4846 2392,4812"/>
+    <Baseline points="1298,4834 1422,4837 1543,4834 1664,4834 1783,4834 1904,4832 2025,4832 2144,4834 2265,4834 2391,4837"/>
+    <TextEquiv>
+     <Unicode>wieder zuversichtlicher. Die Börsenkreise schritten teilweise</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;}" id="region_1701885398954_2216_tl_3">
+    <Coords points="2391,4842 2266,4839 2144,4839 2023,4836 1901,4836 1783,4836 1661,4839 1541,4839 1419,4839 1298,4839 1297,4873 1419,4873 1541,4873 1662,4873 1783,4870 1901,4870 2022,4870 2144,4873 2265,4873 2391,4875 2391,4842"/>
+    <Baseline points="1297,4864 1419,4864 1541,4864 1662,4864 1783,4861 1901,4861 2023,4861 2144,4864 2265,4864 2391,4867"/>
+    <TextEquiv>
+     <Unicode>wieder zu Kaufen und nahmen das noch zu niedrigen Kursen vorhandene</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885398954_2216_tl_4">
+    <Coords points="2391,4872 2266,4869 2144,4869 2023,4867 1901,4867 1783,4867 1661,4869 1540,4872 1419,4872 1297,4872 1295,4905 1419,4905 1541,4905 1662,4902 1783,4900 1901,4900 2022,4900 2144,4902 2265,4902 2391,4905 2391,4872"/>
+    <Baseline points="1296,4896 1419,4896 1541,4896 1662,4894 1783,4891 1901,4891 2023,4891 2144,4894 2265,4894 2391,4896"/>
+    <TextEquiv>
+     <Unicode>Material glatt an. Kurverhöhungen von Belang sind allerdings nicht zu</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;}" id="region_1701885398954_2216_tl_5">
+    <Coords points="2391,4901 2266,4898 2144,4898 2023,4896 1901,4896 1783,4896 1662,4896 1540,4898 1419,4901 1296,4901 1295,4906 1295,4935 1420,4935 1541,4932 1662,4929 1783,4929 1901,4929 2022,4929 2144,4932 2265,4932 2390,4935 2391,4901"/>
+    <Baseline points="1295,4926 1419,4926 1541,4923 1662,4921 1783,4921 1901,4921 2023,4921 2144,4923 2265,4923 2390,4926"/>
+    <TextEquiv>
+     <Unicode>verzeschnen. Etwas höher lagen die führenden Montan werte. M a-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;} structure {type:corrected;}" id="region_1701885398954_2216_tl_6">
+    <Coords points="1293,4967 1414,4965 1535,4962 1656,4959 1778,4959 1899,4959 2020,4962 2141,4962 2262,4965 2389,4967 2389,4933 2263,4931 2142,4928 2020,4928 1899,4925 1778,4925 1656,4925 1535,4928 1413,4931 1294,4933 1293,4967"/>
+    <Baseline points="1294,4958 1414,4956 1535,4953 1656,4950 1778,4950 1899,4950 2020,4953 2141,4953 2262,4956 2389,4958"/>
+    <TextEquiv>
+     <Unicode>schienenwerte wiesen wenig Veränderungen auf. Chemische und</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;}" id="region_1701885398954_2216_tl_7">
+    <Coords points="1293,4980 1293,4994 1417,4994 1538,4991 1659,4991 1780,4989 1899,4991 2020,4991 2141,4991 2262,4994 2389,4997 2389,4963 2263,4960 2142,4958 2020,4958 1899,4958 1781,4955 1658,4958 1538,4958 1416,4960 1293,4960 1293,4980"/>
+    <Baseline points="1293,4985 1417,4985 1538,4983 1659,4983 1780,4980 1899,4983 2020,4983 2141,4983 2262,4985 2389,4988"/>
+    <TextEquiv>
+     <Unicode>Pulver werte gingen über dem letzten Kursstand um. Im L aufe der</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;}" id="region_1701885398954_2216_tl_8">
+    <Coords points="1291,5027 1414,5024 1535,5021 1657,5021 1778,5018 1899,5018 2020,5021 2141,5024 2262,5027 2389,5029 2389,4995 2263,4993 2142,4990 2021,4987 1899,4985 1778,4985 1656,4987 1535,4987 1413,4990 1292,4993 1291,5027"/>
+    <Baseline points="1291,5018 1414,5015 1535,5012 1656,5012 1778,5009 1899,5009 2020,5012 2141,5015 2262,5018 2389,5020"/>
+    <TextEquiv>
+     <Unicode>Böres wurde das Geschäft eher noch etwas lebhakter. So gingen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;}" id="region_1701885398954_2216_tl_9">
+    <Coords points="2389,5026 2263,5023 2142,5020 2020,5018 1899,5018 1778,5015 1659,5015 1537,5018 1416,5020 1292,5023 1293,5056 1417,5053 1538,5051 1659,5048 1777,5048 1899,5051 2020,5051 2141,5053 2262,5056 2389,5059 2389,5034 2389,5026"/>
+    <Baseline points="1293,5047 1417,5044 1538,5042 1659,5039 1778,5039 1899,5042 2020,5042 2141,5044 2262,5047 2389,5050"/>
+    <TextEquiv>
+     <Unicode>vor allem Bankaktien zunehmend lebhaft um. Die Kurse waren, ab-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;}" id="region_1701885398954_2216_tl_10">
+    <Coords points="1290,5076 1290,5088 1721,5077 1927,5080 1934,5080 2039,5080 2146,5083 2211,5084 2259,5085 2259,5085 2260,5053 2147,5051 2039,5048 1934,5048 1826,5048 1722,5045 1613,5048 1508,5051 1400,5053 1290,5056 1290,5076"/>
+    <Baseline points="1290,5080 1400,5077 1508,5074 1613,5071 1721,5069 1826,5071 1934,5071 2039,5071 2147,5074 2260,5077"/>
+    <TextEquiv>
+     <Unicode>geschen von Diskont und Rhein. Bodenbank, meist etwas höher.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     *Köln, 17. Jan. Die Haltung der Wertpapierbörse war
+wieder zuversichtlicher. Die Börsenkreise schritten teilweise
+wieder zu Kaufen und nahmen das noch zu niedrigen Kursen vorhandene
+Material glatt an. Kurverhöhungen von Belang sind allerdings nicht zu
+verzeschnen. Etwas höher lagen die führenden Montan werte. M a-
+schienenwerte wiesen wenig Veränderungen auf. Chemische und
+Pulver werte gingen über dem letzten Kursstand um. Im L aufe der
+Böres wurde das Geschäft eher noch etwas lebhakter. So gingen
+vor allem Bankaktien zunehmend lebhaft um. Die Kurse waren, ab-
+geschen von Diskont und Rhein. Bodenbank, meist etwas höher.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:33;} structure {type:table;}" id="region_1701885245630_2182">
+   <Coords points="1280,5921 1299,5104 1606,5093 2371,5104 2371,5941 1299,5941"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:34;} structure {type:paragraph;}" id="region_1701885404157_2219">
+   <Coords points="1293,5938 2372,5938 2372,6116 1293,6116"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885404157_2219_tl_1">
+    <Coords points="1304,5974 1384,5974 1462,5977 1540,5980 1618,5988 1694,5993 1772,5996 1851,5993 1929,5991 2012,5988 2011,5954 1928,5956 1849,5959 1771,5962 1695,5959 1620,5954 1543,5946 1463,5943 1385,5940 1304,5940 1304,5974"/>
+    <Baseline points="1304,5966 1384,5966 1462,5968 1541,5971 1619,5979 1694,5984 1772,5987 1850,5984 1928,5982 2012,5979"/>
+    <TextEquiv>
+     <Unicode>Außerdem wurden genannt: Kölner Handelsbank</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;} structure {type:corrected;}" id="region_1701885404157_2219_tl_2">
+    <Coords points="2015,5987 2058,5987 2098,5987 2136,5987 2176,5987 2214,5987 2254,5987 2292,5987 2333,5987 2379,5985 2377,5952 2331,5954 2292,5954 2254,5954 2214,5954 2176,5954 2136,5954 2098,5954 2058,5954 2015,5954 2015,5987"/>
+    <Baseline points="2015,5979 2058,5979 2098,5979 2136,5979 2176,5979 2214,5979 2254,5979 2292,5979 2332,5979 2378,5976"/>
+    <TextEquiv>
+     <Unicode>250 - 350, Kölner Gewerbe-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885404157_2219_tl_3">
+    <Coords points="1277,6007 1344,6007 1408,6007 1473,6010 1537,6012 1602,6018 1667,6023 1732,6026 1797,6026 1867,6023 1865,5989 1795,5992 1732,5992 1668,5989 1605,5984 1540,5978 1474,5975 1410,5973 1344,5973 1277,5973 1277,6007"/>
+    <Baseline points="1277,5998 1344,5998 1409,5998 1473,6001 1538,6003 1602,6009 1667,6014 1732,6017 1796,6017 1866,6014"/>
+    <TextEquiv>
+     <Unicode>bank 150 - 200, Walter Goldeohmidt 60 - 90,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885404157_2219_tl_4">
+    <Coords points="1869,6023 1904,6023 1935,6022 1963,6020 1993,6020 2025,6020 2055,6020 2085,6020 2114,6017 2152,6017 2152,5985 2114,5985 2082,5988 2055,5988 2025,5988 1993,5988 1963,5988 1932,5991 1904,5990 1869,5990 1869,6023"/>
+    <Baseline points="1869,6014 1904,6014 1934,6014 1963,6011 1993,6011 2025,6011 2055,6011 2085,6011 2114,6009 2152,6009"/>
+    <TextEquiv>
+     <Unicode>Chem. Abels 40-80.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;}" id="region_1701885404157_2219_tl_5">
+    <Coords points="1298,6034 1332,6034 1365,6037 1395,6039 1427,6039 1457,6042 1489,6042 1519,6045 1562,6045 1562,6010 1519,6010 1492,6007 1457,6007 1430,6004 1395,6004 1368,6002 1335,5999 1298,5999 1298,6034"/>
+    <Baseline points="1298,6025 1333,6025 1365,6028 1395,6030 1427,6030 1457,6033 1489,6033 1519,6036 1562,6036"/>
+    <TextEquiv>
+     <Unicode>Ohne Umsata.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;} structure {type:corrected;}" id="region_1701885404157_2219_tl_6">
+    <Coords points="1778,6090 1817,6089 1896,6088 2015,6085 2130,6082 2249,6082 2351,6082 2373,6082 2373,6048 2249,6048 2130,6048 2014,6051 1895,6054 1777,6056 1663,6051 1544,6046 1426,6037 1304,6035 1303,6069 1424,6071 1543,6080 1661,6085 1677,6086 1778,6090"/>
+    <Baseline points="1304,6060 1425,6063 1543,6071 1662,6076 1778,6081 1896,6079 2015,6076 2130,6073 2249,6073 2373,6073"/>
+    <TextEquiv>
+     <Unicode>† Es wurden in diesem Papier größere Beträge aus dem Markt ge-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;}" id="region_1701885404157_2219_tl_7">
+    <Coords points="1274,6102 1322,6102 1365,6102 1402,6104 1413,6104 1413,6104 1415,6070 1367,6067 1322,6067 1274,6067 1274,6102"/>
+    <Baseline points="1274,6092 1322,6092 1365,6092 1414,6095"/>
+    <TextEquiv>
+     <Unicode>nommen.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Außerdem wurden genannt: Kölner Handelsbank
+250 - 350, Kölner Gewerbe-
+bank 150 - 200, Walter Goldeohmidt 60 - 90,
+Chem. Abels 40-80.
+Ohne Umsata.
+† Es wurden in diesem Papier größere Beträge aus dem Markt ge-
+nommen.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:35;} structure {type:table;}" id="region_1701885261629_2186">
+   <Coords points="1278,6124 2372,6124 2372,6899 1270,6896"/>
+  </TableRegion>
+  <SeparatorRegion custom="readingOrder {index:36;} structure {type:separator_vertical;}" id="Separator_1701884964103_2090">
+   <Coords points="2467,940 2452,1839 2443,2694 2435,3158 2434,3640 2426,3803 2416,4411 2407,4701 2395,5233 2387,6081 2386,6900 2400,6899 2399,6087 2405,5606 2413,5232 2422,4715 2426,4568 2440,3822 2448,3655 2447,3156 2457,2685 2463,1899 2477,968 2488,487 2474,483"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:37;} structure {type:header;}" id="region_1701884358052_2030" type="header">
+   <Coords points="2009,380 2969,380 2969,453 2009,453"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701884358052_2030_tl_1">
+    <Coords points="2009,436 2959,450 2968,450 2968,402 2855,402 2750,402 2646,400 2540,400 2436,397 2330,397 2226,394 2121,392 2010,389 2010,411 2009,436"/>
+    <Baseline points="2009,426 2120,428 2225,431 2330,434 2435,434 2540,436 2645,436 2750,439 2855,439 2968,439"/>
+    <TextEquiv>
+     <Unicode>Kölniſche Zeitung o Erſte Morgen-Ausgabe</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Kölniſche Zeitung o Erſte Morgen-Ausgabe
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:38;} structure {type:separator_short;}" id="Separator_1701884761782_2054">
+   <Coords points="245,434 4735,481 4735,497 245,450"/>
+  </SeparatorRegion>
+  <TableRegion custom="readingOrder {index:39;} structure {type:table;}" id="region_1701885322331_2200">
+   <Coords points="2488,514 2789,485 3324,499 3588,514 3588,971 2488,971"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:40;} structure {type:paragraph;}" id="region_1701885429546_2231">
+   <Coords points="2484,975 3574,975 3574,1465 2484,1465"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885429546_2231_tl_1">
+    <Coords points="3584,977 3461,974 3343,972 3224,969 3105,969 2990,969 2872,966 2753,966 2635,964 2513,961 2513,995 2634,997 2753,1000 2871,1000 2990,1003 3105,1003 3224,1003 3342,1005 3461,1008 3583,1011 3584,977"/>
+    <Baseline points="2513,986 2634,988 2753,991 2871,991 2990,994 3105,994 3224,994 3342,997 3461,999 3583,1002"/>
+    <TextEquiv>
+     <Unicode>Essen, 17. Jan. An der Bergwerksbörgs waren die schweren</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885429546_2231_tl_2">
+    <Coords points="2481,1030 2607,1030 2728,1030 2849,1030 2971,1033 3092,1033 3213,1035 3334,1038 3455,1041 3582,1043 3583,1009 3456,1007 3335,1004 3214,1001 3092,998 2971,998 2850,996 2728,996 2607,996 2481,996 2481,1030"/>
+    <Baseline points="2481,1021 2607,1021 2728,1021 2849,1021 2971,1023 3092,1023 3213,1026 3334,1029 3455,1032 3582,1034"/>
+    <TextEquiv>
+     <Unicode>Κοhlenkuxe, wie Ewald, König Ludwig, Graf Bismarck, schwächer,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;}" id="region_1701885429546_2231_tl_3">
+    <Coords points="3582,1039 3453,1036 3332,1034 3211,1031 3089,1031 2969,1028 2847,1028 2726,1028 2604,1028 2478,1025 2478,1059 2604,1062 2726,1062 2847,1062 2968,1062 3089,1065 3210,1065 3331,1068 3453,1070 3582,1073 3582,1039"/>
+    <Baseline points="2478,1050 2604,1053 2726,1053 2847,1053 2968,1053 3089,1056 3210,1056 3332,1058 3453,1061 3582,1064"/>
+    <TextEquiv>
+     <Unicode>die leichtern dagegen behauptet. Von Kohlenaktien’ gingen zu</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885429546_2231_tl_4">
+    <Coords points="2478,1092 2604,1092 2726,1092 2847,1092 2968,1095 3089,1095 3210,1095 3331,1100 3453,1103 3579,1105 3580,1071 3453,1068 3332,1065 3211,1060 3089,1060 2968,1060 2847,1057 2726,1057 2604,1057 2478,1057 2478,1092"/>
+    <Baseline points="2478,1083 2604,1083 2726,1083 2847,1083 2968,1085 3089,1085 3210,1085 3332,1091 3453,1093 3579,1096"/>
+    <TextEquiv>
+     <Unicode>letzten Kussen um Westf. Bergbau, Carl Friedrich, Niederrh. Bergwerk.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;}" id="region_1701885429546_2231_tl_5">
+    <Coords points="2478,1122 2604,1124 2726,1124 2847,1124 2968,1124 3089,1127 3210,1127 3331,1130 3453,1132 3579,1135 3580,1100 3453,1098 3332,1095 3211,1092 3089,1092 2969,1090 2847,1090 2726,1090 2604,1090 2478,1087 2478,1122"/>
+    <Baseline points="2478,1112 2604,1115 2726,1115 2847,1115 2968,1115 3089,1118 3210,1118 3332,1120 3453,1123 3579,1126"/>
+    <TextEquiv>
+     <Unicode>Am Kalimaret waren Alexandershali, Burbach, Sachsen-Weimar und</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;}" id="region_1701885429546_2231_tl_6">
+    <Coords points="2476,1154 2602,1154 2723,1154 2844,1154 2965,1156 3086,1156 3208,1159 3328,1159 3450,1164 3579,1164 3579,1130 3450,1130 3330,1125 3208,1125 3087,1122 2965,1122 2845,1119 2723,1119 2602,1119 2476,1119 2476,1154"/>
+    <Baseline points="2476,1145 2602,1145 2723,1145 2844,1145 2965,1147 3086,1147 3208,1150 3329,1150 3450,1155 3579,1155"/>
+    <TextEquiv>
+     <Unicode>Kaiperoda fest, Heiligenroda unverändert, die übrigen Werte eher</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;}" id="region_1701885429546_2231_tl_7">
+    <Coords points="3580,1162 3451,1160 3329,1157 3208,1154 3086,1154 2963,1151 2841,1151 2720,1151 2599,1151 2476,1151 2475,1186 2599,1186 2720,1186 2841,1186 2962,1186 3086,1189 3207,1189 3329,1191 3450,1194 3579,1197 3580,1162"/>
+    <Baseline points="2475,1177 2599,1177 2720,1177 2841,1177 2963,1177 3086,1180 3208,1180 3329,1182 3450,1185 3579,1188"/>
+    <TextEquiv>
+     <Unicode>echwächer. Von kleinern Worten Mariaglück, Rastenberg und Erichsegen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;}" id="region_1701885429546_2231_tl_8">
+    <Coords points="2475,1192 2475,1216 2602,1216 2723,1216 2844,1218 2965,1218 3086,1218 3208,1221 3329,1221 3450,1224 3576,1226 3577,1192 3451,1189 3329,1187 3208,1187 3087,1184 2965,1184 2844,1184 2723,1181 2602,1181 2475,1181 2475,1192"/>
+    <Baseline points="2475,1207 2602,1207 2723,1207 2844,1209 2965,1209 3086,1209 3208,1212 3329,1212 3450,1215 3577,1217"/>
+    <TextEquiv>
+     <Unicode>eine Kleinigkeit fester. Auch Braunkohlenwerte gaben etwas nach, nur</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;}" id="region_1701885429546_2231_tl_9">
+    <Coords points="2478,1245 2602,1245 2723,1245 2844,1248 2965,1248 3086,1251 3207,1251 3329,1253 3450,1256 3576,1259 3577,1225 3451,1222 3329,1219 3208,1217 3086,1217 2966,1214 2844,1214 2723,1211 2602,1211 2478,1211 2478,1245"/>
+    <Baseline points="2478,1236 2602,1236 2723,1236 2844,1239 2965,1239 3086,1242 3208,1242 3329,1244 3450,1247 3577,1250"/>
+    <TextEquiv>
+     <Unicode>Humboldt und Oskarssegen behauptet. Am Aktien markt war die Stim-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;}" id="region_1701885429546_2231_tl_10">
+    <Coords points="2475,1280 2602,1278 2723,1278 2844,1278 2965,1280 3086,1280 3208,1283 3329,1283 3450,1286 3576,1288 3577,1254 3451,1251 3329,1249 3208,1249 3087,1246 2965,1246 2845,1243 2723,1243 2602,1243 2475,1246 2475,1280"/>
+    <Baseline points="2475,1271 2602,1269 2723,1269 2844,1269 2965,1271 3086,1271 3208,1274 3329,1274 3450,1277 3577,1279"/>
+    <TextEquiv>
+     <Unicode>mung im allgemeinen schwächer, doch konnte man beobachten, daß die</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;}" id="region_1701885429546_2231_tl_11">
+    <Coords points="2474,1310 2599,1307 2720,1307 2841,1310 2962,1310 3084,1313 3205,1313 3326,1315 3447,1318 3576,1321 3577,1286 3448,1284 3327,1281 3206,1278 3084,1278 2963,1276 2841,1276 2721,1273 2599,1273 2474,1276 2474,1310"/>
+    <Baseline points="2474,1301 2599,1298 2720,1298 2841,1301 2963,1301 3084,1304 3205,1304 3326,1306 3447,1309 3577,1312"/>
+    <TextEquiv>
+     <Unicode>an den einzelnen Papieren interessierten Banken das angebotenè Material</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;}" id="region_1701885429546_2231_tl_12">
+    <Coords points="3577,1319 3451,1313 3329,1311 3208,1311 3087,1308 2965,1308 2845,1305 2723,1305 2602,1305 2475,1305 2475,1339 2602,1339 2723,1339 2844,1339 2965,1342 3086,1342 3208,1345 3329,1345 3450,1348 3576,1353 3577,1319"/>
+    <Baseline points="2475,1330 2602,1330 2723,1330 2844,1330 2965,1333 3086,1333 3208,1336 3329,1336 3450,1339 3576,1344"/>
+    <TextEquiv>
+     <Unicode>glatt auinahmen. Wir nennen an Kursen (in Bill. ): Karstadt 2,2-2,6,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;}" id="region_1701885429546_2231_tl_13">
+    <Coords points="2473,1372 2599,1369 2720,1369 2841,1372 2962,1372 3084,1374 3205,1374 3326,1377 3447,1380 3574,1382 3575,1348 3448,1346 3327,1343 3206,1340 3084,1340 2963,1338 2841,1338 2721,1335 2599,1335 2473,1337 2473,1372"/>
+    <Baseline points="2473,1363 2599,1360 2720,1360 2841,1363 2963,1363 3084,1365 3205,1365 3326,1368 3447,1371 3574,1374"/>
+    <TextEquiv>
+     <Unicode>Deutsche Lastauto 1,J-1,4, Schöndorff 5-6, Ungewitter 2.2,4, Avramikos 3,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:13;}" id="region_1701885429546_2231_tl_14">
+    <Coords points="3575,1378 3451,1375 3329,1373 3208,1373 3087,1370 2965,1370 2845,1367 2723,1365 2602,1365 2475,1365 2475,1399 2602,1399 2723,1399 2844,1401 2965,1404 3086,1404 3208,1407 3329,1407 3450,1409 3575,1412 3575,1378"/>
+    <Baseline points="2475,1390 2602,1390 2723,1390 2844,1392 2965,1395 3086,1395 3208,1398 3329,1398 3450,1400 3575,1403"/>
+    <TextEquiv>
+     <Unicode>Alsberg 9.5-12, Eisenwerk Heerdt 13-17, Endere Metali 33,4, Köln-Linden-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:14;} structure {type:corrected;}" id="region_1701885429546_2231_tl_15">
+    <Coords points="3551,1442 3574,1442 3574,1408 3447,1408 3327,1405 3206,1402 3084,1402 2963,1400 2841,1400 2721,1397 2599,1397 2472,1397 2472,1399 2472,1431 2599,1431 2720,1431 2841,1434 2962,1434 3084,1436 3205,1436 3326,1439 3347,1440 3551,1442"/>
+    <Baseline points="2472,1422 2599,1422 2720,1422 2841,1425 2963,1425 3084,1427 3205,1427 3326,1430 3447,1433 3574,1433"/>
+    <TextEquiv>
+     <Unicode>thal 34, Herminghaus 3 - 4,25, Holzindustrie Hunsrück 1,5 - 1,8. Hansa Im-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:15;}" id="region_1701885429546_2231_tl_16">
+    <Coords points="2475,1463 2510,1463 2542,1463 2575,1463 2608,1463 2639,1461 2671,1460 2704,1463 2742,1463 2742,1429 2704,1429 2674,1426 2639,1426 2605,1429 2575,1429 2542,1429 2510,1429 2475,1429 2475,1463 2475,1463"/>
+    <Baseline points="2475,1454 2510,1454 2542,1454 2575,1454 2607,1454 2639,1452 2672,1452 2704,1454 2742,1454"/>
+    <TextEquiv>
+     <Unicode>mobilien 425-5,25.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Essen, 17. Jan. An der Bergwerksbörgs waren die schweren
+Κοhlenkuxe, wie Ewald, König Ludwig, Graf Bismarck, schwächer,
+die leichtern dagegen behauptet. Von Kohlenaktien’ gingen zu
+letzten Kussen um Westf. Bergbau, Carl Friedrich, Niederrh. Bergwerk.
+Am Kalimaret waren Alexandershali, Burbach, Sachsen-Weimar und
+Kaiperoda fest, Heiligenroda unverändert, die übrigen Werte eher
+echwächer. Von kleinern Worten Mariaglück, Rastenberg und Erichsegen
+eine Kleinigkeit fester. Auch Braunkohlenwerte gaben etwas nach, nur
+Humboldt und Oskarssegen behauptet. Am Aktien markt war die Stim-
+mung im allgemeinen schwächer, doch konnte man beobachten, daß die
+an den einzelnen Papieren interessierten Banken das angebotenè Material
+glatt auinahmen. Wir nennen an Kursen (in Bill. ): Karstadt 2,2-2,6,
+Deutsche Lastauto 1,J-1,4, Schöndorff 5-6, Ungewitter 2.2,4, Avramikos 3,
+Alsberg 9.5-12, Eisenwerk Heerdt 13-17, Endere Metali 33,4, Köln-Linden-
+thal 34, Herminghaus 3 - 4,25, Holzindustrie Hunsrück 1,5 - 1,8. Hansa Im-
+mobilien 425-5,25.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:41;} structure {type:table;}" id="region_1701885297613_2196">
+   <Coords points="2433,4505 3580,4505 3580,1466 2480,1468"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:42;} structure {type:heading;}" id="region_1701885113896_2132" type="heading">
+   <Coords points="2687,4513 3278,4513 3278,4560 2687,4560"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885113896_2132_tl_1">
+    <Coords points="2680,4517 2680,4559 2693,4559 2750,4559 2814,4559 2879,4559 2944,4559 3008,4559 3073,4562 3137,4562 3202,4565 3262,4567 3272,4567 3274,4525 2750,4517 2680,4517"/>
+    <Baseline points="2680,4549 2750,4549 2814,4549 2879,4549 2944,4549 3008,4549 3073,4552 3138,4552 3202,4554 3272,4557"/>
+    <TextEquiv>
+     <Unicode>Geld- und Wechselmarkt.</Unicode>
+    </TextEquiv>
+   </TextLine>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:43;} structure {type:paragraph;}" id="region_1701885421500_2228">
+   <Coords points="2440,4566 3523,4566 3523,4726 2440,4726"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885421500_2228_tl_1">
+    <Coords points="3526,4583 3402,4580 3361,4578 3049,4570 2713,4572 2695,4572 2672,4571 2477,4565 2457,4564 2456,4602 2577,4604 2696,4610 2814,4607 2930,4607 3049,4607 3167,4610 3283,4612 3401,4618 3524,4620 3526,4583"/>
+    <Baseline points="2456,4592 2577,4595 2696,4600 2814,4597 2930,4597 3049,4597 3167,4600 3283,4603 3402,4608 3525,4611"/>
+    <TextEquiv>
+     <Unicode>New York, 17. Jan. Kurs der Mark um 9,30 Uhr (I Billion Mark</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885421500_2228_tl_2">
+    <Coords points="2426,4638 2469,4641 2507,4643 2551,4643 2551,4612 2507,4612 2471,4610 2428,4607 2426,4638"/>
+    <Baseline points="2427,4630 2470,4632 2507,4635 2551,4635"/>
+    <TextEquiv>
+     <Unicode>= ....</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885421500_2228_tl_3">
+    <Coords points="3523,4639 3523,4620 3410,4617 3306,4612 3198,4609 3093,4607 2984,4607 2879,4607 2771,4607 2666,4607 2556,4607 2556,4645 2666,4645 2771,4645 2879,4645 2984,4645 3092,4645 3197,4647 3304,4650 3409,4655 3522,4658 3523,4639"/>
+    <Baseline points="2556,4635 2666,4635 2771,4635 2879,4635 2984,4635 3092,4635 3197,4638 3305,4641 3410,4646 3523,4649"/>
+    <TextEquiv>
+     <Unicode>Dollar 0,23 - 0,24 = 4 347 820 000 000 - 4 166 660 000 000M für 1$</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;} structure {type:corrected;}" id="region_1701885421500_2228_tl_4">
+    <Coords points="2423,4680 2545,4682 2666,4685 2788,4685 2909,4685 3030,4682 3151,4685 3272,4688 3393,4690 3520,4696 3521,4658 3395,4653 3273,4650 3152,4647 3031,4645 2908,4647 2788,4647 2666,4647 2546,4645 2422,4642 2423,4680"/>
+    <Baseline points="2423,4670 2545,4673 2666,4676 2788,4676 2909,4676 3030,4673 3151,4676 3272,4678 3394,4681 3520,4686"/>
+    <TextEquiv>
+     <Unicode>(letzter Schlußkurs 0,2325 - 2375 nom. = 4 301 000 000 000 - 4 210 500 000 000M).</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;}" id="region_1701885421500_2228_tl_5">
+    <Coords points="2453,4714 2510,4719 2567,4719 2567,4686 2510,4686 2456,4681 2453,4714"/>
+    <Baseline points="2454,4705 2510,4711 2567,4711"/>
+    <TextEquiv>
+     <Unicode>Um 10</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;} structure {type:corrected;}" id="region_1701885421500_2228_tl_6">
+    <Coords points="2566,4720 2658,4723 2744,4723 2831,4723 2917,4723 3003,4720 3089,4723 3175,4725 3261,4725 3355,4731 3357,4694 3263,4689 3175,4689 3090,4686 3004,4684 2916,4686 2831,4686 2744,4686 2658,4686 2567,4684 2566,4720"/>
+    <Baseline points="2567,4711 2658,4713 2744,4713 2831,4713 2917,4713 3003,4711 3089,4713 3175,4716 3262,4716 3356,4721"/>
+    <TextEquiv>
+     <Unicode>Uhr 0,235 - 0,24 = 4 255 310 000 000 - 4 166 660 000 000M</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     New York, 17. Jan. Kurs der Mark um 9,30 Uhr (I Billion Mark
+= ....
+Dollar 0,23 - 0,24 = 4 347 820 000 000 - 4 166 660 000 000M für 1$
+(letzter Schlußkurs 0,2325 - 2375 nom. = 4 301 000 000 000 - 4 210 500 000 000M).
+Um 10
+Uhr 0,235 - 0,24 = 4 255 310 000 000 - 4 166 660 000 000M
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:44;} structure {type:table;}" id="region_1701885285801_2193">
+   <Coords points="2419,4726 3512,4726 3512,5454 2419,5454"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:45;} structure {type:paragraph;}" id="region_1701885408219_2222">
+   <Coords points="2420,5443 3521,5443 3521,5781 2420,5781"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885408219_2222_tl_1">
+    <Coords points="2434,5481 2472,5484 2505,5484 2540,5484 2572,5484 2606,5484 2639,5486 2680,5486 2680,5451 2639,5451 2609,5449 2572,5449 2540,5449 2505,5449 2472,5449 2437,5446 2434,5481"/>
+    <Baseline points="2435,5473 2472,5475 2505,5475 2540,5475 2572,5475 2607,5475 2639,5478 2680,5478"/>
+    <TextEquiv>
+     <Unicode>Berlin, 17. Jan.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885408219_2222_tl_3">
+    <Coords points="2688,5484 2731,5484 2768,5484 2811,5487 2813,5452 2770,5450 2731,5450 2688,5450 2688,5484"/>
+    <Baseline points="2688,5475 2731,5475 2769,5475 2812,5478"/>
+    <TextEquiv>
+     <Unicode>Ostde</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885408219_2222_tl_2">
+    <Coords points="2814,5484 2860,5487 2901,5487 2946,5487 2946,5453 2901,5453 2860,5453 2816,5450 2814,5484"/>
+    <Baseline points="2814,5475 2860,5478 2901,5478 2946,5478"/>
+    <TextEquiv>
+     <Unicode>visen:</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885408219_2222_tl_4">
+    <Coords points="2959,5486 2998,5489 3029,5489 3062,5491 3103,5491 3103,5459 3062,5459 3032,5457 2998,5456 2962,5454 2959,5486"/>
+    <Baseline points="2960,5478 2998,5481 3030,5481 3062,5483 3103,5483"/>
+    <TextEquiv>
+     <Unicode>Bukarest</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885408219_2222_tl_5">
+    <Coords points="3379,5471 3372,5471 3330,5469 3285,5466 3242,5463 3199,5461 3155,5458 3105,5458 3105,5492 3153,5492 3196,5495 3239,5498 3283,5500 3328,5503 3372,5506 3415,5506 3458,5508 3509,5511 3511,5477 3379,5471"/>
+    <Baseline points="3105,5483 3154,5483 3197,5486 3240,5489 3283,5492 3329,5494 3372,5497 3415,5497 3458,5500 3509,5502"/>
+    <TextEquiv>
+     <Unicode>20 793G 91 005B, Kattowitz</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;} structure {type:corrected;}" id="region_1701885408219_2222_tl_6">
+    <Coords points="2402,5513 2437,5513 2467,5513 2496,5513 2526,5516 2556,5516 2586,5516 2615,5516 2645,5516 2680,5516 2680,5482 2645,5482 2615,5482 2586,5482 2556,5482 2526,5482 2499,5479 2467,5479 2437,5479 2402,5479 2402,5513"/>
+    <Baseline points="2402,5505 2437,5505 2467,5505 2497,5505 2526,5508 2556,5508 2586,5508 2615,5508 2645,5508 2680,5508"/>
+    <TextEquiv>
+     <Unicode>428G 440B, Reval</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;} structure {type:corrected;}" id="region_1701885408219_2222_tl_7">
+    <Coords points="2809,5516 2849,5516 2884,5516 2924,5519 2927,5485 2886,5483 2849,5483 2809,5483 2809,5516"/>
+    <Baseline points="2809,5508 2849,5508 2884,5508 2925,5510"/>
+    <TextEquiv>
+     <Unicode>10780B,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;} structure {type:corrected;}" id="region_1701885408219_2222_tl_8">
+    <Coords points="2688,5516 2728,5516 2763,5516 2804,5516 2804,5482 2763,5482 2728,5482 2688,5482 2688,5516"/>
+    <Baseline points="2688,5508 2728,5508 2763,5508 2804,5508"/>
+    <TextEquiv>
+     <Unicode>10620G</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;} structure {type:corrected;}" id="region_1701885408219_2222_tl_9">
+    <Coords points="3510,5506 3443,5504 3381,5501 3319,5498 3257,5496 3195,5493 3133,5490 3071,5488 3009,5485 2944,5485 2944,5519 3008,5519 3070,5522 3132,5525 3194,5527 3256,5530 3318,5533 3380,5535 3442,5538 3509,5541 3510,5506"/>
+    <Baseline points="2944,5510 3008,5510 3070,5513 3132,5516 3194,5519 3256,5521 3318,5524 3380,5527 3442,5529 3509,5532"/>
+    <TextEquiv>
+     <Unicode>Kowno 410 850G 419 150B, Polennoten</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;} structure {type:corrected;}" id="region_1701885408219_2222_tl_10">
+    <Coords points="2402,5543 2437,5545 2467,5545 2497,5545 2526,5545 2556,5545 2585,5545 2615,5548 2645,5548 2680,5548 2680,5514 2645,5514 2615,5514 2588,5511 2556,5511 2526,5511 2497,5511 2467,5511 2437,5511 2404,5508 2402,5540 2402,5543"/>
+    <Baseline points="2402,5535 2437,5537 2467,5537 2497,5537 2526,5537 2556,5537 2586,5537 2615,5540 2645,5540 2680,5540"/>
+    <TextEquiv>
+     <Unicode>404G 426B, Letten</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;} structure {type:corrected;}" id="region_1701885408219_2222_tl_11">
+    <Coords points="2685,5546 2720,5546 2753,5546 2782,5546 2814,5546 2844,5549 2876,5549 2914,5551 2916,5518 2878,5515 2844,5515 2817,5512 2782,5512 2753,5512 2720,5512 2685,5512 2685,5546"/>
+    <Baseline points="2685,5537 2720,5537 2753,5537 2782,5537 2814,5537 2844,5540 2876,5540 2914,5543"/>
+    <TextEquiv>
+     <Unicode>10 430G 10970B,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;} structure {type:corrected;}" id="region_1701885408219_2222_tl_12">
+    <Coords points="2917,5552 2963,5552 3005,5552 3049,5554 3091,5554 3134,5557 3178,5560 3221,5560 3264,5563 3312,5565 3314,5530 3266,5527 3223,5524 3178,5524 3137,5522 3094,5519 3049,5519 3007,5516 2963,5516 2917,5516 2917,5552"/>
+    <Baseline points="2917,5543 2963,5543 3006,5543 3049,5545 3092,5545 3135,5548 3178,5551 3221,5551 3264,5554 3313,5556"/>
+    <TextEquiv>
+     <Unicode>Litauen 434 100G 445 900B.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;}" id="region_1701885408219_2222_tl_13">
+    <Coords points="2429,5584 2464,5584 2494,5584 2524,5584 2552,5584 2583,5586 2612,5586 2641,5586 2679,5589 2682,5554 2644,5551 2612,5551 2583,5551 2556,5548 2524,5548 2494,5548 2464,5548 2429,5548 2429,5584"/>
+    <Baseline points="2429,5575 2464,5575 2494,5575 2524,5575 2553,5575 2583,5578 2612,5578 2642,5578 2680,5580"/>
+    <TextEquiv>
+     <Unicode>Zuteilungen am</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:13;}" id="region_1701885408219_2222_tl_14">
+    <Coords points="2693,5587 2788,5589 2876,5589 2965,5592 3054,5595 3143,5597 3232,5600 3320,5603 3409,5608 3506,5611 3507,5576 3410,5573 3322,5568 3233,5565 3144,5563 3055,5560 2966,5557 2877,5554 2788,5554 2694,5552 2693,5587"/>
+    <Baseline points="2693,5578 2788,5580 2876,5580 2965,5583 3054,5586 3143,5589 3232,5591 3321,5594 3410,5599 3507,5602"/>
+    <TextEquiv>
+     <Unicode>Notenmarkt: Dollarnoten 2X, Pfundnoten 16,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:14;} structure {type:corrected;}" id="region_1701885408219_2222_tl_15">
+    <Coords points="2402,5613 2459,5616 2513,5616 2566,5616 2621,5618 2672,5618 2726,5618 2779,5618 2833,5618 2892,5621 2894,5587 2834,5584 2779,5584 2726,5584 2672,5584 2621,5584 2568,5582 2513,5582 2459,5582 2404,5579 2402,5613"/>
+    <Baseline points="2402,5605 2459,5607 2513,5607 2572,5609 2626,5612 2672,5610 2726,5610 2779,5610 2833,5610 2893,5613"/>
+    <TextEquiv>
+     <Unicode>italienische 50, französische 20%.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:15;}" id="region_1701885408219_2222_tl_16">
+    <Coords points="2432,5654 2553,5657 2672,5659 2790,5662 2908,5662 3024,5667 3143,5670 3261,5673 3380,5675 3504,5681 3505,5646 3381,5640 3262,5638 3144,5635 3025,5632 2910,5627 2790,5627 2672,5624 2554,5621 2433,5619 2432,5654"/>
+    <Baseline points="2432,5645 2553,5648 2672,5650 2790,5653 2909,5653 3025,5659 3143,5661 3262,5664 3380,5667 3504,5672"/>
+    <TextEquiv>
+     <Unicode>Goldanleihe unverändert 4,9 Bill. (nicht 8,2 Bi., wis es in der</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:16;}" id="region_1701885408219_2222_tl_17">
+    <Coords points="2408,5683 2437,5684 2488,5686 2567,5689 2642,5688 2720,5691 2795,5691 2874,5694 2949,5694 3027,5699 3110,5702 3110,5702 3112,5669 3028,5667 2951,5661 2874,5661 2796,5659 2720,5659 2643,5656 2567,5656 2489,5653 2409,5651 2409,5651 2408,5683"/>
+    <Baseline points="2408,5675 2489,5677 2567,5680 2642,5680 2720,5683 2796,5683 2874,5685 2949,5685 3027,5691 3111,5694"/>
+    <TextEquiv>
+     <Unicode>Abendausgabe infolge eines Druckfehlers hieß).</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:17;} structure {type:corrected;}" id="region_1701885408219_2222_tl_18">
+    <Coords points="3269,5753 3270,5719 3224,5718 2725,5709 2712,5709 2689,5708 2443,5703 2432,5703 2432,5737 2529,5737 2620,5740 2712,5743 2804,5743 2895,5743 2987,5745 3078,5748 3170,5751 3187,5751 3269,5753"/>
+    <Baseline points="2432,5729 2529,5729 2621,5731 2712,5734 2804,5734 2895,5734 2987,5737 3078,5739 3170,5742 3269,5745"/>
+    <TextEquiv>
+     <Unicode>Berlin, 17. Jan. Edelmetall. Silber 87 1/2 - 88 1/2,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:18;}" id="region_1701885408219_2222_tl_20">
+    <Coords points="3277,5754 3307,5754 3339,5754 3372,5757 3402,5757 3433,5757 3466,5760 3497,5762 3503,5762 3506,5724 3493,5723 3380,5719 3372,5719 3365,5718 3314,5716 3307,5716 3272,5716 3272,5754 3277,5754"/>
+    <Baseline points="3272,5745 3307,5745 3340,5745 3372,5747 3402,5747 3434,5747 3466,5750 3504,5753"/>
+    <TextEquiv>
+     <Unicode>Gold ,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:19;} structure {type:corrected;}" id="region_1701885408219_2222_tl_19">
+    <Coords points="2402,5732 2402,5763 2437,5763 2467,5766 2499,5766 2528,5766 2561,5768 2591,5768 2623,5768 2653,5771 2691,5771 2691,5740 2653,5740 2625,5737 2591,5737 2561,5737 2531,5734 2499,5734 2467,5734 2440,5732 2402,5732 2402,5732"/>
+    <Baseline points="2402,5756 2437,5756 2467,5758 2499,5758 2529,5758 2561,5761 2591,5761 2623,5761 2653,5764 2691,5764"/>
+    <TextEquiv>
+     <Unicode>Platin 15 250 - 15 450.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Berlin, 17. Jan.
+Ostde
+visen:
+Bukarest
+20 793G 91 005B, Kattowitz
+428G 440B, Reval
+10780B,
+10620G
+Kowno 410 850G 419 150B, Polennoten
+404G 426B, Letten
+10 430G 10970B,
+Litauen 434 100G 445 900B.
+Zuteilungen am
+Notenmarkt: Dollarnoten 2X, Pfundnoten 16,
+italienische 50, französische 20%.
+Goldanleihe unverändert 4,9 Bill. (nicht 8,2 Bi., wis es in der
+Abendausgabe infolge eines Druckfehlers hieß).
+Berlin, 17. Jan. Edelmetall. Silber 87 1/2 - 88 1/2,
+Gold ,
+Platin 15 250 - 15 450.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:46;} structure {type:table;}" id="region_1701885279864_2190">
+   <Coords points="2408,5779 3511,5779 3511,6828 2408,6828"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:47;} structure {type:paragraph;}" id="region_1701885414094_2225">
+   <Coords points="2415,6816 3505,6816 3505,6918 2415,6918"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885414094_2225_tl_1">
+    <Coords points="2575,6835 2594,6833 2594,6833 2592,6803 2554,6806 2524,6806 2491,6806 2459,6806 2426,6803 2423,6836 2459,6839 2491,6839 2524,6839 2557,6839 2575,6838 2575,6835"/>
+    <Baseline points="2424,6827 2459,6830 2491,6830 2524,6830 2556,6830 2594,6827"/>
+    <TextEquiv>
+     <Unicode>Moskauer</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;} structure {type:corrected;}" id="region_1701885414094_2225_tl_4">
+    <Coords points="2604,6806 2604,6814 2606,6840 2645,6840 2682,6839 2718,6842 2761,6840 2759,6805 2716,6808 2684,6805 2645,6805 2636,6805 2604,6806"/>
+    <Baseline points="2605,6830 2645,6830 2682,6830 2718,6833 2761,6830"/>
+    <TextEquiv>
+     <Unicode>Börse, 16.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885414094_2225_tl_3">
+    <Coords points="2769,6839 2811,6839 2852,6842 2893,6844 2932,6844 2971,6847 3011,6847 3054,6847 3095,6847 3140,6847 3140,6814 3095,6814 3054,6814 3011,6814 2971,6814 2935,6811 2893,6811 2854,6809 2813,6806 2769,6806 2769,6839"/>
+    <Baseline points="2769,6830 2812,6830 2852,6833 2893,6836 2933,6836 2971,6838 3009,6837 3052,6837 3095,6838 3140,6838"/>
+    <TextEquiv>
+     <Unicode>Jan. 1 Tscherwonetz. — 52000</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;} structure {type:corrected;}" id="region_1701885414094_2225_tl_8">
+    <Coords points="3150,6846 3188,6846 3224,6849 3261,6849 3297,6852 3340,6852 3340,6820 3297,6820 3263,6818 3224,6818 3191,6815 3150,6815 3150,6846"/>
+    <Baseline points="3150,6838 3189,6838 3224,6841 3262,6841 3297,6844 3340,6844"/>
+    <TextEquiv>
+     <Unicode>Rubel Ausgabe</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885414094_2225_tl_11">
+    <Coords points="3423,6855 3501,6855 3501,6821 3423,6821 3423,6855"/>
+    <Baseline points="3423,6846 3501,6846"/>
+    <TextEquiv>
+     <Unicode>1000 £</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;}" id="region_1701885414094_2225_tl_12">
+    <Coords points="3348,6839 3348,6854 3412,6854 3412,6822 3350,6822 3348,6839"/>
+    <Baseline points="3348,6846 3412,6846"/>
+    <TextEquiv>
+     <Unicode>1923.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;} structure {type:corrected;}" id="region_1701885414094_2225_tl_2">
+    <Coords points="2424,6863 2437,6863 2469,6863 2482,6864 2577,6866 2575,6835 2577,6835 2577,6833 2537,6833 2505,6833 2472,6830 2437,6830 2400,6830 2400,6863 2424,6863"/>
+    <Baseline points="2400,6854 2437,6854 2470,6854 2505,6857 2537,6857 2576,6857"/>
+    <TextEquiv>
+     <Unicode>—934, 1000$</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;} structure {type:corrected;}" id="region_1701885414094_2225_tl_5">
+    <Coords points="2631,6869 2656,6869 2699,6869 2742,6869 2785,6869 2830,6869 2874,6872 2917,6872 2959,6872 3011,6875 3012,6842 2961,6839 2917,6839 2874,6839 2832,6837 2785,6837 2742,6837 2699,6837 2656,6837 2607,6837 2607,6869 2631,6869"/>
+    <Baseline points="2607,6860 2656,6860 2699,6860 2742,6860 2785,6860 2831,6860 2874,6862 2917,6862 2960,6862 3011,6865"/>
+    <TextEquiv>
+     <Unicode>210. 1000 schwed. Kronen = —,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;}" id="region_1701885414094_2225_tl_6">
+    <Coords points="3145,6841 3100,6841 3062,6841 3019,6841 3019,6874 3062,6874 3100,6874 3146,6874 3146,6860 3145,6841"/>
+    <Baseline points="3019,6865 3062,6865 3100,6865 3146,6865"/>
+    <TextEquiv>
+     <Unicode>1000</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;} structure {type:corrected;}" id="region_1701885414094_2225_tl_9">
+    <Coords points="3337,6869 3338,6851 3298,6848 3263,6845 3227,6845 3193,6843 3151,6843 3151,6873 3191,6873 3227,6876 3261,6876 3296,6879 3335,6881 3337,6869"/>
+    <Baseline points="3151,6865 3192,6865 3227,6868 3262,6868 3297,6871 3337,6873"/>
+    <TextEquiv>
+     <Unicode>Kronen = -</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;}" id="region_1701885414094_2225_tl_13">
+    <Coords points="3345,6859 3345,6884 3386,6884 3423,6881 3461,6884 3504,6884 3504,6854 3461,6854 3425,6851 3384,6854 3346,6854 3345,6859"/>
+    <Baseline points="3345,6876 3385,6876 3423,6873 3461,6876 3504,6876"/>
+    <TextEquiv>
+     <Unicode>scherwonetz</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;} structure {type:corrected;}" id="region_1701885414094_2225_tl_7">
+    <Coords points="3083,6902 3103,6901 3148,6901 3146,6869 3103,6869 3061,6872 3016,6872 3016,6903 3083,6902"/>
+    <Baseline points="3016,6895 3062,6895 3103,6892 3148,6892"/>
+    <TextEquiv>
+     <Unicode>(Garantie-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;} structure {type:corrected;}" id="region_1701885414094_2225_tl_10">
+    <Coords points="3151,6900 3218,6903 3223,6903 3229,6903 3279,6906 3291,6906 3314,6907 3331,6908 3331,6907 3333,6878 3293,6875 3256,6875 3226,6872 3189,6872 3153,6870 3151,6895 3151,6900"/>
+    <Baseline points="3151,6892 3189,6895 3224,6895 3256,6897 3291,6897 3332,6900"/>
+    <TextEquiv>
+     <Unicode>u. Kreditbank</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:13;} structure {type:corrected;}" id="region_1701885414094_2225_tl_14">
+    <Coords points="3354,6911 3391,6911 3433,6911 3482,6914 3484,6883 3435,6881 3391,6881 3342,6881 3342,6911 3354,6911"/>
+    <Baseline points="3342,6903 3395,6905 3438,6905 3482,6906"/>
+    <TextEquiv>
+     <Unicode>i. d. Osten.)</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Moskauer
+Börse, 16.
+Jan. 1 Tscherwonetz. — 52000
+Rubel Ausgabe
+1000 £
+1923.
+—934, 1000$
+210. 1000 schwed. Kronen = —,
+1000
+Kronen = -
+scherwonetz
+(Garantie-
+u. Kreditbank
+i. d. Osten.)
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:48;} structure {type:separator_vertical;}" id="Separator_1701884971852_2093">
+   <Coords points="3520,6187 3517,5768 3521,5343 3545,4353 3566,3676 3561,3163 3562,2832 3572,2118 3580,1598 3607,496 3622,495 3605,1060 3597,1598 3588,2119 3579,2832 3576,3190 3574,3405 3582,3637 3561,4360 3535,5400 3533,5737 3535,6195 3535,6917 3516,6916"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:49;} structure {type:caption;}" id="region_1701884361211_2033" type="caption">
+   <Coords points="4340,418 4707,418 4707,469 4340,469"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701884361211_2033_tl_1">
+    <Coords points="4339,465 4379,465 4417,465 4455,465 4492,465 4527,467 4564,467 4579,468 4684,470 4684,431 4678,431 4641,431 4603,431 4575,429 4543,428 4527,428 4523,428 4404,425 4379,425 4339,425 4339,465"/>
+    <Baseline points="4339,455 4379,455 4417,455 4455,455 4492,455 4527,458 4565,458 4603,461 4641,461 4684,461"/>
+    <TextEquiv>
+     <Unicode>1924 * Nr. 43</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     1924 * Nr. 43
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:50;} structure {type:paragraph;}" id="region_1701885447530_2234">
+   <Coords points="3582,3388 3629,496 4713,496 4713,3390 4513,3415 3629,3390"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885447530_2234_tl_1">
+    <Coords points="4732,513 4714,513 4608,513 4490,510 4371,510 4253,507 4135,505 4016,502 3898,499 3779,496 3656,491 3656,491 3654,526 3778,531 3897,534 4015,537 4134,540 4252,542 4371,545 4489,545 4608,548 4732,548 4732,513"/>
+    <Baseline points="3655,517 3779,522 3897,525 4016,528 4134,531 4253,533 4371,536 4490,536 4608,539 4732,539"/>
+    <TextEquiv>
+     <Unicode>Erneute Diskonterhohung in Frankreich. Paris. 17, Jan. Die</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;} structure {type:corrected;}" id="region_1701885447530_2234_tl_2">
+    <Coords points="4732,546 4603,543 4482,541 4360,541 4237,538 4116,535 3994,535 3871,533 3750,530 3623,527 3623,529 3622,561 3749,564 3870,566 3994,569 4115,569 4236,572 4360,574 4481,574 4603,577 4731,580 4732,546"/>
+    <Baseline points="3622,552 3749,555 3870,558 3994,560 4115,560 4237,563 4360,566 4482,566 4603,568 4732,571"/>
+    <TextEquiv>
+     <Unicode>Bank von Frankreich erhöhte den Diskont von 5 1/2 % auf 6 %.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;}" id="region_1701885447530_2234_tl_3">
+    <Coords points="4732,576 4603,576 4482,573 4358,573 4237,570 4113,568 3992,565 3868,562 3747,559 3622,557 3621,591 3746,593 3867,596 3991,599 4112,601 4236,604 4358,607 4481,607 4603,610 4731,610 4732,576"/>
+    <Baseline points="3621,582 3746,584 3868,587 3991,590 4113,593 4237,595 4358,598 4482,598 4603,601 4731,601"/>
+    <TextEquiv>
+     <Unicode>Diese Maßnahme hängt mit der Stützungsaktion für den Franken me-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;} structure {type:corrected;}" id="region_1701885447530_2234_tl_4">
+    <Coords points="4731,608 4603,605 4479,605 4358,603 4234,600 4113,597 3989,594 3868,592 3744,592 3621,587 3620,620 3744,626 3867,626 3989,628 4112,631 4234,634 4358,637 4479,639 4603,639 4731,642 4731,608"/>
+    <Baseline points="3620,612 3744,617 3868,617 3989,619 4113,622 4234,625 4358,628 4479,630 4603,630 4731,633"/>
+    <TextEquiv>
+     <Unicode>sammen. Die letzte Diskontheraufsetzung, und zwar ebenfalls um</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;}" id="region_1701885447530_2234_tl_5">
+    <Coords points="3619,653 3719,656 3816,656 3916,658 4013,661 4110,664 4209,666 4306,669 4403,672 4509,672 4509,637 4403,637 4307,634 4210,632 4111,629 4014,626 3917,624 3817,621 3719,621 3620,618 3619,653"/>
+    <Baseline points="3619,644 3719,646 3816,646 3916,649 4013,652 4110,654 4210,657 4307,660 4403,663 4509,663"/>
+    <TextEquiv>
+     <Unicode>ein halbes Prozent, wurde am 10. d. M. vorcenommen.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;}" id="region_1701885447530_2234_tl_6">
+    <Coords points="3649,691 3771,691 3889,691 4007,693 4126,699 4244,701 4363,704 4482,707 4600,707 4724,709 4725,674 4601,672 4482,672 4364,669 4245,666 4127,664 4009,658 3890,656 3771,656 3649,656 3649,691"/>
+    <Baseline points="3649,681 3771,681 3889,681 4008,684 4126,689 4245,692 4363,695 4482,698 4600,698 4724,700"/>
+    <TextEquiv>
+     <Unicode>(b Reichsbank. Der vermutlich am Freitag erscheinende Reichs-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;}" id="region_1701885447530_2234_tl_7">
+    <Coords points="3617,717 3617,720 3743,720 3865,723 3989,725 4110,728 4233,731 4355,736 4479,736 4600,739 4729,742 4730,707 4601,705 4479,702 4355,702 4235,697 4110,694 3989,691 3865,688 3744,686 3618,686 3617,717"/>
+    <Baseline points="3617,711 3744,711 3865,714 3989,716 4110,719 4234,722 4355,727 4479,727 4600,730 4729,733"/>
+    <TextEquiv>
+     <Unicode>bankausweis vom 22. Dezember 1923 zeigt eine Vermehrung</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;} structure {type:corrected;} unclear {offset:48; length:1;}" id="region_1701885447530_2234_tl_8">
+    <Coords points="3617,750 3743,752 3865,755 3988,758 4110,763 4233,763 4355,768 4479,771 4600,771 4729,771 4729,737 4600,737 4479,737 4356,734 4235,729 4110,729 3990,723 3865,721 3744,718 3618,715 3617,750"/>
+    <Baseline points="3617,741 3744,743 3865,746 3989,749 4110,754 4234,754 4355,760 4479,762 4602,767 4731,767"/>
+    <TextEquiv>
+     <Unicode>des Notenumlaufs um 60 Trillionen auf insgesamt 674</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;}" id="region_1701885447530_2234_tl_9">
+    <Coords points="3620,782 3746,785 3867,787 3988,790 4110,796 4233,796 4355,801 4476,801 4597,804 4726,806 4727,771 4598,769 4477,766 4355,766 4235,761 4110,760 3990,755 3868,752 3747,750 3620,747 3620,782"/>
+    <Baseline points="3620,773 3746,776 3868,778 3989,781 4110,786 4234,786 4355,792 4476,792 4597,795 4727,797"/>
+    <TextEquiv>
+     <Unicode>Trillionen Papiermark. Die Zunahme ist also verhältnismäßig gering.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;} structure {type:corrected;}" id="region_1701885447530_2234_tl_10">
+    <Coords points="3649,820 3773,823 3892,825 4010,828 4129,831 4247,833 4365,839 4484,844 4603,844 4727,841 4726,806 4602,809 4484,809 4367,804 4248,798 4129,796 4011,793 3892,790 3774,787 3650,785 3649,820"/>
+    <Baseline points="3649,811 3773,813 3892,816 4010,819 4129,821 4247,824 4366,830 4484,835 4603,835 4727,832"/>
+    <TextEquiv>
+     <Unicode>� Sachlebensversicherung. Der Konzern der Deutschen Auſ-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;} structure {type:corrected;}" id="region_1701885447530_2234_tl_11">
+    <Coords points="3614,852 3741,855 3862,858 3986,858 4107,863 4231,866 4352,868 4476,874 4597,874 4727,874 4727,839 4597,839 4476,839 4353,834 4232,831 4108,828 3987,823 3862,823 3742,820 3615,817 3614,852"/>
+    <Baseline points="3614,843 3741,846 3862,848 3986,848 4107,854 4231,856 4352,859 4476,865 4597,865 4727,865"/>
+    <TextEquiv>
+     <Unicode>bau-A.-G. für Grundbezitz. Industrie und Schiff-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;}" id="region_1701885447530_2234_tl_12">
+    <Coords points="3614,884 3741,887 3862,887 3986,890 4107,892 4231,895 4352,901 4476,903 4597,906 4727,906 4727,871 4597,871 4477,869 4353,866 4232,861 4108,858 3987,855 3863,852 3741,852 3615,850 3614,884"/>
+    <Baseline points="3614,875 3741,878 3862,878 3986,881 4107,883 4231,886 4352,891 4476,894 4597,897 4727,897"/>
+    <TextEquiv>
+     <Unicode>fahrt in Berlin (Hauslebens-Versicherungs-A-G. in Berlin. Schiff-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;}" id="region_1701885447530_2234_tl_13">
+    <Coords points="3611,914 3738,917 3862,920 3983,920 4107,925 4228,928 4352,933 4473,936 4597,938 4727,938 4727,904 4597,904 4474,901 4353,898 4230,893 4108,890 3984,885 3862,885 3739,882 3612,879 3611,914"/>
+    <Baseline points="3612,905 3738,908 3862,910 3983,910 4107,916 4228,918 4352,924 4474,926 4597,929 4727,929"/>
+    <TextEquiv>
+     <Unicode>lebens-Versicherungs-A.-G, in Hamburg-Berlin, Deutache Schiffs-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:13;}" id="region_1701885447530_2234_tl_14">
+    <Coords points="3611,946 3738,949 3862,952 3983,955 4107,957 4228,960 4352,963 4473,968 4598,971 4727,968 4726,933 4597,936 4474,933 4353,928 4229,925 4108,922 3984,920 3863,917 3739,914 3612,912 3611,946"/>
+    <Baseline points="3612,937 3738,940 3862,943 3983,945 4107,948 4228,951 4352,953 4474,959 4597,961 4727,959"/>
+    <TextEquiv>
+     <Unicode>pfandbriefbank A.-G. in Berlin), hat mit eper Bankengruppe unter</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:14;}" id="region_1701885447530_2234_tl_15">
+    <Coords points="3611,976 3738,979 3862,984 3983,984 4107,987 4228,992 4352,995 4473,998 4597,1000 4726,1003 4727,968 4598,965 4474,963 4353,960 4229,957 4108,952 3984,949 3862,949 3739,944 3612,941 3611,976"/>
+    <Baseline points="3612,967 3738,970 3862,975 3983,975 4107,978 4228,983 4352,986 4474,988 4597,991 4727,994"/>
+    <TextEquiv>
+     <Unicode>Führung des Bankhauses Mor gan, Divermore &amp;mp; Co. in</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:15;}" id="region_1701885447530_2234_tl_16">
+    <Coords points="3609,1008 3735,1011 3859,1014 3980,1017 4104,1019 4225,1022 4349,1027 4471,1030 4595,1033 4724,1033 4724,998 4595,998 4471,995 4350,992 4227,987 4105,984 3981,981 3860,979 3736,976 3610,973 3609,1008"/>
+    <Baseline points="3609,999 3736,1002 3859,1005 3981,1007 4105,1010 4226,1013 4350,1018 4471,1021 4595,1023 4724,1023"/>
+    <TextEquiv>
+     <Unicode>Newyork, einam der ältesten New Yorker Stock-Exchange-Häuser</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:16;}" id="region_1701885447530_2234_tl_17">
+    <Coords points="3609,1041 3735,1043 3859,1046 3983,1049 4104,1049 4228,1054 4352,1057 4473,1062 4597,1065 4727,1065 4727,1030 4597,1030 4474,1027 4353,1022 4229,1019 4106,1014 3983,1014 3860,1011 3736,1008 3610,1006 3609,1041"/>
+    <Baseline points="3609,1032 3736,1034 3859,1037 3983,1040 4105,1040 4228,1045 4352,1048 4474,1053 4597,1056 4727,1056"/>
+    <TextEquiv>
+     <Unicode>eine Aktiengesellschaft gegründet, dorem Geschâitsgebiet analog dem</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:17;}" id="region_1701885447530_2234_tl_18">
+    <Coords points="3609,1073 3735,1076 3859,1078 3981,1081 4104,1081 4226,1084 4349,1086 4471,1094 4595,1097 4724,1097 4724,1062 4595,1062 4471,1060 4351,1052 4226,1049 4105,1046 3981,1046 3860,1044 3736,1041 3610,1038 3609,1073"/>
+    <Baseline points="3609,1064 3736,1067 3859,1069 3981,1072 4105,1072 4226,1075 4350,1077 4471,1085 4595,1088 4724,1088"/>
+    <TextEquiv>
+     <Unicode>der Deutschen Aufbau-A.-G. ist, mit der besondern Aufgabe, δie</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:18;} structure {type:corrected;}" id="region_1701885447530_2234_tl_19">
+    <Coords points="3609,1102 3735,1105 3859,1108 3981,1110 4104,1110 4226,1116 4349,1118 4471,1124 4595,1127 4724,1129 4725,1095 4595,1092 4471,1089 4351,1084 4226,1081 4106,1076 3981,1076 3860,1073 3736,1071 3610,1068 3609,1102"/>
+    <Baseline points="3609,1093 3736,1096 3859,1099 3981,1102 4105,1102 4226,1107 4350,1110 4471,1115 4595,1118 4724,1120"/>
+    <TextEquiv>
+     <Unicode>Sachlebensversicherung (Houselife-, Shipslife-and Autolife Insurance)</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:19;}" id="region_1701885447530_2234_tl_20">
+    <Coords points="3606,1135 3733,1135 3856,1137 3981,1143 4104,1143 4225,1145 4349,1151 4473,1153 4597,1159 4727,1159 4727,1124 4597,1124 4475,1119 4350,1116 4227,1111 4105,1108 3981,1108 3858,1103 3733,1100 3606,1100 3606,1135"/>
+    <Baseline points="3606,1126 3733,1126 3857,1128 3981,1134 4105,1134 4226,1137 4350,1142 4474,1145 4597,1150 4727,1150"/>
+    <TextEquiv>
+     <Unicode>in den Vereinigten Staaten einzuführen. Durch Aktienaus-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:20;}" id="region_1701885447530_2234_tl_21">
+    <Coords points="3606,1164 3733,1167 3857,1170 3980,1172 4102,1175 4226,1178 4349,1180 4470,1186 4595,1191 4724,1194 4725,1159 4595,1157 4472,1151 4351,1146 4226,1143 4102,1140 3981,1138 3857,1135 3733,1132 3607,1130 3606,1164"/>
+    <Baseline points="3606,1155 3733,1158 3857,1161 3981,1163 4102,1166 4226,1169 4350,1172 4471,1177 4595,1182 4724,1185"/>
+    <TextEquiv>
+     <Unicode>tausch geht die Hälfte der Shares in den Besitz des</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:21;}" id="region_1701885447530_2234_tl_22">
+    <Coords points="3604,1195 3604,1197 3692,1197 3776,1200 3862,1202 3945,1205 4029,1208 4115,1208 4199,1210 4282,1210 4374,1213 4375,1178 4283,1175 4199,1175 4116,1172 4029,1172 3946,1170 3863,1167 3777,1164 3693,1162 3604,1162 3604,1195"/>
+    <Baseline points="3604,1188 3692,1188 3776,1190 3862,1193 3946,1196 4029,1199 4115,1199 4199,1201 4282,1201 4374,1204"/>
+    <TextEquiv>
+     <Unicode>Deutschen Aufbau-Konzerns über.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:22;} structure {type:corrected;}" id="region_1701885447530_2234_tl_23">
+    <Coords points="3633,1235 3757,1240 3875,1243 3994,1246 4112,1248 4231,1251 4349,1254 4468,1259 4586,1265 4710,1267 4711,1230 4587,1228 4469,1222 4351,1217 4232,1214 4113,1211 3995,1209 3876,1206 3758,1203 3634,1198 3633,1235"/>
+    <Baseline points="3633,1225 3757,1231 3876,1234 3994,1236 4113,1239 4231,1242 4350,1244 4468,1250 4587,1255 4711,1258"/>
+    <TextEquiv>
+     <Unicode>( Dividendenloser Abschluß der A. E. G. In der Auisichtsrats-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:23;}" id="region_1701885447530_2234_tl_24">
+    <Coords points="3601,1276 3727,1278 3851,1281 3972,1284 4096,1286 4217,1289 4341,1294 4462,1297 4586,1303 4716,1308 4717,1271 4588,1265 4464,1260 4342,1257 4219,1252 4097,1249 3973,1246 3852,1244 3728,1241 3602,1238 3601,1276"/>
+    <Baseline points="3602,1266 3727,1269 3851,1271 3973,1274 4096,1277 4218,1279 4342,1285 4463,1287 4587,1293 4716,1298"/>
+    <TextEquiv>
+     <Unicode>sitzung der Allgemeinen Elektrizitäts-Gesellschaft wurde gleichzeitig</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:24;}" id="region_1701885447530_2234_tl_25">
+    <Coords points="3600,1316 3725,1316 3848,1319 3970,1324 4094,1327 4215,1330 4339,1332 4460,1335 4584,1340 4713,1346 4714,1308 4585,1303 4461,1298 4339,1295 4216,1292 4094,1289 3970,1287 3850,1281 3725,1279 3601,1279 3600,1316"/>
+    <Baseline points="3601,1306 3725,1306 3849,1309 3970,1314 4094,1317 4215,1320 4339,1322 4460,1325 4584,1330 4713,1336"/>
+    <TextEquiv>
+     <Unicode>mit dem Abschluß für das Geschäftsjahr 1922/23 die Rechnung für</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:25;}" id="region_1701885447530_2234_tl_26">
+    <Coords points="3599,1354 3725,1359 3848,1359 3970,1365 4094,1367 4215,1370 4339,1373 4460,1375 4584,1381 4713,1383 4714,1346 4585,1343 4461,1338 4339,1335 4216,1332 4094,1330 3970,1327 3850,1322 3725,1322 3600,1316 3599,1354"/>
+    <Baseline points="3600,1344 3725,1349 3849,1349 3970,1355 4094,1357 4215,1360 4339,1363 4460,1365 4584,1371 4713,1374"/>
+    <TextEquiv>
+     <Unicode>das aus Anlaß der Verlegung des Geschäftsjahres anschließende</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:26;}" id="region_1701885447530_2234_tl_27">
+    <Coords points="3598,1397 3725,1397 3846,1399 3970,1405 4091,1408 4215,1413 4336,1413 4460,1416 4581,1421 4710,1424 4711,1386 4582,1383 4461,1378 4337,1375 4215,1375 4092,1370 3970,1367 3847,1362 3725,1359 3599,1359 3598,1397"/>
+    <Baseline points="3598,1387 3725,1387 3846,1390 3970,1395 4091,1398 4215,1403 4336,1403 4460,1406 4581,1411 4711,1414"/>
+    <TextEquiv>
+     <Unicode>Zwischengeschäftsjaht vom 1. Juli bis 30. Sept.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:27;}" id="region_1701885447530_2234_tl_28">
+    <Coords points="3598,1437 3725,1437 3846,1440 3970,1445 4091,1448 4215,1451 4336,1453 4460,1456 4581,1459 4710,1461 4711,1424 4582,1421 4461,1418 4337,1416 4216,1413 4092,1410 3971,1407 3847,1402 3725,1399 3598,1399 3598,1437"/>
+    <Baseline points="3598,1427 3725,1427 3846,1430 3970,1436 4091,1438 4215,1441 4336,1444 4460,1446 4581,1449 4711,1452"/>
+    <TextEquiv>
+     <Unicode>1023 vorgelegt. Mit Rücksicht auf die im Fluß befindlichen gesetz-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:28;}" id="region_1701885447530_2234_tl_29">
+    <Coords points="3596,1475 3722,1477 3846,1480 3967,1483 4091,1488 4212,1491 4336,1494 4457,1496 4581,1499 4710,1504 4712,1467 4582,1462 4458,1459 4337,1456 4213,1454 4092,1451 3968,1445 3847,1443 3723,1440 3597,1437 3596,1475"/>
+    <Baseline points="3596,1465 3722,1468 3846,1471 3967,1473 4091,1479 4212,1481 4336,1484 4457,1487 4581,1489 4711,1495"/>
+    <TextEquiv>
+     <Unicode>lichen Bestimmungen für die Aufstellunz von Vermögenebilanzen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:29;}" id="region_1701885447530_2234_tl_30">
+    <Coords points="3596,1481 3595,1512 3722,1515 3846,1518 3967,1520 4091,1526 4212,1529 4336,1534 4457,1537 4581,1539 4710,1542 4711,1517 4711,1505 4582,1502 4458,1499 4337,1496 4213,1491 4092,1488 3968,1483 3847,1480 3723,1478 3596,1475 3596,1481"/>
+    <Baseline points="3596,1503 3722,1506 3846,1508 3967,1511 4091,1516 4212,1519 4336,1524 4457,1527 4581,1530 4710,1532"/>
+    <TextEquiv>
+     <Unicode>soll der auf den 19. Februar einzuerufenden H-V. vorgeschlagen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:30;}" id="region_1701885447530_2234_tl_31">
+    <Coords points="3595,1553 3722,1556 3843,1558 3967,1561 4088,1566 4212,1569 4333,1574 4457,1577 4578,1577 4708,1580 4708,1542 4579,1539 4457,1539 4334,1537 4214,1531 4089,1528 3968,1523 3844,1520 3723,1518 3596,1515 3595,1553"/>
+    <Baseline points="3596,1543 3722,1546 3843,1549 3967,1551 4088,1557 4212,1559 4333,1565 4457,1567 4579,1567 4708,1570"/>
+    <TextEquiv>
+     <Unicode>werden. den am 30. Sectember 1923 verbliebenen Usperschuß von</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:31;}" id="region_1701885447530_2234_tl_32">
+    <Coords points="3593,1593 3627,1594 3703,1596 3811,1596 3918,1598 4026,1604 4131,1607 4191,1610 4568,1620 4568,1583 4455,1581 4348,1578 4240,1575 4133,1570 4027,1567 3920,1562 3812,1559 3703,1559 3594,1556 3593,1593"/>
+    <Baseline points="3593,1584 3703,1586 3811,1586 3919,1589 4026,1594 4131,1597 4239,1602 4347,1605 4455,1608 4568,1611"/>
+    <TextEquiv>
+     <Unicode>rund 106 Bill. Reichsmark auf neue Rechnung vorztragen.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:32;}" id="region_1701885447530_2234_tl_33">
+    <Coords points="3619,1636 3743,1641 3862,1644 3983,1649 4101,1652 4223,1657 4341,1660 4463,1665 4581,1668 4708,1668 4708,1632 4581,1632 4463,1630 4343,1624 4224,1622 4103,1616 3984,1614 3863,1608 3744,1606 3621,1600 3619,1636"/>
+    <Baseline points="3620,1627 3744,1632 3862,1635 3983,1640 4102,1643 4223,1648 4342,1651 4463,1656 4581,1659 4708,1659"/>
+    <TextEquiv>
+     <Unicode>Chemische Pabrik für Hüttenprodukto A.-G. in Dûssoldori-Ober-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:33;} structure {type:corrected;} unclear {offset:43; length:3;}" id="region_1701885447530_2234_tl_34">
+    <Coords points="3591,1637 3591,1671 3717,1673 3840,1676 3964,1679 4085,1684 4209,1689 4333,1692 4454,1697 4579,1700 4708,1700 4708,1666 4579,1666 4455,1663 4335,1658 4210,1655 4087,1650 3966,1645 3841,1642 3717,1639 3591,1637 3591,1637"/>
+    <Baseline points="3591,1662 3717,1664 3841,1667 3964,1670 4086,1675 4211,1690 4334,1692 4455,1689 4579,1691 4708,1691"/>
+    <TextEquiv>
+     <Unicode>kassel. Die a. o. H.-V. genehmigte den bekatiaten Antrag auf Ka-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:34;}" id="region_1701885447530_2234_tl_35">
+    <Coords points="4709,1701 4582,1696 4458,1693 4334,1690 4211,1685 4090,1680 3965,1677 3841,1674 3717,1672 3591,1669 3591,1672 3590,1703 3717,1705 3840,1708 3964,1711 4088,1714 4209,1719 4333,1724 4457,1727 4581,1730 4710,1735 4709,1701"/>
+    <Baseline points="3590,1694 3717,1697 3841,1699 3964,1702 4088,1705 4210,1710 4333,1716 4457,1718 4581,1721 4710,1726"/>
+    <TextEquiv>
+     <Unicode>pitalerhôhung. E5 werden 30 Mill. Mark Stammaktien</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:35;}" id="region_1701885447530_2234_tl_36">
+    <Coords points="3590,1735 3717,1738 3840,1738 3964,1743 4085,1746 4209,1749 4333,1754 4454,1759 4578,1762 4708,1765 4708,1731 4579,1728 4455,1726 4335,1720 4211,1715 4086,1712 3965,1709 3842,1704 3717,1704 3591,1701 3590,1735"/>
+    <Baseline points="3590,1726 3717,1729 3841,1729 3964,1734 4086,1737 4210,1740 4333,1745 4455,1751 4579,1753 4708,1756"/>
+    <TextEquiv>
+     <Unicode>ausgegeben, die vom 1. Januar an gewinnberechtigt sind. Die Er-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:36;}" id="region_1701885447530_2234_tl_37">
+    <Coords points="3590,1768 3717,1768 3840,1770 3964,1773 4085,1776 4209,1781 4333,1786 4454,1789 4578,1794 4708,1797 4708,1763 4579,1760 4456,1755 4334,1752 4211,1747 4087,1742 3965,1739 3841,1736 3717,1733 3590,1733 3590,1768"/>
+    <Baseline points="3590,1759 3717,1759 3841,1761 3964,1764 4086,1767 4210,1772 4333,1778 4455,1780 4579,1786 4708,1788"/>
+    <TextEquiv>
+     <Unicode>höhung erfolgt hauntsächlich num Zwecke von Sachamgliiderunge.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:37;} structure {type:corrected;}" id="region_1701885447530_2234_tl_38">
+    <Coords points="3593,1797 3719,1800 3843,1803 3964,1805 4088,1808 4209,1811 4333,1816 4454,1822 4578,1824 4708,1827 4708,1792 4579,1790 4455,1787 4335,1782 4211,1776 4089,1774 3965,1771 3844,1768 3720,1766 3593,1763 3593,1797"/>
+    <Baseline points="3593,1788 3719,1791 3843,1794 3964,1796 4088,1799 4210,1802 4333,1807 4455,1813 4579,1815 4708,1818"/>
+    <TextEquiv>
+     <Unicode>Die neuen Aktien werden von einer Gruppe unter Führung der West-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:38;} structure {type:corrected;}" id="region_1701885447530_2234_tl_39">
+    <Coords points="3589,1827 3714,1830 3838,1832 3962,1838 4083,1840 4206,1843 4331,1848 4452,1851 4576,1856 4705,1859 4706,1825 4576,1822 4453,1817 4331,1814 4208,1809 4084,1806 3962,1803 3839,1798 3715,1795 3589,1792 3589,1827"/>
+    <Baseline points="3589,1818 3714,1821 3838,1823 3962,1829 4083,1831 4207,1834 4331,1840 4452,1842 4576,1848 4705,1850"/>
+    <TextEquiv>
+     <Unicode>bank A.-G. in Frankfurt a. M. übernommen zu 3$ für die Aktie, um</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:39;}" id="region_1701885447530_2234_tl_40">
+    <Coords points="3588,1859 3714,1862 3838,1865 3962,1867 4085,1870 4209,1875 4333,1878 4457,1883 4581,1886 4710,1892 4712,1857 4582,1852 4458,1849 4335,1844 4210,1841 4087,1836 3962,1833 3838,1830 3715,1827 3589,1825 3588,1859"/>
+    <Baseline points="3589,1850 3714,1853 3838,1856 3962,1858 4086,1861 4210,1866 4333,1869 4457,1875 4581,1877 4711,1883"/>
+    <TextEquiv>
+     <Unicode>gerechnet nach dem amtlichen Berliner Dollarbriefkurs am Vortage</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:40;}" id="region_1701885447530_2234_tl_41">
+    <Coords points="3588,1892 3714,1894 3838,1894 3962,1900 4085,1902 4206,1905 4331,1910 4454,1913 4578,1919 4708,1921 4708,1887 4579,1884 4456,1879 4331,1876 4208,1870 4086,1868 3962,1865 3839,1860 3714,1860 3588,1857 3588,1892"/>
+    <Baseline points="3588,1883 3714,1885 3838,1885 3962,1891 4086,1893 4207,1896 4331,1901 4455,1904 4579,1910 4708,1912"/>
+    <TextEquiv>
+     <Unicode>der Zahluna. Von den neuen Aktien werden 9 Mili. den alten Aktio-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:41;} structure {type:corrected;}" id="region_1701885447530_2234_tl_42">
+    <Coords points="3588,1921 3714,1924 3838,1927 3961,1929 4085,1935 4206,1937 4331,1943 4454,1946 4578,1948 4708,1951 4708,1916 4579,1913 4455,1911 4331,1908 4208,1903 4086,1900 3963,1895 3838,1892 3715,1889 3588,1887 3588,1921"/>
+    <Baseline points="3588,1912 3714,1915 3838,1918 3962,1920 4086,1926 4207,1928 4331,1934 4455,1936 4579,1939 4708,1942"/>
+    <TextEquiv>
+     <Unicode>nären 5:1 zu 3,50$ für die Aktie angeboten zuzüglich Bezugs-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:42;}" id="region_1701885447530_2234_tl_43">
+    <Coords points="3587,1951 3714,1954 3838,1956 3962,1962 4085,1964 4207,1970 4330,1972 4454,1978 4578,1980 4707,1986 4709,1951 4580,1946 4455,1943 4332,1938 4207,1935 4087,1930 3962,1927 3839,1922 3715,1919 3588,1916 3588,1938 3587,1951"/>
+    <Baseline points="3587,1942 3714,1945 3838,1947 3962,1953 4086,1955 4207,1961 4331,1963 4455,1969 4579,1971 4708,1977"/>
+    <TextEquiv>
+     <Unicode>rechtssteuer. Die Kosten der Kapitalerhöhung trägt die Cæselischaft.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:43;}" id="region_1701885447530_2234_tl_44">
+    <Coords points="3587,1983 3714,1986 3838,1989 3961,1991 4085,1997 4207,2002 4330,2005 4454,2010 4578,2013 4708,2015 4708,1981 4579,1978 4455,1976 4332,1970 4207,1967 4087,1962 3963,1957 3838,1954 3715,1951 3588,1949 3587,1983"/>
+    <Baseline points="3587,1974 3714,1977 3838,1980 3962,1982 4086,1988 4207,1993 4331,1996 4455,2001 4579,2004 4708,2006"/>
+    <TextEquiv>
+     <Unicode>Die Verwaltung bemerkte, daß man den Aktionären ein gröBeres Be-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:44;} structure {type:corrected;}" id="region_1701885447530_2234_tl_45">
+    <Coords points="3587,2016 3714,2018 3838,2021 3961,2024 4085,2029 4207,2034 4331,2037 4454,2040 4578,2045 4708,2048 4708,2013 4579,2011 4456,2005 4331,2003 4207,2000 4087,1995 3963,1989 3838,1986 3715,1984 3588,1981 3587,2016"/>
+    <Baseline points="3587,2006 3714,2009 3838,2012 3962,2015 4086,2020 4207,2025 4331,2028 4455,2031 4579,2036 4708,2039"/>
+    <TextEquiv>
+     <Unicode>zugsrecht angeboten habe, weil die Erwerbungen, die mit den neuen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:45;}" id="region_1701885447530_2234_tl_46">
+    <Coords points="3584,2048 3711,2048 3835,2050 3959,2056 4083,2059 4206,2064 4331,2069 4454,2072 4578,2075 4707,2080 4709,2046 4580,2040 4455,2038 4331,2035 4208,2030 4084,2024 3960,2021 3836,2016 3712,2013 3585,2013 3584,2048"/>
+    <Baseline points="3584,2039 3711,2039 3835,2041 3959,2047 4083,2050 4207,2055 4331,2060 4455,2063 4579,2066 4708,2071"/>
+    <TextEquiv>
+     <Unicode>Axtion vorgenommen würden, einen erheblich höhern Wert hätten,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:46;}" id="region_1701885447530_2234_tl_47">
+    <Coords points="3582,2078 3711,2080 3835,2083 3959,2086 4083,2091 4207,2096 4330,2099 4454,2104 4578,2107 4708,2110 4708,2075 4579,2073 4455,2070 4332,2065 4207,2062 4084,2056 3960,2051 3836,2048 3712,2046 3584,2043 3582,2078"/>
+    <Baseline points="3583,2068 3711,2071 3835,2074 3959,2077 4083,2082 4207,2087 4331,2090 4455,2095 4579,2098 4708,2101"/>
+    <TextEquiv>
+     <Unicode>als man von den Aktionaren an Geld fordern könne. Auf verschie-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:47;} structure {type:corrected;}" id="region_1701885447530_2234_tl_48">
+    <Coords points="3582,2107 3708,2112 3832,2115 3956,2118 4080,2121 4204,2126 4328,2131 4452,2134 4576,2139 4705,2139 4705,2105 4576,2105 4453,2099 4329,2097 4205,2091 4081,2086 3957,2083 3833,2081 3709,2078 3583,2073 3582,2107"/>
+    <Baseline points="3582,2098 3709,2103 3833,2106 3956,2109 4080,2112 4204,2117 4328,2122 4452,2125 4576,2130 4705,2130"/>
+    <TextEquiv>
+     <Unicode>dene Anfragten teilte die Verwaltung mit, daß ihr von einern über-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:48;} structure {type:corrected;}" id="region_1701885447530_2234_tl_49">
+    <Coords points="3585,2139 3711,2142 3835,2145 3959,2148 4083,2153 4206,2158 4331,2164 4454,2166 4579,2172 4708,2172 4708,2137 4579,2137 4456,2132 4331,2129 4208,2123 4084,2118 3960,2113 3836,2110 3712,2107 3585,2105 3585,2139"/>
+    <Baseline points="3585,2130 3711,2133 3835,2136 3959,2138 4083,2144 4207,2149 4331,2155 4455,2157 4579,2163 4708,2163"/>
+    <TextEquiv>
+     <Unicode>mäßigen Gewinn der Uebernahmegruppe der letzten Kapital-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:49;}" id="region_1701885447530_2234_tl_50">
+    <Coords points="4708,2172 4580,2166 4455,2164 4331,2161 4208,2156 4084,2150 3960,2145 3836,2142 3712,2139 3585,2137 3585,2172 3711,2174 3835,2177 3959,2180 4083,2185 4206,2191 4331,2196 4454,2199 4578,2201 4707,2207 4708,2196 4708,2172"/>
+    <Baseline points="3585,2163 3711,2165 3835,2168 3959,2171 4083,2176 4207,2182 4331,2187 4455,2190 4579,2192 4708,2198"/>
+    <TextEquiv>
+     <Unicode>erhöhung nichts bekannt sei. im Gegenteil hälten die beteitigten</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:50;}" id="region_1701885447530_2234_tl_51">
+    <Coords points="3577,2188 3576,2204 3706,2207 3830,2210 3953,2212 4077,2218 4201,2223 4325,2228 4449,2231 4573,2234 4705,2239 4706,2204 4574,2199 4450,2196 4326,2193 4203,2188 4079,2183 3955,2177 3830,2174 3707,2172 3578,2169 3577,2188"/>
+    <Baseline points="3577,2195 3706,2198 3830,2200 3954,2203 4078,2208 4201,2214 4325,2219 4449,2222 4573,2225 4705,2230"/>
+    <TextEquiv>
+     <Unicode>Banken übber das schlechte Geschäft bei dieser Auszabe gellagt. Der</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:51;}" id="region_1701885447530_2234_tl_52">
+    <Coords points="3582,2236 3708,2236 3832,2239 3956,2245 4080,2250 4204,2253 4328,2258 4452,2263 4575,2266 4705,2271 4706,2236 4577,2231 4453,2228 4329,2223 4205,2218 4081,2215 3958,2209 3834,2204 3709,2201 3582,2201 3582,2236"/>
+    <Baseline points="3582,2227 3709,2227 3833,2230 3956,2235 4080,2241 4204,2243 4328,2249 4452,2254 4576,2257 4705,2262"/>
+    <TextEquiv>
+     <Unicode>größte Teil der freien Aktien sei bereits bestimmt ir Angliederungen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:52;}" id="region_1701885447530_2234_tl_53">
+    <Coords points="3585,2266 3711,2269 3835,2271 3959,2277 4083,2279 4204,2285 4328,2290 4452,2296 4576,2298 4705,2301 4706,2266 4576,2263 4453,2261 4329,2255 4205,2250 4084,2244 3960,2242 3836,2236 3712,2234 3585,2231 3585,2263 3585,2266"/>
+    <Baseline points="3585,2257 3711,2260 3835,2262 3959,2268 4083,2270 4204,2276 4328,2281 4452,2287 4576,2289 4705,2292"/>
+    <TextEquiv>
+     <Unicode>vergeben, und auch dor übrige Teil werde nicht an der Bör ver-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:53;}" id="region_1701885447530_2234_tl_54">
+    <Coords points="3585,2296 3711,2301 3835,2304 3959,2309 4080,2312 4204,2317 4328,2322 4449,2325 4573,2328 4702,2333 4704,2298 4574,2293 4450,2290 4329,2288 4205,2282 4081,2277 3960,2274 3836,2269 3712,2266 3586,2261 3585,2287 3585,2296"/>
+    <Baseline points="3585,2287 3711,2292 3835,2295 3959,2300 4080,2303 4204,2308 4328,2314 4449,2316 4573,2319 4702,2324"/>
+    <TextEquiv>
+     <Unicode>wertet. sondern diene gleichfalls zur Ausdehnung der Interessenver-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:54;} structure {type:corrected;}" id="region_1701885447530_2234_tl_55">
+    <Coords points="3584,2328 3711,2333 3835,2336 3959,2339 4080,2344 4204,2347 4328,2352 4449,2358 4573,2360 4702,2366 4704,2331 4574,2325 4450,2323 4329,2317 4205,2312 4081,2309 3960,2304 3836,2301 3712,2298 3586,2293 3584,2328"/>
+    <Baseline points="3585,2319 3711,2324 3835,2327 3959,2330 4080,2335 4204,2338 4328,2343 4449,2349 4573,2351 4702,2357"/>
+    <TextEquiv>
+     <Unicode>tretung. Keine einzige von den 21 Mill. freien Aktien werde an die</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:55;}" id="region_1701885447530_2234_tl_56">
+    <Coords points="4706,2363 4577,2357 4453,2355 4329,2349 4205,2344 4081,2339 3958,2333 3833,2331 3709,2328 3584,2325 3584,2360 3708,2363 3832,2366 3956,2368 4080,2374 4204,2379 4328,2385 4452,2390 4575,2393 4705,2398 4706,2374 4706,2363"/>
+    <Baseline points="3584,2351 3709,2354 3833,2357 3956,2359 4080,2365 4204,2370 4328,2375 4452,2381 4576,2384 4705,2389"/>
+    <TextEquiv>
+     <Unicode>Firma Jul. Sichel gegeben, deren Beteiligung an der Gesellschat</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:56;} structure {type:corrected;}" id="region_1701885447530_2234_tl_57">
+    <Coords points="4706,2395 4577,2390 4453,2387 4329,2382 4205,2377 4081,2371 3958,2366 3833,2363 3709,2360 3584,2355 3583,2390 3708,2395 3832,2398 3956,2401 4080,2406 4204,2411 4328,2417 4452,2422 4575,2425 4705,2430 4705,2419 4706,2395"/>
+    <Baseline points="3583,2381 3709,2386 3833,2389 3956,2392 4080,2397 4204,2402 4328,2408 4452,2413 4576,2416 4705,2421"/>
+    <TextEquiv>
+     <Unicode>übrigens infolge der Verbreiterung der Grundlage des Unternehmens</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:57;} structure {type:corrected;}" id="region_1701885447530_2234_tl_58">
+    <Coords points="4705,2425 4577,2420 4453,2417 4329,2414 4205,2409 4082,2401 3957,2398 3834,2393 3709,2390 3583,2385 3583,2419 3708,2425 3832,2428 3956,2433 4080,2436 4204,2444 4328,2449 4452,2452 4575,2454 4705,2460 4705,2425"/>
+    <Baseline points="3583,2411 3709,2416 3833,2419 3956,2424 4080,2427 4204,2435 4328,2440 4452,2443 4576,2445 4705,2451"/>
+    <TextEquiv>
+     <Unicode>von etwa 60% auf etwa 25% zurückgegangen sei. Ueber die Ge-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:58;}" id="region_1701885447530_2234_tl_59">
+    <Coords points="3582,2452 3706,2457 3829,2460 3954,2465 4077,2468 4201,2473 4325,2479 4449,2484 4573,2487 4702,2492 4704,2457 4574,2452 4450,2449 4327,2444 4203,2439 4079,2433 3954,2430 3831,2425 3706,2422 3583,2417 3582,2452"/>
+    <Baseline points="3583,2443 3706,2448 3830,2451 3954,2456 4078,2459 4201,2464 4325,2470 4449,2475 4573,2478 4702,2483"/>
+    <TextEquiv>
+     <Unicode>scháftslage wurde berichtet, daß das Obergaeseler Werk seit</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:59;}" id="region_1701885447530_2234_tl_60">
+    <Coords points="3582,2484 3708,2489 3832,2492 3956,2495 4077,2500 4201,2505 4325,2511 4446,2514 4570,2519 4700,2522 4700,2487 4571,2484 4448,2479 4326,2476 4203,2471 4079,2466 3958,2460 3833,2458 3709,2455 3583,2449 3582,2471 3582,2484"/>
+    <Baseline points="3582,2475 3709,2481 3833,2483 3956,2486 4078,2491 4201,2497 4325,2502 4447,2505 4570,2510 4700,2513"/>
+    <TextEquiv>
+     <Unicode>neun Monaten keinen Bahnversand gehabt habe. Die Belezschaft be-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:60;}" id="region_1701885447530_2234_tl_61">
+    <Coords points="3582,2516 3706,2522 3830,2524 3954,2527 4077,2530 4198,2535 4322,2540 4446,2546 4570,2551 4700,2554 4700,2520 4571,2517 4448,2512 4324,2506 4200,2501 4079,2495 3954,2493 3830,2490 3706,2487 3582,2482 3582,2516"/>
+    <Baseline points="3582,2508 3706,2513 3830,2516 3954,2518 4078,2521 4199,2526 4323,2532 4447,2537 4570,2542 4700,2545"/>
+    <TextEquiv>
+     <Unicode>finde sich zurzeit in einem Spmpalhiestreik gegen den zehnstündigen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:61;}" id="region_1701885447530_2234_tl_62">
+    <Coords points="3581,2549 3706,2551 3829,2554 3954,2559 4077,2562 4201,2565 4325,2573 4449,2575 4573,2581 4702,2586 4704,2552 4574,2547 4450,2541 4326,2539 4203,2530 4078,2528 3954,2525 3831,2520 3706,2517 3582,2514 3581,2549"/>
+    <Baseline points="3581,2540 3706,2542 3830,2545 3954,2551 4078,2553 4201,2556 4325,2564 4449,2567 4573,2572 4702,2577"/>
+    <TextEquiv>
+     <Unicode>AmhSitstag. Wenn das Ergebnis für das abgelaufene Geschäftsfahr</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:62;}" id="region_1701885447530_2234_tl_63">
+    <Coords points="4703,2584 4574,2579 4450,2576 4326,2571 4203,2565 4079,2560 3954,2557 3831,2552 3706,2549 3581,2547 3581,2581 3706,2583 3829,2586 3954,2592 4077,2594 4201,2600 4325,2605 4449,2610 4573,2613 4702,2618 4703,2593 4703,2584"/>
+    <Baseline points="3581,2572 3706,2575 3830,2577 3954,2583 4078,2586 4201,2591 4325,2596 4449,2602 4573,2604 4702,2610"/>
+    <TextEquiv>
+     <Unicode>tπotzdem voraussichtlich ein verhaltnismäßig günstiges sein werd o</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:63;}" id="region_1701885447530_2234_tl_64">
+    <Coords points="4703,2617 4574,2611 4450,2606 4326,2601 4203,2595 4078,2593 3955,2587 3830,2584 3706,2582 3581,2579 3580,2613 3706,2616 3830,2618 3953,2621 4077,2627 4201,2629 4325,2635 4449,2640 4573,2645 4702,2651 4703,2639 4703,2617"/>
+    <Baseline points="3580,2604 3706,2607 3830,2610 3954,2612 4078,2618 4201,2621 4325,2626 4449,2631 4573,2637 4702,2642"/>
+    <TextEquiv>
+     <Unicode>ßei das auf die breite Grundlage des Unternehmens zurückzuführen.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:64;}" id="region_1701885447530_2234_tl_65">
+    <Coords points="4702,2646 4576,2644 4453,2638 4329,2633 4205,2627 4081,2625 3958,2619 3833,2617 3710,2611 3582,2611 3582,2646 3708,2646 3832,2651 3956,2654 4080,2659 4204,2662 4328,2667 4452,2672 4576,2678 4702,2680 4702,2646"/>
+    <Baseline points="3582,2637 3709,2637 3833,2642 3956,2645 4080,2650 4204,2653 4328,2658 4452,2664 4576,2669 4702,2672"/>
+    <TextEquiv>
+     <Unicode>Das Werk sei nicht allein auf Einnahanen aus dem besetzten Gebiet</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:65;} structure {type:corrected;}" id="region_1701885447530_2234_tl_66">
+    <Coords points="3579,2678 3706,2678 3829,2680 3954,2686 4077,2689 4198,2694 4322,2699 4446,2705 4570,2707 4699,2713 4701,2679 4572,2673 4447,2671 4324,2665 4200,2660 4079,2654 3954,2652 3831,2646 3706,2644 3580,2644 3579,2678"/>
+    <Baseline points="3580,2669 3706,2669 3830,2672 3954,2677 4078,2680 4199,2685 4323,2691 4447,2696 4570,2699 4700,2704"/>
+    <TextEquiv>
+     <Unicode>angewiesen, sondern verfüge auch noch über andre Einnahmequellen.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:66;}" id="region_1701885447530_2234_tl_67">
+    <Coords points="3579,2707 3706,2710 3829,2713 3953,2718 4077,2724 4198,2726 4322,2732 4446,2737 4570,2743 4699,2748 4701,2714 4572,2708 4448,2703 4324,2697 4200,2692 4078,2689 3955,2684 3831,2679 3706,2676 3580,2673 3579,2707"/>
+    <Baseline points="3579,2699 3706,2701 3830,2704 3954,2709 4078,2715 4199,2718 4323,2723 4447,2728 4570,2734 4700,2739"/>
+    <TextEquiv>
+     <Unicode>Die Gesellschaft habe im Vorjahre im enklisch besetzten Geet eins</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:67;}" id="region_1701885447530_2234_tl_68">
+    <Coords points="3579,2740 3706,2742 3830,2745 3953,2748 4077,2753 4198,2759 4322,2764 4446,2769 4570,2775 4700,2778 4700,2743 4571,2741 4448,2735 4324,2730 4200,2724 4079,2719 3955,2714 3830,2711 3706,2708 3580,2706 3579,2740"/>
+    <Baseline points="3579,2731 3706,2734 3830,2736 3954,2739 4078,2744 4199,2750 4323,2755 4447,2761 4570,2766 4700,2769"/>
+    <TextEquiv>
+     <Unicode>neuzeitlich eingerichtete chemische Fabrak mit rünstiver Frachi-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:68;}" id="region_1701885447530_2234_tl_69">
+    <Coords points="4701,2775 4574,2773 4450,2767 4326,2762 4203,2757 4079,2751 3955,2746 3831,2741 3706,2741 3580,2738 3579,2772 3706,2775 3829,2775 3953,2780 4077,2786 4201,2791 4325,2796 4449,2802 4573,2807 4701,2810 4701,2775"/>
+    <Baseline points="3579,2763 3706,2766 3830,2766 3954,2771 4078,2777 4201,2782 4325,2788 4449,2793 4573,2798 4701,2801"/>
+    <TextEquiv>
+     <Unicode>lage am Fhein erworben. Eberβo sei ei elektro-chemisches Patent</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:69;}" id="region_1701885447530_2234_tl_70">
+    <Coords points="4701,2808 4574,2805 4450,2800 4326,2795 4203,2786 4078,2784 3955,2778 3831,2773 3706,2773 3580,2770 3579,2804 3706,2807 3829,2807 3953,2812 4077,2818 4201,2820 4325,2829 4449,2834 4573,2839 4700,2842 4701,2808"/>
+    <Baseline points="3579,2796 3706,2798 3830,2798 3954,2804 4078,2809 4201,2812 4325,2820 4449,2825 4573,2831 4700,2833"/>
+    <TextEquiv>
+     <Unicode>für fust alle Staaten mit Ausnahme eier kleinerer Länder erworben</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:70;}" id="region_1701885447530_2234_tl_71">
+    <Coords points="4700,2840 4574,2835 4450,2830 4326,2824 4203,2819 4081,2813 3957,2811 3834,2805 3709,2803 3582,2803 3582,2837 3708,2837 3832,2839 3956,2845 4080,2847 4201,2853 4325,2858 4449,2864 4573,2869 4700,2874 4700,2840"/>
+    <Baseline points="3582,2828 3709,2828 3833,2831 3956,2836 4080,2839 4201,2844 4325,2849 4449,2855 4573,2860 4700,2866"/>
+    <TextEquiv>
+     <Unicode>worden. wovon sich die Verwaltung Gûnstiges verspreche. Mit dem</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:71;} structure {type:corrected;}" id="region_1701885447530_2234_tl_72">
+    <Coords points="4700,2873 4574,2867 4450,2862 4326,2857 4203,2851 4079,2846 3955,2840 3830,2838 3706,2835 3580,2832 3579,2866 3706,2869 3830,2872 3953,2874 4077,2880 4201,2885 4325,2890 4449,2896 4573,2901 4699,2906 4700,2873"/>
+    <Baseline points="3579,2858 3706,2860 3830,2863 3954,2866 4078,2871 4201,2876 4325,2882 4449,2887 4573,2893 4699,2898"/>
+    <TextEquiv>
+     <Unicode>Ausbau der elektro-chemischen Abteilung sei man beschäftigt und</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:72;}" id="region_1701885447530_2234_tl_73">
+    <Coords points="4699,2936 4699,2902 4572,2897 4447,2894 4324,2889 4200,2884 4079,2878 3955,2873 3831,2868 3706,2867 3580,2865 3579,2899 3706,2901 3829,2901 3953,2907 4077,2912 4198,2917 4322,2923 4446,2928 4570,2931 4605,2932 4699,2936"/>
+    <Baseline points="3579,2890 3706,2893 3830,2893 3954,2898 4078,2903 4199,2909 4323,2914 4447,2920 4570,2922 4699,2928"/>
+    <TextEquiv>
+     <Unicode>wenn nicht Unvorhergesehenes dazu kommo, könne die Abteilune</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:73;}" id="region_1701885447530_2234_tl_74">
+    <Coords points="3689,2931 3770,2934 3865,2936 3959,2939 4046,2944 4076,2945 4147,2947 4170,2949 4436,2958 4437,2924 4337,2921 4243,2918 4149,2913 4054,2910 3961,2905 3866,2902 3771,2899 3677,2897 3577,2894 3576,2928 3676,2931 3689,2931"/>
+    <Baseline points="3577,2920 3676,2922 3771,2925 3865,2928 3959,2930 4053,2936 4148,2938 4242,2944 4336,2946 4436,2949"/>
+    <TextEquiv>
+     <Unicode>in etwa vier Wochen im Betried genommen werden.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:74;} structure {type:corrected;}" id="region_1701885447530_2234_tl_75">
+    <Coords points="4700,2972 4576,2969 4459,2964 4339,2961 4222,2956 4103,2951 4006,2946 3973,2945 3865,2942 3747,2937 3668,2934 3626,2932 3625,2966 3746,2971 3865,2977 3983,2979 4101,2985 4220,2990 4339,2996 4457,2998 4576,3004 4699,3006 4700,2972"/>
+    <Baseline points="3625,2957 3746,2963 3865,2968 3983,2971 4102,2976 4220,2981 4339,2987 4457,2990 4576,2995 4699,2998"/>
+    <TextEquiv>
+     <Unicode>* Mülheimer Bergwerksverein in Mülheim a. d. Ruhr. Die Gesell-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:75;}" id="region_1701885447530_2234_tl_76">
+    <Coords points="3577,2998 3703,3001 3827,3007 3951,3012 4075,3017 4196,3023 4320,3025 4444,3031 4568,3033 4697,3033 4697,2999 4568,2999 4444,2996 4321,2991 4197,2988 4076,2983 3952,2978 3828,2972 3704,2967 3577,2964 3577,2978 3577,2998"/>
+    <Baseline points="3577,2990 3703,2992 3827,2998 3951,3003 4075,3008 4196,3014 4320,3016 4444,3022 4568,3025 4697,3025"/>
+    <TextEquiv>
+     <Unicode>schatf erklärt sich bereit, de Schuldverechrelbungen der</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:76;}" id="region_1701885447530_2234_tl_77">
+    <Coords points="3577,3031 3703,3033 3827,3039 3951,3044 4075,3047 4196,3052 4320,3058 4444,3063 4567,3063 4697,3068 4698,3034 4569,3029 4444,3029 4321,3024 4197,3018 4076,3013 3952,3010 3828,3005 3704,2999 3577,2997 3577,3027 3577,3031"/>
+    <Baseline points="3577,3022 3703,3025 3827,3030 3951,3035 4075,3038 4196,3043 4320,3049 4444,3054 4568,3054 4697,3060"/>
+    <TextEquiv>
+     <Unicode>Zeche Hagenbeck vom Jahre 1892 Sowie die der Zeche Wiesche vom</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:77;}" id="region_1701885447530_2234_tl_78">
+    <Coords points="3576,3060 3703,3066 3827,3068 3951,3074 4072,3079 4196,3084 4320,3087 4441,3090 4565,3095 4694,3098 4695,3064 4566,3061 4442,3056 4321,3053 4197,3051 4073,3045 3952,3040 3828,3034 3704,3032 3578,3026 3576,3059 3576,3060"/>
+    <Baseline points="3577,3051 3703,3057 3827,3060 3951,3065 4072,3070 4196,3076 4320,3078 4441,3081 4565,3086 4694,3089"/>
+    <TextEquiv>
+     <Unicode>Jahre 1896 und die des Millheimer Berawerkserein vom Jahre 1902</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:78;}" id="region_1701885447530_2234_tl_79">
+    <Coords points="3576,3093 3700,3098 3824,3101 3948,3106 4069,3111 4193,3114 4317,3119 4438,3119 4562,3125 4691,3130 4693,3097 4563,3091 4440,3086 4317,3086 4195,3080 4070,3078 3949,3072 3826,3067 3701,3064 3576,3059 3576,3093"/>
+    <Baseline points="3576,3084 3701,3089 3824,3092 3948,3097 4070,3103 4193,3105 4317,3111 4439,3111 4562,3116 4692,3121"/>
+    <TextEquiv>
+     <Unicode>mit 49 in Dollarschatz anweisungen tur je 10004 Nenn-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:79;}" id="region_1701885447530_2234_tl_80">
+    <Coords points="3576,3122 3700,3128 3824,3133 3948,3139 4069,3141 4193,3147 4317,3149 4438,3152 4562,3157 4691,3163 4693,3129 4563,3123 4440,3118 4318,3115 4194,3112 4071,3107 3949,3104 3826,3099 3702,3094 3576,3088 3576,3122"/>
+    <Baseline points="3576,3114 3701,3119 3824,3124 3948,3130 4070,3132 4193,3138 4317,3140 4439,3143 4562,3148 4692,3154"/>
+    <TextEquiv>
+     <Unicode>wert dieser Schaldvorechreibungen bis spätestens 2. Fehrwar d. J.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:80;}" id="region_1701885447530_2234_tl_81">
+    <Coords points="3576,3157 3635,3157 3692,3160 3749,3163 3805,3166 3865,3168 3921,3168 3978,3171 4034,3174 4099,3176 4100,3141 4036,3139 3979,3136 3923,3133 3865,3133 3807,3131 3750,3128 3694,3125 3637,3122 3576,3122 3576,3157"/>
+    <Baseline points="3576,3148 3636,3148 3692,3151 3749,3154 3806,3157 3865,3159 3921,3159 3978,3162 4035,3165 4099,3167"/>
+    <TextEquiv>
+     <Unicode>einzulösen (siehe Anzeigentoil).</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:81;} structure {type:corrected;}" id="region_1701885447530_2234_tl_82">
+    <Coords points="3603,3198 3727,3201 3846,3203 3967,3209 4085,3214 4206,3217 4325,3222 4446,3225 4565,3228 4691,3233 4693,3197 4566,3192 4447,3189 4326,3187 4208,3181 4086,3178 3968,3173 3847,3168 3728,3165 3604,3162 3603,3198"/>
+    <Baseline points="3604,3189 3727,3192 3846,3194 3967,3200 4086,3205 4207,3208 4325,3213 4447,3216 4565,3218 4692,3224"/>
+    <TextEquiv>
+     <Unicode>( Thüringer Getreide-Industrie-Kreditbank A.-G. in Weimar. Die</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:82;}" id="region_1701885447530_2234_tl_83">
+    <Coords points="3575,3230 3700,3233 3824,3238 3948,3241 4069,3246 4193,3249 4317,3252 4438,3257 4562,3260 4691,3265 4693,3231 4563,3225 4439,3222 4318,3217 4194,3214 4070,3212 3949,3206 3825,3204 3702,3198 3575,3196 3575,3230"/>
+    <Baseline points="3575,3221 3701,3224 3824,3229 3948,3232 4070,3237 4193,3240 4317,3243 4439,3248 4562,3251 4692,3256"/>
+    <TextEquiv>
+     <Unicode>a. o. IL-V. beschloß Zusammenlecung des Kapitalsaus</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:83;}" id="region_1701885447530_2234_tl_84">
+    <Coords points="3575,3262 3700,3265 3824,3268 3948,3273 4069,3279 4193,3281 4317,3284 4438,3287 4562,3292 4691,3295 4692,3260 4563,3257 4440,3252 4318,3249 4194,3247 4070,3244 3949,3239 3826,3233 3701,3230 3575,3228 3575,3262"/>
+    <Baseline points="3575,3253 3701,3256 3824,3259 3948,3264 4070,3270 4193,3272 4317,3275 4439,3278 4562,3283 4692,3286"/>
+    <TextEquiv>
+     <Unicode>Goldmark im Verhältnis 2 2u 1 unter Umwandlung der Stamm-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:84;}" id="region_1701885447530_2234_tl_85">
+    <Coords points="3575,3292 3700,3297 3824,3300 3948,3305 4069,3308 4193,3311 4317,3316 4438,3319 4562,3324 4691,3327 4692,3292 4563,3290 4440,3284 4318,3282 4195,3276 4070,3273 3949,3271 3826,3265 3701,3263 3575,3257 3575,3261 3575,3292"/>
+    <Baseline points="3575,3283 3701,3288 3824,3291 3948,3297 4070,3299 4193,3302 4317,3307 4439,3310 4562,3315 4692,3318"/>
+    <TextEquiv>
+     <Unicode>aktien in Vorzugsaktien mit 20fachem Stimmrecht, lerner Erhöhunu</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:85;}" id="region_1701885447530_2234_tl_86">
+    <Coords points="3576,3324 3703,3330 3827,3332 3948,3335 4072,3338 4193,3343 4317,3348 4438,3351 4562,3354 4691,3357 4692,3322 4563,3319 4439,3316 4318,3314 4195,3308 4073,3303 3949,3300 3828,3298 3704,3295 3578,3289 3576,3324"/>
+    <Baseline points="3577,3315 3703,3321 3827,3323 3948,3326 4072,3329 4193,3334 4317,3340 4439,3342 4562,3345 4692,3348"/>
+    <TextEquiv>
+     <Unicode>des Aktienkapitals auf 200 000 Goldmark durch Ausxabe von 2</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:86;}" id="region_1701885447530_2234_tl_87">
+    <Coords points="4692,3357 4563,3351 4439,3349 4318,3346 4195,3341 4073,3338 3949,3335 3828,3330 3704,3324 3577,3322 3576,3357 3703,3359 3827,3365 3948,3370 4072,3373 4193,3376 4317,3381 4438,3384 4562,3386 4691,3392 4692,3357"/>
+    <Baseline points="3577,3348 3703,3350 3827,3356 3948,3361 4072,3364 4193,3367 4317,3372 4439,3375 4562,3377 4691,3383"/>
+    <TextEquiv>
+     <Unicode>Stammaktien, Wovon ein Teil mur die Gesellschaft verwertet werden</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:87;}" id="region_1701885447530_2234_tl_88">
+    <Coords points="4038,3403 4139,3405 4174,3407 4476,3416 4595,3413 4594,3378 4476,3381 4364,3378 4253,3376 4141,3370 4027,3368 3917,3365 3804,3362 3690,3359 3575,3354 3574,3378 3574,3389 4038,3403"/>
+    <Baseline points="3574,3380 3690,3385 3803,3388 3916,3391 4026,3394 4140,3396 4253,3402 4363,3404 4476,3407 4595,3404"/>
+    <TextEquiv>
+     <Unicode>soll. und Verlegung des Geschäftssitzes nech Eriurt.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Erneute Diskonterhohung in Frankreich. Paris. 17, Jan. Die
+Bank von Frankreich erhöhte den Diskont von 5 1/2 % auf 6 %.
+Diese Maßnahme hängt mit der Stützungsaktion für den Franken me-
+sammen. Die letzte Diskontheraufsetzung, und zwar ebenfalls um
+ein halbes Prozent, wurde am 10. d. M. vorcenommen.
+(b Reichsbank. Der vermutlich am Freitag erscheinende Reichs-
+bankausweis vom 22. Dezember 1923 zeigt eine Vermehrung
+des Notenumlaufs um 60 Trillionen auf insgesamt 674
+Trillionen Papiermark. Die Zunahme ist also verhältnismäßig gering.
+� Sachlebensversicherung. Der Konzern der Deutschen Auſ-
+bau-A.-G. für Grundbezitz. Industrie und Schiff-
+fahrt in Berlin (Hauslebens-Versicherungs-A-G. in Berlin. Schiff-
+lebens-Versicherungs-A.-G, in Hamburg-Berlin, Deutache Schiffs-
+pfandbriefbank A.-G. in Berlin), hat mit eper Bankengruppe unter
+Führung des Bankhauses Mor gan, Divermore &amp;mp; Co. in
+Newyork, einam der ältesten New Yorker Stock-Exchange-Häuser
+eine Aktiengesellschaft gegründet, dorem Geschâitsgebiet analog dem
+der Deutschen Aufbau-A.-G. ist, mit der besondern Aufgabe, δie
+Sachlebensversicherung (Houselife-, Shipslife-and Autolife Insurance)
+in den Vereinigten Staaten einzuführen. Durch Aktienaus-
+tausch geht die Hälfte der Shares in den Besitz des
+Deutschen Aufbau-Konzerns über.
+( Dividendenloser Abschluß der A. E. G. In der Auisichtsrats-
+sitzung der Allgemeinen Elektrizitäts-Gesellschaft wurde gleichzeitig
+mit dem Abschluß für das Geschäftsjahr 1922/23 die Rechnung für
+das aus Anlaß der Verlegung des Geschäftsjahres anschließende
+Zwischengeschäftsjaht vom 1. Juli bis 30. Sept.
+1023 vorgelegt. Mit Rücksicht auf die im Fluß befindlichen gesetz-
+lichen Bestimmungen für die Aufstellunz von Vermögenebilanzen
+soll der auf den 19. Februar einzuerufenden H-V. vorgeschlagen
+werden. den am 30. Sectember 1923 verbliebenen Usperschuß von
+rund 106 Bill. Reichsmark auf neue Rechnung vorztragen.
+Chemische Pabrik für Hüttenprodukto A.-G. in Dûssoldori-Ober-
+kassel. Die a. o. H.-V. genehmigte den bekatiaten Antrag auf Ka-
+pitalerhôhung. E5 werden 30 Mill. Mark Stammaktien
+ausgegeben, die vom 1. Januar an gewinnberechtigt sind. Die Er-
+höhung erfolgt hauntsächlich num Zwecke von Sachamgliiderunge.
+Die neuen Aktien werden von einer Gruppe unter Führung der West-
+bank A.-G. in Frankfurt a. M. übernommen zu 3$ für die Aktie, um
+gerechnet nach dem amtlichen Berliner Dollarbriefkurs am Vortage
+der Zahluna. Von den neuen Aktien werden 9 Mili. den alten Aktio-
+nären 5:1 zu 3,50$ für die Aktie angeboten zuzüglich Bezugs-
+rechtssteuer. Die Kosten der Kapitalerhöhung trägt die Cæselischaft.
+Die Verwaltung bemerkte, daß man den Aktionären ein gröBeres Be-
+zugsrecht angeboten habe, weil die Erwerbungen, die mit den neuen
+Axtion vorgenommen würden, einen erheblich höhern Wert hätten,
+als man von den Aktionaren an Geld fordern könne. Auf verschie-
+dene Anfragten teilte die Verwaltung mit, daß ihr von einern über-
+mäßigen Gewinn der Uebernahmegruppe der letzten Kapital-
+erhöhung nichts bekannt sei. im Gegenteil hälten die beteitigten
+Banken übber das schlechte Geschäft bei dieser Auszabe gellagt. Der
+größte Teil der freien Aktien sei bereits bestimmt ir Angliederungen
+vergeben, und auch dor übrige Teil werde nicht an der Bör ver-
+wertet. sondern diene gleichfalls zur Ausdehnung der Interessenver-
+tretung. Keine einzige von den 21 Mill. freien Aktien werde an die
+Firma Jul. Sichel gegeben, deren Beteiligung an der Gesellschat
+übrigens infolge der Verbreiterung der Grundlage des Unternehmens
+von etwa 60% auf etwa 25% zurückgegangen sei. Ueber die Ge-
+scháftslage wurde berichtet, daß das Obergaeseler Werk seit
+neun Monaten keinen Bahnversand gehabt habe. Die Belezschaft be-
+finde sich zurzeit in einem Spmpalhiestreik gegen den zehnstündigen
+AmhSitstag. Wenn das Ergebnis für das abgelaufene Geschäftsfahr
+tπotzdem voraussichtlich ein verhaltnismäßig günstiges sein werd o
+ßei das auf die breite Grundlage des Unternehmens zurückzuführen.
+Das Werk sei nicht allein auf Einnahanen aus dem besetzten Gebiet
+angewiesen, sondern verfüge auch noch über andre Einnahmequellen.
+Die Gesellschaft habe im Vorjahre im enklisch besetzten Geet eins
+neuzeitlich eingerichtete chemische Fabrak mit rünstiver Frachi-
+lage am Fhein erworben. Eberβo sei ei elektro-chemisches Patent
+für fust alle Staaten mit Ausnahme eier kleinerer Länder erworben
+worden. wovon sich die Verwaltung Gûnstiges verspreche. Mit dem
+Ausbau der elektro-chemischen Abteilung sei man beschäftigt und
+wenn nicht Unvorhergesehenes dazu kommo, könne die Abteilune
+in etwa vier Wochen im Betried genommen werden.
+* Mülheimer Bergwerksverein in Mülheim a. d. Ruhr. Die Gesell-
+schatf erklärt sich bereit, de Schuldverechrelbungen der
+Zeche Hagenbeck vom Jahre 1892 Sowie die der Zeche Wiesche vom
+Jahre 1896 und die des Millheimer Berawerkserein vom Jahre 1902
+mit 49 in Dollarschatz anweisungen tur je 10004 Nenn-
+wert dieser Schaldvorechreibungen bis spätestens 2. Fehrwar d. J.
+einzulösen (siehe Anzeigentoil).
+( Thüringer Getreide-Industrie-Kreditbank A.-G. in Weimar. Die
+a. o. IL-V. beschloß Zusammenlecung des Kapitalsaus
+Goldmark im Verhältnis 2 2u 1 unter Umwandlung der Stamm-
+aktien in Vorzugsaktien mit 20fachem Stimmrecht, lerner Erhöhunu
+des Aktienkapitals auf 200 000 Goldmark durch Ausxabe von 2
+Stammaktien, Wovon ein Teil mur die Gesellschaft verwertet werden
+soll. und Verlegung des Geschäftssitzes nech Eriurt.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:51;} structure {type:separator_short;}" id="Separator_1701884875448_2080">
+   <Coords points="3984,3418 4303,3418 4303,3439 3984,3439"/>
+  </SeparatorRegion>
+  <TextRegion custom="readingOrder {index:52;} structure {type:paragraph;}" id="region_1701885466576_2238">
+   <Coords points="3581,3436 4689,3436 4689,4095 3581,4095"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885466576_2238_tl_1">
+    <Coords points="4672,3463 4563,3461 4444,3458 4326,3456 4205,3450 4086,3448 3993,3443 3913,3441 3847,3440 3728,3437 3637,3433 3605,3432 3605,3432 3603,3467 3727,3473 3846,3475 3967,3478 4085,3483 4204,3486 4325,3491 4444,3494 4562,3497 4689,3500 4690,3464 4672,3463"/>
+    <Baseline points="3604,3458 3727,3464 3846,3466 3967,3469 4086,3474 4204,3477 4325,3482 4444,3485 4562,3488 4689,3490"/>
+    <TextEquiv>
+     <Unicode>() Berlin. 17. Jan. Vom 18. Januar an sind die neu zugelas-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885466576_2238_tl_2">
+    <Coords points="3575,3465 3575,3466 3576,3500 3701,3505 3824,3505 3945,3510 4069,3516 4191,3518 4314,3521 4436,3526 4560,3526 4689,3529 4690,3494 4560,3492 4436,3492 4316,3486 4191,3484 4070,3481 3947,3475 3826,3470 3701,3470 3575,3465 3575,3465"/>
+    <Baseline points="3575,3491 3701,3496 3824,3496 3946,3501 4070,3507 4191,3509 4315,3512 4436,3517 4560,3517 4689,3520"/>
+    <TextEquiv>
+     <Unicode>senen 60000000-4 Aktien der Frankfurter Allgem. Versicherunge-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;}" id="region_1701885466576_2238_tl_3">
+    <Coords points="4691,3526 4563,3523 4439,3520 4318,3518 4195,3512 4072,3512 3949,3507 3828,3504 3704,3502 3578,3496 3576,3532 3576,3532 3703,3537 3827,3540 3948,3543 4072,3548 4193,3548 4317,3554 4438,3556 4562,3559 4691,3562 4692,3551 4691,3526"/>
+    <Baseline points="3577,3523 3703,3528 3827,3531 3948,3534 4072,3539 4193,3539 4317,3544 4439,3547 4562,3550 4692,3552"/>
+    <TextEquiv>
+     <Unicode>A. G. (die weiter zugelassenen ο0000 000 erhalten Zunächst eine</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885466576_2238_tl_4">
+    <Coords points="4692,3561 4563,3558 4439,3555 4318,3553 4195,3547 4073,3544 3949,3539 3828,3536 3704,3534 3577,3531 3577,3554 3577,3567 3703,3570 3827,3572 3948,3575 4072,3581 4193,3583 4317,3589 4438,3591 4562,3594 4691,3597 4692,3569 4692,3561"/>
+    <Baseline points="3577,3558 3703,3561 3827,3563 3948,3566 4072,3571 4193,3574 4317,3579 4439,3582 4562,3585 4692,3587"/>
+    <TextEquiv>
+     <Unicode>besondere Notiz und können vom 18. d. M. en amtlieh notiert</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885466576_2238_tl_5">
+    <Coords points="3578,3599 3703,3602 3827,3605 3948,3607 4072,3613 4193,3616 4317,3621 4438,3624 4562,3626 4692,3626 4692,3590 4562,3590 4439,3587 4318,3585 4195,3579 4073,3577 3950,3571 3828,3569 3704,3566 3577,3563 3577,3571 3578,3599"/>
+    <Baseline points="3577,3590 3703,3593 3827,3596 3948,3598 4072,3604 4193,3606 4317,3612 4439,3614 4562,3617 4692,3617"/>
+    <TextEquiv>
+     <Unicode>werden), 35 000 000M. Aktien der Mecklenburgischen Hypotheken-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;}" id="region_1701885466576_2238_tl_6">
+    <Coords points="3578,3635 3703,3635 3827,3637 3948,3643 4072,3645 4193,3648 4317,3651 4438,3656 4562,3659 4692,3659 4692,3623 4562,3623 4439,3620 4318,3615 4194,3612 4073,3609 3949,3607 3828,3601 3704,3599 3578,3599 3578,3635"/>
+    <Baseline points="3578,3625 3703,3625 3827,3628 3948,3633 4072,3636 4193,3639 4317,3641 4439,3647 4562,3649 4692,3649"/>
+    <TextEquiv>
+     <Unicode>und Wechselbank. 23500000k Stammaktion der Rheinischen Mοbe-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;}" id="region_1701885466576_2238_tl_7">
+    <Coords points="4694,3658 4566,3655 4442,3652 4321,3649 4197,3647 4073,3644 3952,3641 3828,3636 3704,3633 3578,3631 3579,3667 3703,3670 3827,3672 3951,3678 4072,3680 4196,3683 4320,3686 4441,3688 4565,3691 4694,3694 4694,3686 4694,3658"/>
+    <Baseline points="3579,3658 3703,3660 3827,3663 3951,3668 4072,3671 4196,3674 4320,3676 4441,3679 4565,3682 4694,3684"/>
+    <TextEquiv>
+     <Unicode>stoffweberei vortn. Dahl &amp;amp; Hunsche A.-Ci., 19 000000. Stammaktien</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;} structure {type:corrected;}" id="region_1701885466576_2238_tl_8">
+    <Coords points="3580,3699 3706,3702 3827,3704 3951,3710 4072,3712 4196,3712 4317,3715 4441,3721 4562,3721 4691,3723 4692,3688 4563,3685 4441,3685 4318,3679 4197,3677 4072,3677 3952,3674 3828,3669 3707,3666 3580,3663 3579,3690 3580,3699"/>
+    <Baseline points="3579,3690 3706,3692 3827,3695 3951,3701 4072,3703 4196,3703 4317,3706 4441,3711 4562,3711 4692,3714"/>
+    <TextEquiv>
+     <Unicode>der Dr. H. Abbes &amp; Co. A.-G., 14 000 000M Aktien der Portland-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;} structure {type:corrected;}" id="region_1701885466576_2238_tl_9">
+    <Coords points="4695,3722 4695,3720 4566,3718 4444,3715 4321,3712 4200,3707 4075,3707 3954,3704 3830,3701 3709,3699 3583,3693 3582,3728 3708,3734 3830,3736 3954,3739 4075,3742 4198,3742 4320,3747 4444,3750 4565,3753 4693,3755 4695,3722"/>
+    <Baseline points="3582,3719 3709,3725 3830,3727 3954,3730 4075,3733 4199,3733 4320,3738 4444,3741 4565,3744 4693,3746"/>
+    <TextEquiv>
+     <Unicode>zemenrnfibrik Germania A.-G., 14 000 000M. Aktien der Deutschen</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;} structure {type:corrected;}" id="region_1701885466576_2238_tl_10">
+    <Coords points="4692,3765 4692,3750 4563,3748 4442,3745 4318,3742 4197,3739 4073,3737 3952,3734 3828,3731 3707,3729 3580,3723 3579,3758 3706,3763 3827,3766 3951,3769 4072,3771 4196,3774 4317,3777 4441,3779 4562,3782 4691,3785 4692,3765"/>
+    <Baseline points="3579,3749 3706,3754 3827,3757 3951,3760 4072,3762 4196,3765 4317,3768 4441,3771 4562,3773 4691,3776"/>
+    <TextEquiv>
+     <Unicode>Eisenbahnbtriebs-A.-G., 5proz. Zentral-Goldpfandbriefe von 1923 der</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;}" id="region_1701885466576_2238_tl_11">
+    <Coords points="3577,3788 3703,3793 3824,3796 3948,3798 4069,3804 4191,3806 4314,3809 4436,3812 4557,3812 4686,3814 4687,3780 4558,3777 4436,3777 4315,3775 4191,3772 4070,3769 3949,3764 3825,3761 3704,3759 3579,3753 3577,3788"/>
+    <Baseline points="3578,3779 3703,3784 3824,3787 3948,3789 4070,3795 4191,3798 4315,3800 4436,3803 4557,3803 4686,3806"/>
+    <TextEquiv>
+     <Unicode>Preußischen Central-Hodeniredit A-G. im Wert von 5000000 Golo-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;} structure {type:corrected;}" id="region_1701885466576_2238_tl_12">
+    <Coords points="3576,3820 3700,3823 3822,3828 3945,3831 4067,3833 4188,3836 4312,3839 4433,3841 4554,3844 4683,3847 4684,3812 4555,3810 4434,3807 4312,3804 4189,3802 4067,3799 3946,3796 3822,3793 3702,3788 3577,3785 3576,3820"/>
+    <Baseline points="3576,3811 3701,3814 3822,3819 3946,3822 4067,3824 4188,3827 4312,3830 4433,3833 4554,3835 4684,3838"/>
+    <TextEquiv>
+     <Unicode>mark = 1792,1kg Feingold gleich den alten Stücken</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;}" id="region_1701885466576_2238_tl_13">
+    <Coords points="3575,3850 3614,3850 3651,3852 3689,3855 3732,3858 3734,3823 3691,3820 3654,3817 3616,3815 3576,3815 3575,3850"/>
+    <Baseline points="3575,3841 3614,3841 3652,3843 3690,3846 3733,3849"/>
+    <TextEquiv>
+     <Unicode>lieferbar.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:13;}" id="region_1701885466576_2238_tl_14">
+    <Coords points="3603,3890 3727,3896 3846,3898 3964,3901 4083,3904 4201,3906 4320,3909 4438,3909 4557,3912 4681,3917 4682,3882 4558,3876 4439,3874 4320,3874 4202,3871 4084,3868 3965,3866 3847,3863 3728,3860 3605,3855 3603,3890"/>
+    <Baseline points="3604,3881 3727,3886 3846,3889 3964,3892 4083,3894 4201,3897 4320,3900 4439,3900 4557,3903 4681,3908"/>
+    <TextEquiv>
+     <Unicode>Zum Börsenhan de l zuzolasven sind: 160000 nene</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:14;}" id="region_1701885466576_2238_tl_15">
+    <Coords points="3572,3920 3679,3925 3781,3928 3884,3931 3986,3931 4088,3936 4190,3936 4293,3939 4395,3941 4506,3944 4506,3909 4396,3906 4294,3904 4191,3901 4088,3901 3987,3895 3884,3895 3782,3893 3680,3890 3573,3885 3572,3920"/>
+    <Baseline points="3572,3911 3679,3916 3781,3919 3884,3921 3986,3921 4088,3927 4191,3927 4293,3929 4395,3932 4506,3935"/>
+    <TextEquiv>
+     <Unicode>Stammaktien der Kontinentalen Wasserwerks-Ges. A-G.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:15;} structure {type:corrected;}" id="region_1701885466576_2238_tl_16">
+    <Coords points="3598,3960 3722,3963 3840,3966 3959,3968 4077,3971 4196,3974 4314,3977 4433,3979 4551,3985 4678,3987 4679,3952 4552,3949 4434,3944 4315,3941 4197,3938 4078,3935 3960,3933 3841,3930 3723,3927 3599,3925 3598,3960"/>
+    <Baseline points="3598,3951 3722,3954 3841,3956 3959,3959 4078,3962 4196,3964 4315,3967 4433,3970 4552,3975 4678,3978"/>
+    <TextEquiv>
+     <Unicode>Die Zulassung ist beantragt für: 76 000 000M Genuß-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:16;}" id="region_1701885466576_2238_tl_17">
+    <Coords points="4678,3985 4549,3982 4429,3977 4307,3974 4183,3971 4062,3968 3941,3963 3817,3960 3695,3960 3570,3955 3569,3990 3695,3995 3816,3995 3940,3998 4061,4003 4182,4006 4306,4008 4427,4011 4549,4017 4678,4019 4678,3985"/>
+    <Baseline points="3569,3981 3695,3986 3816,3986 3940,3989 4061,3994 4183,3997 4307,4000 4428,4002 4549,4008 4678,4010"/>
+    <TextEquiv>
+     <Unicode>scheine der Harkorischen Bergwerke &amp;amp; Chem. Fabriken A.-G, in</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:17;} structure {type:corrected;}" id="region_1701885466576_2238_tl_18">
+    <Coords points="3568,4019 3695,4025 3816,4025 3937,4030 4059,4035 4182,4035 4303,4038 4425,4044 4546,4046 4675,4049 4676,4014 4547,4011 4426,4009 4305,4003 4183,4001 4059,4001 3939,3995 3818,3990 3695,3990 3570,3985 3568,4019"/>
+    <Baseline points="3569,4010 3695,4016 3816,4016 3938,4021 4059,4026 4183,4026 4304,4029 4425,4035 4546,4037 4676,4040"/>
+    <TextEquiv>
+     <Unicode>Gotha. 50 000 000M. Stammaktien der Aktien-Maschinenfabrik Kyft-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:18;} structure {type:corrected;}" id="region_1701885466576_2238_tl_19">
+    <Coords points="3566,4052 3692,4057 3813,4057 3937,4062 4059,4065 4180,4068 4304,4071 4425,4073 4546,4079 4675,4081 4676,4046 4547,4044 4426,4038 4304,4036 4181,4033 4059,4030 3938,4028 3815,4022 3692,4022 3568,4017 3566,4052"/>
+    <Baseline points="3567,4043 3692,4048 3814,4048 3938,4053 4059,4056 4180,4059 4304,4061 4425,4064 4546,4070 4676,4072"/>
+    <TextEquiv>
+     <Unicode>häuserhütte vorm. Paul Reuß Artern in Artern, 30 000 000M. Stamm-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:19;}" id="region_1701885466576_2238_tl_20">
+    <Coords points="3566,4084 3647,4087 3722,4087 3797,4089 3873,4092 3948,4095 4024,4097 4099,4097 4174,4100 4258,4103 4259,4068 4175,4065 4100,4062 4024,4062 3949,4059 3874,4057 3798,4054 3723,4051 3647,4051 3567,4049 3566,4084"/>
+    <Baseline points="3566,4075 3647,4078 3722,4078 3798,4080 3873,4083 3948,4086 4024,4088 4099,4088 4175,4091 4258,4094"/>
+    <TextEquiv>
+     <Unicode>aktien der Wilh. Kathe A. G. in Halle a. S.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     () Berlin. 17. Jan. Vom 18. Januar an sind die neu zugelas-
+senen 60000000-4 Aktien der Frankfurter Allgem. Versicherunge-
+A. G. (die weiter zugelassenen ο0000 000 erhalten Zunächst eine
+besondere Notiz und können vom 18. d. M. en amtlieh notiert
+werden), 35 000 000M. Aktien der Mecklenburgischen Hypotheken-
+und Wechselbank. 23500000k Stammaktion der Rheinischen Mοbe-
+stoffweberei vortn. Dahl &amp;amp; Hunsche A.-Ci., 19 000000. Stammaktien
+der Dr. H. Abbes &amp; Co. A.-G., 14 000 000M Aktien der Portland-
+zemenrnfibrik Germania A.-G., 14 000 000M. Aktien der Deutschen
+Eisenbahnbtriebs-A.-G., 5proz. Zentral-Goldpfandbriefe von 1923 der
+Preußischen Central-Hodeniredit A-G. im Wert von 5000000 Golo-
+mark = 1792,1kg Feingold gleich den alten Stücken
+lieferbar.
+Zum Börsenhan de l zuzolasven sind: 160000 nene
+Stammaktien der Kontinentalen Wasserwerks-Ges. A-G.
+Die Zulassung ist beantragt für: 76 000 000M Genuß-
+scheine der Harkorischen Bergwerke &amp;amp; Chem. Fabriken A.-G, in
+Gotha. 50 000 000M. Stammaktien der Aktien-Maschinenfabrik Kyft-
+häuserhütte vorm. Paul Reuß Artern in Artern, 30 000 000M. Stamm-
+aktien der Wilh. Kathe A. G. in Halle a. S.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:53;} structure {type:heading;}" id="region_1701885123911_2135" type="heading">
+   <Coords points="3639,4092 4614,4110 4614,4152 3639,4134"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885123911_2135_tl_1">
+    <Coords points="3625,4127 3738,4130 3846,4133 3956,4136 4064,4138 4174,4141 4282,4144 4392,4146 4500,4152 4616,4154 4617,4117 4501,4115 4394,4109 4283,4107 4175,4104 4065,4101 3957,4098 3847,4096 3739,4093 3626,4090 3625,4127"/>
+    <Baseline points="3625,4118 3738,4121 3846,4123 3956,4126 4064,4129 4175,4131 4282,4134 4393,4137 4500,4142 4616,4145"/>
+    <TextEquiv>
+     <Unicode>Getreide, Mehl, Bodenerzeugnisse.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Getreide, Mehl, Bodenerzeugnisse.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:54;} structure {type:paragraph;}" id="region_1701885470482_2241">
+   <Coords points="3566,4132 4691,4156 4691,4418 3566,4394"/>
+   <TextLine custom="readingOrder {index:0;}" id="region_1701885470482_2241_tl_1">
+    <Coords points="4676,4162 4553,4157 4434,4154 4316,4149 4194,4146 4076,4143 3957,4141 3836,4138 3717,4135 3594,4130 3592,4165 3717,4170 3835,4173 3956,4176 4075,4178 4193,4181 4314,4184 4433,4189 4551,4192 4675,4197 4676,4162"/>
+    <Baseline points="3593,4156 3717,4161 3835,4164 3956,4166 4075,4169 4193,4172 4315,4175 4433,4180 4552,4183 4675,4188"/>
+    <TextEquiv>
+     <Unicode>WTB Köln, 17. Jan. Getroidebören Das Geechaft war heuts</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885470482_2241_tl_2">
+    <Coords points="3560,4197 3681,4200 3797,4203 3913,4208 4029,4208 4145,4213 4260,4216 4376,4221 4492,4224 4616,4230 4617,4194 4494,4189 4377,4186 4262,4181 4146,4178 4030,4173 3913,4173 3799,4167 3682,4165 3562,4162 3560,4197"/>
+    <Baseline points="3561,4188 3682,4191 3798,4193 3913,4199 4029,4199 4145,4204 4261,4207 4377,4212 4492,4215 4616,4220"/>
+    <TextEquiv>
+     <Unicode>still, der Besuch gut. Eine amtliche Preisnotieung fand nicht statt.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;}" id="region_1701885470482_2241_tl_3">
+    <Coords points="4675,4235 4547,4230 4426,4224 4304,4222 4181,4216 4059,4214 3938,4211 3814,4208 3694,4203 3566,4200 3566,4235 3692,4237 3813,4243 3937,4246 4059,4248 4180,4251 4304,4256 4425,4259 4546,4264 4674,4270 4675,4235"/>
+    <Baseline points="3566,4226 3692,4228 3814,4234 3938,4237 4059,4239 4180,4242 4304,4247 4425,4250 4546,4255 4674,4261"/>
+    <TextEquiv>
+     <Unicode>( Berlin, 17. Jan. Rauhfuttor. Großhandelspreiss in Goldmark je</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885470482_2241_tl_4">
+    <Coords points="4674,4268 4548,4260 4423,4257 4302,4252 4178,4249 4057,4246 3933,4241 3812,4238 3688,4236 3562,4230 3560,4264 3687,4270 3811,4272 3932,4275 4056,4280 4177,4283 4301,4286 4422,4291 4546,4294 4673,4302 4674,4268"/>
+    <Baseline points="3561,4255 3687,4261 3811,4263 3932,4266 4056,4272 4177,4274 4301,4277 4422,4282 4546,4285 4674,4293"/>
+    <TextEquiv>
+     <Unicode>bοkg ab inärk. Stationen: drahtgepr. Roggen- und Weizenstroh (,60-0,76,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885470482_2241_tl_5">
+    <Coords points="4674,4298 4545,4292 4421,4287 4299,4284 4175,4282 4054,4279 3931,4274 3809,4268 3685,4265 3558,4263 3558,4296 3684,4299 3808,4302 3929,4307 4053,4313 4174,4315 4298,4318 4419,4321 4543,4326 4672,4331 4673,4311 4674,4298"/>
+    <Baseline points="3558,4288 3684,4290 3808,4293 3929,4298 4053,4304 4175,4307 4298,4309 4420,4312 4544,4317 4673,4323"/>
+    <TextEquiv>
+     <Unicode>dsgl. Haferstroh 0,50 - 0,65, dsgl. Gerstenstroh 0,50 - 0,60, dsgl. Roggenlang-</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;}" id="region_1701885470482_2241_tl_6">
+    <Coords points="4673,4330 4545,4322 4421,4317 4299,4314 4175,4311 4051,4309 3931,4303 3806,4301 3683,4295 3556,4293 3555,4326 3555,4326 3681,4329 3805,4334 3929,4337 4050,4342 4174,4345 4298,4348 4419,4350 4543,4356 4672,4364 4673,4360 4673,4330"/>
+    <Baseline points="3555,4317 3682,4320 3806,4325 3929,4328 4051,4333 4175,4336 4298,4339 4420,4342 4544,4347 4673,4355"/>
+    <TextEquiv>
+     <Unicode>stroh 0,40·0,50, bindfadengepr. Roggen- und Welzenstroh 0,40,50, Hâcke</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;} structure {type:corrected;}" id="region_1701885470482_2241_tl_7">
+    <Coords points="4672,4393 4673,4360 4545,4352 4421,4346 4299,4344 4175,4341 4054,4338 3930,4336 3809,4330 3685,4325 3558,4322 3558,4356 3684,4358 3808,4364 3929,4369 4053,4372 4174,4375 4298,4377 4419,4380 4543,4385 4656,4392 4672,4393"/>
+    <Baseline points="3558,4347 3684,4350 3808,4355 3929,4360 4053,4363 4175,4366 4298,4368 4420,4371 4544,4377 4672,4385"/>
+    <TextEquiv>
+     <Unicode>1,10 - 1,30, handelsübl. Heu 0,90 - 1.10, gutes Heu 1,20 - 1,40. — Raps 280 Gm.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;}" id="region_1701885470482_2241_tl_8">
+    <Coords points="3709,4391 3749,4391 3811,4393 3864,4396 4049,4401 4061,4401 4116,4404 4131,4404 4131,4404 4132,4371 4062,4368 4000,4368 3939,4365 3877,4363 3812,4360 3750,4357 3687,4357 3626,4355 3559,4352 3557,4385 3614,4388 3625,4388 3629,4388 3709,4391"/>
+    <Baseline points="3558,4377 3625,4379 3687,4382 3749,4382 3811,4385 3876,4387 3938,4390 4000,4393 4061,4393 4131,4395"/>
+    <TextEquiv>
+     <Unicode>für die Tonne, Rapskuchen’ 11.28 G.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     WTB Köln, 17. Jan. Getroidebören Das Geechaft war heuts
+still, der Besuch gut. Eine amtliche Preisnotieung fand nicht statt.
+( Berlin, 17. Jan. Rauhfuttor. Großhandelspreiss in Goldmark je
+bοkg ab inärk. Stationen: drahtgepr. Roggen- und Weizenstroh (,60-0,76,
+dsgl. Haferstroh 0,50 - 0,65, dsgl. Gerstenstroh 0,50 - 0,60, dsgl. Roggenlang-
+stroh 0,40·0,50, bindfadengepr. Roggen- und Welzenstroh 0,40,50, Hâcke
+1,10 - 1,30, handelsübl. Heu 0,90 - 1.10, gutes Heu 1,20 - 1,40. — Raps 280 Gm.
+für die Tonne, Rapskuchen’ 11.28 G.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:55;} structure {type:heading;}" id="region_1701885128757_2138" type="heading">
+   <Coords points="3908,4416 4344,4416 4344,4456 3908,4456"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885128757_2138_tl_1">
+    <Coords points="3897,4448 3904,4448 3983,4451 3996,4451 4011,4451 4075,4453 4093,4453 4114,4454 4167,4456 4190,4456 4217,4457 4259,4459 4287,4459 4327,4461 4341,4461 4342,4437 4343,4424 4340,4424 4252,4421 4239,4421 4226,4421 4160,4419 4142,4419 4124,4418 4068,4416 4045,4416 4021,4415 3976,4413 3948,4413 3915,4411 3899,4411 3897,4448"/>
+    <Baseline points="3898,4439 3948,4441 3997,4441 4045,4444 4094,4444 4142,4447 4191,4447 4239,4449 4288,4449 4341,4452"/>
+    <TextEquiv>
+     <Unicode>Kolonialwaren.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Kolonialwaren.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:56;} structure {type:paragraph;}" id="region_1701885473997_2244">
+   <Coords points="3558,4451 4674,4467 4667,4757 3560,4735"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885473997_2244_tl_1">
+    <Coords points="4669,4486 4121,4463 4059,4462 3941,4459 3820,4454 3699,4448 3576,4440 3576,4441 3573,4474 3697,4482 3819,4488 3940,4493 4059,4496 4180,4498 4301,4504 4419,4506 4540,4512 4667,4520 4669,4487 4669,4486"/>
+    <Baseline points="3574,4465 3698,4474 3819,4479 3940,4484 4059,4487 4180,4490 4301,4495 4420,4498 4541,4503 4667,4511"/>
+    <TextEquiv>
+     <Unicode>Rio de Janeiro, 14. Jan. Kaffee Rio: Kurs auf London 6 12/32 d,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885473997_2244_tl_2">
+    <Coords points="4668,4519 4542,4511 4418,4505 4297,4500 4173,4495 4051,4492 3928,4486 3806,4484 3682,4481 3557,4473 3556,4506 3682,4514 3805,4517 3926,4520 4050,4525 4172,4528 4295,4533 4417,4539 4540,4544 4667,4552 4668,4519"/>
+    <Baseline points="3556,4498 3682,4506 3806,4509 3927,4511 4051,4517 4172,4519 4296,4525 4417,4530 4541,4535 4667,4543"/>
+    <TextEquiv>
+     <Unicode>New York Standard Nr. 7 18650 Reis, Tageszufuhr 11 000 Sack, bisher</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885473997_2244_tl_3">
+    <Coords points="4667,4548 4540,4540 4415,4535 4294,4529 4170,4524 4049,4521 3925,4516 3803,4513 3680,4511 3556,4505 3555,4539 3679,4544 3803,4547 3924,4550 4048,4555 4169,4558 4293,4563 4414,4568 4538,4574 4666,4582 4667,4548"/>
+    <Baseline points="3555,4530 3679,4535 3803,4538 3924,4541 4048,4546 4169,4549 4293,4554 4414,4560 4538,4565 4667,4573"/>
+    <TextEquiv>
+     <Unicode>laufenden Erntejahr 2 228 000 (i. V. 1 905 000) Sack. Klarierungen nach</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885473997_2244_tl_4">
+    <Coords points="3553,4571 3676,4574 3800,4577 3921,4582 4045,4587 4166,4590 4290,4595 4411,4601 4535,4606 4664,4614 4666,4581 4537,4573 4413,4567 4291,4562 4168,4556 4046,4554 3922,4548 3801,4543 3677,4540 3555,4538 3553,4571"/>
+    <Baseline points="3554,4562 3676,4565 3800,4568 3921,4573 4045,4579 4166,4581 4290,4587 4412,4592 4535,4597 4665,4605"/>
+    <TextEquiv>
+     <Unicode>Europa usw. 24��0 Sac. Heutiger Vorrat in erster und zweiter Hand</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885473997_2244_tl_5">
+    <Coords points="3552,4601 3676,4606 3797,4609 3921,4614 4042,4617 4166,4620 4287,4625 4411,4630 4532,4636 4662,4644 4664,4610 4534,4602 4413,4597 4289,4591 4168,4586 4043,4583 3922,4581 3799,4575 3677,4572 3554,4567 3552,4601"/>
+    <Baseline points="3553,4592 3676,4597 3798,4600 3921,4605 4043,4608 4166,4611 4288,4616 4412,4622 4533,4627 4662,4635"/>
+    <TextEquiv>
+     <Unicode>315 000 (1 412 000) Sack. Santοs: New York Standard Nr. 4 23 500 Retr,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;} structure {type:corrected;}" id="region_1701885473997_2244_tl_6">
+    <Coords points="3551,4633 3676,4636 3797,4641 3921,4644 4042,4649 4166,4652 4287,4657 4411,4663 4532,4668 4662,4673 4663,4640 4534,4634 4413,4629 4289,4624 4168,4618 4043,4615 3923,4610 3798,4607 3677,4602 3552,4599 3551,4633"/>
+    <Baseline points="3551,4624 3676,4627 3806,4644 3929,4647 4043,4641 4166,4643 4288,4649 4412,4654 4533,4659 4662,4665"/>
+    <TextEquiv>
+     <Unicode>Nr. 7 21 500 Reis. Tageszufuhren 35 000 Sack, insgesamt bis jetzt 5 442 000</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;} structure {type:corrected;}" id="region_1701885473997_2244_tl_7">
+    <Coords points="3550,4665 3676,4668 3797,4671 3921,4676 4042,4679 4166,4684 4287,4687 4411,4692 4532,4700 4662,4706 4663,4672 4534,4667 4413,4659 4289,4653 4167,4650 4044,4645 3922,4642 3799,4637 3677,4634 3551,4632 3550,4665 3550,4665"/>
+    <Baseline points="3550,4657 3676,4659 3798,4662 3921,4667 4043,4670 4166,4676 4288,4678 4412,4684 4533,4692 4662,4697"/>
+    <TextEquiv>
+     <Unicode>(i. V. 4 231 000) Sack. Zufuhren im Innern 36 000 Sack. Klarierungen nach</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;} structure {type:corrected;}" id="region_1701885473997_2244_tl_8">
+    <Coords points="3550,4695 3676,4700 3797,4703 3921,4706 4042,4708 4166,4714 4287,4717 4411,4725 4532,4730 4567,4732 4662,4738 4662,4724 4663,4704 4534,4696 4413,4691 4289,4683 4167,4680 4044,4675 3922,4672 3798,4669 3677,4667 3551,4661 3550,4689 3550,4695"/>
+    <Baseline points="3550,4686 3676,4692 3798,4694 3921,4697 4043,4700 4166,4705 4288,4708 4412,4716 4533,4721 4662,4729"/>
+    <TextEquiv>
+     <Unicode>den Ver. Staaten 79 000 und nach Europa usw. 38 000 Sack. Heutiger</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;} structure {type:corrected;}" id="region_1701885473997_2244_tl_9">
+    <Coords points="3590,4728 3652,4730 3749,4733 3846,4735 3943,4738 4040,4741 4137,4743 4233,4746 4330,4752 4435,4757 4435,4757 4437,4723 4332,4718 4235,4713 4138,4710 4041,4707 3944,4705 3847,4702 3750,4699 3653,4697 3550,4694 3550,4727 3590,4728"/>
+    <Baseline points="3550,4719 3652,4721 3749,4724 3846,4727 3943,4729 4040,4732 4137,4735 4234,4737 4331,4743 4436,4748"/>
+    <TextEquiv>
+     <Unicode>Vorrat in erster und zweiter Hand 661 000 (2 197 000) Sack.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Rio de Janeiro, 14. Jan. Kaffee Rio: Kurs auf London 6 12/32 d,
+New York Standard Nr. 7 18650 Reis, Tageszufuhr 11 000 Sack, bisher
+laufenden Erntejahr 2 228 000 (i. V. 1 905 000) Sack. Klarierungen nach
+Europa usw. 24��0 Sac. Heutiger Vorrat in erster und zweiter Hand
+315 000 (1 412 000) Sack. Santοs: New York Standard Nr. 4 23 500 Retr,
+Nr. 7 21 500 Reis. Tageszufuhren 35 000 Sack, insgesamt bis jetzt 5 442 000
+(i. V. 4 231 000) Sack. Zufuhren im Innern 36 000 Sack. Klarierungen nach
+den Ver. Staaten 79 000 und nach Europa usw. 38 000 Sack. Heutiger
+Vorrat in erster und zweiter Hand 661 000 (2 197 000) Sack.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:57;} structure {type:table;}" id="region_1701885132882_2141">
+   <Coords points="3958,4754 4256,4754 4256,4802 3958,4802"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:58;} structure {type:table;}" id="region_1701885336830_2204">
+   <Coords points="3547,4787 4658,4821 4658,4973 3547,4939"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:59;} structure {type:paragraph;}" id="region_1701885502402_2249">
+   <Coords points="3556,4933 4657,4962 4655,5024 3556,5008"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885502402_2249_tl_1">
+    <Coords points="3562,4959 3600,4964 3636,4967 3668,4967 3703,4969 3735,4969 3771,4972 3803,4972 3837,4972 3878,4975 3880,4941 3840,4938 3803,4938 3771,4938 3738,4935 3703,4935 3670,4933 3636,4933 3603,4930 3567,4925 3562,4959"/>
+    <Baseline points="3563,4950 3601,4956 3636,4958 3668,4958 3703,4961 3736,4961 3771,4964 3803,4964 3838,4964 3878,4966"/>
+    <TextEquiv>
+     <Unicode>* London, 15. Jan.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;}" id="region_1701885502402_2249_tl_3">
+    <Coords points="3900,4940 3900,4941 3900,4975 3934,4975 3967,4978 4000,4978 4031,4978 4064,4981 4096,4981 4134,4983 4136,4948 4098,4945 4064,4945 4034,4942 4000,4942 3967,4942 3937,4940 3900,4940 3900,4940"/>
+    <Baseline points="3900,4966 3935,4966 3967,4969 4000,4969 4032,4969 4064,4972 4096,4972 4134,4974"/>
+    <TextEquiv>
+     <Unicode>Jute. Native</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885502402_2249_tl_4">
+    <Coords points="4309,4991 4651,5005 4654,5005 4654,5003 4653,4969 4592,4969 4537,4966 4477,4963 4421,4961 4364,4958 4311,4955 4255,4950 4196,4950 4138,4947 4136,4983 4196,4986 4252,4986 4308,4991 4309,4991"/>
+    <Baseline points="4137,4974 4196,4977 4253,4977 4309,4983 4363,4985 4420,4988 4484,4992 4543,4994 4592,4996 4654,4996"/>
+    <TextEquiv>
+     <Unicode>first Marks, Jan.-Febr. 27£ 2s 6d</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;}" id="region_1701885502402_2249_tl_2">
+    <Coords points="3785,5002 3800,5002 3809,5003 3874,5005 3878,5005 3878,4971 3878,4971 3835,4971 3802,4968 3762,4968 3727,4968 3692,4966 3655,4966 3619,4963 3582,4963 3543,4963 3542,4997 3582,4997 3616,4997 3622,4997 3785,5002"/>
+    <Baseline points="3542,4988 3582,4988 3617,4988 3655,4991 3690,4991 3727,4993 3762,4993 3800,4993 3835,4996 3878,4996"/>
+    <TextEquiv>
+     <Unicode>(zuletzt 27), lithninæ,</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885502402_2249_tl_5">
+    <Coords points="4080,5013 4090,5013 4110,5014 4197,5018 4206,5018 4239,5020 4252,5021 4252,5021 4254,4986 4208,4984 4169,4984 4131,4981 4093,4978 4051,4978 4015,4976 3974,4973 3935,4973 3896,4970 3891,5002 3891,5005 3957,5008 3972,5008 3997,5009 4012,5010 4080,5013"/>
+    <Baseline points="3892,4996 3935,4999 3973,4999 4013,5001 4051,5004 4091,5004 4129,5007 4169,5009 4207,5009 4253,5012"/>
+    <TextEquiv>
+     <Unicode>Jan.-Febr. 26£ 5s (26£).</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     * London, 15. Jan.
+Jute. Native
+first Marks, Jan.-Febr. 27£ 2s 6d
+(zuletzt 27), lithninæ,
+Jan.-Febr. 26£ 5s (26£).
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:60;} structure {type:heading;}" id="region_1701885136946_2144" type="heading">
+   <Coords points="3607,5028 4626,5050 4626,5085 3607,5063"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885136946_2144_tl_1">
+    <Coords points="4392,5047 4385,5046 4377,5046 3780,5024 3712,5022 3614,5018 3597,5017 3597,5017 3595,5054 3711,5059 3824,5062 3937,5065 4048,5067 4161,5073 4274,5078 4384,5083 4497,5086 4616,5091 4617,5055 4392,5047"/>
+    <Baseline points="3596,5044 3711,5050 3824,5053 3938,5055 4048,5058 4161,5063 4274,5069 4385,5074 4498,5077 4616,5082"/>
+    <TextEquiv>
+     <Unicode>Oel, Oelsaaten, Fettwaren, Spiritus.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     Oel, Oelsaaten, Fettwaren, Spiritus.
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TextRegion custom="readingOrder {index:61;} structure {type:paragraph;}" id="region_1701885507293_2252">
+   <Coords points="3546,5067 4661,5102 4657,5514 3546,5514"/>
+   <TextLine custom="readingOrder {index:0;} structure {type:corrected;}" id="region_1701885507293_2252_tl_1">
+    <Coords points="4660,5101 4660,5099 4533,5096 4415,5091 4297,5086 4178,5080 4057,5075 3939,5069 3820,5067 3701,5064 3578,5059 3576,5094 3700,5100 3819,5102 3937,5105 4056,5110 4177,5116 4295,5121 4414,5126 4533,5132 4658,5135 4660,5101"/>
+    <Baseline points="3577,5085 3701,5090 3819,5093 3938,5096 4056,5101 4177,5106 4296,5112 4414,5117 4533,5123 4658,5125"/>
+    <TextEquiv>
+     <Unicode>( Berlln, 17. Jan. Butter. Bei flauer Stimmung notierte la Sorte</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:1;} structure {type:corrected;}" id="region_1701885507293_2252_tl_2">
+    <Coords points="3542,5123 3579,5126 3614,5129 3646,5129 3682,5131 3714,5131 3749,5131 3781,5131 3816,5131 3856,5134 3858,5100 3818,5097 3781,5097 3749,5097 3714,5097 3682,5097 3649,5094 3614,5094 3581,5092 3543,5089 3543,5098 3542,5123"/>
+    <Baseline points="3542,5115 3579,5117 3614,5120 3647,5120 3682,5123 3714,5123 3749,5123 3781,5123 3816,5123 3857,5125"/>
+    <TextEquiv>
+     <Unicode>160 Gm. je Zentner.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:2;} structure {type:corrected;}" id="region_1701885507293_2252_tl_3">
+    <Coords points="4654,5195 4655,5169 4528,5166 4408,5158 4286,5153 4165,5148 4043,5145 3923,5140 3801,5137 3680,5134 3557,5126 3555,5161 3679,5169 3800,5172 3921,5174 4042,5180 4163,5182 4285,5188 4406,5193 4527,5201 4653,5204 4654,5195"/>
+    <Baseline points="3555,5152 3679,5160 3800,5163 3921,5166 4043,5171 4164,5174 4285,5179 4406,5185 4527,5193 4654,5195"/>
+    <TextEquiv>
+     <Unicode>o Amsterdam, 16. Jan. Rüböl: prompt 54fl (zuletzt 58 2/6 fl); Leinöl:</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:3;} structure {type:corrected;}" id="region_1701885507293_2252_tl_4">
+    <Coords points="4654,5199 4525,5196 4402,5191 4281,5186 4157,5180 4036,5175 3911,5172 3790,5169 3666,5167 3541,5164 3541,5199 3665,5201 3789,5204 3910,5207 4034,5209 4155,5215 4279,5220 4400,5225 4525,5231 4652,5233 4654,5199"/>
+    <Baseline points="3541,5190 3666,5193 3789,5195 3911,5198 4035,5201 4156,5206 4280,5211 4401,5217 4525,5222 4652,5225"/>
+    <TextEquiv>
+     <Unicode>prompt 52 1/2 fl (53 3/4 fl), Febr. 47 3/4 - 48 1/4 fl (48fl), Febr.-April 45 3/4 - 46 fl (—), März</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:4;} structure {type:corrected;}" id="region_1701885507293_2252_tl_5">
+    <Coords points="4652,5231 4523,5226 4402,5221 4278,5215 4156,5212 4033,5207 3912,5202 3787,5199 3666,5199 3541,5196 3540,5231 3666,5234 3787,5234 3910,5236 4031,5242 4156,5247 4277,5250 4400,5255 4522,5260 4649,5266 4652,5231"/>
+    <Baseline points="3540,5222 3666,5225 3787,5225 3911,5228 4032,5233 4156,5238 4277,5241 4401,5246 4522,5252 4650,5257"/>
+    <TextEquiv>
+     <Unicode>44 3/4 - 45 1/4 fl (44 1/2 - 45 fl), März-April (42 1/2 fl), April 43 - 43 1/2 fl (48 3/4 - 48 fl), Mai</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:5;} structure {type:corrected;}" id="region_1701885507293_2252_tl_6">
+    <Coords points="4650,5263 4520,5258 4399,5253 4278,5247 4154,5242 4033,5237 3911,5234 3787,5231 3666,5228 3540,5226 3539,5261 3665,5263 3787,5266 3910,5269 4031,5271 4153,5277 4277,5282 4398,5288 4519,5293 4647,5298 4650,5263"/>
+    <Baseline points="3540,5252 3666,5255 3787,5257 3911,5260 4032,5263 4153,5268 4277,5273 4398,5279 4519,5284 4648,5290"/>
+    <TextEquiv>
+     <Unicode>42 1/2 - 42 3/4 fl (42 - 42 1/4 fl), Mai-Juni 43 1/2 (—), Mai-Aug. 42 3/4 - 43 3/4 fl (41 3/4 - 42 fl),</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:6;} structure {type:corrected;}" id="region_1701885507293_2252_tl_7">
+    <Coords points="3539,5283 3539,5293 3582,5293 3619,5293 3660,5296 3698,5296 3738,5296 3775,5296 3816,5299 3854,5299 3900,5299 3900,5263 3854,5263 3816,5263 3778,5261 3738,5261 3698,5261 3660,5261 3622,5258 3582,5258 3539,5258 3539,5283"/>
+    <Baseline points="3539,5284 3582,5284 3620,5284 3660,5287 3698,5287 3738,5287 3776,5287 3814,5290 3852,5290 3900,5290"/>
+    <TextEquiv>
+     <Unicode>Sept.-Dez. 41 1/2 fl (89 3/4 fl).</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:7;} structure {type:corrected;}" id="region_1701885507293_2252_tl_8">
+    <Coords points="3568,5328 3690,5334 3808,5336 3927,5342 4045,5344 4164,5347 4282,5350 4400,5358 4519,5363 4643,5369 4644,5333 4520,5327 4402,5322 4284,5314 4164,5311 4046,5309 3927,5306 3809,5301 3690,5298 3570,5292 3568,5328"/>
+    <Baseline points="3569,5319 3690,5325 3808,5327 3927,5333 4045,5335 4164,5338 4282,5341 4400,5355 4518,5360 4643,5360"/>
+    <TextEquiv>
+     <Unicode>* London, 16. Jan. Leinöl: vorr. 43 7/8 £ (48 1/2£). Jan. 42 1/8 £ (41 7/8 £),</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:8;} structure {type:corrected;}" id="region_1701885507293_2252_tl_9">
+    <Coords points="3539,5363 3665,5366 3787,5368 3908,5371 4029,5374 4150,5379 4271,5382 4392,5387 4514,5395 4641,5395 4641,5361 4514,5361 4394,5353 4273,5348 4151,5345 4030,5340 3908,5337 3787,5334 3666,5331 3539,5329 3539,5363"/>
+    <Baseline points="3539,5354 3666,5357 3787,5360 3908,5362 4029,5365 4150,5370 4272,5373 4393,5378 4514,5387 4641,5387"/>
+    <TextEquiv>
+     <Unicode>Jan-April 38 1/2 £ (39 3/4 £), Mai-Aug. 37 1/2 £ (36 7/8 £); amerik. Terpentin:</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:9;} structure {type:corrected;}" id="region_1701885507293_2252_tl_10">
+    <Coords points="4643,5394 4517,5391 4397,5386 4275,5380 4154,5375 4030,5372 3909,5367 3787,5364 3666,5364 3540,5359 3539,5393 3666,5398 3787,5398 3908,5401 4029,5406 4153,5409 4274,5414 4395,5420 4516,5425 4643,5428 4643,5394"/>
+    <Baseline points="3539,5384 3666,5389 3787,5389 3908,5392 4029,5397 4153,5400 4274,5405 4395,5411 4517,5416 4643,5419"/>
+    <TextEquiv>
+     <Unicode>vorr. 77s (zuletzt 75s) und nach 76s bz., Febr.-Apil 77 3/4 s (75 1/2 s) und nach</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:10;} structure {type:corrected;}" id="region_1701885507293_2252_tl_11">
+    <Coords points="3536,5412 3536,5425 3573,5425 3606,5428 3638,5428 3671,5430 3709,5430 3709,5396 3671,5396 3641,5393 3606,5393 3576,5391 3537,5391 3536,5412"/>
+    <Baseline points="3536,5416 3574,5416 3606,5419 3639,5419 3671,5422 3709,5422"/>
+    <TextEquiv>
+     <Unicode>77s bz.</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:11;} structure {type:corrected;}" id="region_1701885507293_2252_tl_12">
+    <Coords points="4443,5491 4516,5493 4631,5498 4643,5498 4643,5493 4643,5463 4518,5457 4399,5454 4281,5449 4162,5444 4040,5441 3922,5438 3803,5436 3686,5430 3562,5422 3560,5458 3684,5466 3803,5471 3921,5474 4040,5477 4161,5479 4279,5485 4346,5488 4443,5491"/>
+    <Baseline points="3561,5448 3684,5457 3803,5462 3921,5465 4040,5467 4161,5470 4280,5475 4398,5481 4517,5483 4643,5489"/>
+    <TextEquiv>
+     <Unicode>*Buenos Aires, 15. Jan. Leinsaat: Jan. 20 (zuletzt 19,75), Felz</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextLine custom="readingOrder {index:12;} structure {type:corrected;} unclear {offset:6; length:5;}" id="region_1701885507293_2252_tl_13">
+    <Coords points="3631,5496 3641,5496 3652,5496 3726,5498 3740,5498 3756,5499 3820,5501 3840,5501 3861,5502 3994,5506 3994,5506 3994,5470 3938,5470 3891,5468 3842,5465 3789,5465 3742,5462 3692,5462 3643,5459 3593,5459 3540,5457 3538,5493 3541,5493 3631,5496"/>
+    <Baseline points="3539,5483 3593,5486 3641,5486 3692,5489 3741,5489 3789,5492 3841,5492 3889,5494 3938,5497 3994,5497"/>
+    <TextEquiv>
+     <Unicode>19,40 18,85; März 19,80 (19,05).</Unicode>
+    </TextEquiv>
+   </TextLine>
+   <TextEquiv>
+    <Unicode>
+     ( Berlln, 17. Jan. Butter. Bei flauer Stimmung notierte la Sorte
+160 Gm. je Zentner.
+o Amsterdam, 16. Jan. Rüböl: prompt 54fl (zuletzt 58 2/6 fl); Leinöl:
+prompt 52 1/2 fl (53 3/4 fl), Febr. 47 3/4 - 48 1/4 fl (48fl), Febr.-April 45 3/4 - 46 fl (—), März
+44 3/4 - 45 1/4 fl (44 1/2 - 45 fl), März-April (42 1/2 fl), April 43 - 43 1/2 fl (48 3/4 - 48 fl), Mai
+42 1/2 - 42 3/4 fl (42 - 42 1/4 fl), Mai-Juni 43 1/2 (—), Mai-Aug. 42 3/4 - 43 3/4 fl (41 3/4 - 42 fl),
+Sept.-Dez. 41 1/2 fl (89 3/4 fl).
+* London, 16. Jan. Leinöl: vorr. 43 7/8 £ (48 1/2£). Jan. 42 1/8 £ (41 7/8 £),
+Jan-April 38 1/2 £ (39 3/4 £), Mai-Aug. 37 1/2 £ (36 7/8 £); amerik. Terpentin:
+vorr. 77s (zuletzt 75s) und nach 76s bz., Febr.-Apil 77 3/4 s (75 1/2 s) und nach
+77s bz.
+*Buenos Aires, 15. Jan. Leinsaat: Jan. 20 (zuletzt 19,75), Felz
+19,40 18,85; März 19,80 (19,05).
+    </Unicode>
+   </TextEquiv>
+  </TextRegion>
+  <TableRegion custom="readingOrder {index:62;} structure {type:table;}" id="region_1701885140352_2147">
+   <Coords points="3986,5523 4220,5523 4220,5561 3986,5561"/>
+  </TableRegion>
+  <TableRegion custom="readingOrder {index:63;} structure {type:table;}" id="region_1701885341738_2207">
+   <Coords points="3544,5550 4659,5587 4659,6016 3544,5979"/>
+  </TableRegion>
+  <TextRegion custom="readingOrder {index:64;} structure {type:inverted_text;}" id="region_1714145006759_1172">
+   <Coords points="3540,5981 4652,6023 4651,6095 3542,6048"/>
+  </TextRegion>
+  <SeparatorRegion custom="readingOrder {index:65;} structure {type:separator_horizontal;}" id="Separator_1714145024365_1177">
+   <Coords points="3540,6059 4659,6094 4663,6119 3543,6100"/>
+  </SeparatorRegion>
+ </Page>
+</PcGts>

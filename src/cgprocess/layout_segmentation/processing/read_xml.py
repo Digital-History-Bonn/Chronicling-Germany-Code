@@ -2,18 +2,20 @@
 Module contains read xml functions for all datasets. Data will be writen into a dictionary
 mypy typing is ignored for this dictionary
 """
+
 import re
 from typing import Dict, List, Tuple, Union
 
 from bs4 import BeautifulSoup, ResultSet
 from shapely.geometry import Polygon
 
-from src.cgprocess.layout_segmentation.class_config import VALID_TAGS, LABEL_ASSIGNMENTS
+from src.cgprocess.layout_segmentation.class_config import LABEL_ASSIGNMENTS, VALID_TAGS
+from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 
 def read_transkribus(
-        path: str,
-        log: bool,
+    path: str,
+    log: bool,
 ) -> Dict[str, Union[List[int], Dict[str, List[List[List[int]]]]]]:
     """
     reads xml file and returns dictionary containing annotations
@@ -36,7 +38,7 @@ def read_transkribus(
     page = bs_data.find("Page")
 
     if log:
-        check_tags(page, tags_dict)
+        check_tags(page, tags_dict)  # type: ignore
 
     if page:
         return {
@@ -46,24 +48,30 @@ def read_transkribus(
     return {}
 
 
-def check_tags(page: BeautifulSoup, tags_dict: Dict[str, List[List[List[int]]]]) -> None:
+def check_tags(
+    page: BeautifulSoup, tags_dict: Dict[str, List[List[List[int]]]]
+) -> None:
     """
     Logs all occurrences of unknown regions.
     """
     if "UnknownRegion" in tags_dict.keys():
-        print(f"Found {len(tags_dict['UnknownRegion'])} UnknownRegion(s) in {page['imageFilename']}.")
+        print(
+            f"Found {len(tags_dict['UnknownRegion'])} UnknownRegion(s) in {page['imageFilename']}."
+        )
     unknown_tags = [key for key in tags_dict.keys() if key not in VALID_TAGS]
     for tag in unknown_tags:
-        print(f'Found {len(tags_dict[tag])} region(s) with unknown {tag} tag in {page["imageFilename"]}.')
+        print(
+            f'Found {len(tags_dict[tag])} region(s) with unknown {tag} tag in {page["imageFilename"]}.'
+        )
 
 
 def find_regions(
-        data: BeautifulSoup,
-        tag: str,
-        search_children: bool,
-        child_tag: str,
-        tags_dict: Dict[str, List[List[List[int]]]],
-        id_dict: Union[None, Dict[str, List[str]]] = None
+    data: BeautifulSoup,
+    tag: str,
+    search_children: bool,
+    child_tag: str,
+    tags_dict: Dict[str, List[List[List[int]]]],
+    id_dict: Union[None, Dict[str, List[str]]] = None,
 ) -> Dict[str, List[List[List[int]]]]:
     """
     returns dictionary with all coordinates of specified regions
@@ -75,29 +83,31 @@ def find_regions(
     :param id_dict: if a dict is provided, it will be filled with region ids.
     :return: tags: {tag_name_1: [], tag_name_2: [], ...}
     """
-    assert id_dict is None or not child_tag, ("Child tag extraction and id_dict are not compatible. Please be sure "
-                                              "you know what you are doing, bevore activating both.")
+    assert id_dict is None or not child_tag, (
+        "Child tag extraction and id_dict are not compatible. Please be sure "
+        "you know what you are doing, bevore activating both."
+    )
     regions = data.find_all(tag)
 
     for region in regions:
         region_type_matches = re.search(
-            r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
+            r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]  # type: ignore
         )
         if region_type_matches is None:
-            region_type = 'image' if tag in ('ImageRegion', 'GraphicRegion') else "UnknownRegion"
+            region_type = (
+                "image" if tag in ("ImageRegion", "GraphicRegion") else "UnknownRegion"
+            )
         else:
             region_type = region_type_matches.group(2)
         if region_type not in tags_dict:
             tags_dict[region_type] = []
         tags_dict[region_type].append(
-            xml_polygon_to_polygon_list(region.Coords["points"])
+            xml_polygon_to_polygon_list(region.Coords["points"])  # type: ignore
         )
         if id_dict is not None:
             if region_type not in id_dict:
                 id_dict[region_type] = []
-            id_dict[region_type].append(
-                region["id"]
-            )
+            id_dict[region_type].append(region["id"])  # type: ignore
 
         if search_children:
             lines = region.find_all(child_tag)
@@ -110,15 +120,8 @@ def find_regions(
     return tags_dict
 
 
-def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[int]]:
-    """
-    Splits xml polygon coordinate string to create a polygon, this being a list of coordinate pairs.
-    """
-    return [list(map(int, point.split(','))) for point in polygon_string.split()]
-
-
 def read_hlna2013(
-        path: str,
+    path: str,
 ) -> Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]]:
     """
     reads xml file and returns important information in dict
@@ -155,9 +158,9 @@ def read_hlna2013(
 
 
 def get_coordinates(
-        annotation: Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]],
-        separator_regions: ResultSet,
-        text_regions: ResultSet,
+    annotation: Dict[str, Union[List[int], Dict[str, List[List[Tuple[int, int]]]]]],
+    separator_regions: ResultSet,
+    text_regions: ResultSet,
 ) -> None:
     """Append coordinates to annotation dictionary
     :param annotation: dictionary to contain data
@@ -202,7 +205,7 @@ def get_coordinates(
 
 
 def read_regions_for_reading_order(
-        path: str,
+    path: str,
 ) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[str]], BeautifulSoup]:
     """
     Returns bbox and id dictionaries, that are suited for reading order module. Returns bs_data as well, to preserve
@@ -235,8 +238,9 @@ def read_raw_data(path: str) -> BeautifulSoup:
     return BeautifulSoup(data, "xml")
 
 
-def tag_to_label_dict(id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[List[List[int]]]]) -> Tuple[
-    Dict[int, List[List[float]]], Dict[int, List[str]]]:
+def tag_to_label_dict(
+    id_dict: Dict[str, List[str]], tags_dict: Dict[str, List[List[List[int]]]]
+) -> Tuple[Dict[int, List[List[float]]], Dict[int, List[str]]]:
     """
     Assigns numerical labels to string tags and adds them to dictionaries. Unkown tags are interpreted as
     UnkownRegion (label = 1.)
