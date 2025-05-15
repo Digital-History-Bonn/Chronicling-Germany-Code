@@ -50,7 +50,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     bleu_sum = 0.0
 
     for path in tqdm(gt_paths):
-        results = compare_page(confidence_threshold, parsed_args, path)
+        results = compare_page(confidence_threshold, ground_truth_path, ocr_path, output_path, path)
         page_correct, page_bad, distance_list, bad_list, bleu_score = results
 
         multi_page_correct.append(page_correct)
@@ -79,17 +79,17 @@ def main(parsed_args: argparse.Namespace) -> None:
 
 
 def compare_page(
-    confidence_threshold: float, parsed_args: argparse.Namespace, path: str
+    confidence_threshold: float, ground_truth_path: str, ocr_path: str, output_path:str, path: str
 ) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray, float]:
     """
     Load lines from ground truth and ocr files and compare them directly. This function assumes, that the
     lines are already assigned from one file to the other, and text can be directly compare.
     """
     ground_truth, _, _, _ = read_lines(
-        f"{parsed_args.ground_truth_path}{path}", "TextRegion", "TextLine"
+        f"{ground_truth_path}/{path}", "TextRegion", "TextLine"
     )
     ocr, _, confidence_list, _ = read_lines(
-        f"{parsed_args.ocr_path}{path}",
+        f"{ocr_path}/{path}",
         "TextRegion",
         "TextLine",
         confidence=bool(confidence_threshold),
@@ -98,7 +98,7 @@ def compare_page(
         merge_lists_conf(ocr, confidence_list, confidence_threshold),
         merge_lists_conf(ground_truth, confidence_list, confidence_threshold),
     )
-    with open(f"{parsed_args.output_path}{path}.html", "w", encoding="utf8") as file:
+    with open(f"{output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
     lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = (
         levensthein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
