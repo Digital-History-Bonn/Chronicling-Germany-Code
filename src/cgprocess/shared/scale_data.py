@@ -58,10 +58,10 @@ def rescale(args: argparse.Namespace) -> None:
                 random_scale = scale
                 if args.random > 0:
                     random_scale = 1 + np.random.rand() * (scale - 1)
-                    print(f"round {i}: scale {random_scale}")
                     random_scale = (
                         random_scale if np.random.rand() < 0.5 else random_scale**-1
                     )
+                    print(f"round {i}: scale {random_scale}")
 
                 image = scale_image(random_scale, data_path, extension, name)  # type: ignore
                 image.save(output_path + name + number + extension)
