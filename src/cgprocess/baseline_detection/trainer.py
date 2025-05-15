@@ -4,6 +4,7 @@ import argparse
 import os
 from typing import Dict, Tuple, Union
 
+from PIL import Image
 import numpy as np
 import torch
 from monai.losses import DiceLoss
@@ -18,6 +19,8 @@ from tqdm import tqdm
 
 from src.cgprocess.baseline_detection.dataset import CustomDataset as Dataset
 from src.cgprocess.baseline_detection.utils import adjust_path, set_seed
+
+Image.MAX_IMAGE_PIXELS = 500000000
 
 LR = 0.0001
 

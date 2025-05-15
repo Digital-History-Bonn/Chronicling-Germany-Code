@@ -142,8 +142,12 @@ def draw_baseline_target(
 
     # Draw targets
     for baseline, textline in zip(baselines, textlines):
-        line = LineString(torch.flip(baseline, dims=[1]))
-        polygon = Polygon(torch.flip(textline, dims=[1]))
+        try:
+            line = LineString(torch.flip(baseline, dims=[1]))
+            polygon = Polygon(torch.flip(textline, dims=[1]))
+        except ValueError as e:
+            print(f"{e} in image {name}\n")
+            continue
 
         # draw limiter
         draw_limiter(limiter_draw, polygon, width)
@@ -151,14 +155,14 @@ def draw_baseline_target(
         # draw baseline
         baseline_draw.line(line.coords, fill=1, width=1)
 
+        # draw ascender/descender
         try:
             ascender, descender = split_textbox(polygon, line)
-        except ValueError as e:
+            draw_ascender_descender(ascender, baseline, shape, target, dim=0)
+            draw_ascender_descender(descender, baseline, shape, target, dim=1)
+        except (ValueError, IndexError) as e:
             print(f"{e} in image {name}\n")
             continue
-        # draw ascender/descender
-        draw_ascender_descender(ascender, baseline, shape, target, dim=0)
-        draw_ascender_descender(descender, baseline, shape, target, dim=1)
 
     target[:, :, 3] = np.array(limiter_img)
     target[:, :, 2] = np.array(baseline_img)
