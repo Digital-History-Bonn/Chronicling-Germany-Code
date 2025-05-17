@@ -417,11 +417,13 @@ def main() -> None:
 
     trainset = Dataset(image_path=train_path,
                        target_path=train_path,
+                       augmentations=True,
                        pad_seq=False,
                        cache_images=True)
 
     validset = Dataset(image_path=valid_path,
                        target_path=valid_path,
+                       augmentations=False,
                        pad_seq=False,
                        cache_images=True)
 
