@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
+from PIL import Image
 from skimage import io
 from torch.nn import Module
 from torch.utils.data import Dataset
@@ -49,8 +50,8 @@ class CustomDataset(Dataset):  # type: ignore
         Returns:
             image, target
         """
-        image = torch.tensor(io.imread(f"{self.data_path}/{self.data[index]}.jpg"))
-        image = image.permute(2, 0, 1) / 256
+        to_tensor = transforms.PILToTensor()
+        image = to_tensor(Image.open(f"{self.data_path}/{self.data[index]}.jpg").convert("RGB")) / 256
         target = torch.tensor(
             np.load(f"{self.data_path}/{self.data[index]}.npz")["array"]
         )
@@ -65,10 +66,10 @@ class CustomDataset(Dataset):  # type: ignore
         image = resize(image)
         target = F.max_pool2d(target, 2)
 
-        if self.augmentations and random.random() < 0.5:
-            resize = transforms.Resize((width // 4, height // 4))
-            image = resize(image)
-            target = F.max_pool2d(target, 2)
+        #if self.augmentations and random.random() < 0.5:
+        #    resize = transforms.Resize((width // 4, height // 4))
+        #    image = resize(image)
+        #    target = F.max_pool2d(target, 2)
 
         # pad image to ensure size is big enough for cropping
         width_pad = max(256 - image.shape[1], 0)

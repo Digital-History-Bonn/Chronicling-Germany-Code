@@ -87,6 +87,8 @@ class Trainer:
         optimizer: Optimizer,
         name: str,
         gpu_count: int = 0,
+        worker_count: int = 1,
+        batch_size: int = 32,
     ) -> None:
         """
         Trainer class to train models.
@@ -114,13 +116,14 @@ class Trainer:
 
         self.trainloader = DataLoader(
             traindataset,
-            batch_size=16 * gpu_count,
+            batch_size=batch_size * gpu_count,
             shuffle=True,
-            num_workers=28,
-            prefetch_factor=1,
+            num_workers=worker_count,
+            persistent_workers=True,
+            drop_last=True,
         )
         self.testloader = DataLoader(
-            testdataset, batch_size=1 * gpu_count, shuffle=False, num_workers=24
+            testdataset, batch_size=1 * gpu_count, shuffle=False, num_workers=16, persistent_workers=True
         )
 
         self.bestavrgloss: Union[float, None] = None
@@ -403,6 +406,20 @@ def get_args() -> argparse.Namespace:
         default=42,
         help="Seeding number for random generators.",
     )
+    parser.add_argument(
+        "--num-worker",
+        "-w",
+        type=int,
+        default=8,
+        help="Number of workers for train dataloader.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        "-b",
+        type=int,
+        default=1,
+        help="Batchsize for training.",
+    )
 
     parser.add_argument("--augmentations", "-a", action=argparse.BooleanOptionalAction)
     parser.set_defaults(augmentations=False)
@@ -482,7 +499,7 @@ def main() -> None:
     # init optimizer and trainer
     optimizer = AdamW(model.parameters(), lr=LR)
     trainer = Trainer(
-        model, traindataset, validdataset, optimizer, name, gpu_count=args.gpu
+        model, traindataset, validdataset, optimizer, name, gpu_count=args.gpu, worker_count=args.num_worker, batch_size=args.batch_size
     )
 
     # start training
