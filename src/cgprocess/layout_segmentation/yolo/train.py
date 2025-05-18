@@ -6,6 +6,7 @@ from ultralytics import YOLO
 
 def main():
     args = get_args()
+    print(args)
 
     # get weights or params
     model_file = "yolov8n.pt" if args.seed == 0 else "yolov8n.yaml"
@@ -27,6 +28,7 @@ def main():
                 batch=8 * len(devices) if torch.cuda.is_available() else 8,
                 device=devices,
                 seed=args.seed,
+                pretrained=args.pretrained,
                 cache=True)
 
 
@@ -68,6 +70,14 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="Name of the trained model."
+    )
+
+    parser.add_argument(
+        "--pretrained",
+        "-p",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Use a pretrained model."
     )
 
     return parser.parse_args()
