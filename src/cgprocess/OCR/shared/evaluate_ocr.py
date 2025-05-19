@@ -92,19 +92,19 @@ def compare_page(
 
     char_ratio = calculate_ratio(distance_list)
     print(
-        f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 1.0]) / len(ratio_list)}"
+        f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 0.0]) / len(ratio_list)}"
     )
     print(
-        f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) < 0.9]) / len(ratio_list)}"
+        f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) > 0.1]) / len(ratio_list)}"
     )
     print(f"{path} normalized levensthein distance per line: {lev_dis}")
     print(f"{path} normalized levensthein distance per character: {char_ratio}")
     print(f"{path} levensthein median: {lev_med}")
     print(f"{path} levensthein worst line: {min(ratio_list)}\n")
 
-    page_correct = len(np.array(ratio_list)[np.array(ratio_list) == 1.0])
-    page_bad = len(np.array(ratio_list)[np.array(ratio_list) < 0.9])
-    page_bad_list = np.array(text_list)[np.array(ratio_list) < 0.9].tolist()
+    page_correct = len(np.array(ratio_list)[np.array(ratio_list) == 0.0])
+    page_bad = len(np.array(ratio_list)[np.array(ratio_list) > 0.1])
+    page_bad_list = np.array(text_list)[np.array(ratio_list) > 0.1].tolist()
 
     return page_correct, page_bad, distance_list, page_bad_list
 
