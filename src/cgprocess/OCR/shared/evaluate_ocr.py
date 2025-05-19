@@ -101,7 +101,7 @@ def compare_page(
     with open(f"{output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
     lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = (
-        levensthein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
+        levenshtein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
     )
 
     char_ratio = calculate_ratio(distance_list)
@@ -153,7 +153,7 @@ def calculate_ratio(data_list: List[Tuple[int, int]]) -> float:
     return ratio
 
 
-def levensthein_distance(
+def levenshtein_distance(
     gt: List[List[str]],
     ocr: List[List[str]],
     confidence_list: List[List[float]],
@@ -180,9 +180,9 @@ def levensthein_distance(
                     gt_line.split(" "),
                     smoothing_function=chencherry.method1,
                 )
-                ratio = Levenshtein.ratio(gt_line, ocr_line)
                 distance = Levenshtein.distance(gt_line, ocr_line)
-                distance_list.append((distance, len(gt_line) + len(ocr_line)))
+                distance_list.append((distance, max(len(gt_line), len(ocr_line))))
+                ratio = distance_list[-1][0] / distance_list[-1][1]
                 text_list.append((gt_line, ocr_line))
                 ratio_sum += ratio
                 ratio_list.append(ratio)

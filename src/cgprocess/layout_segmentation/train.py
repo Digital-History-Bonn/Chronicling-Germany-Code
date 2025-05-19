@@ -926,6 +926,10 @@ def main() -> None:
         if parameter_args.evaluate is not None
         else "logs/runs/" + name
     )
+
+    if parameter_args.evaluate is not None:
+        parameter_args.crop_factor = 1
+
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
     load_model = (

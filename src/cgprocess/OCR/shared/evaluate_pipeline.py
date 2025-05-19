@@ -19,7 +19,7 @@ from src.cgprocess.baseline_detection.utils import adjust_path, get_tag
 from src.cgprocess.layout_segmentation.processing.read_xml import (
     xml_polygon_to_polygon_list,
 )
-from src.cgprocess.OCR.shared.evaluate_ocr import calculate_ratio, levensthein_distance
+from src.cgprocess.OCR.shared.evaluate_ocr import calculate_ratio, levenshtein_distance
 
 
 # pylint: disable=duplicate-code
@@ -144,7 +144,7 @@ def evaluation(
     pred_texts = [pred_texts[i] for i, _ in mapping]
     gt_texts = [gt_texts[j] for _, j in mapping]
 
-    results = levensthein_distance(
+    results = levenshtein_distance(
         gt=[gt_texts], ocr=[pred_texts], confidence_list=[[1] * len(pred_texts)]
     )
     lev_dis, lev_med, ratio_list, distance_list, _, bleu_score = results
