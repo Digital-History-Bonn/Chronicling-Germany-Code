@@ -11,7 +11,6 @@ from typing import Any, List, Optional, Tuple
 import Levenshtein
 import numpy as np
 from bs4 import BeautifulSoup
-from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 from tqdm import tqdm  # type: ignore
 
 from src.cgprocess.OCR.shared.utils import adjust_path, line_has_text
@@ -47,17 +46,14 @@ def main(parsed_args: argparse.Namespace) -> None:
     multi_page_bad: list = []
     multi_page_correct: list = []
     multi_page_bad_list: list = []
-    bleu_sum = 0.0
-
     for path in tqdm(gt_paths):
         results = compare_page(confidence_threshold, ground_truth_path, ocr_path, output_path, path)
-        page_correct, page_bad, distance_list, bad_list, bleu_score = results
+        page_correct, page_bad, distance_list, bad_list = results
 
         multi_page_correct.append(page_correct)
         multi_page_bad.append(page_bad)
         multi_page_distance_list.extend(distance_list)
         multi_page_bad_list.append(bad_list)
-        bleu_sum += bleu_score
 
     print(
         f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}"
@@ -67,20 +63,10 @@ def main(parsed_args: argparse.Namespace) -> None:
         f"{sum(multi_page_correct) / len(multi_page_distance_list)}"
     )
     print(f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
-    print(f"overall bleu score: {bleu_sum / len(gt_paths)}")
-
-    # with open(f'results_{parsed_args.name}.json', 'w', encoding='utf8') as json_file:
-    #     json.dump({"levenshtein": calculate_ratio(multi_page_distance_list), "correct":
-    #         calculate_ratio(multi_page_correct),
-    #                "bad": calculate_ratio(multi_page_bad)}, json_file)
-
-    # with open(f"{output_path}multi_page_bad_list.json", "w", encoding="utf8") as file:
-    #     json.dump(multi_page_bad_list, file)
-
 
 def compare_page(
     confidence_threshold: float, ground_truth_path: str, ocr_path: str, output_path:str, path: str
-) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray, float]:
+) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray]:
     """
     Load lines from ground truth and ocr files and compare them directly. This function assumes, that the
     lines are already assigned from one file to the other, and text can be directly compare.
@@ -100,7 +86,7 @@ def compare_page(
     )
     with open(f"{output_path}{path}.html", "w", encoding="utf8") as file:
         file.write(result)
-    lev_dis, lev_med, ratio_list, distance_list, text_list, bleu_score = (
+    lev_dis, lev_med, ratio_list, distance_list, text_list = (
         levenshtein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
     )
 
@@ -115,13 +101,12 @@ def compare_page(
     print(f"{path} normalized levensthein distance per character: {char_ratio}")
     print(f"{path} levensthein median: {lev_med}")
     print(f"{path} levensthein worst line: {min(ratio_list)}\n")
-    print(f"{path} bleu score: {bleu_score}\n")
 
     page_correct = len(np.array(ratio_list)[np.array(ratio_list) == 1.0])
     page_bad = len(np.array(ratio_list)[np.array(ratio_list) < 0.9])
     page_bad_list = np.array(text_list)[np.array(ratio_list) < 0.9].tolist()
 
-    return page_correct, page_bad, distance_list, page_bad_list, bleu_score
+    return page_correct, page_bad, distance_list, page_bad_list
 
 
 def merge_lists_conf(
@@ -159,27 +144,21 @@ def levenshtein_distance(
     confidence_list: List[List[float]],
     confidence_threshold: Optional[float] = None,
 ) -> Tuple[
-    float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]], float
+    float, float, List[float], List[Tuple[int, int]], List[Tuple[str, str]]
 ]:
     """
     Computes the levensthein ratio between all lines and returns the mean, median and list of all ratios.
     """
-    chencherry = SmoothingFunction()
     ratio_sum = 0.0
     count = 0
     ratio_list = []
     text_list = []
     distance_list = []
-    bleu_sum = 0
+
     for gt_region, ocr_region, conf_region in zip(gt, ocr, confidence_list):
         count += len(gt_region)
         for gt_line, ocr_line, conf in zip(gt_region, ocr_region, conf_region):
             if sufficient_confidence(conf, confidence_threshold):
-                bleu_sum += sentence_bleu(
-                    [ocr_line.split(" ")],
-                    gt_line.split(" "),
-                    smoothing_function=chencherry.method1,
-                )
                 distance = Levenshtein.distance(gt_line, ocr_line)
                 distance_list.append((distance, max(len(gt_line), len(ocr_line))))
                 ratio = distance_list[-1][0] / distance_list[-1][1]
@@ -192,8 +171,7 @@ def levenshtein_distance(
         1 - statistics.median(ratio_list),
         ratio_list,
         distance_list,
-        text_list,
-        bleu_sum / count,
+        text_list
     )
 
 
@@ -204,7 +182,7 @@ def read_lines(
 ]:
     """
     Reads xml file and extracts all the lines from specified regions.
-    :param confidence_threshold: lines below this threshold are ignored
+    :param confidence: returns the confidence of prediction if given in xml file.
     :param path: path to xml file without xml ending
     :param tag: tag to be found
     :param child_tag: children tag to be found
