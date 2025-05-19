@@ -112,7 +112,7 @@ def main() -> None:
     model = RecognitionModel(
         hyper_params=hparams,
         output=f"models/{name}/model",
-        model='models/pretrain_kraken/german_newspapers_kraken.mlmodel' if args.pretrained else None,
+        model='models/german_newspapers_kraken.mlmodel' if args.pretrained else None,
         num_workers=16,
         training_data=training_files,
         evaluation_data=evaluation_files,
