@@ -148,8 +148,8 @@ def evaluation(
 
     char_ratio = calculate_ratio(distance_list)
 
-    correct_lines = np.array(ratio_list)[np.array(ratio_list) == 1.0].tolist()
-    bad_lines = np.array(ratio_list)[np.array(ratio_list) < 0.9].tolist()
+    correct_lines = np.array(ratio_list)[np.array(ratio_list) == 0.0].tolist()
+    bad_lines = np.array(ratio_list)[np.array(ratio_list) > 0.1].tolist()
     print(
         f"{prediction_file} correct lines: " f"{len(correct_lines) / len(ratio_list)}"
     )
