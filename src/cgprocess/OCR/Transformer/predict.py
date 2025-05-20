@@ -16,6 +16,7 @@ from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
 from src.cgprocess.OCR.Transformer.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
 from src.cgprocess.OCR.Transformer.ocr_engine import transformer
 from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
+from src.cgprocess.OCR.shared.utils import load_image
 from src.cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
 
 
@@ -155,7 +156,7 @@ def predict_and_write(
     if os.path.exists(out_path):
         return
 
-    image = torch.tensor(io.imread(image_path)).permute(2, 0, 1).to(device)
+    image = load_image(image_path).to(device)
 
     with open(anno_path, "r", encoding="utf-8") as file:
         data = file.read()
