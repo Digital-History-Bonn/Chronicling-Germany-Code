@@ -9,7 +9,6 @@ from typing import List, Tuple
 import torch
 import torch.nn.functional as F
 from bs4 import BeautifulSoup, ResultSet
-from skimage import io
 from tqdm import tqdm, trange
 
 from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
@@ -179,7 +178,7 @@ def predict_and_write(
         crop = F.pad(crop, (pad_width, 0, pad_height, 0), "constant", 0)
         crop = crop[:, :PAD_HEIGHT]
 
-        text = predict(model, tokenizer, crop[None].float() / 255)
+        text = predict(model, tokenizer, crop[None].float())
 
         replace_text(line, text)
 
