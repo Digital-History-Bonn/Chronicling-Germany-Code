@@ -31,7 +31,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     if parsed_args.custom_split_file:
         with open(parsed_args.custom_split_file, "r", encoding="utf-8") as file:
             split = json.load(file)
-            gt_paths = split["Test"]
+            gt_paths = split[parsed_args.split]
     else:
         assert len(gt_paths) == len(ocr_paths), (
             f"Found {len(gt_paths)} ground truth files, but ther are {len(ocr_paths)} "
