@@ -247,7 +247,7 @@ def main() -> None:
         input_channels=3,
         nb_output_symbols=len(ALPHABET) - 2,
     )
-    model.load_state_dict(torch.load(f"models/{args.model}.pt"))
+    model.load_state_dict(torch.load(args.model))
     model.to(device)
 
     tokenizer = OCRTokenizer(ALPHABET)
