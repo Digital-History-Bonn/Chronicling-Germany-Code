@@ -64,6 +64,19 @@ def main(parsed_args: argparse.Namespace) -> None:
     )
     print(f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
 
+    if not os.path.exists(f"{output_path}/evaluation.txt"):
+        with open(f"{output_path}/evaluation.txt", 'w') as file:
+            file.writelines("\n".join([f"{key}: {value}" for key, value in parsed_args.items()]))
+
+    with open(f"{output_path}/evaluation.txt", "a", encoding="utf-8") as file:
+        file.writelines([
+            "\n",
+            f"{parsed_args.split}",
+            f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}",
+            f"overall correct lines: {sum(multi_page_correct) / len(multi_page_distance_list)}",
+            f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}"
+        ])
+
 def compare_page(
     confidence_threshold: float, ground_truth_path: str, ocr_path: str, output_path:str, path: str
 ) -> Tuple[int, int, List[Tuple[int, int]], np.ndarray]:
@@ -270,6 +283,12 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
         "of train, validation and test images. This will only evaluate the test dataset.",
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="Test",
+        help="Choose the key from the split-file, default is 'Test'",
     )
     parser.add_argument(
         "--name",
