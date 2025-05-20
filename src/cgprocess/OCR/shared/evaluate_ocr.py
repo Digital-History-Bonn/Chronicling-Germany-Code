@@ -66,7 +66,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 
     if not os.path.exists(f"{output_path}/evaluation.txt"):
         with open(f"{output_path}/evaluation.txt", 'w') as file:
-            file.writelines("\n".join([f"{key}: {value}" for key, value in parsed_args.items()]))
+            file.writelines("\n".join([f"{key}: {value}" for key, value in dict(parsed_args).items()]))
 
     with open(f"{output_path}/evaluation.txt", "a", encoding="utf-8") as file:
         file.writelines([
