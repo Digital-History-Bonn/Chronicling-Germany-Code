@@ -71,10 +71,10 @@ def main(parsed_args: argparse.Namespace) -> None:
     with open(f"{output_path}/evaluation.txt", "a", encoding="utf-8") as file:
         file.writelines([
             "\n",
-            f"{parsed_args.split}",
-            f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}",
-            f"overall correct lines: {sum(multi_page_correct) / len(multi_page_distance_list)}",
-            f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}"
+            f"{parsed_args.split}: \n",
+            f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}\n",
+            f"overall correct lines: {sum(multi_page_correct) / len(multi_page_distance_list)}\n",
+            f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}\n"
         ])
 
 def compare_page(
