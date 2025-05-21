@@ -18,7 +18,7 @@ from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module # type: ignor
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
+from cgprocess.layout_segmentation.processing.preprocessing import pad_full_image
 
 IMAGE_PATH = "data/images"
 TARGET_PATH = "data/targets/"
@@ -93,9 +93,7 @@ class PredictDataset(Dataset):
         """Load image and possibly the target by path only without utilizing the entire dataset."""
         image = self.load_image(path)
 
-        pad_size = Preprocessing.calculate_padding_size(image, 256, 1)  #
-        pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
-        image = pad(image)
+        image, pad = pad_full_image(image)
 
         if self.target_path is not None:
             target = self.load_target(path)

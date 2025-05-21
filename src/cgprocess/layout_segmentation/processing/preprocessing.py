@@ -26,6 +26,17 @@ CROP_FACTOR = 1.5
 CROP_SIZE = 512
 
 
+def pad_full_image(image: torch.Tensor) -> Tuple[torch.Tensor, transforms.Pad]:
+    """
+    Pad image to ensure that it is divisible by the power of 2 corresponding to the model. (at least 256)
+    Returns: image and pad transform for padding of target, if necessary.
+    """
+    pad_size = Preprocessing.calculate_padding_size(image, 256, 1)  #
+    pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
+    image = pad(image)
+    return image, pad
+
+
 class Preprocessing:
     """
     class for preprocessing newspaper images and targets
@@ -33,7 +44,7 @@ class Preprocessing:
 
     @staticmethod
     def calculate_padding_size(
-        image: torch.Tensor, size: int, factor: float
+            image: torch.Tensor, size: int, factor: float
     ) -> Tuple[int, int]:
         """
         Sets padding to make the image compatible with cropping. For this, it can not be smaller than one crop
@@ -85,12 +96,12 @@ class Preprocessing:
         return windows
 
     def __init__(
-        self,
-        scale: float = SCALE,
-        crop_factor: float = CROP_FACTOR,
-        crop_size: int = CROP_SIZE,
-        crop: bool = True,
-        reduce_classes: bool = False,
+            self,
+            scale: float = SCALE,
+            crop_factor: float = CROP_FACTOR,
+            crop_size: int = CROP_SIZE,
+            crop: bool = True,
+            reduce_classes: bool = False,
     ):
         """
         :param scale: (default: 4)
@@ -105,7 +116,7 @@ class Preprocessing:
         self.reduce_classes = reduce_classes
 
     def __call__(
-        self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
+            self, input_image: Image.Image, input_target: npt.NDArray[np.uint8]
     ) -> npt.NDArray[np.uint8]:
         """
         preprocess for image with annotations
@@ -124,10 +135,11 @@ class Preprocessing:
         data: npt.NDArray[np.uint8] = np.concatenate(
             (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
         )
-        if self.crop:
+        if self.crop and self.crop_factor > 1:
             data = self.crop_img(self.crop_size, self.crop_factor, data)
             return data
 
+        data= pad_full_image(torch.from_numpy(data))[0].numpy()
         return np.expand_dims(data, axis=0)
 
     def set_padding(self, image: torch.Tensor) -> None:
@@ -142,7 +154,7 @@ class Preprocessing:
             )
 
     def load(
-        self, input_path: str, target_path: str, file: str, dataset: str
+            self, input_path: str, target_path: str, file: str, dataset: str
     ) -> Tuple[Image.Image, ndarray]:
         """Load image and target
         :param input_path: path to input image
@@ -167,7 +179,7 @@ class Preprocessing:
         return image, target
 
     def padding(
-        self, image: torch.Tensor, target: torch.Tensor
+            self, image: torch.Tensor, target: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Pads image by given size to the right and bottom.
@@ -187,7 +199,7 @@ class Preprocessing:
         return image, torch.squeeze(target)
 
     def scale_img(
-        self, image: Image.Image, target: npt.NDArray[np.uint8]
+            self, image: Image.Image, target: npt.NDArray[np.uint8]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         scales down all given images and target by scale

@@ -84,10 +84,11 @@ python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_b
 ### Evaluation
 
 At the end of each training run, the early stopping result is evaluated. 
-For evaluating a model without training it, use -- evaluate.
+For evaluating a model without training it, use -- evaluate. As images are processed in their entirety with out 
+padding, batchsize of one is required. Therefore, this cannot run on more than one gpu.
 
 ```` bash
-python -m cgprocess.layout_segmentation.train -n evaluate -b 64 -d data_folder/ -l model_name -g 4 -w 32 --evaluate
+python -m cgprocess.layout_segmentation.train -n evaluate -b 1 -d data_folder/ -l model_name -w 32 --evaluate
 ````
 
 ### Uncertainty predict
