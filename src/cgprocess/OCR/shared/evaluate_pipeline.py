@@ -48,9 +48,6 @@ def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
         if get_tag(region) in TEXT_CLASSES:
             text_region = region.find_all("TextLine")
             for text_line in text_region:
-                polygon = torch.tensor(
-                    xml_polygon_to_polygon_list(text_line.Coords["points"])
-                )
                 for word in soup.find_all("Word"):
                     word.decompose()
                 polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
@@ -118,7 +115,7 @@ def matching(
 
 def evaluation(
     prediction_file: str, ground_truth_file: str
-) -> Tuple[List[Tuple[int, int]], float, list, list]:
+) -> Tuple[List[Tuple[int, int]], list, list]:
     """
     Evaluates the baseline detection.
 
@@ -147,12 +144,12 @@ def evaluation(
     results = levenshtein_distance(
         gt=[gt_texts], ocr=[pred_texts], confidence_list=[[1] * len(pred_texts)]
     )
-    lev_dis, lev_med, ratio_list, distance_list, _, bleu_score = results
+    lev_dis, lev_med, ratio_list, distance_list, _ = results
 
     char_ratio = calculate_ratio(distance_list)
 
-    correct_lines = np.array(ratio_list)[np.array(ratio_list) == 1.0].tolist()
-    bad_lines = np.array(ratio_list)[np.array(ratio_list) < 0.9].tolist()
+    correct_lines = np.array(ratio_list)[np.array(ratio_list) == 0.0].tolist()
+    bad_lines = np.array(ratio_list)[np.array(ratio_list) > 0.1].tolist()
     print(
         f"{prediction_file} correct lines: " f"{len(correct_lines) / len(ratio_list)}"
     )
@@ -163,9 +160,8 @@ def evaluation(
     )
     print(f"{prediction_file} levensthein median: {lev_med}")
     print(f"{prediction_file} levensthein worst line: {min(ratio_list)}\n")
-    print(f"{prediction_file} bleu score normalized per line: {bleu_score}")
 
-    return distance_list, bleu_score, correct_lines, bad_lines
+    return distance_list, correct_lines, bad_lines
 
 
 # pylint: disable=duplicate-code
@@ -218,15 +214,13 @@ def main() -> None:
     overall_correct_lines = []
     overall_bad_lines = []
     ratios = []
-    bleu_sum = 0.0
 
     for prediction, target in tqdm(
         zip(predictions, targets), total=len(targets), desc="evaluation"
     ):
-        distance_list, bleu_score, correct_lines, bad_lines = evaluation(
+        distance_list, correct_lines, bad_lines = evaluation(
             prediction, target
         )
-        bleu_sum += bleu_score
         overall_distance_list += distance_list
         overall_correct_lines += correct_lines
         overall_bad_lines += bad_lines
@@ -236,11 +230,6 @@ def main() -> None:
         overall_ratio = calculate_ratio(overall_distance_list)
         print(args.name)
         print(f"\n\noverall levensthein distance per character: {overall_ratio}")
-        # print(
-        #     f"levensthein distance per character per page: {np.mean(ratios)}
-        #     ({np.median(ratios)}) +- {np.std(ratios)} "f"min:{np.min(ratios)} max: "
-        #     f"{np.max(ratios)}")
-        print(f"Bleu score normalized per line and page: {bleu_sum / len(targets)}")
         print(
             f"overall correct lines: "
             f"{len(overall_correct_lines) / len(overall_distance_list)}"

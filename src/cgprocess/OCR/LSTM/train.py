@@ -60,6 +60,14 @@ def get_args() -> argparse.Namespace:
         help="Seeding number for random generators.",
     )
 
+    parser.add_argument(
+        "--pretrained",
+        "-p",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Use a pretrained model."
+    )
+
     return parser.parse_args()
 
 
@@ -68,7 +76,7 @@ def main() -> None:
     # get args
     args = get_args()
     set_seed(args.seed)
-    print(f"{args =}")
+    print(f"{args=}")
 
     name = args.name
     train_path = adjust_path(args.train_data)
@@ -104,7 +112,7 @@ def main() -> None:
     model = RecognitionModel(
         hyper_params=hparams,
         output=f"models/{name}/model",
-        # model='load_model/german_newspapers_kraken.mlmodel',
+        model='models/german_newspapers_kraken.mlmodel' if args.pretrained else None,
         num_workers=16,
         training_data=training_files,
         evaluation_data=evaluation_files,
