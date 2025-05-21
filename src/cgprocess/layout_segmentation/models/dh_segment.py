@@ -132,7 +132,7 @@ class Block(nn.Module):
     Encoder Block from https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
     """
 
-    def __init__(self, layers: List[Bottleneck], planes: int, conv_out: bool = False):
+    def __init__(self, layers: List[Bottleneck], planes: int, conv_out: bool = False, out_channels: int = 512):
         """
         Encoder Block
         :param layers: List of layers (Bottleneck)
@@ -142,7 +142,8 @@ class Block(nn.Module):
         super().__init__()
         self.layers = nn.Sequential(*layers)
         self.conv_out = conv_out
-        self.conv = conv1x1(planes * Bottleneck.expansion, 512) if conv_out else None
+        self.out_channels = out_channels
+        self.conv = conv1x1(planes * Bottleneck.expansion, out_channels) if conv_out else None
 
     def forward(self, in_x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """

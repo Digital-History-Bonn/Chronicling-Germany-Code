@@ -172,8 +172,11 @@ def levenshtein_distance(
         count += len(gt_region)
         for gt_line, ocr_line, conf in zip(gt_region, ocr_region, conf_region):
             if sufficient_confidence(conf, confidence_threshold):
+                joined_length = max(len(gt_line), len(ocr_line))
+                if joined_length == 0:
+                    continue
                 distance = Levenshtein.distance(gt_line, ocr_line)
-                distance_list.append((distance, max(len(gt_line), len(ocr_line))))
+                distance_list.append((distance, joined_length))
                 ratio = distance_list[-1][0] / distance_list[-1][1]
                 text_list.append((gt_line, ocr_line))
                 ratio_sum += ratio

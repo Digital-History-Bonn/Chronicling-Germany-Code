@@ -41,22 +41,35 @@ class Encoder(nn.Module):
         self.relu = dhsegment.relu
         self.maxpool = dhsegment.maxpool
 
+        planes = 64
+
         self.block1 = dhsegment.block1
-        self.block2 = dhsegment.block2
+        self.block1.conv = conv1x1(planes * Bottleneck.expansion, 128)
+
+        self.first_channels = planes * Bottleneck.expansion
+        self.block2 = self.make_layer(
+            planes,
+            layers[1],
+            stride=2,
+            conv_out=True,
+            out_channels=128
+        )
         self.maxpool_block3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        planes = 128
-        self.first_channels = planes * Bottleneck.expansion
         self.block3 = self.make_layer(
             planes,
             layers[2],
             stride=2,
+            conv_out=True,
+            out_channels=128
         )
         self.maxpool_block4 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.block4 = self.make_layer(
             planes,
             layers[3],
             stride=2,
+            conv_out=True,
+            out_channels=128
         )
 
         # initialize normalization
@@ -71,6 +84,7 @@ class Encoder(nn.Module):
         blocks: int,
         stride: int = 1,
         conv_out: bool = False,
+        out_channels: int = 512,
     ) -> nn.Module:
         """
         Creates a layer of the ResNet50 Encoder. First Block scales image down, but does not double the feature
@@ -107,7 +121,7 @@ class Encoder(nn.Module):
                 )
             )
 
-        return Block(layers, planes, conv_out)
+        return Block(layers, planes, conv_out, out_channels)
 
     def forward(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
@@ -153,7 +167,6 @@ class Encoder(nn.Module):
         freeze(self.conv1.parameters())
         freeze(self.bn1.parameters())
         freeze(self.block1.parameters())
-        freeze(self.block2.parameters())
 
 
 # pylint: disable=duplicate-code
@@ -164,9 +177,9 @@ class Decoder(nn.Module):
 
     def __init__(self, dhsegment: DhSegment):
         super().__init__()
-        self.up_block1 = UpScaleBlock(512, 512, 512, double_scaling=True)
-        self.up_block2 = UpScaleBlock(512, 512, 256, double_scaling=True)
-        self.up_block3 = dhsegment.up_block3
+        self.up_block1 = UpScaleBlock(128, 128, 128, double_scaling=True)
+        self.up_block2 = UpScaleBlock(128, 128, 128, double_scaling=True)
+        self.up_block3 = UpScaleBlock(128, 128, 128)
         self.up_block4 = dhsegment.up_block4
         self.up_block5 = dhsegment.up_block5
 
