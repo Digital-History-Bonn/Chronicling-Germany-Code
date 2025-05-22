@@ -2,6 +2,7 @@
 import argparse
 import glob
 import json
+import os
 import re
 import warnings
 from os.path import basename
@@ -287,21 +288,26 @@ def main():
     class_weight_array = np.array(class_f1_weights)  # shape: (num_samples, num_classes)
 
     mask = np.sum(class_f1_weights, axis=0) == 0
-    print(mask.shape)
     class_weight_array[:, mask] = 1
 
-    print("Class F1 scores and weights:")
-    print(class_f1_array)
-    print(class_f1_weights)
     batch_class_f1 = np.average(class_f1_array, axis=0, weights=class_weight_array)
 
     batch_class_f1[mask] = np.nan
 
-    print(args.prediction_dir)
-    print(args.ground_truth_dir)
-    print("f1 scores:")
-    for idx, label in enumerate(["background"] + EVAL_LABELS):
-        print(f"{label}: {batch_class_f1[idx]}")
+    if not os.path.exists(f"{args.prediction_dir}/evaluation/evaluation.txt"):
+        with open(f"{args.prediction_dir}/evaluation/evaluation.txt", 'w') as file:
+            file.write("")
+
+    with open(f"{args.prediction_dir}/evaluation/evaluation.txt", "a", encoding="utf-8") as file:
+        file.writelines([
+            "\n",
+            f"{args.split}: \n",
+            f"{args.prediction_dir=}: \n",
+            f"{args.ground_truth_dir=}: \n",
+            "f1 scores: \n",
+        ])
+        file.writelines([f"{label}: {batch_class_f1[idx]}" for idx, label in
+                         enumerate(["background"] + EVAL_LABELS)])
 
 
 # pylint: disable=duplicate-code
@@ -334,7 +340,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
-        "of train, validation and test images. This will only evaluate the test dataset.",
+             "of train, validation and test images. This will only evaluate the test dataset.",
     )
     parser.add_argument(
         "--split",
