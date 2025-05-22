@@ -268,7 +268,7 @@ def main():
     if args.custom_split_file:
         with open(args.custom_split_file, "r", encoding="utf-8") as file:
             split = json.load(file)
-            targets = [f"{x}.xml" for x in split[args.split]]
+            targets = [f"{target_dir}/{x}.xml" for x in split[args.split]]
     else:
         targets = list(glob.glob(f"{target_dir}/*.xml"))
 
