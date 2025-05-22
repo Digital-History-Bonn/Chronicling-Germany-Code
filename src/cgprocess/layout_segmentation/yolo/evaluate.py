@@ -282,7 +282,9 @@ def main():
         class_f1_list.append(np.nan_to_num(f1_values, nan=0))
         class_f1_weights.append(size)
 
-
+    print("Class F1 scores and weights:")
+    print(np.array(class_f1_list))
+    print(np.array(class_f1_weights))
     batch_class_f1 = np.average(np.array(class_f1_list), axis=0, weights=np.array(class_f1_weights))
 
     print(args.prediction_dir)
