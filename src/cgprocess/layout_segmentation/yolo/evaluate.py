@@ -258,14 +258,20 @@ def evaluate(target: str, prediction: str):
 
 def main():
     """
-    Calcualtes the f1 score the given prediction and target sets.
+    Calculates the f1 score the given prediction and target sets.
     """
     args = get_args()
 
     pred_dir = adjust_path(args.prediction_dir)
     target_dir = adjust_path(args.ground_truth_dir)
 
-    targets = list(glob.glob(f"{target_dir}/*.xml"))
+    if args.custom_split_file:
+        with open(args.custom_split_file, "r", encoding="utf-8") as file:
+            split = json.load(file)
+            targets = split[args.split]
+    else:
+        targets = list(glob.glob(f"{target_dir}/*.xml"))
+
     predictions = [f"{pred_dir}/{basename(x)[:-4]}.json" for x in targets]
 
     class_f1_list = []
@@ -309,6 +315,20 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="path for folder with ground truth xml files."
+    )
+
+    parser.add_argument(
+        "--custom-split-file",
+        type=str,
+        default=None,
+        help="Provide path for custom split json file. This should contain a list with file stems "
+        "of train, validation and test images. This will only evaluate the test dataset.",
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="Test",
+        help="Choose the key from the split-file, default is 'Test'",
     )
 
     return parser.parse_args()
