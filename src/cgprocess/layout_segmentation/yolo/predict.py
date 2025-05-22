@@ -111,7 +111,7 @@ def write_jsons(output_paths, results):
 
 def main(image_path: str, output_path: str, model: str, file_format: str = "json"):
     # load model
-    model = YOLO(f"models/{model}.pt")
+    model = YOLO(model)
 
     # create list of images
     images = list(glob.glob(f"{image_path}/*.jpg"))
