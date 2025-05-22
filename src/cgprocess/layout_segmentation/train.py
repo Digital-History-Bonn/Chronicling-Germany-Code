@@ -463,8 +463,9 @@ class Trainer:
         batch_precision = torch.zeros(OUT_CHANNELS)
         batch_recall = torch.zeros(OUT_CHANNELS)
         batch_f1 = torch.zeros(OUT_CHANNELS)
+        pixel_counts = torch.zeros(OUT_CHANNELS)
         if test_validation:
-            batch_precision, batch_recall, batch_f1 = multi_precison_recall(
+            batch_precision, batch_recall, batch_f1, pixel_counts = multi_precison_recall(
                 pred, targets, OUT_CHANNELS
             )
 
@@ -489,14 +490,14 @@ class Trainer:
         class_acc += batch_class_acc
         class_sum += batch_class_sum
 
-        precision += torch.nan_to_num(batch_precision.detach().cpu())
-        precision_sum += 1 - torch.isnan(batch_precision.detach().cpu()).int()
+        precision += pixel_counts.detach().cpu() * torch.nan_to_num(batch_precision.detach().cpu())
+        precision_sum += pixel_counts.detach().cpu() * (1 - torch.isnan(batch_precision.detach().cpu()).int())
 
-        recall += torch.nan_to_num(batch_recall.detach().cpu())
-        recall_sum += 1 - torch.isnan(batch_recall.detach().cpu()).int()
+        recall += pixel_counts.detach().cpu() * torch.nan_to_num(batch_recall.detach().cpu())
+        recall_sum += pixel_counts.detach().cpu() * (1 - torch.isnan(batch_recall.detach().cpu()).int())
 
-        f1_score += torch.nan_to_num(batch_f1.detach().cpu())
-        f1_score_sum += 1 - torch.isnan(batch_f1.detach().cpu()).int()
+        f1_score += pixel_counts.detach().cpu() * torch.nan_to_num(batch_f1.detach().cpu())
+        f1_score_sum += pixel_counts.detach().cpu() * (1 - torch.isnan(batch_f1.detach().cpu()).int())
 
         return (
             accuracy,
@@ -643,6 +644,8 @@ class Trainer:
 
         score = np.mean(np.array([acc, jac]))
         class_score = np.mean(np.nan_to_num(class_acc))
+
+        self.summary_writer.flush()
 
         return round(float(score), ndigits=4), round(float(class_score), ndigits=4)
 
@@ -927,8 +930,9 @@ def main() -> None:
         else "logs/runs/" + name
     )
 
+    # TODO: change this to directly turn off cropping in the Preprocessing class
     if parameter_args.evaluate is not None:
-        parameter_args.crop_factor = 1
+        parameter_args.crop_factor = -1
 
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 

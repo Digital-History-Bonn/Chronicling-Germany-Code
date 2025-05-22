@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 try:
     from ssr import Tokenizer  # pylint: disable=import-error
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     from abc import ABC, abstractmethod
 
     class Tokenizer(ABC):  # type: ignore

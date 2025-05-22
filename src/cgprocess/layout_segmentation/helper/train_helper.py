@@ -336,7 +336,7 @@ def multi_class_csi(
 
 def multi_precison_recall(
     pred: torch.Tensor, target: torch.Tensor, out_channels: int
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Calculate precision and recall using true positives, true negatives and false negatives from confusion matrix.
     Returns numpy array with an entry for every class. If every prediction is a true negative,
     the score cant be calculated and the array will contain nan. These cases should be completely ignored.
@@ -354,6 +354,22 @@ def multi_precison_recall(
     pred = pred.flatten()
     target = target.flatten()
 
+    # extract number of pixel for each class for pred and target and take the max value.
+    target_counts = torch.zeros(OUT_CHANNELS, dtype=torch.long).to(target.device)
+    unique_counts = torch.unique(target, return_counts=True)
+    print(unique_counts)
+    print(target.shape)
+    target_counts[unique_counts[0].to(torch.long)] = unique_counts[1].to(torch.long)
+
+    pred_counts = torch.zeros(OUT_CHANNELS, dtype=torch.long).to(pred.device)
+    unique_counts = torch.unique(pred, return_counts=True)
+    print(unique_counts)
+    print(pred.shape)
+    pred_counts[unique_counts[0].to(torch.long)] = unique_counts[1].to(torch.long)
+
+    pixel_counts = torch.max(target_counts, pred_counts)
+
+    # calaculate matrics
     # pylint: disable=not-callable
     matrix: torch.Tensor = metric(pred, target)
     true_positive = torch.diagonal(matrix)
@@ -366,4 +382,4 @@ def multi_precison_recall(
         f1_score = torch.tensor(
             2 * true_positive / (2 * true_positive + false_negative + false_positive)
         )
-    return precision, recall, f1_score
+    return precision, recall, f1_score, pixel_counts

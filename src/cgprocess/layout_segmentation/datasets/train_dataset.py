@@ -91,7 +91,7 @@ class TrainDataset(Dataset):
             # iterate over files
             threads = []
             for i, file in enumerate(
-                tqdm(self.file_stems, desc=f"cropping {name} images", unit="image")
+                tqdm(self.file_stems, desc=f"preprocessing {name} images", unit="image")
             ):
                 thread = Thread(
                     target=self.process_image,
