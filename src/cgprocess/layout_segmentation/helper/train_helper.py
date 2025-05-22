@@ -344,15 +344,15 @@ def multi_precison_recall(
     :param target: target tensor
     :return:
     """
+    if pred.dim() == 4:
+        pred = torch.argmax(pred, dim=1).type(torch.uint8)
 
-    pred = torch.argmax(pred, dim=1).type(torch.uint8)
+    pred = pred.flatten()
+    target = target.flatten()
 
     metric: MulticlassConfusionMatrix = MulticlassConfusionMatrix(
         num_classes=OUT_CHANNELS
     ).to(pred.device)
-
-    pred = pred.flatten()
-    target = target.flatten()
 
     # extract number of pixel for each class for pred and target and take the max value.
     target_counts = torch.zeros(OUT_CHANNELS, dtype=torch.long).to(target.device)

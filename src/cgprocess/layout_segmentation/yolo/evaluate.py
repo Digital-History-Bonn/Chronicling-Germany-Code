@@ -225,7 +225,7 @@ def draw_image(polygons: List[Polygon], labels: List[str], shape: Tuple[int, int
         rr, cc = sk_polygon(exterior_coords[:, 1], exterior_coords[:, 0], shape)
         arr[rr, cc] = EVAL_LABELS.index(label) + 1
 
-    return arr.flatten()
+    return arr
 
 
 def evaluate(target: str, prediction: str):
