@@ -294,6 +294,7 @@ def main():
 
     batch_class_f1[mask] = np.nan
 
+    os.makedirs(f"{args.prediction_dir}/evaluation", exist_ok=True)
     if not os.path.exists(f"{args.prediction_dir}/evaluation/evaluation.txt"):
         with open(f"{args.prediction_dir}/evaluation/evaluation.txt", 'w') as file:
             file.write("")
