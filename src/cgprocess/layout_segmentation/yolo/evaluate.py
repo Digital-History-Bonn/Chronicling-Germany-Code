@@ -253,7 +253,7 @@ def evaluate(target: str, prediction: str):
 
     _, _, f1_score, pixel_counts = multi_precison_recall(pred_tensor, tar_tensor)
 
-    return f1_score, pixel_counts
+    return f1_score.numpy(), pixel_counts.numpy()
 
 
 def main():
@@ -280,7 +280,7 @@ def main():
                                    desc="Evaluating"):
         f1_values, size = evaluate(target, prediction)
         class_f1_list.append(np.nan_to_num(f1_values, nan=0))
-        class_f1_weights.append((1 - np.isnan(f1_values).astype(np.int8)) * size)
+        class_f1_weights.append(size)
 
 
     batch_class_f1 = np.average(np.array(class_f1_list), axis=0, weights=np.array(class_f1_weights))
