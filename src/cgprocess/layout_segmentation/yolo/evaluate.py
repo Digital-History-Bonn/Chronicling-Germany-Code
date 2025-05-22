@@ -15,6 +15,7 @@ from skimage.draw import polygon as sk_polygon
 from torchmetrics.classification import MulticlassConfusionMatrix
 from tqdm import tqdm
 
+from src.cgprocess.layout_segmentation.helper.train_helper import multi_precison_recall
 from src.cgprocess.layout_segmentation.utils import adjust_path
 
 # Labels to evaluate
@@ -198,7 +199,7 @@ def sort_polygons_and_labels(polygons: List[Polygon], labels: List[str]):
     return list(sorted_polygons), list(sorted_labels)
 
 
-def draw_image(polygons: List[Polygon], labels: List[Polygon], shape: Tuple[int, int]) -> np.ndarray:
+def draw_image(polygons: List[Polygon], labels: List[str], shape: Tuple[int, int]) -> np.ndarray:
     """
     Draws image using the given polygons and labels.
 
@@ -241,8 +242,8 @@ def evaluate(target: str, prediction: str):
     pred_polygons, pred_labels = read_json(prediction)
     tar_polygons, tar_labels, width, height = read_xml(target)
 
-    pred_tensor = draw_image(pred_polygons, pred_labels, shape=(width, height)).flatten()
-    tar_tensor = draw_image(tar_polygons, tar_labels, shape=(width, height)).flatten()
+    pred_array = draw_image(pred_polygons, pred_labels, shape=(width, height)).flatten()
+    tar_array = draw_image(tar_polygons, tar_labels, shape=(width, height)).flatten()
 
     if 'inverted_text' in pred_labels:
         print("inverted_text in predictions")
@@ -250,11 +251,9 @@ def evaluate(target: str, prediction: str):
     if 'inverted_text' in tar_labels:
         print("inverted_text in targets")
 
-    confusion_metric = MulticlassConfusionMatrix(num_classes=len(EVAL_LABELS) + 1).to(
-        pred_tensor.device)
-    batch_class_f1 = multi_class_f1(pred_tensor, tar_tensor, confusion_metric)
+    _, _, f1_score, pixel_counts = multi_precison_recall(torch.from_numpy(pred_array), torch.from_numpy(tar_array))
 
-    return batch_class_f1.numpy(), len(tar_tensor)
+    return f1_score, pixel_counts
 
 
 def main():
