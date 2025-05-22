@@ -199,7 +199,7 @@ def sort_polygons_and_labels(polygons: List[Polygon], labels: List[str]):
     return list(sorted_polygons), list(sorted_labels)
 
 
-def draw_image(polygons: List[Polygon], labels: List[str], shape: Tuple[int, int]) -> np.ndarray:
+def draw_image(polygons: List[Polygon], labels: List[str], shape: Tuple[int, int]) -> torch.Tensor:
     """
     Draws image using the given polygons and labels.
 
@@ -242,8 +242,8 @@ def evaluate(target: str, prediction: str):
     pred_polygons, pred_labels = read_json(prediction)
     tar_polygons, tar_labels, width, height = read_xml(target)
 
-    pred_array = draw_image(pred_polygons, pred_labels, shape=(width, height)).flatten()
-    tar_array = draw_image(tar_polygons, tar_labels, shape=(width, height)).flatten()
+    pred_tensor = draw_image(pred_polygons, pred_labels, shape=(width, height)).flatten()
+    tar_tensor = draw_image(tar_polygons, tar_labels, shape=(width, height)).flatten()
 
     if 'inverted_text' in pred_labels:
         print("inverted_text in predictions")
@@ -251,7 +251,7 @@ def evaluate(target: str, prediction: str):
     if 'inverted_text' in tar_labels:
         print("inverted_text in targets")
 
-    _, _, f1_score, pixel_counts = multi_precison_recall(torch.from_numpy(pred_array), torch.from_numpy(tar_array))
+    _, _, f1_score, pixel_counts = multi_precison_recall(pred_tensor, tar_tensor)
 
     return f1_score, pixel_counts
 
