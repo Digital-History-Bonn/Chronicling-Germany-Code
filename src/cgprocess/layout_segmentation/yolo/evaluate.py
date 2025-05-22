@@ -307,8 +307,9 @@ def main():
             f"{args.ground_truth_dir=}: \n",
             "f1 scores: \n",
         ])
-        file.writelines([f"{label}: {batch_class_f1[idx]}" for idx, label in
+        file.writelines([f"{label}: {batch_class_f1[idx]}\n" for idx, label in
                          enumerate(["background"] + EVAL_LABELS)])
+        file.writelines(["\n", "\n", ])
 
 
 # pylint: disable=duplicate-code
