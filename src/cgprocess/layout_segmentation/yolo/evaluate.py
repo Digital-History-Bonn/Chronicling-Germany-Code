@@ -282,10 +282,20 @@ def main():
         class_f1_list.append(np.nan_to_num(f1_values, nan=0))
         class_f1_weights.append(size)
 
+    # Convert lists to arrays
+    class_f1_array = np.array(class_f1_list)  # shape: (num_samples, num_classes)
+    class_weight_array = np.array(class_f1_weights)  # shape: (num_samples, num_classes)
+
+    mask = np.sum(class_f1_weights, axis=0) == 0
+    print(mask.shape)
+    class_weight_array[:, mask] = 1
+
     print("Class F1 scores and weights:")
-    print(np.array(class_f1_list))
-    print(np.array(class_f1_weights))
-    batch_class_f1 = np.average(np.array(class_f1_list), axis=0, weights=np.array(class_f1_weights))
+    print(class_f1_array)
+    print(class_f1_weights)
+    batch_class_f1 = np.average(class_f1_array, axis=0, weights=class_weight_array)
+
+    batch_class_f1[mask] = np.nan
 
     print(args.prediction_dir)
     print(args.ground_truth_dir)
