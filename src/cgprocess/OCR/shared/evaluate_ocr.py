@@ -4,6 +4,7 @@ import argparse
 import difflib
 import json
 import os
+import re
 import statistics
 import time
 from typing import Any, List, Optional, Tuple
@@ -97,23 +98,24 @@ def compare_page(
         merge_lists_conf(ocr, confidence_list, confidence_threshold),
         merge_lists_conf(ground_truth, confidence_list, confidence_threshold),
     )
-    with open(f"{output_path}{path}.html", "w", encoding="utf8") as file:
+    with open(f"{output_path}/{path}.html", "w", encoding="utf8") as file:
         file.write(result)
     lev_dis, lev_med, ratio_list, distance_list, text_list = (
         levenshtein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
     )
 
     char_ratio = calculate_ratio(distance_list)
-    print(
-        f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 0.0]) / len(ratio_list)}"
-    )
-    print(
-        f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) > 0.1]) / len(ratio_list)}"
-    )
-    print(f"{path} normalized levensthein distance per line: {lev_dis}")
-    print(f"{path} normalized levensthein distance per character: {char_ratio}")
-    print(f"{path} levensthein median: {lev_med}")
-    print(f"{path} levensthein worst line: {min(ratio_list)}\n")
+    if not corrected_only:
+        print(
+            f"{path} correct lines: {len(np.array(ratio_list)[np.array(ratio_list) == 0.0]) / len(ratio_list)}"
+        )
+        print(
+            f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) > 0.1]) / len(ratio_list)}"
+        )
+        print(f"{path} normalized levensthein distance per line: {lev_dis}")
+        print(f"{path} normalized levensthein distance per character: {char_ratio}")
+        print(f"{path} levensthein median: {lev_med}")
+        print(f"{path} levensthein worst line: {min(ratio_list)}\n")
 
     page_correct = len(np.array(ratio_list)[np.array(ratio_list) == 0.0])
     page_bad = len(np.array(ratio_list)[np.array(ratio_list) > 0.1])
@@ -145,6 +147,8 @@ def sufficient_confidence(conf: float, confidence_threshold: Optional[float]) ->
 
 def calculate_ratio(data_list: List[Tuple[int, int]]) -> float:
     """Calculate ratio from list containing values and lengths."""
+    if len(data_list) == 0:
+        return 0.0
     data_ndarray = np.array(data_list)
     sums = np.sum(data_ndarray, axis=0)
     ratio: float = sums[0] / sums[1]
@@ -181,7 +185,8 @@ def levenshtein_distance(
                 text_list.append((gt_line, ocr_line))
                 ratio_sum += ratio
                 ratio_list.append(ratio)
-
+    if count == 0:
+        return 0.0, 0.0, [], [], []
     return (
         1 - ratio_sum / count,
         1 - statistics.median(ratio_list),
@@ -223,7 +228,11 @@ def read_lines(
         coords_list = []
         conf_list = []
         for line in lines:
-            if line_has_text(line):  # type: ignore
+            region_type = re.search(
+                r"structure \{type:(.+?);}", line.attrs["custom"]
+            )
+            corrected = (region_type and region_type.group(1) == "corrected")
+            if line_has_text(line) and (not corrected_only or corrected):  # type: ignore
                 text_list.append(line.TextEquiv.Unicode.contents[0])
                 coords_list.append(
                     [tuple(pair.split(",")) for pair in line.Coords["points"].split()]
@@ -300,9 +309,15 @@ def get_args() -> argparse.Namespace:
         default=time.time(),
         help="Evaluation name. Results will be printed in 'results_name.json'",
     )
+    parser.add_argument(
+        "--corrected-only",
+        action="store_true",
+        help="When activated, only corrected lines are being evaluated.",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     parameter_args = get_args()
+    corrected_only = parameter_args.corrected_only
     main(parameter_args)
