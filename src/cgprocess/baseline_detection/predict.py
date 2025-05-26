@@ -405,6 +405,9 @@ class BaselineEngine:
         limits = self.softmax(pred[:, 4:6])[0, 1]
         maps = torch.stack([ascenders, descenders, baselines, limits])
 
+        transform = transforms.ToPILImage()
+        transform(baselines).save("test_baseline.jpg")
+
         # resize to image size
         resize = transforms.Resize(
             (width, height), interpolation=InterpolationMode.NEAREST
@@ -444,7 +447,9 @@ class BaselineEngine:
         Postprocessing is applied for each region separately, to ensure all lines are within one region.
         Therefore, all but the region polygon is masked within the prediction.
         """
-        mask_map, offset = apply_polygon_mask(prediction, roi)
+        mask_map, offset = apply_polygon_mask(prediction.clone(), roi)
+        transform = transforms.ToPILImage()
+        transform(mask_map[2]).save("test_baseline.jpg")
         # postprocess from Transformer
         b_list, _, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         # b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
