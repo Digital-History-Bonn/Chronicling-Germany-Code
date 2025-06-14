@@ -15,7 +15,7 @@ from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from src.cgprocess.layout_segmentation.processing.read_xml import xml_polygon_to_polygon_list
 
 
-def order_lines(region: bs4.element) -> None:
+def order_lines(region: bs4.element.Tag) -> None:
     """Sort lines by estimating columns and sorting columns from left to right and lines inside a column
     from top to bottom."""
     lines = region.find_all("TextLine")
@@ -57,7 +57,7 @@ def order_lines(region: bs4.element) -> None:
 
     for i, line in enumerate(lines):
         custom_match = re.search(
-            r"(structure \{type:.+?;})", line["custom"]
+            r"(structure \{type:.+?;})", line["custom"] # type: ignore
         )
         class_info = "" if custom_match is None else custom_match.group(1)
         line.attrs['custom'] = f"readingOrder {{index:{ordered_indices[i]};}} {class_info}"
@@ -107,7 +107,7 @@ def get_tag(textregion: PageElement) -> str:
     Returns:
         Given tag of that Textregion
     """
-    desc = textregion['custom']
+    desc = textregion['custom'] # type: ignore
     match = re.search(r"\{type:.*;\}", desc)
     if match is None:
         return 'UnknownRegion'
@@ -124,7 +124,7 @@ def get_reading_order_idx(textregion: PageElement) -> int:
     Returns:
          Reading Order Index as int
     """
-    desc = textregion['custom']
+    desc = textregion['custom'] # type: ignore
     match = re.search(r"readingOrder\s*\{index:(\d+);\}", desc)
     if match is None:
         return -1
@@ -153,7 +153,7 @@ List[torch.Tensor]]:
     paragraphs = []
     mask_regions = []
 
-    text_regions = page.find_all(['TextRegion', 'TableRegion'])
+    text_regions = page.find_all(['TextRegion', 'TableRegion']) # type: ignore
     for region in text_regions:
         tag = get_tag(region)
         region_polygon = torch.tensor(xml_polygon_to_polygon_list(region.Coords["points"]))[:, torch.tensor([1, 0])]
@@ -196,17 +196,17 @@ def extract_region(region: BeautifulSoup, region_bbox: torch.Tensor) -> Dict[
         'readingOrder': get_reading_order_idx(region)}
     text_region = region.find_all('TextLine')
     for text_line in text_region:
-        polygon = text_line.find('Coords')
-        baseline = text_line.find('Baseline')
+        polygon = text_line.find('Coords') # type: ignore
+        baseline = text_line.find('Baseline') # type: ignore
         if baseline:
             # get and shift baseline
-            line = torch.tensor(xml_polygon_to_polygon_list(baseline["points"]))
+            line = torch.tensor(xml_polygon_to_polygon_list(baseline["points"])) # type: ignore
             line = line[:, torch.tensor([1, 0])]
 
             region_dict['baselines'].append(line)  # type: ignore
 
             # get mask
-            polygon_pt = torch.tensor(xml_polygon_to_polygon_list(polygon["points"]))
+            polygon_pt = torch.tensor(xml_polygon_to_polygon_list(polygon["points"])) # type: ignore
             polygon_pt = polygon_pt[:, torch.tensor([1, 0])]
 
             # calc bbox for line
@@ -290,11 +290,11 @@ def add_baselines(layout_xml: str,
     page = soup.find('Page')
 
     # Find and remove all TextLines if exists
-    page_elements = page.find_all('TextLine')
+    page_elements = page.find_all('TextLine') # type: ignore
     for page_element in page_elements:
         page_element.decompose()
 
-    textregions = page.find_all('TextRegion')
+    textregions = page.find_all('TextRegion') # type: ignore
 
     # adds all predicted textlines to annotation if they have their center inside a text region
     for textregion, region_textlines, region_baselines in zip(textregions, textlines, baselines):
@@ -322,7 +322,7 @@ def add_baselines(layout_xml: str,
 
     # Write the modified XML back to file with proper formatting
     with open(output_file, 'w', encoding='utf-8') as file:
-        file.write(soup.prettify())
+        file.write(soup.prettify()) # type: ignore
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:

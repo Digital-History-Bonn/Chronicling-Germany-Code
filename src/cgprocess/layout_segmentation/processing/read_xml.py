@@ -3,7 +3,7 @@ Module contains read xml functions for all datasets. Data will be writen into a 
 mypy typing is ignored for this dictionary
 """
 import re
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Any
 
 from bs4 import BeautifulSoup, ResultSet
 from shapely.geometry import Polygon
@@ -40,13 +40,13 @@ def read_transkribus(
 
     if page:
         return {
-            "size": [int(page["imageWidth"]), int(page["imageHeight"])],
+            "size": [int(page["imageWidth"]), int(page["imageHeight"])], # type: ignore
             "tags": tags_dict,
         }
     return {}
 
 
-def check_tags(page: BeautifulSoup, tags_dict: Dict[str, List[List[List[int]]]]) -> None:
+def check_tags(page: Any, tags_dict: Dict[str, List[List[List[int]]]]) -> None:
     """
     Logs all occurrences of unknown regions.
     """
@@ -81,7 +81,7 @@ def find_regions(
 
     for region in regions:
         region_type_matches = re.search(
-            r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"]
+            r"readingOrder \{index:(.+?);} structure \{type:(.+?);}", region["custom"] # type: ignore
         )
         if region_type_matches is None:
             region_type = 'image' if tag in ('ImageRegion', 'GraphicRegion') else "UnknownRegion"
@@ -90,22 +90,22 @@ def find_regions(
         if region_type not in tags_dict:
             tags_dict[region_type] = []
         tags_dict[region_type].append(
-            xml_polygon_to_polygon_list(region.Coords["points"])
+            xml_polygon_to_polygon_list(region.Coords["points"]) # type: ignore
         )
         if id_dict is not None:
             if region_type not in id_dict:
                 id_dict[region_type] = []
             id_dict[region_type].append(
-                region["id"]
+                region["id"] # type: ignore
             )
 
         if search_children:
-            lines = region.find_all(child_tag)
+            lines = region.find_all(child_tag) # type: ignore
             if child_tag not in tags_dict:
                 tags_dict[child_tag] = []
             for line in lines:
                 tags_dict[child_tag].append(
-                    xml_polygon_to_polygon_list(line.Coords["points"])
+                    xml_polygon_to_polygon_list(line.Coords["points"]) # type: ignore
                 )
     return tags_dict
 
@@ -133,10 +133,10 @@ def read_hlna2013(
     # read xml
     bs_data = BeautifulSoup(data, "xml")
     annotation["size"] = [
-        int(bs_data.find("Page").get("imageHeight")),
-        int(bs_data.find("Page").get("imageWidth")),
+        int(bs_data.find("Page").get("imageHeight")), # type: ignore
+        int(bs_data.find("Page").get("imageWidth")), # type: ignore
     ]
-    annotation["tags"] = {"table": tables}
+    annotation["tags"] = {"table": tables} # type: ignore
 
     text_regions = bs_data.find_all("TextRegion")
     separator_regions = bs_data.find_all("SeparatorRegion")
@@ -146,9 +146,9 @@ def read_hlna2013(
 
     # get coordinates of all Tables
     for table in table_regions:
-        coord = table.find("Coords")
+        coord = table.find("Coords") # type: ignore
         tables.append(
-            [(int(p.get("x")), int(p.get("y"))) for p in coord.find_all("Point")]
+            [(int(p.get("x")), int(p.get("y"))) for p in coord.find_all("Point")] # type: ignore
         )
 
     return annotation

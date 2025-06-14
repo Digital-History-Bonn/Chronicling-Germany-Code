@@ -112,12 +112,12 @@ def extract_layout(xml_path: str) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     mask_regions = []
     rois = []
 
-    table_regions = page.find_all(['TableRegion'])
+    table_regions = page.find_all(['TableRegion']) # type: ignore
     for region in table_regions:
         points = np.array(xml_polygon_to_polygon_list(region.find('Coords')["points"]))
         mask_regions.append(points)
 
-    text_regions = page.find_all(['TextRegion'])
+    text_regions = page.find_all(['TextRegion']) # type: ignore
     for region in text_regions:
         points = np.array(xml_polygon_to_polygon_list(region.Coords["points"]))
         rois.append(points)

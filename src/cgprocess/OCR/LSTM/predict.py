@@ -52,7 +52,7 @@ List[List[BaselineLine]]]:
         region_baselines: List[BaselineLine] = []
 
         # Find all TextLine elements
-        text_lines = region.find_all('TextLine')
+        text_lines = region.find_all('TextLine') # type: ignore
 
         # Extract Baseline points from each TextLine
         for i, text_line in enumerate(text_lines):
@@ -145,9 +145,9 @@ def predict(anno_path: str, image_path: str, model: TorchSeqRecognizer, out_path
             textline.append(textequiv)
     # save results
     with open(out_path, 'w', encoding='utf-8') as file:
-        file.write(soup.prettify()
-                   .replace("<Unicode>\n      ", "<Unicode>")
-                   .replace("\n     </Unicode>", "</Unicode>"))
+        file.write(soup.prettify() # type: ignore
+                   .replace("<Unicode>\n      ", "<Unicode>") # type: ignore
+                   .replace("\n     </Unicode>", "</Unicode>")) # type: ignore
 
 
 def get_args() -> argparse.Namespace:

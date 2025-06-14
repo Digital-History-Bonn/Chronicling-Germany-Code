@@ -24,9 +24,9 @@ def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:
     elements_with_points = soup.find_all(attrs={"points": True})
 
     for element in elements_with_points:
-        points = element['points']
-        padded_points = pad_points(points, pad_value)
-        element['points'] = padded_points
+        points = element['points'] # type: ignore
+        padded_points = pad_points(points, pad_value) # type: ignore
+        element['points'] = padded_points # type: ignore
 
     return soup
 

@@ -33,7 +33,7 @@ def extract_textlines(file_path: str) -> List[torch.Tensor]:
     page = soup.find('Page')
     textlines = []
 
-    text_regions = page.find_all('TextRegion')
+    text_regions = page.find_all('TextRegion') # type: ignore
     for region in text_regions:
         if get_tag(region) in TEXT_CLASSES:
             text_region = region.find_all('TextLine')

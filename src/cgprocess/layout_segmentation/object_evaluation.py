@@ -38,20 +38,20 @@ def read_xml(xml_path: str) -> Dict[str, List[Polygon]]:
     for text_region in soup.find_all(
             ['TextRegion', 'TableRegion', 'GraphicRegion', 'SeparatorRegion']):
         # Extract the custom attribute
-        custom_attr = text_region.get('custom', '')
+        custom_attr = text_region.get('custom', '') # type: ignore
 
         # Extract the type from the custom attribute
         if 'structure {type:' in custom_attr:
-            type_start = custom_attr.index('structure {type:') + len('structure {type:')
-            type_end = custom_attr.index(';', type_start)
-            type_value = custom_attr[type_start:type_end]
+            type_start = custom_attr.index('structure {type:') + len('structure {type:') # type: ignore
+            type_end = custom_attr.index(';', type_start) # type: ignore
+            type_value = custom_attr[type_start:type_end] # type: ignore
 
             # Check if this type is in the list of desired types
             if type_value in data:
                 # Extract Coords element and get the points
-                coords = text_region.find('Coords')
+                coords = text_region.find('Coords') # type: ignore
                 if coords:
-                    points_str = coords.get('points', '')
+                    points_str = coords.get('points', '') # type: ignore
                     # Convert points string to a list of tuples
                     points = [
                         tuple(map(int, point.split(',')))
@@ -61,7 +61,7 @@ def read_xml(xml_path: str) -> Dict[str, List[Polygon]]:
                     if len(points) <= 2:
                         continue
                     polygon = Polygon(points)
-                    data[type_value].append(polygon.buffer(0))
+                    data[type_value].append(polygon.buffer(0)) # type: ignore
 
     return data
 

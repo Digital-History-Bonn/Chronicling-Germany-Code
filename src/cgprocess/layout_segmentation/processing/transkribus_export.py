@@ -33,23 +33,23 @@ def export_xml(args: argparse.Namespace, file: str, reading_order_dict: Dict[int
         ) as xml_file:
             xml_data = BeautifulSoup(xml_file, "xml")
             page = xml_data.find("Page")
-            page.clear()
+            page.clear() # type: ignore
             xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     else:
         with open("src/layout_segmentation/templates/annotation_file.xml", 'r', encoding="utf-8") as f:
             data = f.read()
         xml_data = BeautifulSoup(data, "xml")
         page = xml_data.find("Page")
-        page["imageFilename"] = f"{file}"
-        page["imageHeight"] = f"{shape[1]}"
-        page["imageWidth"] = f"{shape[2]}"
+        page["imageFilename"] = f"{file}" # type: ignore
+        page["imageHeight"] = f"{shape[1]}" # type: ignore
+        page["imageWidth"] = f"{shape[2]}" # type: ignore
         xml_data = create_xml(xml_data, segmentations, reading_order_dict, args.scale)
     with open(
             f"{adjust_path(args.data_path)}page/{os.path.splitext(file)[0]}.xml",
             "w",
             encoding="utf-8",
     ) as xml_file:
-        xml_file.write(xml_data.prettify())
+        xml_file.write(xml_data.prettify()) # type: ignore
 
 
 def create_xml(
@@ -68,9 +68,9 @@ def create_xml(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
     )
 
-    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale)
+    add_regions_to_xml(order_group, page, reading_order, segmentations, xml_data, scale) # type: ignore
     order.append(order_group)
-    page.insert(0, order)
+    page.insert(0, order) # type: ignore
     return xml_data
 
 
@@ -148,7 +148,7 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
     :param reading_order_dict:
     """
     page = bs_copy.find("Page")
-    page.clear()
+    page.clear() # type: ignore
     order_group = bs_copy.new_tag(
         "OrderedGroup", attrs={"caption": "Regions reading order"}
     )
@@ -156,11 +156,11 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
         region = bs_data.find(attrs={'id': f'{id_list[int(key)]}'})
 
         custom_match = re.search(
-            r"(structure \{type:.+?;})", region["custom"]
+            r"(structure \{type:.+?;})", region["custom"] # type: ignore
         )
 
         class_info = "structure {type:UnkownRegion;}" if custom_match is None else custom_match.group(1)
-        region.attrs['custom'] = f"readingOrder {{index:{order};}} {class_info}"
+        region.attrs['custom'] = f"readingOrder {{index:{order};}} {class_info}" # type: ignore
 
         order_group.append(
             bs_copy.new_tag(
@@ -168,7 +168,7 @@ def copy_xml(bs_copy: BeautifulSoup, bs_data: BeautifulSoup, id_list: List[str],
                 attrs={"index": str(order), "regionRef": id_list[int(key)]},
             )
         )
-        page.append(region)
+        page.append(region) # type: ignore
 
 
 def sort_lines(region: BeautifulSoup) -> None:
@@ -176,13 +176,13 @@ def sort_lines(region: BeautifulSoup) -> None:
     lines = region.find_all("TextLine")
     height_list = []
     for line in lines:
-        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()])
+        line_polygon = Polygon([tuple(pair.split(",")) for pair in line.Coords["points"].split()]) # type: ignore
         # pylint: disable=no-member
         height_list.append(line_polygon.centroid.y)
     sorted_heights = {int(k): v for v, k in enumerate(np.argsort(np.array(height_list, dtype=int)))}
     for i, line in enumerate(lines):
         custom_match = re.search(
-            r"(structure \{type:.+?;})", line["custom"]
+            r"(structure \{type:.+?;})", line["custom"] # type: ignore
         )
         class_info = "" if custom_match is None else custom_match.group(1)
         line.attrs['custom'] = f"readingOrder {{index:{sorted_heights[i]};}} {class_info}"
