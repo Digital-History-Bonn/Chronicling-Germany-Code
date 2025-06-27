@@ -60,6 +60,8 @@ def process_polygons(annotation: dict, img: ndarray, key: str, label: int, mark_
     Returns: ndarray img with polygons drawn.
     """
     for polygon in annotation["tags"][key]:
+        if len(polygon) < 3:
+            continue
         img = draw_polygon(img, polygon, label=label, shift=shift)
         if mark_page_border:
             polygon_list.append(Polygon(polygon).buffer(0))
