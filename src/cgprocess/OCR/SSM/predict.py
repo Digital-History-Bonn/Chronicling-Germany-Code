@@ -300,8 +300,7 @@ def save_results_to_xml(
         file.write(
             soup.prettify()  # type: ignore
             .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
-            .replace("\n     </Unicode>", "</Unicode>")
-        )  # type: ignore
+            .replace("\n     </Unicode>", "</Unicode>"))  # type: ignore
 
 
 def create_batch(

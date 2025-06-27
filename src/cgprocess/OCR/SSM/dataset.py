@@ -159,7 +159,7 @@ def get_progress(output_path: Path) -> int:
     return len([f for f in os.listdir(output_path) if f.endswith(".json")])
 
 
-class SSMDataset(TrainDataset):
+class SSMDataset(TrainDataset): #type: ignore
     """
     Dataset class for SSM based OCR training.
     """

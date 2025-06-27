@@ -67,7 +67,7 @@ def main(parsed_args: argparse.Namespace) -> None:
 
 
 def convert_file(
-    path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]
+        path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]
 ) -> None:
     """
     Reads and converts xml data, if that file has not been converted at the start of the script.
@@ -170,7 +170,7 @@ def get_args() -> argparse.Namespace:
         action="store_true",
         dest="log",
         help="Activates command line unkown regions logging. This reports all unkown regions and region type "
-        "mismatches for each file.",
+             "mismatches for each file.",
     )
     parser.add_argument(
         "--mark-page-border",
@@ -189,7 +189,7 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Select number of processes that are launched per graphics card. This must be used carefully, as it can "
-        "lead to a CUDA out of memory error.",
+             "lead to a CUDA out of memory error.",
     )
 
     return parser.parse_args()
@@ -214,12 +214,11 @@ def save_xml(bs_data: BeautifulSoup, output_path: object, file_stem: object) -> 
     :param file_stem: file name without extension
     """
     with open(
-        f"{output_path}{file_stem}.xml",
-        "w",
-        encoding="utf-8",
+            f"{output_path}{file_stem}.xml",
+            "w",
+            encoding="utf-8",
     ) as xml_file:
         xml_file.write(
             bs_data.prettify()
             .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
-            .replace("\n     </Unicode>", "</Unicode>")
-        )  # type: ignore
+            .replace("\n     </Unicode>", "</Unicode>"))  # type: ignore

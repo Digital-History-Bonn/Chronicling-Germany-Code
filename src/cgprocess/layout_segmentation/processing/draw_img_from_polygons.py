@@ -31,7 +31,7 @@ def draw_img(annotation: dict, mark_page_border: bool = False) -> ndarray:
 
     # then draw regions in order if label equals zero, the region is skipped, because it would draw zeros in an image
     # initialized with zeros.
-    polygon_list = []
+    polygon_list: List[Polygon] = []
     for key, label in LABEL_ASSIGNMENTS.items():
         if label != 0 and key in annotation["tags"]:
             img = process_polygons(annotation, img, key, label, mark_page_border, polygon_list, shift)

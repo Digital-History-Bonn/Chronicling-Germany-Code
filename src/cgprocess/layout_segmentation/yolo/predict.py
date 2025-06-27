@@ -21,7 +21,7 @@ REGION_TYPES = {
 }
 
 
-def predict(model: YOLO, images: List[str], output_paths: List[str], device: str):
+def predict(model: YOLO, images: List[str], output_paths: List[str], device: str) -> None:
     """Predict with the model, write results to json or xml files"""
     results = model.predict(images, device=device)
 
@@ -31,7 +31,7 @@ def predict(model: YOLO, images: List[str], output_paths: List[str], device: str
         write_xmls(output_paths, results)
 
 
-def write_xmls(output_paths, results: List[Results]):
+def write_xmls(output_paths: List[str], results: List[Results]) -> None:
     """
     Open pre created transkribus xml files and save polygon xml data. If xml files already exist, the regions are
     overwritten. Otherwise, it will be created from template.
@@ -87,11 +87,10 @@ def write_xmls(output_paths, results: List[Results]):
             page.append(region)
 
         with open(output_path, "w", encoding="utf-8") as xml_file:
-            xml_file.write(xml_data.prettify())
+            xml_file.write(xml_data.prettify()) # type:ignore
 
 
-def write_jsons(output_paths, results):
-    """write results in .json-files"""
+def write_jsons(output_paths: List[str], results: List[Results]) -> None:
     for result, output_path in zip(results, output_paths):
         data = {"bboxes": [],
                 "scan_url": basename(result.path)}
@@ -109,7 +108,7 @@ def write_jsons(output_paths, results):
             json.dump(data, f, indent=4)
 
 
-def main(image_path: str, output_path: str, model: str, file_format: str = "json"):
+def main(image_path: str, output_path: str, model: str, file_format: str = "json") -> None:
     # load model
     model = YOLO(model)
 

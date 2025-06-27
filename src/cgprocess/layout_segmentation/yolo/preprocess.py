@@ -41,7 +41,7 @@ colors = ['tab:blue', 'tab:orange', 'tab:green',
           'tab:brown', 'tab:cyan', 'tab:gray']
 
 
-def plot_yolo_boxes(yolo_data, image_path):
+def plot_yolo_boxes(yolo_data: str, image_path: str) -> None:
     """
     Plots YOLO bounding boxes on an image.
 
@@ -94,7 +94,7 @@ def plot_yolo_boxes(yolo_data, image_path):
     plt.show()
 
 
-def read_xml(path: str):
+def read_xml(path: str) -> tuple:
     """
     Reads out polygon information and classes from xml file.
 
@@ -138,7 +138,7 @@ def read_xml(path: str):
     return polygons, classes, width, height
 
 
-def convert_polygon_to_yolo(img_width, img_height, polygon, class_id):
+def convert_polygon_to_yolo(img_width: int, img_height: int, polygon: Polygon, class_id: int) -> str:
     """
     Converts a polygon to YOLO format string.
 
@@ -166,7 +166,7 @@ def convert_polygon_to_yolo(img_width, img_height, polygon, class_id):
     return yolo_format
 
 
-def xml_to_yolo(path):
+def xml_to_yolo(path: str) -> str:
     polygons, classes, width, height = read_xml(path)
 
     yolo_format = ""
@@ -176,7 +176,7 @@ def xml_to_yolo(path):
     return yolo_format
 
 
-def main(annotation_path, image_path, split_file, output_path):
+def main(annotation_path: str, image_path: str, split_file: str, output_path: str):
     os.makedirs(output_path, exist_ok=True)
 
     with open(split_file, "r", encoding="utf-8") as file:

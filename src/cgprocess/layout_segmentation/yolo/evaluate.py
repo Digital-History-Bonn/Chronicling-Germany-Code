@@ -86,7 +86,7 @@ def multi_class_f1(
     return csi
 
 
-def read_json(file_path: str):
+def read_json(file_path: str) -> tuple:
     with open(file_path, 'r', encoding="utf-8") as file:
         data = json.load(file)
 
@@ -171,7 +171,7 @@ def read_xml(file_path: str) -> Tuple[List[Polygon], List[str], int, int]:
     return [Polygon(poly) for poly in region_coords], region_labels, height, width
 
 
-def sort_polygons_and_labels(polygons: List[Polygon], labels: List[str]):
+def sort_polygons_and_labels(polygons: List[Polygon], labels: List[str]) -> tuple:
     """
     Sorts polygons and labels based on a given order of labels.
 
@@ -229,7 +229,7 @@ def draw_image(polygons: List[Polygon], labels: List[str], shape: Tuple[int, int
     return arr
 
 
-def evaluate(target: str, prediction: str):
+def evaluate(target: str, prediction: str) -> tuple:
     """
     Calculates the f1 score the given prediction and traget.
 
@@ -257,7 +257,7 @@ def evaluate(target: str, prediction: str):
     return f1_score.numpy(), pixel_counts.numpy()
 
 
-def main():
+def main() -> None:
     """
     Calculates the f1 score the given prediction and target sets.
     """

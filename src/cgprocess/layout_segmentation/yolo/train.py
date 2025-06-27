@@ -4,7 +4,7 @@ import torch
 from ultralytics import YOLO
 
 
-def main():
+def main() -> None:
     args = get_args()
     print(args)
 

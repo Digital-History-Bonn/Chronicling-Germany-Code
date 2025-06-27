@@ -385,7 +385,7 @@ def main(args: argparse.Namespace) -> None:
         init_model,
         path_queue,
         model_list,
-        data_path,
+        data_path, # type: ignore
         False,
         False,
     )  # type: ignore

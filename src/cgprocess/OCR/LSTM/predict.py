@@ -146,8 +146,7 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
         file.write(
             soup.prettify()  # type: ignore
             .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
-            .replace("\n     </Unicode>", "</Unicode>")
-        )  # type: ignore
+            .replace("\n     </Unicode>", "</Unicode>"))  # type: ignore
 
 
 def get_args() -> argparse.Namespace:
