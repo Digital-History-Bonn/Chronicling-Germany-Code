@@ -1,6 +1,5 @@
 """Tokenizer for Transformer based OCR."""
 
-import warnings
 from typing import Dict, List
 
 import torch

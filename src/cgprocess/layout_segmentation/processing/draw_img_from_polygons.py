@@ -15,7 +15,7 @@ from cgprocess.layout_segmentation.class_config import PAGE_BORDER_CONTENT
 from cgprocess.layout_segmentation.class_config import LABEL_ASSIGNMENTS, PADDING_LABEL
 
 
-def draw_img(annotation: dict, mark_page_border: bool) -> ndarray:
+def draw_img(annotation: dict, mark_page_border: bool = False) -> ndarray:
     """
     draws an image with the information from the transkribus xml read function. If activates, the outside areas of
     the image, that do not contain polygons are marked, such that they can be ignored.
@@ -36,7 +36,7 @@ def draw_img(annotation: dict, mark_page_border: bool) -> ndarray:
         if label != 0 and key in annotation["tags"]:
             img = process_polygons(annotation, img, key, label, mark_page_border, polygon_list, shift)
 
-    if mark_page_border:
+    if mark_page_border and len(polygon_list) > 0:
         combined_polygon = unary_union(polygon_list)
         if combined_polygon.geom_type == "MultiPolygon":
             points = np.vstack([np.array(element.exterior.coords) for element in combined_polygon.geoms])
@@ -54,7 +54,7 @@ def draw_img(annotation: dict, mark_page_border: bool) -> ndarray:
 
 
 def process_polygons(annotation: dict, img: ndarray, key: str, label: int, mark_page_border: bool,
-                     polygon_list: list, shift: int) -> ndarray | Any:
+                     polygon_list: list, shift: int) -> ndarray:
     """
     Call polygon draw function and fill polygon list for all polygons of this key.
     Returns: ndarray img with polygons drawn.
@@ -62,7 +62,7 @@ def process_polygons(annotation: dict, img: ndarray, key: str, label: int, mark_
     for polygon in annotation["tags"][key]:
         img = draw_polygon(img, polygon, label=label, shift=shift)
         if mark_page_border:
-            polygon_list.append(Polygon(polygon))
+            polygon_list.append(Polygon(polygon).buffer(0))
     return img
 
 

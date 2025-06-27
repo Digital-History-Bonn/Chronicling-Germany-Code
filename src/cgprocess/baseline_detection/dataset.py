@@ -2,14 +2,12 @@
 
 import glob
 import os
-import random
 from typing import Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-from skimage import io
 from torch.nn import Module
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -74,12 +72,14 @@ class CustomDataset(Dataset):  # type: ignore
         # pad image to ensure size is big enough for cropping
         width_pad = max(256 - image.shape[1], 0)
         height_pad = max(256 - image.shape[2], 0)
+        # pylint: disable=not-callable
         image = F.pad(
             image, (0, height_pad, 0, width_pad)
-        )  # pylint: disable=not-callable
+        )
+        # pylint: disable=not-callable
         target = F.pad(
             target, (0, height_pad, 0, width_pad)
-        )  # pylint: disable=not-callable
+        )
 
         # crop image and target
         if self.cropping:

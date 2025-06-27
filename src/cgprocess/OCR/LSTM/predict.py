@@ -119,7 +119,7 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
         pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
         try:
             lines = list(pred_it)
-        except:
+        except Exception as _:
             print(f'Failed to predict {image_path}')
             print(region)
 
@@ -282,5 +282,3 @@ def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
 if __name__ == "__main__":
     set_start_method("spawn")
     main()
-
-

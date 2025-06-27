@@ -13,7 +13,7 @@ cmap = [
     (0.5, 0.0, 0.0)
 ]
 
-cmap_border_color = (0.2, 0.2, 1.0),
+cmap_border_color = (0.2, 0.2, 1.0)
 
 TOLERANCE = [
     5.0,  # "caption"

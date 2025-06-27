@@ -45,7 +45,7 @@ class MultiTargetLoss(nn.Module):
         self.mse = MSELoss()
 
     def forward(
-        self, pred: torch.Tensor, target: torch.Tensor
+            self, pred: torch.Tensor, target: torch.Tensor
     ) -> Tuple[float, float, float, float, float]:
         """
         Forward pass for loss.
@@ -69,9 +69,9 @@ class MultiTargetLoss(nn.Module):
         limits_loss = self.dice(pred[:, 4:6, :, :], target[:, 3, None, :, :])
 
         loss = (
-            self.scaling * (ascender_loss + descender_loss)
-            + baseline_loss
-            + limits_loss
+                self.scaling * (ascender_loss + descender_loss)
+                + baseline_loss
+                + limits_loss
         )
         return loss, ascender_loss, descender_loss, baseline_loss, limits_loss
 
@@ -80,15 +80,15 @@ class Trainer:
     """Class to train models."""
 
     def __init__(
-        self,
-        model: nn.Module,
-        traindataset: Dataset,
-        testdataset: Dataset,
-        optimizer: Optimizer,
-        name: str,
-        gpu_count: int = 0,
-        worker_count: int = 1,
-        batch_size: int = 32,
+            self,
+            model: nn.Module,
+            traindataset: Dataset,
+            testdataset: Dataset,
+            optimizer: Optimizer,
+            name: str,
+            gpu_count: int = 0,
+            worker_count: int = 1,
+            batch_size: int = 32,
     ) -> None:
         """
         Trainer class to train models.
@@ -499,7 +499,8 @@ def main() -> None:
     # init optimizer and trainer
     optimizer = AdamW(model.parameters(), lr=LR)
     trainer = Trainer(
-        model, traindataset, validdataset, optimizer, name, gpu_count=args.gpu, worker_count=args.num_worker, batch_size=args.batch_size
+        model, traindataset, validdataset, optimizer, name, gpu_count=args.gpu, worker_count=args.num_worker,
+        batch_size=args.batch_size
     )
 
     # start training

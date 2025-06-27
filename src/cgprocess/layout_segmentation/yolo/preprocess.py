@@ -2,14 +2,14 @@ import argparse
 import glob
 import json
 import os
-import yaml
 import shutil
 from os.path import basename
 
+import matplotlib.pyplot as plt
+import yaml
 from bs4 import BeautifulSoup
 from shapely.geometry import Polygon
 from skimage import io
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from cgprocess.OCR.shared.utils import adjust_path
@@ -131,7 +131,7 @@ def read_xml(path: str):
             structure_type = custom.split("structure {type:")[1].split(";")[0]
 
             # Create a shapely Polygon from the points
-            if len(points) > 2 and structure_type in LABEL_ASSIGNMENTS.keys():
+            if len(points) > 2 and structure_type in LABEL_ASSIGNMENTS:
                 polygons.append(Polygon(points))
                 classes.append(LABEL_ASSIGNMENTS[structure_type])
 
@@ -216,7 +216,7 @@ def main(annotation_path, image_path, split_file, output_path):
     }
 
     # Write the data to a YAML file
-    with open(f"{output_path}/CGD.yaml", 'w') as file:
+    with open(f"{output_path}/CGD.yaml", 'w', encoding="utf-8") as file:
         yaml.dump(dataset_config, file, default_flow_style=False)
 
 

@@ -66,7 +66,7 @@ def main(parsed_args: argparse.Namespace) -> None:
     print(f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
 
     if not os.path.exists(f"{output_path}/evaluation.txt"):
-        with open(f"{output_path}/evaluation.txt", 'w') as file:
+        with open(f"{output_path}/evaluation.txt", 'w', encoding="utf-8") as file:
             file.write("")
 
     with open(f"{output_path}/evaluation.txt", "a", encoding="utf-8") as file:

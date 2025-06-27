@@ -87,7 +87,7 @@ def multi_class_f1(
 
 
 def read_json(file_path: str):
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding="utf-8") as file:
         data = json.load(file)
 
     bboxes = data.get('bboxes', [])
@@ -296,7 +296,7 @@ def main():
 
     os.makedirs(f"{args.prediction_dir}/evaluation", exist_ok=True)
     if not os.path.exists(f"{args.prediction_dir}/evaluation/evaluation.txt"):
-        with open(f"{args.prediction_dir}/evaluation/evaluation.txt", 'w') as file:
+        with open(f"{args.prediction_dir}/evaluation/evaluation.txt", 'w', encoding="utf-8") as file:
             file.write("")
 
     with open(f"{args.prediction_dir}/evaluation/evaluation.txt", "a", encoding="utf-8") as file:

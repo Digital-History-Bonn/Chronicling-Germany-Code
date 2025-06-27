@@ -22,7 +22,7 @@ REGION_TYPES = {
 
 
 def predict(model: YOLO, images: List[str], output_paths: List[str], device: str):
-    # Predict with the model
+    """Predict with the model, write results to json or xml files"""
     results = model.predict(images, device=device)
 
     if output_paths[0][-4:] == "json":
@@ -91,7 +91,7 @@ def write_xmls(output_paths, results: List[Results]):
 
 
 def write_jsons(output_paths, results):
-    # write results in .json-files
+    """write results in .json-files"""
     for result, output_path in zip(results, output_paths):
         data = {"bboxes": [],
                 "scan_url": basename(result.path)}
@@ -105,7 +105,7 @@ def write_jsons(output_paths, results):
                                 "class": cls}
                                for idx, (box, cls) in enumerate(zip(boxes, classes))])
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
 
 

@@ -1,6 +1,6 @@
 [MASTER]
 ignore=migrations
-disable=invalid-name, possibly-used-before-assignment, fixme, duplicate-code
+disable=invalid-name, possibly-used-before-assignment, fixme, duplicate-code, not-callable, no-member, no-name-in-module, missing-module-docstring
 
 [MAIN]
 
