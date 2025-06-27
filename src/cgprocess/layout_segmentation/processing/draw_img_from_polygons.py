@@ -2,7 +2,7 @@
 Module for drawing polygon data into images.
 """
 
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
 
 import numpy as np
 from numpy import ndarray

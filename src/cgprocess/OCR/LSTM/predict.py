@@ -119,7 +119,7 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
         pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
         try:
             lines = list(pred_it)
-        except Exception as _:
+        except Exception as _: # pylint: disable=broad-exception-caught
             print(f'Failed to predict {image_path}')
             print(region)
 

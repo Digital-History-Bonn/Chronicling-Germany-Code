@@ -467,7 +467,7 @@ class Trainer:
         pixel_counts = torch.zeros(OUT_CHANNELS)
         if test_validation:
             batch_precision, batch_recall, batch_f1, pixel_counts = multi_precison_recall(
-                pred, targets, OUT_CHANNELS
+                pred, targets
             )
 
         pred_batches = split_batches(

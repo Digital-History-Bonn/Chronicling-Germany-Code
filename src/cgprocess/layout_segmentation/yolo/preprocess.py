@@ -176,7 +176,7 @@ def xml_to_yolo(path: str) -> str:
     return yolo_format
 
 
-def main(annotation_path: str, image_path: str, split_file: str, output_path: str):
+def main(annotation_path: str, image_path: str, split_file: str, output_path: str) -> None:
     os.makedirs(output_path, exist_ok=True)
 
     with open(split_file, "r", encoding="utf-8") as file:
