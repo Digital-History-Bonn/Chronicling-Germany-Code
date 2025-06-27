@@ -17,6 +17,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from tqdm import tqdm
 
+from cgprocess.layout_segmentation.class_config import PADDING_LABEL
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
 from src.cgprocess.shared.utils import (
     get_file_stems,
@@ -237,7 +238,7 @@ class TrainDataset(Dataset):
                                                 resize_to,
                                                 antialias=True,
                                             ),
-                                            transforms.Pad([0, 0, pad, pad]),
+                                            transforms.Pad([0, 0, pad, pad], fill=PADDING_LABEL),
                                         ]
                                     ),
                                 ]
@@ -251,7 +252,7 @@ class TrainDataset(Dataset):
             "images": transforms.Compose(
                 [
                     transforms.Grayscale(num_output_channels=3),
-                    transforms.RandomErasing(),
+                    transforms.RandomErasing(value=PADDING_LABEL),
                     transforms.RandomApply(
                         [
                             transforms.Compose(

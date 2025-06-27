@@ -1,15 +1,22 @@
 """Module for updated dh segment version with lower capacity but a higher receptive field."""
+
 # coding=utf-8
 from __future__ import absolute_import, division, print_function
 
 import logging
-from typing import Dict, Iterator, Union, List
+from typing import Dict, Iterator, List, Union
 
 import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, UpScaleBlock, Bottleneck, conv1x1, Block
+from src.cgprocess.layout_segmentation.models.dh_segment import (
+    Block,
+    Bottleneck,
+    DhSegment,
+    UpScaleBlock,
+    conv1x1,
+)
 
 # pylint: disable=duplicate-code
 logger = logging.getLogger(__name__)
@@ -34,22 +41,35 @@ class Encoder(nn.Module):
         self.relu = dhsegment.relu
         self.maxpool = dhsegment.maxpool
 
+        planes = 64
+
         self.block1 = dhsegment.block1
-        self.block2 = dhsegment.block2
+        self.block1.conv = conv1x1(planes * Bottleneck.expansion, 128)
+
+        self.first_channels = planes * Bottleneck.expansion
+        self.block2 = self.make_layer(
+            planes,
+            layers[1],
+            stride=2,
+            conv_out=True,
+            out_channels=128
+        )
         self.maxpool_block3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        planes = 128
-        self.first_channels = planes*Bottleneck.expansion
         self.block3 = self.make_layer(
             planes,
             layers[2],
             stride=2,
+            conv_out=True,
+            out_channels=128
         )
         self.maxpool_block4 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.block4 = self.make_layer(
             planes,
             layers[3],
             stride=2,
+            conv_out=True,
+            out_channels=128
         )
 
         # initialize normalization
@@ -64,6 +84,7 @@ class Encoder(nn.Module):
         blocks: int,
         stride: int = 1,
         conv_out: bool = False,
+        out_channels: int = 512,
     ) -> nn.Module:
         """
         Creates a layer of the ResNet50 Encoder. First Block scales image down, but does not double the feature
@@ -100,7 +121,7 @@ class Encoder(nn.Module):
                 )
             )
 
-        return Block(layers, planes, conv_out)
+        return Block(layers, planes, conv_out, out_channels)
 
     def forward(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
@@ -146,7 +167,6 @@ class Encoder(nn.Module):
         freeze(self.conv1.parameters())
         freeze(self.bn1.parameters())
         freeze(self.block1.parameters())
-        freeze(self.block2.parameters())
 
 
 # pylint: disable=duplicate-code
@@ -157,9 +177,9 @@ class Decoder(nn.Module):
 
     def __init__(self, dhsegment: DhSegment):
         super().__init__()
-        self.up_block1 = UpScaleBlock(512, 512, 512, double_scaling=True)
-        self.up_block2 = UpScaleBlock(512, 512, 256, double_scaling=True)
-        self.up_block3 = dhsegment.up_block3
+        self.up_block1 = UpScaleBlock(128, 128, 128, double_scaling=True)
+        self.up_block2 = UpScaleBlock(128, 128, 128, double_scaling=True)
+        self.up_block3 = UpScaleBlock(128, 128, 128)
         self.up_block4 = dhsegment.up_block4
         self.up_block5 = dhsegment.up_block5
 
@@ -173,7 +193,9 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
         # pylint: disable=duplicate-code
-        tensor_x: torch.Tensor = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
+        tensor_x: torch.Tensor = self.up_block1(
+            encoder_results["copy_4"], encoder_results["copy_3"]
+        )
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
         tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
@@ -184,11 +206,14 @@ class Decoder(nn.Module):
         return tensor_x
 
 
-class DhSegment2(nn.Module):
-    """Implements updated DhSegment https://arxiv.org/abs/1804.10371"""
+class DhSegmentWide(nn.Module):
+    """Implements DhSegment version with much less parameters and a much wider receptive field."""
 
     def __init__(
-            self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool = True
+        self,
+        in_channels: int = 3,
+        out_channel: int = 3,
+        load_resnet_weights: bool = True,
     ) -> None:
         """
         :param in_channels: input image channels eg 3 for RGB
@@ -197,7 +222,7 @@ class DhSegment2(nn.Module):
         """
         # pylint: disable=duplicate-code
         super().__init__()
-        layers = [3, 4, 6, 4]
+        layers = [3, 4, 6, 6]
         dhsegment = DhSegment(
             layers,
             in_channels=in_channels,

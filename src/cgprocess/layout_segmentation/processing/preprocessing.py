@@ -16,6 +16,7 @@ from PIL.Image import (  # pylint: disable=no-name-in-module # type: ignore
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
+from cgprocess.layout_segmentation.class_config import PADDING_LABEL
 from src.cgprocess.layout_segmentation.utils import replace_labels
 
 SCALE = 1
@@ -191,7 +192,7 @@ class Preprocessing:
                     0,
                     self.pad[0],
                     self.pad[1],
-                )
+                ), fill=PADDING_LABEL
             )
             image = transform(image)
             target = transform(target)

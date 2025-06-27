@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
+from cgprocess.layout_segmentation.class_config import PADDING_LABEL
 from src.cgprocess.layout_segmentation.helper.train_helper import (
     calculate_scores,
     focal_loss,
@@ -134,7 +135,7 @@ class Trainer:
                 self.optimizer, 5, 1, eta_min=0, last_epoch=-1
             )  # type: ignore
 
-        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
+        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS, ignore_index=PADDING_LABEL)
 
         if args.evaluate is not None:
             self.dataloader_dict = initiate_evaluation_dataloader(args, batch_size)
@@ -840,7 +841,7 @@ def get_args() -> argparse.Namespace:
         "-m",
         type=str,
         default="dh_segment",
-        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small, dh_segment_2",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small, dh_segment_2, dh_segment_wide",
     )
     parser.add_argument(
         "--skip-cbam",

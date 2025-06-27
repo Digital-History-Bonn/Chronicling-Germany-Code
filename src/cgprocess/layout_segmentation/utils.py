@@ -15,7 +15,7 @@ from torchvision import transforms
 from src.cgprocess.layout_segmentation.class_config import (
     LABEL_NAMES,
     REDUCE_CLASSES,
-    cmap,
+    cmap, cmap_border_color, PADDING_LABEL,
 )
 
 
@@ -38,6 +38,9 @@ def draw_prediction(img: ndarray, path: str) -> None:
     values = LABEL_NAMES
     for i in range(len(values)):
         img[-1][-(i + 1)] = i + 1
+    if PADDING_LABEL in img:
+        cmap.append(cmap_border_color)
+        img[img == PADDING_LABEL] = len(values)
     plt.imshow(label2rgb(img, bg_label=0, colors=cmap))
     plt.axis("off")
     # create a patch (proxy artist) for every color

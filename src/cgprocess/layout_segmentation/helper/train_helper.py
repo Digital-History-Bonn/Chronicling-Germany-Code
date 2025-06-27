@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
+from cgprocess.layout_segmentation.models.dh_segment_wide import DhSegmentWide
 from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
 from src.cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
@@ -84,6 +85,11 @@ def init_model(
         model = setup_dh_segment(device, load, model, freeze)
     elif model_str == "dh_segment_2":
         model = DhSegment2(
+            in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
+        )
+        model = setup_dh_segment(device, load, model, freeze)
+    elif model_str == "dh_segment_2":
+        model = DhSegmentWide(
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
         model = setup_dh_segment(device, load, model, freeze)

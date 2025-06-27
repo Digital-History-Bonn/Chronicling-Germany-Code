@@ -95,7 +95,7 @@ def convert_file(
         annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
         if len(annotation) < 1:
             continue
-        img = draw_img(annotation)
+        img = draw_img(annotation, parsed_args.mark_page_border)
 
         # Debug
         if image_path:
@@ -171,6 +171,12 @@ def get_args() -> argparse.Namespace:
         dest="log",
         help="Activates command line unkown regions logging. This reports all unkown regions and region type "
         "mismatches for each file.",
+    )
+    parser.add_argument(
+        "--mark-page-border",
+        "-pb",
+        action="store_true",
+        help="Activates page border, so that large background areas can be excluded from the gradient.",
     )
     parser.add_argument(
         "--json",

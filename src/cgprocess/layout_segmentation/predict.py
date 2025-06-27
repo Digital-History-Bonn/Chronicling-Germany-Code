@@ -254,7 +254,7 @@ def get_args() -> argparse.Namespace:
         "-a",
         type=str,
         default="dh_segment",
-        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small, dh_segment_2, dh_segment_wide",
     )
     parser.add_argument(
         "--crop-size",

@@ -10,8 +10,10 @@ cmap = [
     (0.0422705314009658, 0.0, 1.0),
     (0.6461352657004831, 0.0, 1.0),
     (1.0, 0.73, 0.98),
-    (0.5, 0.0, 0.0),
+    (0.5, 0.0, 0.0)
 ]
+
+cmap_border_color = (0.2, 0.2, 1.0),
 
 TOLERANCE = [
     5.0,  # "caption"
@@ -45,6 +47,9 @@ LABEL_ASSIGNMENTS = {
     "separator_short": 7,
     "separator_horizontal": 7,
 }
+
+PADDING_LABEL = 255
+PAGE_BORDER_CONTENT = "page_border_content"
 
 LABEL_NAMES = [
     "caption",
