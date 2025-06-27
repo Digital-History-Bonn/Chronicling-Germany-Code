@@ -41,7 +41,7 @@ class TestClassPreprocessing:
         # not matching crop test
         size = 100
         channels = 3
-        crop_size = 75
+        crop_size = 512
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
         image = Image.fromarray(
@@ -52,17 +52,17 @@ class TestClassPreprocessing:
         result_data = pytest.preprocessing(image, target)
 
         assert result_data.shape == (
-            4,
+            1,
             channels + 1,
             crop_size,
-            crop_size,
+            crop_size, # Padding is expanded, such that the image can pass the model with eight downscaling operations
         )
         assert result_data.dtype == np.uint8
 
         # standart crop test
         size = 100
         channels = 3
-        crop_size = 50
+        crop_size = 1024
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
         image = Image.fromarray(
@@ -73,7 +73,7 @@ class TestClassPreprocessing:
         result_data = pytest.preprocessing(image, target)
 
         assert result_data.shape == (
-            int(size // crop_size) ** 2,
+            1,
             channels + 1,
             crop_size,
             crop_size,
@@ -81,7 +81,7 @@ class TestClassPreprocessing:
         assert result_data.dtype == np.uint8
 
         # oversized crop test
-        crop_size = 150
+        crop_size = 256
         pytest.preprocessing.crop_size = crop_size
         result_data = pytest.preprocessing(image, target)
 
@@ -95,7 +95,7 @@ class TestClassPreprocessing:
 
         # padding test
         pytest.preprocessing.crop = False
-        pad_size = 128
+        pad_size = 156
         pytest.preprocessing.pad = pad_size, pad_size
 
         result_data = pytest.preprocessing(image, target)
@@ -104,7 +104,7 @@ class TestClassPreprocessing:
 
         # uneven size padding test
         pytest.preprocessing.crop = False
-        pad_size = 128
+        pad_size = 156
         pytest.preprocessing.pad = pad_size, pad_size
         size = 101
         image = Image.fromarray(
@@ -113,7 +113,7 @@ class TestClassPreprocessing:
         target = np.random.randint(0, 10, (size, size), dtype=np.uint8)
 
         result_data = pytest.preprocessing(image, target)
-        assert result_data.shape == (1, channels + 1, size + pad_size, size + pad_size)
+        assert result_data.shape == (1, channels + 1, 512, 512)
         assert result_data.dtype == np.uint8
 
     def test_set_padding(self):
