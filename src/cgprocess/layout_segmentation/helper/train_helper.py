@@ -88,7 +88,7 @@ def init_model(
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
         model = setup_dh_segment(device, load, model, freeze)
-    elif model_str == "dh_segment_2":
+    elif model_str == "dh_segment_wide":
         model = DhSegmentWide(
             in_channels=IN_CHANNELS, out_channel=OUT_CHANNELS, load_resnet_weights=True
         )
