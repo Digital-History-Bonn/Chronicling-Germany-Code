@@ -12,17 +12,17 @@ import torch
 from numpy import ndarray
 from torch import nn
 
-from src.cgprocess.layout_segmentation.class_config import TOLERANCE
-from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
-from src.cgprocess.layout_segmentation.helper.train_helper import init_model
-from src.cgprocess.layout_segmentation.processing.draw_img_from_polygons import (
+from cgprocess.layout_segmentation.class_config import TOLERANCE
+from cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
+from cgprocess.layout_segmentation.helper.train_helper import init_model
+from cgprocess.layout_segmentation.processing.draw_img_from_polygons import (
     draw_polygons_into_image,
 )
-from src.cgprocess.layout_segmentation.processing.polygon_handler import (
+from cgprocess.layout_segmentation.processing.polygon_handler import (
     prediction_to_region_polygons,
     uncertainty_to_polygons,
 )
-from src.cgprocess.layout_segmentation.processing.reading_order import PageProperties
+from cgprocess.layout_segmentation.processing.reading_order import PageProperties
 from src.cgprocess.layout_segmentation.processing.slicing_export import export_slices
 from src.cgprocess.layout_segmentation.processing.transkribus_export import export_xml
 from src.cgprocess.layout_segmentation.train_config import OUT_CHANNELS

@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, conv1x1
+from cgprocess.layout_segmentation.models.dh_segment import DhSegment, conv1x1
 
 logger = logging.getLogger(__name__)
 

@@ -12,7 +12,7 @@ from shapely.ops import unary_union
 from skimage import draw
 
 from cgprocess.layout_segmentation.class_config import PAGE_BORDER_CONTENT
-from src.cgprocess.layout_segmentation.class_config import LABEL_ASSIGNMENTS, PADDING_LABEL
+from cgprocess.layout_segmentation.class_config import LABEL_ASSIGNMENTS, PADDING_LABEL
 
 
 def draw_img(annotation: dict, mark_page_border: bool) -> ndarray:

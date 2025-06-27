@@ -17,7 +17,7 @@ from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
 from cgprocess.layout_segmentation.class_config import PADDING_LABEL
-from src.cgprocess.layout_segmentation.utils import replace_labels
+from cgprocess.layout_segmentation.utils import replace_labels
 
 SCALE = 1
 EXPANSION = 5

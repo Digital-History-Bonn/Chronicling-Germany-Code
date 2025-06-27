@@ -16,9 +16,9 @@ from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.processing import read_xml
-from src.cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_img
-from src.cgprocess.layout_segmentation.utils import adjust_path, draw_prediction
+from cgprocess.layout_segmentation.processing import read_xml
+from cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_img
+from cgprocess.layout_segmentation.utils import adjust_path, draw_prediction
 
 INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"

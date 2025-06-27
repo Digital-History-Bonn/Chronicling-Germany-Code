@@ -15,10 +15,10 @@ from PIL import Image, ImageDraw
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import init_tokenizer, line_has_text
-from src.cgprocess.shared.datasets import TrainDataset
-from src.cgprocess.shared.multiprocessing_handler import get_cpu_count, run_processes
-from src.cgprocess.shared.utils import (
+from cgprocess.OCR.shared.utils import init_tokenizer, line_has_text
+from cgprocess.shared.datasets import TrainDataset
+from cgprocess.shared.multiprocessing_handler import get_cpu_count, run_processes
+from cgprocess.shared.utils import (
     enforce_image_limits,
     get_bbox,
     xml_polygon_to_polygon_list,

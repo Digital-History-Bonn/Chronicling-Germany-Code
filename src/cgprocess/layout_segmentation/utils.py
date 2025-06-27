@@ -12,7 +12,7 @@ from numpy import ndarray
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
 from torchvision import transforms
 
-from src.cgprocess.layout_segmentation.class_config import (
+from cgprocess.layout_segmentation.class_config import (
     LABEL_NAMES,
     REDUCE_CLASSES,
     cmap, cmap_border_color, PADDING_LABEL,

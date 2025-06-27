@@ -10,7 +10,7 @@ from typing import Any, List, Optional, Tuple, Union
 import numpy as np
 from torch.utils.data import Dataset
 
-from src.cgprocess.shared.utils import (
+from cgprocess.shared.utils import (
     get_file_stems,
     initialize_random_split,
     prepare_file_loading,

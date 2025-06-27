@@ -9,7 +9,7 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, UpScaleBlock, Bottleneck, conv1x1, Block
+from cgprocess.layout_segmentation.models.dh_segment import DhSegment, UpScaleBlock, Bottleneck, conv1x1, Block
 
 # pylint: disable=duplicate-code
 logger = logging.getLogger(__name__)

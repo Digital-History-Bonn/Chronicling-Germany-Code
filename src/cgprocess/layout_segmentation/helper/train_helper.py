@@ -14,10 +14,10 @@ from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
 from cgprocess.layout_segmentation.models.dh_segment_wide import DhSegmentWide
-from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
-from src.cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
-from src.cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
+from cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
+from cgprocess.layout_segmentation.models.dh_segment import DhSegment
+from cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
+from cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
 from src.cgprocess.layout_segmentation.models.dh_segment_small import DhSegmentSmall
 from src.cgprocess.layout_segmentation.models.trans_unet import VisionTransformer
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing

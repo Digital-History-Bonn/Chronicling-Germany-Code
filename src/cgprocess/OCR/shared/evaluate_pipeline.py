@@ -14,12 +14,12 @@ from bs4 import BeautifulSoup
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
-from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
-from src.cgprocess.baseline_detection.utils import adjust_path, get_tag
-from src.cgprocess.layout_segmentation.processing.read_xml import (
+from cgprocess.baseline_detection.class_config import TEXT_CLASSES
+from cgprocess.baseline_detection.utils import adjust_path, get_tag
+from cgprocess.layout_segmentation.processing.read_xml import (
     xml_polygon_to_polygon_list,
 )
-from src.cgprocess.OCR.shared.evaluate_ocr import calculate_ratio, levenshtein_distance
+from cgprocess.OCR.shared.evaluate_ocr import calculate_ratio, levenshtein_distance
 
 
 # pylint: disable=duplicate-code

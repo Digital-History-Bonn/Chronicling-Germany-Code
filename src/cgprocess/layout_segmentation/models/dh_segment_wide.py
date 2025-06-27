@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import (
+from cgprocess.layout_segmentation.models.dh_segment import (
     Block,
     Bottleneck,
     DhSegment,

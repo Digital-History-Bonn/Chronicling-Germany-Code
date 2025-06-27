@@ -6,14 +6,14 @@ from typing import Dict, List
 
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.convert_xml import save_xml
-from src.cgprocess.layout_segmentation.processing.read_xml import (
+from cgprocess.layout_segmentation.convert_xml import save_xml
+from cgprocess.layout_segmentation.processing.read_xml import (
     read_raw_data,
     read_regions_for_reading_order,
 )
-from src.cgprocess.layout_segmentation.processing.reading_order import PageProperties
-from src.cgprocess.layout_segmentation.processing.transkribus_export import copy_xml
-from src.cgprocess.layout_segmentation.utils import adjust_path
+from cgprocess.layout_segmentation.processing.reading_order import PageProperties
+from cgprocess.layout_segmentation.processing.transkribus_export import copy_xml
+from cgprocess.layout_segmentation.utils import adjust_path
 
 
 def align_ids(id_dict: Dict[int, List[str]]) -> List[str]:

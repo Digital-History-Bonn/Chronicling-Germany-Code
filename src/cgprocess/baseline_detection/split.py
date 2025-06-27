@@ -8,7 +8,7 @@ from typing import List
 
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import adjust_path
+from cgprocess.OCR.shared.utils import adjust_path
 
 
 def get_args() -> argparse.Namespace:

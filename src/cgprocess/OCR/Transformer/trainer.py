@@ -13,16 +13,16 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import adjust_path, set_seed
-from src.cgprocess.OCR.Transformer.config import (
+from cgprocess.OCR.shared.utils import adjust_path, set_seed
+from cgprocess.OCR.Transformer.config import (
     ALPHABET,
     BATCH_SIZE,
     LR,
     PAD_HEIGHT,
     LOG_EVERY,
 )
-from src.cgprocess.OCR.Transformer.dataset import Dataset
-from src.cgprocess.OCR.Transformer.ocr_engine import transformer
+from cgprocess.OCR.Transformer.dataset import Dataset
+from cgprocess.OCR.Transformer.ocr_engine import transformer
 
 
 class Trainer:

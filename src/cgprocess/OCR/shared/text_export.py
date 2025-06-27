@@ -15,8 +15,8 @@ from bs4 import BeautifulSoup, ResultSet
 from numpy import ndarray
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.merge_text_export import merge_files
-from src.cgprocess.OCR.shared.utils import line_has_text
+from cgprocess.OCR.shared.merge_text_export import merge_files
+from cgprocess.OCR.shared.utils import line_has_text
 
 
 # todo: tests

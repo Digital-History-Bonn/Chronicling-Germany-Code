@@ -18,15 +18,15 @@ from kraken.lib import models
 from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
 from PIL import Image
 
-from src.cgprocess.OCR.shared.utils import (
+from cgprocess.OCR.shared.utils import (
     adjust_path,
     create_path_queue,
     init_model,
     pad_image,
     pad_points,
 )
-from src.cgprocess.shared.multiprocessing_handler import MPPredictor
-from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
+from cgprocess.shared.multiprocessing_handler import MPPredictor
+from cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 
 def extract_baselines(

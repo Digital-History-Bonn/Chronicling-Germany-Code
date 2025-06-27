@@ -9,8 +9,8 @@ from typing import Dict, List, Tuple, Union
 from bs4 import BeautifulSoup, ResultSet
 from shapely.geometry import Polygon
 
-from src.cgprocess.layout_segmentation.class_config import LABEL_ASSIGNMENTS, VALID_TAGS
-from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
+from cgprocess.layout_segmentation.class_config import LABEL_ASSIGNMENTS, VALID_TAGS
+from cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 
 def read_transkribus(

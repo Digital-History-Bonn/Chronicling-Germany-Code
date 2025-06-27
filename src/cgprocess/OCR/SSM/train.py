@@ -15,11 +15,11 @@ from ssr import Recognizer, SSMOCRTrainer, collate_fn  # pylint: disable=import-
 from torch.utils.data import DataLoader
 from torchsummary import summary
 
-from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
-from src.cgprocess.OCR.SSM.dataset import SSMDataset
-from src.cgprocess.shared.datasets import PageDataset
-from src.cgprocess.shared.multiprocessing_handler import run_processes
-from src.cgprocess.shared.utils import get_file_stem_split
+from cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
+from cgprocess.OCR.SSM.dataset import SSMDataset
+from cgprocess.shared.datasets import PageDataset
+from cgprocess.shared.multiprocessing_handler import run_processes
+from cgprocess.shared.utils import get_file_stem_split
 
 
 def get_args() -> argparse.Namespace:

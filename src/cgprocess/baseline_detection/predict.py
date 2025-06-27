@@ -20,7 +20,7 @@ from torch import Tensor, nn
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
-from src.cgprocess.baseline_detection.utils import (
+from cgprocess.baseline_detection.utils import (
     add_baselines,
     adjust_path,
     create_model_list,
@@ -28,9 +28,9 @@ from src.cgprocess.baseline_detection.utils import (
     load_image,
     nonmaxima_suppression,
 )
-from src.cgprocess.OCR.LSTM.predict import join_threads
-from src.cgprocess.shared.multiprocessing_handler import MPPredictor
-from src.cgprocess.shared.utils import enforce_image_limits, xml_polygon_to_polygon_list
+from cgprocess.OCR.LSTM.predict import join_threads
+from cgprocess.shared.multiprocessing_handler import MPPredictor
+from cgprocess.shared.utils import enforce_image_limits, xml_polygon_to_polygon_list
 
 
 def baseline_to_textline(baseline: np.ndarray, heights: List[float]) -> np.ndarray:

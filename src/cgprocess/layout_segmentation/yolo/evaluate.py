@@ -16,8 +16,8 @@ from skimage.draw import polygon as sk_polygon
 from torchmetrics.classification import MulticlassConfusionMatrix
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.helper.train_helper import multi_precison_recall
-from src.cgprocess.layout_segmentation.utils import adjust_path
+from cgprocess.layout_segmentation.helper.train_helper import multi_precison_recall
+from cgprocess.layout_segmentation.utils import adjust_path
 
 # Labels to evaluate
 EVAL_LABELS = ["paragraph", "inverted_text", "table", "caption", "heading", "header", "image"]

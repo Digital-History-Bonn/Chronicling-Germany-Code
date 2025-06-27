@@ -16,7 +16,7 @@ from skimage import draw
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.baseline_detection.utils import adjust_path, extract
+from cgprocess.baseline_detection.utils import adjust_path, extract
 
 
 def split_textbox(textline: Polygon, baseline: LineString) -> Tuple[Polygon, Polygon]:

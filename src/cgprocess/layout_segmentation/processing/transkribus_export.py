@@ -9,7 +9,7 @@ import numpy as np
 from bs4 import BeautifulSoup, PageElement, Tag
 from shapely.geometry import Polygon
 
-from src.cgprocess.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
+from cgprocess.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
 from src.cgprocess.layout_segmentation.utils import adjust_path
 
 

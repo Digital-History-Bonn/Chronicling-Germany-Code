@@ -14,7 +14,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 from tqdm import tqdm  # type: ignore
 
-from src.cgprocess.OCR.shared.utils import adjust_path, line_has_text
+from cgprocess.OCR.shared.utils import adjust_path, line_has_text
 
 
 def main(parsed_args: argparse.Namespace) -> None:

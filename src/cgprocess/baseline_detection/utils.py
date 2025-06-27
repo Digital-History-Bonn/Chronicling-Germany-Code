@@ -13,8 +13,8 @@ from scipy import ndimage
 from shapely.geometry import LineString, Polygon
 from skimage import io
 
-from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
-from src.cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
+from cgprocess.baseline_detection.class_config import TEXT_CLASSES
+from cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
 
 
 def order_lines(region: BeautifulSoup) -> None:

@@ -17,8 +17,8 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.baseline_detection.dataset import CustomDataset as Dataset
-from src.cgprocess.baseline_detection.utils import adjust_path, set_seed
+from cgprocess.baseline_detection.dataset import CustomDataset as Dataset
+from cgprocess.baseline_detection.utils import adjust_path, set_seed
 
 Image.MAX_IMAGE_PIXELS = 500000000
 

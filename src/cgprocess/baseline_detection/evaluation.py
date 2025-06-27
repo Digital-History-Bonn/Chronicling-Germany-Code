@@ -11,9 +11,9 @@ from bs4 import BeautifulSoup
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
-from src.cgprocess.baseline_detection.class_config import TEXT_CLASSES
-from src.cgprocess.baseline_detection.utils import adjust_path, get_tag
-from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
+from cgprocess.baseline_detection.class_config import TEXT_CLASSES
+from cgprocess.baseline_detection.utils import adjust_path, get_tag
+from cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 
 def extract_textlines(file_path: str) -> List[torch.Tensor]:

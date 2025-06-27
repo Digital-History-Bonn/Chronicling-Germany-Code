@@ -8,7 +8,7 @@ import numpy as np
 from numpy import ndarray
 from PIL import Image
 
-from src.cgprocess.layout_segmentation.utils import adjust_path
+from cgprocess.layout_segmentation.utils import adjust_path
 
 
 def export_slices(

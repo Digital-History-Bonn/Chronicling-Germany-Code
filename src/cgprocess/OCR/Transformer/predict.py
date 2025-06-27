@@ -11,12 +11,12 @@ import torch.nn.functional as F
 from bs4 import BeautifulSoup, ResultSet
 from tqdm import tqdm, trange
 
-from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.OCR.Transformer.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
-from src.cgprocess.OCR.Transformer.ocr_engine import transformer
-from src.cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
-from src.cgprocess.OCR.shared.utils import load_image
-from src.cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
+from cgprocess.OCR.shared.tokenizer import OCRTokenizer
+from cgprocess.OCR.Transformer.config import ALPHABET, PAD_HEIGHT, PAD_WIDTH
+from cgprocess.OCR.Transformer.ocr_engine import transformer
+from cgprocess.OCR.Transformer.ocr_engine.transformer import TransformerOCR
+from cgprocess.OCR.shared.utils import load_image
+from cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
 
 
 def read_xml(soup: BeautifulSoup) -> Tuple[ResultSet, List[torch.Tensor]]:

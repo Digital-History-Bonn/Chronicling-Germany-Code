@@ -14,8 +14,8 @@ from bs4 import BeautifulSoup
 from PIL import Image, ImageOps
 from skimage import io
 
-from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
+from cgprocess.OCR.shared.tokenizer import OCRTokenizer
+from cgprocess.shared.utils import get_bbox, xml_polygon_to_polygon_list
 
 
 def pad_xml(soup: BeautifulSoup, pad_value: int = 10) -> BeautifulSoup:

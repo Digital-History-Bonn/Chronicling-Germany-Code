@@ -17,9 +17,9 @@ from ssr import Recognizer, SSMOCRTrainer  # pylint: disable=import-error
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
-from src.cgprocess.OCR.SSM.dataset import extract_page
-from src.cgprocess.shared.multiprocessing_handler import (
+from cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
+from cgprocess.OCR.SSM.dataset import extract_page
+from cgprocess.shared.multiprocessing_handler import (
     MPPredictor,
     get_cpu_count,
     get_queue_progress,

@@ -18,8 +18,8 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from cgprocess.layout_segmentation.class_config import PADDING_LABEL
-from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
-from src.cgprocess.shared.utils import (
+from cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
+from cgprocess.shared.utils import (
     get_file_stems,
     initialize_random_split,
     prepare_file_loading,

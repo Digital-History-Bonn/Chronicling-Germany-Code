@@ -13,7 +13,7 @@ from kraken.lib.train import (  # pylint: disable=no-name-in-module, import-erro
 )
 from lightning.pytorch.loggers import TensorBoardLogger  # pylint: disable=import-error
 
-from src.cgprocess.OCR.shared.utils import adjust_path, set_seed
+from cgprocess.OCR.shared.utils import adjust_path, set_seed
 
 torch.set_float32_matmul_precision("medium")
 

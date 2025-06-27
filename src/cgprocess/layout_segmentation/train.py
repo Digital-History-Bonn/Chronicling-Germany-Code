@@ -26,7 +26,7 @@ from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
 from cgprocess.layout_segmentation.class_config import PADDING_LABEL
-from src.cgprocess.layout_segmentation.helper.train_helper import (
+from cgprocess.layout_segmentation.helper.train_helper import (
     calculate_scores,
     focal_loss,
     init_model,
@@ -35,12 +35,12 @@ from src.cgprocess.layout_segmentation.helper.train_helper import (
     load_score,
     multi_precison_recall,
 )
-from src.cgprocess.layout_segmentation.processing.preprocessing import (
+from cgprocess.layout_segmentation.processing.preprocessing import (
     CROP_FACTOR,
     CROP_SIZE,
     SCALE,
 )
-from src.cgprocess.layout_segmentation.train_config import (
+from cgprocess.layout_segmentation.train_config import (
     BATCH_SIZE,
     DATALOADER_WORKER,
     DEFAULT_SPLIT,
@@ -51,7 +51,7 @@ from src.cgprocess.layout_segmentation.train_config import (
     VAL_NUMBER,
     WEIGHT_DECAY,
 )
-from src.cgprocess.layout_segmentation.utils import (
+from cgprocess.layout_segmentation.utils import (
     adjust_path,
     collapse_prediction,
     split_batches,

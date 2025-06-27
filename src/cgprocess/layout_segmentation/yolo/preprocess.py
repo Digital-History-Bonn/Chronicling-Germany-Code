@@ -12,7 +12,7 @@ from skimage import io
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import adjust_path
+from cgprocess.OCR.shared.utils import adjust_path
 
 LABEL_ASSIGNMENTS = {
     "caption": 0,

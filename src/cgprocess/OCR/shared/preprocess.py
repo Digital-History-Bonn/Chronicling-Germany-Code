@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from PIL import Image
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import adjust_path, pad_image, pad_xml
+from cgprocess.OCR.shared.utils import adjust_path, pad_image, pad_xml
 
 
 def copy_and_pad_xml(input_path: str, output_dir: str, pad_value: int = 10) -> None:

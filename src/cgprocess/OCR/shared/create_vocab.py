@@ -9,7 +9,7 @@ from typing import Dict
 from bs4 import BeautifulSoup, ResultSet
 from tqdm import tqdm
 
-from src.cgprocess.OCR.shared.utils import line_has_text
+from cgprocess.OCR.shared.utils import line_has_text
 
 
 def create_vocab(regions: ResultSet, vocab: Dict[str, int]) -> None:

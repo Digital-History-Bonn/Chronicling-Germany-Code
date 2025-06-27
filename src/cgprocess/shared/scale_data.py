@@ -10,11 +10,11 @@ from PIL import Image
 from PIL.Image import BICUBIC  # pylint: disable=no-name-in-module
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.convert_xml import save_xml
-from src.cgprocess.layout_segmentation.processing.transkribus_export import (
+from cgprocess.layout_segmentation.convert_xml import save_xml
+from cgprocess.layout_segmentation.processing.transkribus_export import (
     polygon_to_string,
 )
-from src.cgprocess.layout_segmentation.utils import adjust_path
+from cgprocess.layout_segmentation.utils import adjust_path
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 TAG_LIST = [

@@ -11,9 +11,9 @@ import cv2
 from albumentations import Blur, Compose, ElasticTransform, MedianBlur, MotionBlur, OneOf, \
     SafeRotate, OpticalDistortion, PixelDropout, ToFloat
 
-from src.cgprocess.OCR.shared.tokenizer import OCRTokenizer
-from src.cgprocess.OCR.shared.utils import load_image, read_xml
-from src.cgprocess.OCR.Transformer.config import (
+from cgprocess.OCR.shared.tokenizer import OCRTokenizer
+from cgprocess.OCR.shared.utils import load_image, read_xml
+from cgprocess.OCR.Transformer.config import (
     ALPHABET,
     MAX_SEQUENCE_LENGTH,
     PAD_HEIGHT,
