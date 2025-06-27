@@ -5,7 +5,6 @@ import json
 import numpy as np
 from bs4 import BeautifulSoup
 
-from cgprocess.layout_segmentation.utils import draw_prediction
 from src.cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_img
 from src.cgprocess.layout_segmentation.processing.read_xml import read_transkribus
 from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
