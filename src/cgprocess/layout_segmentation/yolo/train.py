@@ -5,6 +5,7 @@ from ultralytics import YOLO
 
 
 def main() -> None:
+    """Trains a yolov8 model for the layout detection task on the dataset."""
     args = get_args()
     print(args)
 

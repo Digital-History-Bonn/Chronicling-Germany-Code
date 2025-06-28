@@ -86,7 +86,17 @@ def multi_class_f1(
     return csi
 
 
-def read_json(file_path: str) -> tuple:
+def read_json(file_path: str) -> Tuple[List[Polygon], List[str]]:
+    """
+    Reads json file with layout information.
+
+    Args:
+        file_path (str): path to the json file
+
+    Returns:
+        region_coords (List[Polygon]): List of polygons of layout
+        region_labels (List[str]): List with polygon labels
+    """
     with open(file_path, 'r', encoding="utf-8") as file:
         data = json.load(file)
 

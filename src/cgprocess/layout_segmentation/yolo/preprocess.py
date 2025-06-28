@@ -167,6 +167,15 @@ def convert_polygon_to_yolo(img_width: int, img_height: int, polygon: Polygon, c
 
 
 def xml_to_yolo(path: str) -> str:
+    """
+    Converts the layout information from the given xml file in to the format needed for the yolo model.
+
+    Args:
+        path (str): path to the xml file.
+
+    Returns:
+        str: string with layout information in yolo format
+    """
     polygons, classes, width, height = read_xml(path)
 
     yolo_format = ""
@@ -177,6 +186,16 @@ def xml_to_yolo(path: str) -> str:
 
 
 def main(annotation_path: str, image_path: str, split_file: str, output_path: str) -> None:
+    """
+    Converts the xml annotation data into the file format need to train a yolo model.
+
+    Also splits the dataset into train/valid/test split based on the split file.
+    Args:
+        annotation_path (str): path to the annotation files
+        image_path (str): path to the image files
+        split_file (str): path to the split file
+        output_path (str): path to save the preprocessed dataset
+    """
     os.makedirs(output_path, exist_ok=True)
 
     with open(split_file, "r", encoding="utf-8") as file:
