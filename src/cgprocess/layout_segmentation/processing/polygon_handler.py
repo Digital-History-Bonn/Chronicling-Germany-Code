@@ -151,7 +151,7 @@ def uncertainty_to_polygons(
 
     # calc inner and outer contours
     inner_outer = []
-    for item in hierarchy[0, :, 3]:
+    for item in hierarchy[0, :, 3]: # type: ignore
         if item == -1:
             inner_outer.append(True)
         else:

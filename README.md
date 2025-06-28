@@ -1,6 +1,6 @@
 # Chronicling-Germany: A Historic Newspaper Dataset
 
-Code for our paper [Chronicling-Germany](https://arxiv.org/abs/2401.16845).
+Code for our paper [Chronicling-Germany](https://arxiv.org/abs/2401.16845), the dataset [is available](https://gitlab.uni-bonn.de/digital-history/Chronicling-Germany-Dataset).
 
 Our layout recognition model is divided into three subtasks:
 1. Layout segmentation
