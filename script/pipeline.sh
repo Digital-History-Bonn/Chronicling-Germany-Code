@@ -5,9 +5,9 @@ DATA_DIR=$1
 ENV_NAME=${2:-'pipeline'}
 PROCESS_COUNT=${3:-1}
 THREAD_COUNT=${4:-1}
-MODEL_LAYOUT="models/layout_2025-05-14.pt"
-MODEL_BASELINE="models/baseline_2025-05-19"
-MODEL_OCR="models/ocr_2025-05-14.mlmodel"
+MODEL_LAYOUT="models/Chronicling-Germany-Dataset-main-models/models/layout_2025-05-14.pt"
+MODEL_BASELINE="models/Chronicling-Germany-Dataset-main-models/models/baseline_2025-05-19.pt"
+MODEL_OCR="models/Chronicling-Germany-Dataset-main-models/models/ocr_2025-05-14.mlmodel"
 LAYOUT_PARAMS="-th 0.6 -a dh_segment -s 0.5 -e -bt 100"
 PAGE_DIR="${DATA_DIR}/page"
 

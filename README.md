@@ -32,7 +32,7 @@ folder. It provides a dataset split for the training, `validation and test sets.
 To run the complete prediction from an input image to an annotation XML with layout and text the `pipeline.sh` script can be used.
 As per default, this pipeline needs a conda environment named 'pipeline'.
 ```` bash
-bash scipt/pipeline.sh data/
+bash script/pipeline.sh data/
 ````
 
 Optionally, the amount of processes and threads, as well as the conda environment name can be specified.

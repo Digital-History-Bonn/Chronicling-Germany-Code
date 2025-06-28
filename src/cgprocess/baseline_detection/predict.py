@@ -237,7 +237,7 @@ class BaselineEngine:
             self.device
         )
         self.model.load_state_dict(
-            torch.load(f"{model_name}.pt", map_location=self.device)
+            torch.load(model_name, map_location=self.device)
         )
         self.model.eval()
 
