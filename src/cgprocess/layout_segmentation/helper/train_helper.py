@@ -18,13 +18,13 @@ from cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
 from cgprocess.layout_segmentation.models.dh_segment import DhSegment
 from cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
 from cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
-from src.cgprocess.layout_segmentation.models.dh_segment_small import DhSegmentSmall
-from src.cgprocess.layout_segmentation.models.trans_unet import VisionTransformer
-from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
-from src.cgprocess.layout_segmentation.train_config import IN_CHANNELS, OUT_CHANNELS
-from src.cgprocess.layout_segmentation.utils import adjust_path
-from src.cgprocess.shared.datasets import PageDataset
-from src.cgprocess.shared.utils import get_file_stem_split
+from cgprocess.layout_segmentation.models.dh_segment_small import DhSegmentSmall
+from cgprocess.layout_segmentation.models.trans_unet import VisionTransformer
+from cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
+from cgprocess.layout_segmentation.train_config import IN_CHANNELS, OUT_CHANNELS
+from cgprocess.layout_segmentation.utils import adjust_path
+from cgprocess.shared.datasets import PageDataset
+from cgprocess.shared.utils import get_file_stem_split
 
 
 def init_model(

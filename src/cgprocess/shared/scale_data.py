@@ -15,7 +15,7 @@ from cgprocess.layout_segmentation.processing.transkribus_export import (
     polygon_to_string,
 )
 from cgprocess.layout_segmentation.utils import adjust_path
-from src.cgprocess.shared.utils import xml_polygon_to_polygon_list
+from cgprocess.shared.utils import xml_polygon_to_polygon_list
 
 TAG_LIST = [
     "TextRegion",

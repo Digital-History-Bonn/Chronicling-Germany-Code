@@ -23,17 +23,17 @@ from cgprocess.layout_segmentation.processing.polygon_handler import (
     uncertainty_to_polygons,
 )
 from cgprocess.layout_segmentation.processing.reading_order import PageProperties
-from src.cgprocess.layout_segmentation.processing.slicing_export import export_slices
-from src.cgprocess.layout_segmentation.processing.transkribus_export import export_xml
-from src.cgprocess.layout_segmentation.train_config import OUT_CHANNELS
-from src.cgprocess.layout_segmentation.utils import (
+from cgprocess.layout_segmentation.processing.slicing_export import export_slices
+from cgprocess.layout_segmentation.processing.transkribus_export import export_xml
+from cgprocess.layout_segmentation.train_config import OUT_CHANNELS
+from cgprocess.layout_segmentation.utils import (
     adjust_path,
     collapse_prediction,
     create_model_list,
     create_path_queue,
     draw_prediction,
 )
-from src.cgprocess.shared.multiprocessing_handler import MPPredictor
+from cgprocess.shared.multiprocessing_handler import MPPredictor
 
 DATA_PATH = "../../../data/newspaper/input/"
 RESULT_PATH = "../../../data/output/"
