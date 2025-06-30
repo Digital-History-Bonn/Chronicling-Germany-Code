@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from cgprocess.layout_segmentation.class_config import PADDING_LABEL
 from cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
+from cgprocess.layout_segmentation.utils import remove_scaling_errors
 from cgprocess.shared.utils import (
     get_file_stems,
     initialize_random_split,
@@ -30,9 +31,9 @@ TARGET_PATH = "data/targets/"
 
 
 # todo: implement shared TrainDataset
-class TrainDataset(Dataset):
+class CropDataset(Dataset):
     """
-    A dataset class for the newspaper datasets
+    A dataset class for the newspaper page crops used for training, validation and testing.
     """
 
     def __init__(
@@ -159,6 +160,7 @@ class TrainDataset(Dataset):
             augmentations = self.get_augmentations(prob)
             data = augmentations["default"](data)
             img = augmentations["images"](data[:-1]).float() / 255
+            remove_scaling_errors(data[-1])
             # img = (img + (torch.randn(img.shape) * 0.05)).clip(0, 1)     # originally 0.1
 
             # if random.random() < 0.1:
@@ -175,7 +177,7 @@ class TrainDataset(Dataset):
 
     def random_split(
         self, ratio: Tuple[float, float, float]
-    ) -> Tuple[TrainDataset, TrainDataset, TrainDataset]:
+    ) -> Tuple[CropDataset, CropDataset, CropDataset]:
         """
         splits the dataset in parts of size given in ratio
         :param ratio: list[float]:
@@ -184,7 +186,7 @@ class TrainDataset(Dataset):
         indices, splits = initialize_random_split(len(self), ratio)
         torch_data = torch.stack(self.data)
 
-        train_dataset = TrainDataset(
+        train_dataset = CropDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
@@ -192,7 +194,7 @@ class TrainDataset(Dataset):
             dataset=self.dataset,
             scale_aug=self.scale_aug,
         )
-        valid_dataset = TrainDataset(
+        valid_dataset = CropDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,
@@ -200,7 +202,7 @@ class TrainDataset(Dataset):
             dataset=self.dataset,
             scale_aug=self.scale_aug,
         )
-        test_dataset = TrainDataset(
+        test_dataset = CropDataset(
             self.preprocessing,
             image_path=self.image_path,
             target_path=self.target_path,

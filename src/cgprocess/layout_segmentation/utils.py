@@ -10,6 +10,7 @@ import torch
 from matplotlib import pyplot as plt
 from numpy import ndarray
 from skimage.color import label2rgb  # pylint: disable=no-name-in-module
+from torch import Tensor
 from torchvision import transforms
 
 from cgprocess.layout_segmentation.class_config import (
@@ -17,6 +18,7 @@ from cgprocess.layout_segmentation.class_config import (
     REDUCE_CLASSES,
     cmap, cmap_border_color, PADDING_LABEL,
 )
+from cgprocess.layout_segmentation.train_config import OUT_CHANNELS
 
 
 def adjust_path(path: Optional[str]) -> Optional[str]:
@@ -198,3 +200,7 @@ def create_path_queue(
     for file_name in file_names:
         path_queue.put((file_name, args, dataset, False))
     return path_queue
+
+
+def remove_scaling_errors(target_img: Tensor) -> None:
+    target_img[target_img > OUT_CHANNELS - 1] = PADDING_LABEL

@@ -13,8 +13,9 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
+from cgprocess.layout_segmentation.class_config import TOLERANCE
 from cgprocess.layout_segmentation.models.dh_segment_wide import DhSegmentWide
-from cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
+from cgprocess.layout_segmentation.datasets.train_dataset import CropDataset
 from cgprocess.layout_segmentation.models.dh_segment import DhSegment
 from cgprocess.layout_segmentation.models.dh_segment_2 import DhSegment2
 from cgprocess.layout_segmentation.models.dh_segment_cbam import DhSegmentCBAM
@@ -28,11 +29,11 @@ from cgprocess.shared.utils import get_file_stem_split
 
 
 def init_model(
-    load: Union[str, None],
-    device: str,
-    model_str: str,
-    freeze: bool = True,
-    skip_cbam: bool = False,
+        load: Union[str, None],
+        device: str,
+        model_str: str,
+        freeze: bool = True,
+        skip_cbam: bool = False,
 ) -> Any:
     """
     Initialise model
@@ -99,7 +100,7 @@ def init_model(
 
 
 def setup_dh_segment(
-    device: str, load: Union[str, None], model: Any, freeze: bool
+        device: str, load: Union[str, None], model: Any, freeze: bool
 ) -> Any:
     """
     Setup function for dh_segment and dh_segment_cbam
@@ -110,6 +111,15 @@ def setup_dh_segment(
     :param model:
     :return:
     """
+
+    assert model.out_channel == OUT_CHANNELS, \
+        "Config Error. Output Classes of the model have to match OUT_CHANNELS constant."
+
+    assert len(
+        TOLERANCE) == OUT_CHANNELS-1, \
+        ("Number of tolerance values for classes need to have exactly one value less than the OUT_CHANNELS "
+         "constant, ignoring the background class.")
+
     model = model.float()
     if freeze:
         model.freeze_encoder()
@@ -128,7 +138,7 @@ def setup_dh_segment(
 
 
 def load_score(
-    load: Union[str, None], args: argparse.Namespace
+        load: Union[str, None], args: argparse.Namespace
 ) -> Tuple[float, int, int]:
     """
     Load the score corresponding to the loaded model if requestet, as well as the step value to continue logging.
@@ -143,10 +153,10 @@ def load_score(
 
 
 def focal_loss(
-    prediction: torch.Tensor,
-    target: torch.Tensor,
-    weights: torch.Tensor,
-    gamma: float = 2.0,
+        prediction: torch.Tensor,
+        target: torch.Tensor,
+        weights: torch.Tensor,
+        gamma: float = 2.0,
 ) -> torch.Tensor:
     """
     Calculate softmax focal loss. Migrated from https://github.com/google-deepmind/optax/pull/573/files
@@ -160,7 +170,7 @@ def focal_loss(
     probalbilities = torch.nn.functional.softmax(prediction, dim=1)
     probalbilities = target * probalbilities + (1 - target) * (1 - probalbilities)
     focus = torch.pow(1 - probalbilities, gamma)
-    loss = - weights[None, :, None, None] * focus * torch.log(probalbilities+1e-15)
+    loss = - weights[None, :, None, None] * focus * torch.log(probalbilities + 1e-15)
     return torch.sum(loss, dim=1) / OUT_CHANNELS  # type: ignore
 
 
@@ -197,7 +207,7 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
 
 
 def initiate_evaluation_dataloader(
-    args: argparse.Namespace, batch_size: int
+        args: argparse.Namespace, batch_size: int
 ) -> Dict[str, DataLoader]:
     """
     Creates a dictionary of dataloaders depending on the args.evaluate dataset names.
@@ -213,7 +223,7 @@ def initiate_evaluation_dataloader(
             file_stems_dict = {}
             for dataset in args.evaluate:
                 assert (
-                    dataset in split.keys()
+                        dataset in split.keys()
                 ), f"'{dataset}' is not a valid key for the custom split dictionary!"
                 file_stems_dict[dataset] = split[dataset]
     else:
@@ -228,12 +238,12 @@ def initiate_evaluation_dataloader(
 
 
 def create_dataloader(
-    args: argparse.Namespace,
-    batch_size: int,
-    file_stems_dict: Dict[str, List[str]],
-    image_path: str,
-    preprocessing: Preprocessing,
-    target_path: str,
+        args: argparse.Namespace,
+        batch_size: int,
+        file_stems_dict: Dict[str, List[str]],
+        image_path: str,
+        preprocessing: Preprocessing,
+        target_path: str,
 ) -> Dict[str, DataLoader]:
     """
     Iterates over the file_stems_dict and creates a dataset with dataloader for each file stem list.
@@ -242,11 +252,12 @@ def create_dataloader(
     """
     dataloader_dict = {}
     for key, file_stems in file_stems_dict.items():
-        dataset = TrainDataset(
+        limit = args.limit if key == "Training" else None
+        dataset = CropDataset(
             preprocessing,
             image_path=image_path,
             target_path=target_path,
-            limit=args.limit,
+            limit=limit,
             dataset=args.dataset,
             scale_aug=args.scale_aug,
             file_stems=file_stems,
@@ -258,7 +269,7 @@ def create_dataloader(
         dataloader_dict[key] = DataLoader(
             dataset,
             batch_size=batch_size,
-            shuffle=key == "train",
+            shuffle=key == "Training",
             num_workers=args.num_workers,
             drop_last=True,
             prefetch_factor=args.prefetch_factor,
@@ -273,7 +284,7 @@ def create_dataloader(
 
 
 def initiate_dataloader(
-    args: argparse.Namespace, batch_size: int
+        args: argparse.Namespace, batch_size: int
 ) -> Dict[str, DataLoader]:
     """
     Creates train, val and test datasets according to train.py args.
@@ -317,7 +328,7 @@ def create_preprocess(args: argparse.Namespace) -> Preprocessing:
 
 
 def multi_class_csi(
-    pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
+        pred: torch.Tensor, target: torch.Tensor, metric: MulticlassConfusionMatrix
 ) -> torch.Tensor:
     """Calculate csi score using true positives, true negatives and false negatives from confusion matrix.
     Csi score is used as substitute for accuracy, calculated separately for each class.
@@ -341,7 +352,7 @@ def multi_class_csi(
 
 
 def multi_precison_recall(
-    pred: torch.Tensor, target: torch.Tensor
+        pred: torch.Tensor, target: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Calculate precision and recall using true positives, true negatives and false negatives from confusion matrix.
     Returns numpy array with an entry for every class. If every prediction is a true negative,

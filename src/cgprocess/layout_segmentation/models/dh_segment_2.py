@@ -197,6 +197,7 @@ class DhSegment2(nn.Module):
         """
         # pylint: disable=duplicate-code
         super().__init__()
+        self.out_channel = out_channel
         layers = [3, 4, 6, 4]
         dhsegment = DhSegment(
             layers,

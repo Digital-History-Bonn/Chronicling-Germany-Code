@@ -158,6 +158,7 @@ class DhSegmentCBAM(nn.Module):
         """
         # pylint: disable=duplicate-code
         super().__init__()
+        self.out_channel = out_channel
         dhsegment = DhSegment(
             [3, 4, 6, 4],
             in_channels=in_channels,

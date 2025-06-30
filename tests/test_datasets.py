@@ -11,7 +11,7 @@ import pytest
 import torch
 from bs4 import BeautifulSoup
 
-from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
+from src.cgprocess.layout_segmentation.datasets.train_dataset import CropDataset
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
 from src.cgprocess.OCR.shared.utils import load_cfg
 from src.cgprocess.OCR.SSM.dataset import SSMDataset, extract_crop
@@ -82,7 +82,7 @@ class TestLayoutDataset:
         """will initiate NewsDataset for every test"""
         image_path = Path(f"{DATA_PATH}input/")
         pytest.page_dataset = PageDataset(image_path)
-        pytest.news_dataset = TrainDataset(
+        pytest.news_dataset = CropDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
             image_path=f"{DATA_PATH}input/",
             target_path=f"{DATA_PATH}target_data/",
@@ -137,7 +137,7 @@ class TestLayoutDataset:
             and len(page_dataset_3) == 6
         )
 
-        dataset_1 = TrainDataset(
+        dataset_1 = CropDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
             image_path=f"{DATA_PATH}input/",
             target_path=f"{DATA_PATH}target_data/",
@@ -146,7 +146,7 @@ class TestLayoutDataset:
             name="train",
         )
 
-        dataset_2 = TrainDataset(
+        dataset_2 = CropDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
             image_path=f"{DATA_PATH}input/",
             target_path=f"{DATA_PATH}target_data/",
@@ -155,7 +155,7 @@ class TestLayoutDataset:
             name="train",
         )
 
-        dataset_3 = TrainDataset(
+        dataset_3 = CropDataset(
             Preprocessing(crop_size=256, crop_factor=1.5),
             image_path=f"{DATA_PATH}input/",
             target_path=f"{DATA_PATH}target_data/",

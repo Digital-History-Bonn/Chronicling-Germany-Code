@@ -672,13 +672,6 @@ def get_args() -> argparse.Namespace:
         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         help="name of run in tensorboard",
     )
-    parser.add_argument(
-        "--id",
-        metavar="ID",
-        type=str,
-        default=None,
-        help="Id for experiment runs. Dictates the filename of custom log files.",
-    )
     # pylint: disable=duplicate-code
     parser.add_argument(
         "--batch-size",
@@ -891,14 +884,14 @@ def get_args() -> argparse.Namespace:
         help="Provide path for custom split json file. This should contain a list with file stems "
         "of train, validation and test images. File stem is the file name without the extension.",
     )
-    parser.add_argument(
-        "--override-load-channels",
-        type=int,
-        default=OUT_CHANNELS,
-        help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
-        "loaded with this number of output classes instead of the configured number. This is necessary if a "
-        "pretrained model is intended to be used for a task with a different number of output classes.",
-    )
+    # parser.add_argument(
+    #     "--override-load-channels",
+    #     type=int,
+    #     default=OUT_CHANNELS,
+    #     help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
+    #     "loaded with this number of output classes instead of the configured number. This is necessary if a "
+    #     "pretrained model is intended to be used for a task with a different number of output classes.",
+    # )
 
     return parser.parse_args()
 
@@ -934,6 +927,9 @@ def main() -> None:
     # TODO: change this to directly turn off cropping in the Preprocessing class
     if parameter_args.evaluate is not None:
         parameter_args.crop_factor = -1
+    else:
+        assert len(LOSS_WEIGHTS) == OUT_CHANNELS, \
+            "Config Error. Number of Weights for classes have to match the OUT_CHANNELS constant."
 
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 

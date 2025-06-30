@@ -127,6 +127,7 @@ class DhSegmentSmall(nn.Module):
         :param zero_head:
         """
         super().__init__()
+        self.out_channel = out_channel
         dhsegment = DhSegment(
             [3, 4, 6, 1],
             in_channels=in_channels,
