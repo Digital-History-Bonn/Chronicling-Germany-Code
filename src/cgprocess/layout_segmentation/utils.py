@@ -203,4 +203,5 @@ def create_path_queue(
 
 
 def remove_scaling_errors(target_img: Tensor) -> None:
+    """Removes invalid target values that can occur during augmentation scaling and when padding values are present."""
     target_img[target_img > OUT_CHANNELS - 1] = PADDING_LABEL
