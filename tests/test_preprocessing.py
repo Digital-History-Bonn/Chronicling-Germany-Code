@@ -1,9 +1,12 @@
 """Test class for preprocessing"""
 
 import numpy as np
+
+# pylint: disable-next=no-name-in-module
+# pylint: disable-next=import-error
 import pytest
-from PIL import Image
 import torch
+from PIL import Image
 
 from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
 
@@ -25,7 +28,7 @@ class TestClassPreprocessing:
         """
         image, target = pytest.preprocessing.load(
             f"{DATA_PATH}input/test-image.jpg",
-            f"{DATA_PATH}input/test-target.npy",
+            f"{DATA_PATH}input/test-target.npz",
             "test",
             dataset="transcibus",
         )
@@ -38,7 +41,7 @@ class TestClassPreprocessing:
         # not matching crop test
         size = 100
         channels = 3
-        crop_size = 75
+        crop_size = 512
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
         image = Image.fromarray(
@@ -49,17 +52,17 @@ class TestClassPreprocessing:
         result_data = pytest.preprocessing(image, target)
 
         assert result_data.shape == (
-            4,
+            1,
             channels + 1,
             crop_size,
-            crop_size,
+            crop_size, # Padding is expanded, such that the image can pass the model with eight downscaling operations
         )
         assert result_data.dtype == np.uint8
 
         # standart crop test
         size = 100
         channels = 3
-        crop_size = 50
+        crop_size = 1024
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
         image = Image.fromarray(
@@ -70,7 +73,7 @@ class TestClassPreprocessing:
         result_data = pytest.preprocessing(image, target)
 
         assert result_data.shape == (
-            int(size // crop_size) ** 2,
+            1,
             channels + 1,
             crop_size,
             crop_size,
@@ -78,7 +81,7 @@ class TestClassPreprocessing:
         assert result_data.dtype == np.uint8
 
         # oversized crop test
-        crop_size = 150
+        crop_size = 256
         pytest.preprocessing.crop_size = crop_size
         result_data = pytest.preprocessing(image, target)
 
@@ -92,16 +95,16 @@ class TestClassPreprocessing:
 
         # padding test
         pytest.preprocessing.crop = False
-        pad_size = 128
+        pad_size = 156
         pytest.preprocessing.pad = pad_size, pad_size
 
         result_data = pytest.preprocessing(image, target)
         assert result_data.shape == (1, channels + 1, size + pad_size, size + pad_size)
         assert result_data.dtype == np.uint8
 
-        #uneven size padding test
+        # uneven size padding test
         pytest.preprocessing.crop = False
-        pad_size = 128
+        pad_size = 156
         pytest.preprocessing.pad = pad_size, pad_size
         size = 101
         image = Image.fromarray(
@@ -110,7 +113,7 @@ class TestClassPreprocessing:
         target = np.random.randint(0, 10, (size, size), dtype=np.uint8)
 
         result_data = pytest.preprocessing(image, target)
-        assert result_data.shape == (1, channels + 1, size + pad_size, size + pad_size)
+        assert result_data.shape == (1, channels + 1, 512, 512)
         assert result_data.dtype == np.uint8
 
     def test_set_padding(self):
@@ -140,7 +143,10 @@ class TestClassPreprocessing:
         # x greater than cropsize test
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (crop_size - size_x, crop_size-(size_y % crop_size))
+        assert pytest.preprocessing.pad == (
+            crop_size - size_x,
+            crop_size - (size_y % crop_size),
+        )
 
         size_x = 170
         size_y = 142
@@ -151,7 +157,10 @@ class TestClassPreprocessing:
         # both greater than cropsize test
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (crop_size-(size_x % crop_size), crop_size - size_y)
+        assert pytest.preprocessing.pad == (
+            crop_size - (size_x % crop_size),
+            crop_size - size_y,
+        )
 
         pytest.preprocessing.pad = None
 
@@ -163,7 +172,10 @@ class TestClassPreprocessing:
 
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (crop_size-(size_x % crop_size),crop_size-(size_y % crop_size))
+        assert pytest.preprocessing.pad == (
+            crop_size - (size_x % crop_size),
+            crop_size - (size_y % crop_size),
+        )
 
         size_x = 150
         size_y = 150
@@ -173,7 +185,7 @@ class TestClassPreprocessing:
 
         pytest.preprocessing.set_padding(image)
 
-        assert pytest.preprocessing.pad == (0,0)
+        assert pytest.preprocessing.pad == (0, 0)
 
     def test_scale(self):
         """Verify scale function"""
@@ -206,8 +218,8 @@ class TestClassPreprocessing:
         pytest.preprocessing.crop_size = crop_size
         pytest.preprocessing.crop_factor = 1
 
-        windows = Preprocessing.crop_img(crop_size, 1,
-            image
+        windows = Preprocessing.crop_img(
+            crop_size, 1, image
         )  # pylint: disable=protected-access
 
         assert windows.shape == (

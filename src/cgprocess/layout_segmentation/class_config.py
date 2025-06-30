@@ -10,8 +10,10 @@ cmap = [
     (0.0422705314009658, 0.0, 1.0),
     (0.6461352657004831, 0.0, 1.0),
     (1.0, 0.73, 0.98),
-    (0.5, 0.0, 0.0),
+    (0.5, 0.0, 0.0)
 ]
+
+cmap_border_color = (0.2, 0.2, 1.0)
 
 TOLERANCE = [
     5.0,  # "caption"
@@ -22,7 +24,7 @@ TOLERANCE = [
     1.0,  # "separator_vertical"
     1.0,  # "separator"
     5.0,  # "image",
-    5.0  # "inverted_text"
+    5.0,  # "inverted_text"
 ]
 
 # The order dictates the priority in the drawing process. Eg. "image": 10 assigns label 10 to image regions, but the
@@ -45,6 +47,9 @@ LABEL_ASSIGNMENTS = {
     "separator_short": 7,
     "separator_horizontal": 7,
 }
+
+PADDING_LABEL = 255
+PAGE_BORDER_CONTENT = "page_border_content"
 
 LABEL_NAMES = [
     "caption",
@@ -73,21 +78,19 @@ REGION_TYPES = {
 
 VALID_TAGS = [
     "paragraph",
-    'caption',
-    'heading',
-    'header',
-    'image',
-    'table',
-    'inverted_text',
-    'separator_vertical',
-    'separator_horizontal',
-    'UnknownRegion'
+    "caption",
+    "heading",
+    "header",
+    "image",
+    "table",
+    "inverted_text",
+    "separator_vertical",
+    "separator_horizontal",
+    "UnknownRegion",
 ]
 
 
-REDUCE_CLASSES = {
-    3: [1, 4, 5]
-}
+REDUCE_CLASSES = {3: [1, 5], 0: [8, 9]}
 
 # REDUCE_CLASSES = {
 #     6: [7]

@@ -1,4 +1,5 @@
 """Module for small dhsegment https://arxiv.org/abs/1804.10371"""
+
 # coding=utf-8
 from __future__ import absolute_import, division, print_function
 
@@ -9,7 +10,7 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment, conv1x1
+from cgprocess.layout_segmentation.models.dh_segment import DhSegment, conv1x1
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class Encoder(nn.Module):
             "identity": identity,
             "copy_0": copy_0,
             "copy_1": copy_1,
-            "copy_2": copy_2
+            "copy_2": copy_2,
         }
 
     def freeze_encoder(self, requires_grad: bool = False) -> None:
@@ -99,7 +100,9 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
         # pylint: disable=duplicate-code
-        tensor_x: torch.Tensor = self.up_block3(encoder_results["copy_2"], encoder_results["copy_1"])
+        tensor_x: torch.Tensor = self.up_block3(
+            encoder_results["copy_2"], encoder_results["copy_1"]
+        )
         tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
         tensor_x = self.up_block5(tensor_x, encoder_results["identity"])
 
@@ -112,7 +115,10 @@ class DhSegmentSmall(nn.Module):
     """Implements small DhSegment by removing the last 2 layers."""
 
     def __init__(
-        self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool =True
+        self,
+        in_channels: int = 3,
+        out_channel: int = 3,
+        load_resnet_weights: bool = True,
     ) -> None:
         """
         :param config:
@@ -121,6 +127,7 @@ class DhSegmentSmall(nn.Module):
         :param zero_head:
         """
         super().__init__()
+        self.out_channel = out_channel
         dhsegment = DhSegment(
             [3, 4, 6, 1],
             in_channels=in_channels,

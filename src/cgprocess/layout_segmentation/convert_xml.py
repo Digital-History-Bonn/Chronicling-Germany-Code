@@ -2,6 +2,7 @@
 Main Module for converting annotation xml files to numpy images. Also contains backwards converting functions, which
 take polygon data and convert it to xml.
 """
+
 import argparse
 import json
 import os
@@ -15,10 +16,9 @@ from bs4 import BeautifulSoup
 from skimage import io
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_img
-from src.cgprocess.layout_segmentation.processing import read_xml
-
-from src.cgprocess.layout_segmentation.utils import draw_prediction, adjust_path
+from cgprocess.layout_segmentation.processing import read_xml
+from cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_img
+from cgprocess.layout_segmentation.utils import adjust_path, draw_prediction
 
 INPUT = "../../data/newspaper/annotations/"
 OUTPUT = "../../data/newspaper/targets/"
@@ -30,21 +30,20 @@ def main(parsed_args: argparse.Namespace) -> None:
     annotations_path = adjust_path(parsed_args.annotations_path)
     output_path = adjust_path(parsed_args.output_path)
 
-    paths = [
-        f[:-4] for f in os.listdir(annotations_path) if f.endswith(".xml")
-    ]
+    paths = [f[:-4] for f in os.listdir(annotations_path) if f.endswith(".xml")]
 
     if not output_path or not os.path.exists(output_path):
         print(f"creating {output_path}.")
-        os.makedirs(output_path) # type: ignore
+        os.makedirs(output_path)  # type: ignore
 
-    target_paths = [
-        f[:-4] for f in os.listdir(output_path) if f.endswith(".npy")
-    ]
+    target_paths = [f[:-4] for f in os.listdir(output_path) if f.endswith(".npz")]
 
-
+    # todo: use run process from multiprocessing handler
     path_queue: Queue = Queue()
-    processes = [Process(target=convert_file, args=(path_queue, parsed_args, target_paths)) for _ in range(32)]
+    processes = [
+        Process(target=convert_file, args=(path_queue, parsed_args, target_paths))
+        for _ in range(parsed_args.process_count)
+    ]
     for process in processes:
         process.start()
     for path in tqdm(paths, desc="Put paths in queue"):
@@ -53,7 +52,9 @@ def main(parsed_args: argparse.Namespace) -> None:
     with tqdm(total=total, desc="Page converting", unit="pages") as pbar:
         done = False
         while not done:
-            files_number = len([f for f in os.listdir(output_path) if f.endswith(".npy")])
+            files_number = len(
+                [f for f in os.listdir(output_path) if f.endswith(".npz")]
+            )
             pbar.n = files_number
             pbar.refresh()
             sleep(1)
@@ -65,7 +66,9 @@ def main(parsed_args: argparse.Namespace) -> None:
         process.join()
 
 
-def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]) -> None:
+def convert_file(
+        path_queue: Queue, parsed_args: argparse.Namespace, target_paths: List[str]
+) -> None:
     """
     Reads and converts xml data, if that file has not been converted at the start of the script.
     If an image output path is provided, this creates images of the targets and saves them.
@@ -79,19 +82,20 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
         path, done = path_queue.get()
         if done:
             break
+        if path in target_paths:
+            continue
         read = (
             # pylint: disable=unnecessary-lambda-assignment
-            lambda file: read_xml.read_transkribus(path=file, log=parsed_args.log)
-            if parsed_args.dataset == "transkribus"
-            else read_xml.read_hlna2013
+            lambda file: (
+                read_xml.read_transkribus(path=file, log=parsed_args.log)
+                if parsed_args.dataset == "transkribus"
+                else read_xml.read_hlna2013
+            )
         )
-
-        if path in target_paths:
-            return
         annotation: dict = read(f"{annotations_path}{path}.xml")  # type: ignore
         if len(annotation) < 1:
-            return
-        img = draw_img(annotation)
+            continue
+        img = draw_img(annotation, parsed_args.mark_page_border)
 
         # Debug
         if image_path:
@@ -103,9 +107,9 @@ def convert_file(path_queue: Queue, parsed_args: argparse.Namespace, target_path
         if parsed_args.json:
             with open(f"{OUTPUT}{path}.json", "w", encoding="utf-8") as file:
                 json.dump(annotation, file)
-
         # save ndarray
         np_save(f"{output_path}{path}", img)
+        del img, annotation
 
 
 def np_save(file: str, img: np.ndarray) -> None:
@@ -114,7 +118,7 @@ def np_save(file: str, img: np.ndarray) -> None:
     :param file: name of the file without ending
     :param img: numpy array to save
     """
-    np.save(f"{file}.npy", img)
+    np.savez_compressed(f"{file}.npz", array=img)
 
 
 def img_save(file: str, img: np.ndarray) -> None:
@@ -153,7 +157,7 @@ def get_args() -> argparse.Namespace:
         help="path for output folder",
     )
     parser.add_argument(
-        "--image-path",
+        "--image-debug-path",
         "-i",
         type=str,
         dest="image_path",
@@ -169,9 +173,23 @@ def get_args() -> argparse.Namespace:
              "mismatches for each file.",
     )
     parser.add_argument(
+        "--mark-page-border",
+        "-pb",
+        action="store_true",
+        help="Activates page border, so that large background areas can be excluded from the gradient.",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Activates json dump of polygon dictionary.",
+    )
+    parser.add_argument(
+        "--process-count",
+        "-p",
+        type=int,
+        default=1,
+        help="Select number of processes that are launched per graphics card. This must be used carefully, as it can "
+             "lead to a CUDA out of memory error.",
     )
 
     return parser.parse_args()
@@ -181,8 +199,10 @@ if __name__ == "__main__":
     args = get_args()
 
     if args.image_path:
-        warnings.warn("Image output slows down the prediction significantly. "
-                      "--image-path should not be activated in production environment.")
+        warnings.warn(
+            "Image output slows down the prediction significantly. "
+            "--image-path should not be activated in production environment."
+        )
 
     main(args)
 
@@ -199,5 +219,6 @@ def save_xml(bs_data: BeautifulSoup, output_path: object, file_stem: object) -> 
             encoding="utf-8",
     ) as xml_file:
         xml_file.write(
-            bs_data.prettify().replace("<Unicode>\n      ", "<Unicode>") # type: ignore
-            .replace("\n     </Unicode>", "</Unicode>")) # type: ignore
+            bs_data.prettify()
+            .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
+            .replace("\n     </Unicode>", "</Unicode>"))  # type: ignore

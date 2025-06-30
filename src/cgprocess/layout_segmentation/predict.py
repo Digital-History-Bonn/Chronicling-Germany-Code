@@ -1,29 +1,39 @@
-"""Module for predicting newspaper images with trained models. """
+"""Module for predicting newspaper images with trained models."""
 
 import argparse
 import os
 import warnings
+from multiprocessing import set_start_method
 from threading import Thread
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 from numpy import ndarray
-from torch.nn import DataParallel
-from torch.utils.data import DataLoader
-from tqdm import tqdm
+from torch import nn
 
-from src.cgprocess.layout_segmentation.class_config import TOLERANCE
-from src.cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
-from src.cgprocess.layout_segmentation.helper.train_helper import init_model
-from src.cgprocess.layout_segmentation.processing.draw_img_from_polygons import draw_polygons_into_image
-from src.cgprocess.layout_segmentation.processing.polygon_handler import prediction_to_region_polygons, \
-    uncertainty_to_polygons
-from src.cgprocess.layout_segmentation.processing.reading_order import PageProperties
-from src.cgprocess.layout_segmentation.processing.slicing_export import export_slices
-from src.cgprocess.layout_segmentation.processing.transkribus_export import export_xml
-from src.cgprocess.layout_segmentation.train_config import OUT_CHANNELS
-from src.cgprocess.layout_segmentation.utils import draw_prediction, adjust_path, collapse_prediction
+from cgprocess.layout_segmentation.class_config import TOLERANCE
+from cgprocess.layout_segmentation.datasets.predict_dataset import PredictDataset
+from cgprocess.layout_segmentation.helper.train_helper import init_model
+from cgprocess.layout_segmentation.processing.draw_img_from_polygons import (
+    draw_polygons_into_image,
+)
+from cgprocess.layout_segmentation.processing.polygon_handler import (
+    prediction_to_region_polygons,
+    uncertainty_to_polygons,
+)
+from cgprocess.layout_segmentation.processing.reading_order import PageProperties
+from cgprocess.layout_segmentation.processing.slicing_export import export_slices
+from cgprocess.layout_segmentation.processing.transkribus_export import export_xml
+from cgprocess.layout_segmentation.train_config import OUT_CHANNELS
+from cgprocess.layout_segmentation.utils import (
+    adjust_path,
+    collapse_prediction,
+    create_model_list,
+    create_path_queue,
+    draw_prediction,
+)
+from cgprocess.shared.multiprocessing_handler import MPPredictor
 
 DATA_PATH = "../../../data/newspaper/input/"
 RESULT_PATH = "../../../data/output/"
@@ -36,38 +46,53 @@ FINAL_SIZE = (1024, 1024)
 # the tolerance distance of the original geometry.
 
 
-def predict_batch(args: argparse.Namespace, device: str, paths: List[str], image: torch.Tensor,
-                  target: torch.Tensor, model: Any, debug: bool = False) -> List[Thread]:
+def predict(args: list, model: nn.Module) -> Thread:
     """
-    Run model to create prediction of whole batch and start export threads for each image.
-    :param debug: if true, the uncertainty prediction is activated
-    :param target: target for uncertainty prediction.
-    :param args: arguments
-    :param device: device, cuda or cpu
-    :param paths: image file names
-    :param image: image tensor [3, H, W]
-    :param model: model to run prediction on
+    Run model to create prediction of one image and start export thread.
+    :param args: arguments passed from multiprocessing handler.
+    :param model: layout model for prediction.
     """
-    with torch.autocast(device, enabled=args.amp):
-        pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
+    path, cmd_args, dataset, _ = args
+
+    target_path = adjust_path(
+        cmd_args.target_path if cmd_args.uncertainty_predict else None
+    )
+    model.eval()
+    device = next(model.parameters()).device
+    debug = target_path is not None
+
+    image, target = dataset.load_data_by_path(path)
+    image = image[None, :, :, :]
+
+    pred = torch.nn.functional.softmax(model(image.to(device)), dim=1)
 
     if debug:
-        pred_ndarray = process_prediction_debug(pred, target.to(device), args.threshold)
+        target = target[None, :, :]  # type: ignore
+        pred_ndarray = process_prediction_debug(
+            pred, target.to(device), cmd_args.threshold
+        )
     else:
-        pred_ndarray = process_prediction(pred, args.threshold, args.reduce)
+        pred_ndarray = process_prediction(pred, cmd_args.threshold, cmd_args.reduce)
     image_ndarray = image.numpy()
 
-    threads = []
-    for i in range(pred_ndarray.shape[0]):
-        threads.append(Thread(target=image_level_export, args=(paths[i], pred_ndarray[i], image_ndarray[i], args)))
-        if args.output_path:
-            draw_prediction(pred_ndarray[i], adjust_path(args.output_path) + os.path.splitext(paths[i])[0] + ".png")
-        threads[i].start()
+    # todo: thread exceptions must be caught and image name added to failed queue
+    thread = Thread(
+        target=image_level_export,
+        args=(path, pred_ndarray[0], image_ndarray[0], cmd_args),
+    )
+    thread.start()
+    if cmd_args.output_path:
+        draw_prediction(
+            pred_ndarray[0],
+            adjust_path(cmd_args.output_path) + os.path.splitext(path)[0] + ".png",
+        )
 
-    return threads
+    return thread
 
 
-def image_level_export(file: str, pred: ndarray, image: ndarray, args: argparse.Namespace) -> None:
+def image_level_export(
+    file: str, pred: ndarray, image: ndarray, args: argparse.Namespace
+) -> None:
     """
     Handle export options.
     :param args: arguments
@@ -78,21 +103,29 @@ def image_level_export(file: str, pred: ndarray, image: ndarray, args: argparse.
         reading_order_dict, segmentations, bbox_list = get_region_polygons(pred, args)
 
         if args.slices_path:
-            export_slices(args, file, image, reading_order_dict, segmentations, bbox_list, pred)
+            export_slices(
+                args, file, image, reading_order_dict, segmentations, bbox_list, pred
+            )
 
         if args.output_path:
-            np.save(args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".npy", pred)
+            np.save(
+                args.output_path + f"{os.path.splitext(file)[0]}_polygons" + ".npy",
+                pred,
+            )
             polygon_pred = draw_polygons_into_image(segmentations, pred.shape)
             draw_prediction(
                 polygon_pred,
-                adjust_path(args.output_path) + f"{os.path.splitext(file)[0]}_polygons" + ".png",
+                adjust_path(args.output_path)
+                + f"{os.path.splitext(file)[0]}_polygons"
+                + ".png",
             )
         if args.export:
             export_xml(args, file, reading_order_dict, segmentations, image.shape)
 
 
-def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
-    Dict[int, int], Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
+def get_region_polygons(
+    pred: ndarray, args: argparse.Namespace
+) -> Tuple[Dict[int, int], Dict[int, List[List[float]]], Dict[int, List[List[float]]]]:
     """
     Calls polygon conversion. Original segmentation is first converted to polygons, then those polygons are
     drawn into a ndarray image. Furthermore, regions of sufficient size will be cut out and saved separately if
@@ -107,15 +140,21 @@ def get_region_polygons(pred: ndarray, args: argparse.Namespace) -> Tuple[
         reading_order_dict = {i: i for i in range(len(segmentations))}
 
     else:
-        segmentations, bbox_list = prediction_to_region_polygons(pred, TOLERANCE, int(args.bbox_size * args.scale),
-                                                                 args.export or args.output_path)
+        segmentations, bbox_list = prediction_to_region_polygons(
+            pred,
+            TOLERANCE,
+            int(args.bbox_size * args.scale),
+            args.export or args.output_path,
+        )
         page = PageProperties(bbox_list)
         reading_order_dict = page.get_reading_order()
 
     return reading_order_dict, segmentations, bbox_list
 
 
-def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = False) -> ndarray:
+def process_prediction(
+    pred: torch.Tensor, threshold: float, reduce: bool = False
+) -> ndarray:
     """
     Apply argmax to prediction and assign label 0 to all pixel that have a confidence below the threshold.
     :param reduce: if true, this will load the reduce dictionary from class_config.py to combine probability values
@@ -133,7 +172,9 @@ def process_prediction(pred: torch.Tensor, threshold: float, reduce: bool = Fals
     return argmax.detach().cpu().numpy()  # type: ignore
 
 
-def process_prediction_debug(prediction: torch.Tensor, target: torch.Tensor, threshold: float) -> np.ndarray:
+def process_prediction_debug(
+    prediction: torch.Tensor, target: torch.Tensor, threshold: float
+) -> np.ndarray:
     """
     Extract uncertain predictions based on the ground truth. Uncertain are all pixel with a predicted probability
     for the target class below a given threshold
@@ -162,7 +203,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=DATA_PATH,
         help="Path for folder with images to be segmented. Images need to be png or jpg. Otherwise they"
-             " will be skipped",
+        " will be skipped",
     )
     parser.add_argument(
         "--target-path",
@@ -198,14 +239,12 @@ def get_args() -> argparse.Namespace:
         dest="export",
         action="store_true",
         help="If True, annotation data ist added to xml files inside the page folder. The page folder "
-             "needs to be inside the image folder.",
+        "needs to be inside the image folder.",
     )
-    parser.add_argument(
-        "--cuda", type=str, default="cuda", help="Cuda device string"
-    )
+    parser.add_argument("--cuda", type=str, default="cuda", help="Cuda device string")
     parser.add_argument(
         "--threshold",
-        "-t",
+        "-th",
         type=float,
         default=0.5,
         help="Confidence threshold for assigning a label to a pixel.",
@@ -215,7 +254,7 @@ def get_args() -> argparse.Namespace:
         "-a",
         type=str,
         default="dh_segment",
-        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small, dh_segment_2, dh_segment_wide",
     )
     parser.add_argument(
         "--crop-size",
@@ -234,13 +273,6 @@ def get_args() -> argparse.Namespace:
         help="Batch size",
     )
     parser.add_argument(
-        "--worker-factor",
-        "-wf",
-        type=int,
-        default=2,
-        help="Factor for number of workers. There will be gpu_count * worker_factor many Factor.",
-    )
-    parser.add_argument(
         "--torch-seed", "-ts", type=float, default=314.0, help="Torch seed"
     )
     parser.add_argument(
@@ -252,23 +284,13 @@ def get_args() -> argparse.Namespace:
         help="Downscaling factor of the images. Polygon data will be upscaled accordingly",
     )
     parser.add_argument(
-        "--padding",
-        "-p",
-        dest="pad",
-        type=int,
-        nargs="+",
-        default=FINAL_SIZE,
-        help="Size to which the image will be padded to. Has to be a tuple (W, H). "
-             "Has to be grater or equal to actual image",
-    )
-    parser.add_argument(
         "--bbox-threshold",
         "-bt",
         dest="bbox_size",
         type=int,
         default=500,
         help="Threshold for bboxes. Polygons, whose bboxes do not meet the requirement will be ignored. "
-             "This will be adjusted depending on the scaling of the image.",
+        "This will be adjusted depending on the scaling of the image.",
     )
     parser.add_argument(
         "--skip-cbam",
@@ -282,7 +304,7 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1000,
         help="Threshold for big separators. Only big separators that meet the requirement are valid to "
-             "split reading order. This will be adjusted depending on the scaling of the image.",
+        "split reading order. This will be adjusted depending on the scaling of the image.",
     )
     parser.add_argument(
         "--area-threshold",
@@ -291,7 +313,7 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=800000,
         help="Threshold for Regions that are large enough to contain a lot of text and will be cut out "
-             "for further processing",
+        "for further processing",
     )
     parser.add_argument(
         "--amp",
@@ -307,90 +329,78 @@ def get_args() -> argparse.Namespace:
         "--uncertainty-predict",
         action="store_true",
         help="Activates the uncertainty prediction. This writes regions into the xml file, which correspond to false "
-             "classified regions. Class 1 (caption) = false class 2 (table) = true.",
+        "classified regions. Class 1 (caption) = false class 2 (table) = true.",
     )
     parser.add_argument(
         "--override-load-channels",
         type=int,
         default=OUT_CHANNELS,
         help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
-             "loaded with this number of output classes instead of the configured number. This is necessary if a "
-             "pretrained model is intended to be used for a task with a different number of output classes.",
+        "loaded with this number of output classes instead of the configured number. This is necessary if a "
+        "pretrained model is intended to be used for a task with a different number of output classes.",
+    )
+    parser.add_argument(
+        "--processes",
+        "-p",
+        type=int,
+        default=1,
+        help="Number of processes for every gpu in use. This has to be used carefull, as this can lead to a CUDA out "
+        "of memory error.",
+    )
+    parser.add_argument(
+        "--thread-count",
+        "-t",
+        type=int,
+        default=1,
+        help="Select number of threads that are launched per process.",
     )
     return parser.parse_args()
 
 
-def collate_fn(batch: Any) -> Any:
-    """dataloader collate function"""
-    return (
-        torch.stack([x[0] for x in batch]),
-        torch.stack([x[1] for x in batch]),
-        [x[2] for x in batch]
-    )
-
-
-def predict(args: argparse.Namespace) -> None:
+def main(args: argparse.Namespace) -> None:
     """
     Loads all images from the data folder and predicts segmentation.
     Loading is handled through a Dataloader and Dataset. Threads are joined every 10 batches.
     """
-    device = args.cuda if torch.cuda.is_available() else "cpu"
-    cuda_count = torch.cuda.device_count()
 
     target_path = adjust_path(args.target_path if args.uncertainty_predict else None)
-    dataset = PredictDataset(adjust_path(args.data_path),  # type: ignore
-                             args.scale, args.pad,
-                             target_path=adjust_path(target_path))
+    data_path = adjust_path(args.data_path)
+    dataset = PredictDataset(
+        data_path, args.scale, target_path=adjust_path(target_path)  # type: ignore
+    )
 
     print(f"{len(dataset)=}")
 
-    pred_loader = DataLoader(
-        dataset,
-        batch_size=cuda_count if torch.cuda.is_available() else 1,
-        shuffle=False,
-        num_workers=args.worker_factor * cuda_count,
-        prefetch_factor=2 if args.worker_factor * cuda_count > 1 else None,
-        persistent_workers=args.worker_factor * cuda_count > 1,
-        pin_memory=True,
-        collate_fn=collate_fn
-    )
-    if device == 'cpu':
-        print(f"Using {device}")
-        model = init_model(args.model_path, device, args.model_architecture, args.skip_cbam,
-                           overwrite_load_channels=args.override_load_channels)
-    else:
-        print(f"Using {device} device with {cuda_count} gpus")
-        model = DataParallel(
-            init_model(args.model_path, device, args.model_architecture, args.skip_cbam, args.override_load_channels))
+    num_gpus = torch.cuda.device_count()
+    num_processes = args.processes
 
-    model.to(device)
-    model.eval()
-    threads = []
+    # create queue
+    path_queue = create_path_queue(dataset.file_names, args, dataset)
 
-    batch = 0
-    for image, target, path in tqdm(
-            pred_loader, desc="layout inference", total=len(pred_loader), unit="batches"
-    ):
-        batch += 1
-        threads += predict_batch(args, device, path, image, target, model, args.uncertainty_predict)
+    model_list = create_model_list(args, num_gpus, num_processes)
 
-        if batch % 10 == 0:
-            for thread in threads:
-                thread.join()
-            threads = []
-
-    print("Prediction done, waiting for post processing to end")
-    for thread in threads:
-        thread.join()
-    print("Done")
+    predictor = MPPredictor(
+        "Layout prediction",
+        predict,
+        init_model,
+        path_queue,
+        model_list,
+        data_path, # type: ignore
+        False,
+        False,
+    )  # type: ignore
+    predictor.launch_processes(num_gpus, args.thread_count)
 
 
 if __name__ == "__main__":
+    set_start_method("spawn")
     parameter_args = get_args()
 
     if parameter_args.output_path:
-        warnings.warn("Image output slows down the prediction significantly. "
-                      "--output-path should not be activated in production environment.")
+        warnings.warn(
+            "Image output slows down the prediction significantly. "
+            "--output-path should not be activated in production environment."
+        )
 
     if not os.path.exists(f"{parameter_args.output_path}"):
         os.makedirs(f"{parameter_args.output_path}")
@@ -398,4 +408,4 @@ if __name__ == "__main__":
         os.makedirs(f"{parameter_args.slices_path}")
 
     torch.manual_seed(parameter_args.torch_seed)
-    predict(parameter_args)
+    main(parameter_args)

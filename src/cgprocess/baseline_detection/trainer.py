@@ -2,22 +2,25 @@
 
 import argparse
 import os
-from typing import Union, Tuple, Dict
+from typing import Dict, Tuple, Union
 
+from PIL import Image
 import numpy as np
 import torch
 from monai.losses import DiceLoss
 from monai.networks.nets import BasicUNet
 from torch import nn
-from torch.nn import MSELoss
+from torch.nn import DataParallel, MSELoss
 from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from torchvision import transforms
 from tqdm import tqdm
 
-from src.cgprocess.baseline_detection.dataset import CustomDataset as Dataset
-from src.cgprocess.baseline_detection.utils import set_seed, adjust_path
+from cgprocess.baseline_detection.dataset import CustomDataset as Dataset
+from cgprocess.baseline_detection.utils import adjust_path, set_seed
+
+Image.MAX_IMAGE_PIXELS = 500000000
 
 LR = 0.0001
 
@@ -38,13 +41,12 @@ class MultiTargetLoss(nn.Module):
         """
         super().__init__()
         self.scaling = scaling
-        self.dice = DiceLoss(include_background=False,
-                             to_onehot_y=True,
-                             softmax=True)
+        self.dice = DiceLoss(include_background=False, to_onehot_y=True, softmax=True)
         self.mse = MSELoss()
 
-    def forward(self, pred: torch.Tensor,
-                target: torch.Tensor) -> Tuple[float, float, float, float, float]:
+    def forward(
+            self, pred: torch.Tensor, target: torch.Tensor
+    ) -> Tuple[float, float, float, float, float]:
         """
         Forward pass for loss.
 
@@ -55,14 +57,22 @@ class MultiTargetLoss(nn.Module):
         Returns:
             overall loss, individual losses (ascender, descender, baseline, limits)
         """
-        ascender_loss = self.mse(pred[:, 0, :, :].float() * target[:, 2, :, :].float(),
-                                 target[:, 0, :, :].float())
-        descender_loss = self.mse(pred[:, 1, :, :].float() * target[:, 2, :, :].float(),
-                                  target[:, 1, :, :].float())
+        ascender_loss = self.mse(
+            pred[:, 0, :, :].float() * target[:, 2, :, :].float(),
+            target[:, 0, :, :].float(),
+        )
+        descender_loss = self.mse(
+            pred[:, 1, :, :].float() * target[:, 2, :, :].float(),
+            target[:, 1, :, :].float(),
+        )
         baseline_loss = self.dice(pred[:, 2:4, :, :], target[:, 2, None, :, :])
         limits_loss = self.dice(pred[:, 4:6, :, :], target[:, 3, None, :, :])
 
-        loss = self.scaling * (ascender_loss + descender_loss) + baseline_loss + limits_loss
+        loss = (
+                self.scaling * (ascender_loss + descender_loss)
+                + baseline_loss
+                + limits_loss
+        )
         return loss, ascender_loss, descender_loss, baseline_loss, limits_loss
 
 
@@ -76,7 +86,9 @@ class Trainer:
             testdataset: Dataset,
             optimizer: Optimizer,
             name: str,
-            cuda: int = 0,
+            gpu_count: int = 0,
+            worker_count: int = 1,
+            batch_size: int = 32,
     ) -> None:
         """
         Trainer class to train models.
@@ -87,12 +99,12 @@ class Trainer:
             testdataset: dataset to validate model while trainings process
             optimizer: optimizer to use
             name: name of the model in save-files and tensorboard
-            cuda: number of used cuda device
+            gpu_count: number of used cuda device
         """
         print(f"{torch.cuda.is_available()=}")
         self.device = (
-            torch.device(f"cuda:{cuda}")
-            if torch.cuda.is_available() and cuda >= 0
+            torch.device("cuda")
+            if torch.cuda.is_available() and gpu_count >= 0
             else torch.device("cpu")
         )
         print(f"using {self.device}")
@@ -103,10 +115,15 @@ class Trainer:
         self.softmax = nn.Softmax(dim=1)
 
         self.trainloader = DataLoader(
-            traindataset, batch_size=16, shuffle=True, num_workers=14
+            traindataset,
+            batch_size=batch_size * gpu_count,
+            shuffle=True,
+            num_workers=worker_count,
+            persistent_workers=True,
+            drop_last=True,
         )
         self.testloader = DataLoader(
-            testdataset, batch_size=1, shuffle=False, num_workers=24
+            testdataset, batch_size=1 * gpu_count, shuffle=False, num_workers=16, persistent_workers=True
         )
 
         self.bestavrgloss: Union[float, None] = None
@@ -130,7 +147,7 @@ class Trainer:
         """
         os.makedirs("models/", exist_ok=True)
         torch.save(
-            self.model.state_dict(),
+            self.model.module.state_dict(),
             f"models/{name}",
         )
 
@@ -141,9 +158,7 @@ class Trainer:
         Args:
             name: name of the model
         """
-        self.model.load_state_dict(
-            torch.load(f"models/{name}.pt")
-        )
+        self.model.module.load_state_dict(torch.load(f"models/{name}.pt"))
 
     def train(self, epoch: int) -> None:
         """
@@ -179,7 +194,9 @@ class Trainer:
 
             self.optimizer.zero_grad()
             output = self.model(images)
-            loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
+            loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(
+                output, targets
+            )
             loss.backward()
             self.optimizer.step()
 
@@ -189,21 +206,25 @@ class Trainer:
             descender_loss_lst.append(desc_loss.cpu().detach())
             limits_loss_lst.append(limits_loss.cpu().detach())
 
-            del (images,
-                 targets,
-                 output,
-                 loss,
-                 baseline_loss,
-                 asc_loss,
-                 desc_loss,
-                 limits_loss)
+            del (
+                images,
+                targets,
+                output,
+                loss,
+                baseline_loss,
+                asc_loss,
+                desc_loss,
+                limits_loss,
+            )
 
-        self.log_loss('Training',
-                      loss=np.mean(loss_lst),
-                      baseline_loss=np.mean(baseline_loss_lst),
-                      ascender_loss=np.mean(ascender_loss_lst),
-                      descender_loss=np.mean(descender_loss_lst),
-                      limits_loss=np.mean(limits_loss_lst))
+        self.log_loss(
+            "Training",
+            loss=np.mean(loss_lst),
+            baseline_loss=np.mean(baseline_loss_lst),
+            ascender_loss=np.mean(ascender_loss_lst),
+            descender_loss=np.mean(descender_loss_lst),
+            limits_loss=np.mean(limits_loss_lst),
+        )
 
         del loss_lst
 
@@ -226,7 +247,9 @@ class Trainer:
 
             self.optimizer.zero_grad()
             output = self.model(images)
-            loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(output, targets)
+            loss, asc_loss, desc_loss, baseline_loss, limits_loss = self.loss_fn(
+                output, targets
+            )
 
             loss_lst.append(loss.cpu().detach())
             baseline_loss_lst.append(baseline_loss.cpu().detach())
@@ -234,24 +257,28 @@ class Trainer:
             descender_loss_lst.append(desc_loss.cpu().detach())
             limits_loss_lst.append(limits_loss.cpu().detach())
 
-            del (images,
-                 targets,
-                 output,
-                 loss,
-                 baseline_loss,
-                 asc_loss,
-                 desc_loss,
-                 limits_loss)
+            del (
+                images,
+                targets,
+                output,
+                loss,
+                baseline_loss,
+                asc_loss,
+                desc_loss,
+                limits_loss,
+            )
 
-        self.log_loss('Valid',
-                      loss=np.mean(loss_lst),
-                      baseline_loss=np.mean(baseline_loss_lst),
-                      ascender_loss=np.mean(ascender_loss_lst),
-                      descender_loss=np.mean(descender_loss_lst),
-                      limits_loss=np.mean(limits_loss_lst))
+        self.log_loss(
+            "Valid",
+            loss=np.mean(loss_lst),
+            baseline_loss=np.mean(baseline_loss_lst),
+            ascender_loss=np.mean(ascender_loss_lst),
+            descender_loss=np.mean(descender_loss_lst),
+            limits_loss=np.mean(limits_loss_lst),
+        )
 
-        self.log_examples('Training')
-        self.log_examples('Valid')
+        self.log_examples("Training")
+        self.log_examples("Valid")
 
         return np.mean(loss_lst)  # type: ignore
 
@@ -264,7 +291,9 @@ class Trainer:
         """
         self.model.eval()
 
-        example = self.train_example_image if dataset == 'Training' else self.example_image
+        example = (
+            self.train_example_image if dataset == "Training" else self.example_image
+        )
 
         # predict example form training set
         pred = self.model(example[None].to(self.device))
@@ -274,11 +303,13 @@ class Trainer:
         baselines = self.softmax(pred[:, 2:4, :, :])
         limits = self.softmax(pred[:, 4:, :, :])
 
-        self.log_image(dataset=dataset,
-                       ascenders=ascenders,
-                       descenders=descenders,
-                       baselines=baselines[:, 1],
-                       limits=limits[:, 1])
+        self.log_image(
+            dataset=dataset,
+            ascenders=ascenders,
+            descenders=descenders,
+            baselines=baselines[:, 1],
+            limits=limits[:, 1],
+        )
 
         self.model.train()
 
@@ -294,8 +325,8 @@ class Trainer:
             # log in tensorboard
             self.writer.add_image(
                 f"{dataset}/{key}",
-                image[:, ::2, ::2],    # type: ignore
-                global_step=self.epoch
+                image[:, ::2, ::2],  # type: ignore
+                global_step=self.epoch,
             )  # type: ignore
 
         self.writer.flush()  # type: ignore
@@ -312,9 +343,7 @@ class Trainer:
         # logging
         for key, value in kwargs.items():
             self.writer.add_scalar(
-                f"{dataset}/{key}",
-                value,
-                global_step=self.epoch
+                f"{dataset}/{key}", value, global_step=self.epoch
             )  # type: ignore
 
         self.writer.flush()  # type: ignore
@@ -350,7 +379,7 @@ def get_args() -> argparse.Namespace:
         "-t",
         type=str,
         default=None,
-        help="path for folder with images jpg files and annotation xml files to train the model."
+        help="path for folder with images jpg files and annotation xml files to train the model.",
     )
 
     parser.add_argument(
@@ -358,15 +387,15 @@ def get_args() -> argparse.Namespace:
         "-v",
         type=str,
         default=None,
-        help="path for folder with images jpg files and annotation xml files to validate the model."
+        help="path for folder with images jpg files and annotation xml files to validate the model.",
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
-        "--cuda",
-        "-c",
+        "--gpu",
+        "-g",
         type=int,
         default=-1,
-        help="number of the cuda device (use -1 for cpu)",
+        help="number of the gpu devices to use. (use -1 for cpu)",
     )
 
     # pylint: disable=duplicate-code
@@ -377,8 +406,22 @@ def get_args() -> argparse.Namespace:
         default=42,
         help="Seeding number for random generators.",
     )
+    parser.add_argument(
+        "--num-worker",
+        "-w",
+        type=int,
+        default=8,
+        help="Number of workers for train dataloader.",
+    )
+    parser.add_argument(
+        "--batch_size",
+        "-b",
+        type=int,
+        default=1,
+        help="Batchsize for training.",
+    )
 
-    parser.add_argument('--augmentations', "-a", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--augmentations", "-a", action=argparse.BooleanOptionalAction)
     parser.set_defaults(augmentations=False)
 
     return parser.parse_args()
@@ -403,21 +446,24 @@ def main() -> None:
     if valid_data is None:
         raise ValueError("Please enter a valid path to validation data!")
 
-    if args.name == 'model':
+    if args.name == "model":
         raise ValueError("Please enter a valid model name!")
 
     if args.epochs <= 0:
         raise ValueError("Please enter a valid number of epochs must be >= 0!")
 
-    print(f'start training:\n'
-          f'\tname: {args.name}\n'
-          f'\tepochs: {args.epochs}\n'
-          f'\tcuda: {args.cuda}\n')
+    print(
+        f"start training:\n"
+        f"\tname: {args.name}\n"
+        f"\tepochs: {args.epochs}\n"
+        f"\tgpu count: {args.gpu}\n"
+    )
 
     # init model
-    name = (f"{args.name}_baseline"
-            f"{'_aug' if args.augmentations else ''}_e{args.epochs}")
-    model = BasicUNet(spatial_dims=2, in_channels=3, out_channels=6)
+    name = (
+        f"{args.name}_baseline" f"{'_aug' if args.augmentations else ''}_e{args.epochs}"
+    )
+    model = DataParallel(BasicUNet(spatial_dims=2, in_channels=3, out_channels=6))
 
     # init transformations for augmentation
     transform = None
@@ -433,10 +479,11 @@ def main() -> None:
                 torch.nn.ModuleList(
                     [transforms.GaussianBlur(kernel_size=9, sigma=(2, 10))]
                 ),
-                p=0.1,
+                p=0.3,
             ),
             transforms.RandomAdjustSharpness(sharpness_factor=1.5, p=0.1),
-            transforms.RandomGrayscale(p=0.1))
+            transforms.RandomGrayscale(p=1),
+        )
 
     # init datasets
     traindataset = Dataset(
@@ -444,22 +491,17 @@ def main() -> None:
         augmentations=transform,
     )
 
-    validdataset = Dataset(
-        valid_data,
-        cropping=False
-    )
+    validdataset = Dataset(valid_data, cropping=False)
 
     print(f"{len(traindataset)=}")
     print(f"{len(validdataset)=}")
 
     # init optimizer and trainer
     optimizer = AdamW(model.parameters(), lr=LR)
-    trainer = Trainer(model,
-                      traindataset,
-                      validdataset,
-                      optimizer,
-                      name,
-                      cuda=args.cuda)
+    trainer = Trainer(
+        model, traindataset, validdataset, optimizer, name, gpu_count=args.gpu, worker_count=args.num_worker,
+        batch_size=args.batch_size
+    )
 
     # start training
     trainer.train(args.epochs)

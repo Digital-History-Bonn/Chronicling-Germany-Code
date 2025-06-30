@@ -74,9 +74,7 @@ TAGS = ['current+best',
 # ]
 
 RUNS = [
-    ['neurips-09-2024_scratch_1.0_eval', 'neurips-09-2024_scratch_2.0_eval', 'neurips-09-2024_scratch_3.0_eval',
-     'neurips-09-2024_scratch_4.0_eval'],
-    ['neurips-09-2024_1.0_eval', 'neurips-09-2024_2.0_eval', 'neurips-09-2024_3.0_eval', 'neurips-09-2024_4.0_eval']
+    ['dh_segment_dlvc_fullpage_A_1_eval', 'dh_segment_dlvc_fullpage_A_2_eval', 'dh_segment_dlvc_fullpage_A_3_eval']
 ]
 
 # RUNS = [['lerning_rate_Test_4_6_A', 'lerning_rate_4_6_B', 'lerning_rate_4_6_C']]
@@ -487,16 +485,19 @@ def class_recall():
 
 
 def class_f1():
-    tags = ['multi-f1-Test/class 0',
-            'multi-f1-Test/class 1',
-            'multi-f1-Test/class 2',
-            'multi-f1-Test/class 3',
-            'multi-f1-Test/class 4',
-            'multi-f1-Test/class 5',
-            'multi-f1-Test/class 6',
-            'multi-f1-Test/class 7',
-            'multi-f1-Test/class 8',
-            'multi-f1-Test/class 9']
+    # dataset = "Test"
+    dataset = "OutOfDistribution"
+    # dataset = "InDistributionOnly"
+    tags = [f'multi-f1-{dataset}/class 0',
+            f'multi-f1-{dataset}/class 1',
+            f'multi-f1-{dataset}/class 2',
+            f'multi-f1-{dataset}/class 3',
+            f'multi-f1-{dataset}/class 4',
+            f'multi-f1-{dataset}/class 5',
+            f'multi-f1-{dataset}/class 6',
+            f'multi-f1-{dataset}/class 7',
+            f'multi-f1-{dataset}/class 8',
+            f'multi-f1-{dataset}/class 9']
 
     mean, std = get_data_bar(tags)
 
@@ -537,10 +538,10 @@ def bar():
 
     # results.append(class_sci())
     # print("iou")
-    results.append(class_precision())
-    print("precision")
-    results.append(class_recall())
-    print("recall")
+    # results.append(class_precision())
+    # print("precision")
+    # results.append(class_recall())
+    # print("recall")
     results.append(class_f1())
     print("f1")
 

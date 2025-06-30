@@ -1,5 +1,5 @@
 """
-    module for preprocessing newspaper images and targets
+module for preprocessing newspaper images and targets
 """
 
 from typing import Tuple, Union
@@ -9,11 +9,15 @@ import numpy.typing as npt
 import torch
 from numpy import ndarray
 from PIL import Image
-from PIL.Image import BICUBIC, NEAREST  # pylint: disable=no-name-in-module # type: ignore
+from PIL.Image import (  # pylint: disable=no-name-in-module # type: ignore
+    BICUBIC,
+    NEAREST,
+)
 from skimage.util.shape import view_as_windows
 from torchvision import transforms
 
-from src.cgprocess.layout_segmentation.utils import replace_labels
+from cgprocess.layout_segmentation.class_config import PADDING_LABEL
+from cgprocess.layout_segmentation.utils import replace_labels
 
 SCALE = 1
 EXPANSION = 5
@@ -23,10 +27,49 @@ CROP_FACTOR = 1.5
 CROP_SIZE = 512
 
 
+def pad_full_image(image: torch.Tensor) -> Tuple[torch.Tensor, transforms.Pad]:
+    """
+    Pad image to ensure that it is divisible by the power of 2 corresponding to the model. (at least 256)
+    Returns: image and pad transform for padding of target, if necessary.
+    """
+    pad_size = Preprocessing.calculate_padding_size(image, 256, 1)  #
+    pad = transforms.Pad((0, 0, pad_size[0], pad_size[1]))
+    image = pad(image)
+    return image, pad
+
+
 class Preprocessing:
     """
     class for preprocessing newspaper images and targets
     """
+
+    @staticmethod
+    def calculate_padding_size(
+            image: torch.Tensor, size: int, factor: float
+    ) -> Tuple[int, int]:
+        """
+        Sets padding to make the image compatible with cropping. For this, it can not be smaller than one crop
+        at each dimension. If a dimension is of greater size than a crop, it will be padded to be a multiple of
+        the crop step size. This prevents the last crop to the right and bottom to be dropped.
+        :param image: image tensor with [..., C, H, W]
+        """
+        shape = (image.shape[-1], image.shape[-2])
+        crop_step = int(size // factor)
+        if shape[0] < size:
+            pad_x = size - shape[0]
+        elif shape[0] % crop_step > 0:
+            pad_x = crop_step - (shape[0] % crop_step)
+        else:
+            pad_x = 0
+
+        if shape[1] < size:
+            pad_y = size - shape[1]
+        elif shape[1] % crop_step > 0:
+            pad_y = crop_step - (shape[1] % crop_step)
+        else:
+            pad_y = 0
+
+        return pad_x, pad_y
 
     @staticmethod
     def crop_img(crop_size: int, crop_factor: float, data: ndarray) -> ndarray:
@@ -59,7 +102,7 @@ class Preprocessing:
             crop_factor: float = CROP_FACTOR,
             crop_size: int = CROP_SIZE,
             crop: bool = True,
-            reduce_classes: bool = False
+            reduce_classes: bool = False,
     ):
         """
         :param scale: (default: 4)
@@ -93,10 +136,11 @@ class Preprocessing:
         data: npt.NDArray[np.uint8] = np.concatenate(
             (np.array(image, dtype=np.uint8), np.array(target)[np.newaxis, :, :])
         )
-        if self.crop:
+        if self.crop and self.crop_factor > 1:
             data = self.crop_img(self.crop_size, self.crop_factor, data)
             return data
 
+        data= pad_full_image(torch.from_numpy(data))[0].numpy()
         return np.expand_dims(data, axis=0)
 
     def set_padding(self, image: torch.Tensor) -> None:
@@ -104,30 +148,11 @@ class Preprocessing:
         Sets padding to make the image compatible with cropping. For this, it can not be smaller than one crop
         at each dimension. If a dimension is of greater size than a crop, it will be padded to be a multiple of
         the crop step size. This prevents the last crop to the right and bottom to be dropped.
-        :param image:
         """
         if self.crop:
-            shape = (image.shape[-1], image.shape[-2])
-            crop_step = int(self.crop_size // self.crop_factor)
-            if shape[0] < self.crop_size:
-                pad_x = self.crop_size - shape[0]
-            elif shape[0] % crop_step > 0:
-                pad_x = crop_step - (shape[0] % crop_step)
-            else:
-                pad_x = 0
-
-            if shape[1] < self.crop_size:
-                pad_y = self.crop_size - shape[1]
-            elif shape[1] % crop_step > 0:
-                pad_y = crop_step - (shape[1] % crop_step)
-            else:
-                pad_y = 0
-
-            self.pad = (pad_x, pad_y)
-            # print(
-            #     f"Image padding by {self.pad} because of crop size {self.crop_size}, crop step {crop_step} and "
-            #     f"image shape {shape[0]} x {shape[1]}"
-            # )
+            self.pad = self.calculate_padding_size(
+                image, self.crop_size, self.crop_factor
+            )
 
     def load(
             self, input_path: str, target_path: str, file: str, dataset: str
@@ -142,7 +167,7 @@ class Preprocessing:
         image = Image.open(f"{input_path}").convert("RGB")
 
         # load target
-        target = np.load(f"{target_path}")
+        target = np.load(f"{target_path}")["array"]
         if dataset == "HLNA2013":
             target = target.T
 
@@ -167,7 +192,7 @@ class Preprocessing:
                     0,
                     self.pad[0],
                     self.pad[1],
-                )
+                ), fill=PADDING_LABEL
             )
             image = transform(image)
             target = transform(target)
@@ -185,7 +210,9 @@ class Preprocessing:
         """
         if self.scale == 1:
             image_ndarray = np.array(image, dtype=np.uint8)
-            return torch.tensor(np.transpose(image_ndarray, (2, 0, 1))), torch.tensor(target)
+            return torch.tensor(np.transpose(image_ndarray, (2, 0, 1))), torch.tensor(
+                target
+            )
 
         shape = int(image.size[0] * self.scale), int(image.size[1] * self.scale)
 
@@ -198,7 +225,9 @@ class Preprocessing:
             target_img, dtype=np.uint8
         )
 
-        return torch.tensor(np.transpose(image_ndarray, (2, 0, 1))), torch.tensor(target)
+        return torch.tensor(np.transpose(image_ndarray, (2, 0, 1))), torch.tensor(
+            target
+        )
 
 
 if __name__ == "__main__":

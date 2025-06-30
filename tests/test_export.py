@@ -1,12 +1,22 @@
 """Class for testing prediction and export scripts"""
+
 import numpy as np
 import torch
 
-from src.cgprocess.layout_segmentation.predict import process_prediction_debug, process_prediction
-from src.cgprocess.layout_segmentation.processing.polygon_handler import bbox_sufficient, uncertainty_to_polygons, \
-    prediction_to_region_polygons
+from src.cgprocess.layout_segmentation.predict import (
+    process_prediction,
+    process_prediction_debug,
+)
+from src.cgprocess.layout_segmentation.processing.polygon_handler import (
+    bbox_sufficient,
+    prediction_to_region_polygons,
+    uncertainty_to_polygons,
+)
 from src.cgprocess.layout_segmentation.processing.slicing_export import area_sufficient
-from src.cgprocess.layout_segmentation.processing.transkribus_export import get_label_name, polygon_to_string
+from src.cgprocess.layout_segmentation.processing.transkribus_export import (
+    get_label_name,
+    polygon_to_string,
+)
 from src.cgprocess.layout_segmentation.utils import calculate_x_axis_center
 
 
@@ -49,9 +59,11 @@ class TestClassExport:
         target = np.transpose(np.array([[1, 1, 1], [2, 2, 0]]), (0, 1))
         ground_truth = np.array([[1, 0, 0], [1, 0, 1]], dtype=np.uint8)
 
-        result = process_prediction_debug(torch.tensor(data[None, :, :, :]),
-                                          torch.tensor(target[None, None, :, :]),
-                                          0.6)
+        result = process_prediction_debug(
+            torch.tensor(data[None, :, :, :]),
+            torch.tensor(target[None, None, :, :]),
+            0.6,
+        )
         assert np.all(result == ground_truth)
 
     def test_polygon_to_string(self):
@@ -76,32 +88,67 @@ class TestClassExport:
             1.0,  # "header"
             1.0,  # "separator_vertical"
             1.0,  # "separator_short"
-            1.0]  # "separator_horizontal"
+            1.0,
+        ]  # "separator_horizontal"
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
         ground_truth = (
-            {1: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
-            {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
+            {
+                1: [[4.0, 2.5, 4.0, 0.5, -0.5, 2.0, 4.0, 2.5]],
+                3: [[3.0, 1.5, 4.5, 0.0, 2.0, -0.5, 1.5, 1.0, 3.0, 1.5]],
+            },
+            {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]},
+        )
         assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 2], [2, 2, 2, 2, 2]])
         ground_truth = (
-            {2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: [[3.0, 1.5, 1.5, 1.0, 2.0, -0.5, 4.5, 0.0, 3.0, 1.5]]},
-            {2: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]})
+            {
+                2: [[4.0, 2.5, 4.0, 0.5, -0.5, 2.0, 4.0, 2.5]],
+                3: [[3.0, 1.5, 4.5, 0.0, 2.0, -0.5, 1.5, 1.0, 3.0, 1.5]],
+            },
+            {2: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]},
+        )
         assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 
-        ground_truth = ({2: [[4.0, 2.5, -0.5, 2.0, 4.0, 0.5, 4.0, 2.5]], 3: []}, {2: [[-0.5, 0.5, 4.0, 2.5]], 3: []})
+        ground_truth = (
+            {2: [[4.0, 2.5, 4.0, 0.5, -0.5, 2.0, 4.0, 2.5]], 3: []},
+            {2: [[-0.5, 0.5, 4.0, 2.5]], 3: []},
+        )
         assert prediction_to_region_polygons(data, tolerance, 5, True) == ground_truth
 
     def test_debug_to_polygons(self):
         """Tests prediction conversion to a polygon list. Background pixels will not be converted to a polygon"""
 
-        data = np.array([[0, 0, 1, 1, 1], [0, 0, 1, 0, 1], [1, 1, 1, 1, 1]], dtype=np.uint8)
+        data = np.array(
+            [[0, 0, 1, 1, 1], [0, 0, 1, 0, 1], [1, 1, 1, 1, 1]], dtype=np.uint8
+        )
         ground_truth = (
-            {0: [], 1: [[2, 0, 2, 1, 1, 2, 0, 2, 4, 2, 4, 0]], 2: [[2, 1, 3, 0, 4, 1, 3, 2]], 3: [], 4: [], 5: [],
-             6: [],
-             7: [], 8: [], 9: []},
-            {0: [], 1: [[4, 0, 0, 2]], 2: [[4, 0, 2, 2]], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []})
+            {
+                0: [],
+                1: [[2, 0, 2, 1, 1, 2, 0, 2, 4, 2, 4, 0]],
+                2: [[2, 1, 3, 0, 4, 1, 3, 2]],
+                3: [],
+                4: [],
+                5: [],
+                6: [],
+                7: [],
+                8: [],
+                9: [],
+            },
+            {
+                0: [],
+                1: [[4, 0, 0, 2]],
+                2: [[4, 0, 2, 2]],
+                3: [],
+                4: [],
+                5: [],
+                6: [],
+                7: [],
+                8: [],
+                9: [],
+            },
+        )
         assert uncertainty_to_polygons(data) == ground_truth
 
     def test_get_label_names(self):

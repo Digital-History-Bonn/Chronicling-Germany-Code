@@ -9,45 +9,83 @@ import os
 import warnings
 from multiprocessing.pool import ThreadPool
 from time import time
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
 import torch
 from numpy import ndarray
+from prettytable import PrettyTable
 from torch import Tensor
 from torch.nn import CrossEntropyLoss
 from torch.nn.functional import one_hot
 from torch.nn.parallel import DataParallel
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter  # type: ignore
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.train_config import (BATCH_SIZE, LEARNING_RATE, WEIGHT_DECAY,
-                                                            LOSS_WEIGHTS, VAL_NUMBER, OUT_CHANNELS,
-                                                            EPOCHS, DATALOADER_WORKER, DEFAULT_SPLIT)
-from src.cgprocess.layout_segmentation.helper.train_helper import (init_model, load_score, focal_loss,
-                                                                   calculate_scores,
-                                                                   initiate_dataloader, initiate_evaluation_dataloader)
-from src.cgprocess.layout_segmentation.utils import split_batches, adjust_path, collapse_prediction
-from src.cgprocess.layout_segmentation.processing.preprocessing import CROP_FACTOR, CROP_SIZE, SCALE
-from src.cgprocess.layout_segmentation.helper.train_helper import multi_precison_recall
+from cgprocess.layout_segmentation.class_config import PADDING_LABEL
+from cgprocess.layout_segmentation.helper.train_helper import (
+    calculate_scores,
+    focal_loss,
+    init_model,
+    initiate_dataloader,
+    initiate_evaluation_dataloader,
+    load_score,
+    multi_precison_recall,
+)
+from cgprocess.layout_segmentation.processing.preprocessing import (
+    CROP_FACTOR,
+    CROP_SIZE,
+    SCALE,
+)
+from cgprocess.layout_segmentation.train_config import (
+    BATCH_SIZE,
+    DATALOADER_WORKER,
+    DEFAULT_SPLIT,
+    EPOCHS,
+    LEARNING_RATE,
+    LOSS_WEIGHTS,
+    OUT_CHANNELS,
+    VAL_NUMBER,
+    WEIGHT_DECAY,
+)
+from cgprocess.layout_segmentation.utils import (
+    adjust_path,
+    collapse_prediction,
+    split_batches,
+)
+
+
+def count_parameters(model: Any) -> int:
+    """Count total number of parameters and create table visualizing number of parameters and their medium value."""
+    table = PrettyTable(["Modules", "Parameters", "Median"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        params = parameter.numel()
+        table.add_row([name, params, torch.median(parameter).item()])
+        total_params += params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
 
 
 class Trainer:
     """Training class containing functions for training and validation."""
 
     def __init__(
-            self,
-            args: argparse.Namespace,
-            save_model: str,
-            save_score: str,
-            summary: SummaryWriter,
-            load: Union[str, None] = None,
-            batch_size: int = BATCH_SIZE,
-            learningrate: float = LEARNING_RATE,
-            weight_decay: float = WEIGHT_DECAY
+        self,
+        args: argparse.Namespace,
+        save_model: str,
+        save_score: str,
+        summary: SummaryWriter,
+        load: Union[str, None] = None,
+        batch_size: int = BATCH_SIZE,
+        learningrate: float = LEARNING_RATE,
+        weight_decay: float = WEIGHT_DECAY,
     ):
         """
         Trainer-class to train DhSegment Model
@@ -80,28 +118,30 @@ class Trainer:
         print(f"Using {self.device} device")
 
         self.model = DataParallel(
-            init_model(load, self.device, args.model, args.freeze, args.skip_cbam,
-                       args.override_load_channels))
+            init_model(load, self.device, args.model, args.freeze, args.skip_cbam)
+        )
 
         # set optimizer and loss_fn
+        count_parameters(self.model)
         self.optimizer = AdamW(
             self.model.parameters(), lr=learningrate, weight_decay=weight_decay
         )  # weight_decay=1e-4
-        self.scaler = torch.cuda.amp.GradScaler('cuda', enabled=self.amp)
+        self.scaler = torch.cuda.amp.GradScaler("cuda", enabled=self.amp)
 
-        if args.scheduler == 'reduce_on_plateau':
-            self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', 0.5, 15)
-        elif args.scheduler == 'cosine_annealing':
-            self.scheduler = CosineAnnealingWarmRestarts(self.optimizer, 5, 1, eta_min=0,
-                                                         last_epoch=-1)  # type: ignore
+        if args.scheduler == "reduce_on_plateau":
+            self.scheduler = ReduceLROnPlateau(self.optimizer, "min", 0.5, 15)
+        elif args.scheduler == "cosine_annealing":
+            self.scheduler = CosineAnnealingWarmRestarts(
+                self.optimizer, 5, 1, eta_min=0, last_epoch=-1
+            )  # type: ignore
 
-        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS)
+        self.cross_entropy = CrossEntropyLoss(weight=LOSS_WEIGHTS, ignore_index=PADDING_LABEL)
 
         if args.evaluate is not None:
             self.dataloader_dict = initiate_evaluation_dataloader(args, batch_size)
         else:
             dataloader_dict = initiate_dataloader(args, batch_size)
-            self.train_loader = dataloader_dict.pop('Training', None)
+            self.train_loader = dataloader_dict.pop("Training", None)
             self.val_loader = dataloader_dict["Validation"]
             self.dataloader_dict = dataloader_dict
 
@@ -120,9 +160,9 @@ class Trainer:
             self.model.train()
 
             with tqdm(
-                    total=(len(self.train_loader)),  # type: ignore
-                    desc=f"Epoch {self.epoch}/{epochs}",
-                    unit="batch(es)",
+                total=(len(self.train_loader)),  # type: ignore
+                desc=f"Epoch {self.epoch}/{epochs}",
+                unit="batch(es)",
             ) as pbar:
                 for images, targets in self.train_loader:  # type: ignore
                     # transfer = time()
@@ -139,7 +179,9 @@ class Trainer:
                         preds = self.model(images.to(self.device, non_blocking=True))
                         # pred = time()
                         # print(f"prediction takes:{pred - start}")
-                        loss = self.apply_loss(preds, targets.to(self.device, non_blocking=True))
+                        loss = self.apply_loss(
+                            preds, targets.to(self.device, non_blocking=True)
+                        )
                     # loss_time = time()
                     # print(f"loss takes:{loss_time - pred}")
 
@@ -199,7 +241,7 @@ class Trainer:
         """
         _, _, _, class_acc = self.validation()
         # early stopping
-        score: float = (1 - np.mean(np.nan_to_num(class_acc)))  # type: ignore
+        score: float = np.sum(np.power(1 - np.nan_to_num(class_acc), 2)).item()  # type: ignore
         if self.scheduler_type:
             if self.scheduler_type == "reduced_on_plateau":
                 self.scheduler.step(score)
@@ -212,9 +254,7 @@ class Trainer:
             # update cur_best value
             self.best_score = score
             self.best_step = self.step
-            print(
-                f"saved model because of early stopping with value {score}"
-            )
+            print(f"saved model because of early stopping with value {score}")
 
             self.model.module.save(self.save_model + "_best")  # type: ignore
         return score
@@ -227,8 +267,11 @@ class Trainer:
         :return: loss scalar
         """
         if self.loss == "focal_loss":
-            return focal_loss(preds, self.one_hot_encoding(targets).float(),
-                              LOSS_WEIGHTS.to(self.device)).mean()
+            return focal_loss(
+                preds,
+                self.one_hot_encoding(targets).float(),
+                LOSS_WEIGHTS.to(self.device),
+            ).mean()
 
         return self.cross_entropy(preds, targets)  # type: ignore
 
@@ -239,10 +282,13 @@ class Trainer:
         :return: 3d target with one channel for each class
         """
         # pylint: disable-next=not-callable
-        return torch.permute(one_hot(targets.to(self.device), num_classes=OUT_CHANNELS),
-                             (0, 3, 1, 2))
+        return torch.permute(
+            one_hot(targets.to(self.device), num_classes=OUT_CHANNELS), (0, 3, 1, 2)
+        )
 
-    def validation(self, test_validation: bool = False) -> Tuple[float, float, float, ndarray]:
+    def validation(
+        self, test_validation: bool = False
+    ) -> Tuple[float, float, float, ndarray]:
         """
         Executes one validation round, containing the evaluation of the current model on the entire validation set.
         jaccard score, accuracy and multiclass accuracy are calculated over the validation set. Multiclass accuracy
@@ -251,13 +297,26 @@ class Trainer:
         :return: None
         """
 
-        loader_dict = self.dataloader_dict if test_validation else {"Validation": self.val_loader}
+        loader_dict = (
+            self.dataloader_dict if test_validation else {"Validation": self.val_loader}
+        )
         self.model.eval()
         for environment, loader in loader_dict.items():
             size = len(loader)
 
-            (loss, jaccard, accuracy, class_acc, class_sum, precision, precision_sum, recall, recall_sum, f1_score,
-             f1_score_sum) = (
+            (
+                loss,
+                jaccard,
+                accuracy,
+                class_acc,
+                class_sum,
+                precision,
+                precision_sum,
+                recall,
+                recall_sum,
+                f1_score,
+                f1_score_sum,
+            ) = (
                 0.0,
                 0.0,
                 0.0,
@@ -277,7 +336,7 @@ class Trainer:
                 print(f"process start take:{pstart_time - end}")
 
             for images, targets in tqdm(
-                    loader, desc="validation_round", total=size, unit="batch(es)"
+                loader, desc="validation_round", total=size, unit="batch(es)"
             ):
                 start = time()
                 if self.time_debug:
@@ -294,11 +353,32 @@ class Trainer:
                 if self.time_debug:
                     print(f"Val loss takes:{loss_time - end}")
 
-                (accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum,
-                 f1_score, f1_score_sum) = self.evaluate_batch(
-                    accuracy, class_acc, class_sum, jaccard, pred, targets, test_validation, precision,
+                (
+                    accuracy,
+                    class_acc,
+                    class_sum,
+                    jaccard,
+                    precision,
                     precision_sum,
-                    recall, recall_sum, f1_score, f1_score_sum)
+                    recall,
+                    recall_sum,
+                    f1_score,
+                    f1_score_sum,
+                ) = self.evaluate_batch(
+                    accuracy,
+                    class_acc,
+                    class_sum,
+                    jaccard,
+                    pred,
+                    targets,
+                    test_validation,
+                    precision,
+                    precision_sum,
+                    recall,
+                    recall_sum,
+                    f1_score,
+                    f1_score_sum,
+                )
 
                 loss += batch_loss
                 scores = time()
@@ -326,7 +406,7 @@ class Trainer:
                     f1_score_ndarray,
                     loader,
                     environment,
-                    test_validation
+                    test_validation,
                 )
 
             self.model.train()
@@ -336,12 +416,24 @@ class Trainer:
 
         return loss, accuracy, jaccard, class_acc_ndarray
 
-    def evaluate_batch(self, accuracy: float, class_acc: Tensor, class_sum: Tensor,
-                       jaccard: float, pred: Tensor, targets: Tensor, test_validation: bool,
-                       precision: Tensor,
-                       precision_sum: Tensor, recall: Tensor, recall_sum: Tensor, f1_score: Tensor,
-                       f1_score_sum: Tensor) -> Tuple[
-        float, Tensor, Tensor, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def evaluate_batch(
+        self,
+        accuracy: float,
+        class_acc: Tensor,
+        class_sum: Tensor,
+        jaccard: float,
+        pred: Tensor,
+        targets: Tensor,
+        test_validation: bool,
+        precision: Tensor,
+        precision_sum: Tensor,
+        recall: Tensor,
+        recall_sum: Tensor,
+        f1_score: Tensor,
+        f1_score_sum: Tensor,
+    ) -> Tuple[
+        float, Tensor, Tensor, float, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor
+    ]:
         """
         Evaluates prediction results of one validation(or test) batch. Updates running score variables. Uses Multi
         Threading to speed up score calculation. Despite threading inside python not being able to run on more than
@@ -372,11 +464,17 @@ class Trainer:
         batch_precision = torch.zeros(OUT_CHANNELS)
         batch_recall = torch.zeros(OUT_CHANNELS)
         batch_f1 = torch.zeros(OUT_CHANNELS)
+        pixel_counts = torch.zeros(OUT_CHANNELS)
         if test_validation:
-            batch_precision, batch_recall, batch_f1 = multi_precison_recall(pred, targets, OUT_CHANNELS)
+            batch_precision, batch_recall, batch_f1, pixel_counts = multi_precison_recall(
+                pred, targets
+            )
 
-        pred_batches = split_batches(torch.cat((pred, targets[:, None, :, :]), dim=1), (0, 2, 3, 1),
-                                     self.num_scores_splits)
+        pred_batches = split_batches(
+            torch.cat((pred, targets[:, None, :, :]), dim=1),
+            (0, 2, 3, 1),
+            self.num_scores_splits,
+        )
 
         with ThreadPool(self.num_processes) as pool:
             results = pool.map(calculate_scores, pred_batches)
@@ -386,40 +484,47 @@ class Trainer:
             jaccard += result[0]
             accuracy += result[1]
             batch_class_acc += torch.nan_to_num(result[2].detach().cpu())
-            batch_class_sum += 1 - torch.isnan(
-                result[
-                    2].detach().cpu()).int()  # ignore pylint error. This comparison detects nan values
+            batch_class_sum += (
+                1 - torch.isnan(result[2].detach().cpu()).int()
+            )  # ignore pylint error. This comparison detects nan values
 
         class_acc += batch_class_acc
         class_sum += batch_class_sum
 
-        precision += torch.nan_to_num(batch_precision.detach().cpu())
-        precision_sum += 1 - torch.isnan(
-            batch_precision.detach().cpu()).int()
+        precision += pixel_counts.detach().cpu() * torch.nan_to_num(batch_precision.detach().cpu())
+        precision_sum += pixel_counts.detach().cpu() * (1 - torch.isnan(batch_precision.detach().cpu()).int())
 
-        recall += torch.nan_to_num(batch_recall.detach().cpu())
-        recall_sum += 1 - torch.isnan(
-            batch_recall.detach().cpu()).int()
+        recall += pixel_counts.detach().cpu() * torch.nan_to_num(batch_recall.detach().cpu())
+        recall_sum += pixel_counts.detach().cpu() * (1 - torch.isnan(batch_recall.detach().cpu()).int())
 
-        f1_score += torch.nan_to_num(batch_f1.detach().cpu())
-        f1_score_sum += 1 - torch.isnan(
-            batch_f1.detach().cpu()).int()
+        f1_score += pixel_counts.detach().cpu() * torch.nan_to_num(batch_f1.detach().cpu())
+        f1_score_sum += pixel_counts.detach().cpu() * (1 - torch.isnan(batch_f1.detach().cpu()).int())
 
-        return (accuracy, class_acc, class_sum, jaccard, precision, precision_sum, recall, recall_sum, f1_score,
-                f1_score_sum)
+        return (
+            accuracy,
+            class_acc,
+            class_sum,
+            jaccard,
+            precision,
+            precision_sum,
+            recall,
+            recall_sum,
+            f1_score,
+            f1_score_sum,
+        )
 
     def val_logging(
-            self,
-            loss: float,
-            jaccard: float,
-            accuracy: float,
-            class_accs: ndarray,
-            precision: ndarray,
-            recall: ndarray,
-            f1_score: ndarray,
-            loader: DataLoader,
-            environment: str,
-            test_validation: bool
+        self,
+        loss: float,
+        jaccard: float,
+        accuracy: float,
+        class_accs: ndarray,
+        precision: ndarray,
+        recall: ndarray,
+        f1_score: ndarray,
+        loader: DataLoader,
+        environment: str,
+        test_validation: bool,
     ) -> None:
         """Handles logging for loss values and validation images. Per epoch one random cropped image from the
         validation set will be evaluated. Furthermore, one full size image will be predicted and logged.
@@ -441,13 +546,19 @@ class Trainer:
         image = image[None, :]
 
         # predict image
-        pred = torch.nn.functional.softmax(self.model(image.to(self.device))).argmax(dim=1).float()
+        pred = (
+            torch.nn.functional.softmax(self.model(image.to(self.device)))
+            .argmax(dim=1)
+            .float()
+        )
 
         # update tensor board logs
         # pylint: disable-next=not-context-manager
         self.summary_writer.add_scalar("epoch", self.epoch, global_step=self.step)
 
-        self.summary_writer.add_scalar(f"{environment}/loss", loss, global_step=self.step)
+        self.summary_writer.add_scalar(
+            f"{environment}/loss", loss, global_step=self.step
+        )
         self.summary_writer.add_scalar(
             f"{environment}/accuracy", accuracy, global_step=self.step
         )
@@ -468,13 +579,17 @@ class Trainer:
                 if np.isnan(value):
                     value = 0
                 self.summary_writer.add_scalar(
-                    f"multi-precision-{environment}/class {i}", value, global_step=self.step
+                    f"multi-precision-{environment}/class {i}",
+                    value,
+                    global_step=self.step,
                 )
             for i, value in enumerate(recall):
                 if np.isnan(value):
                     value = 0
                 self.summary_writer.add_scalar(
-                    f"multi-recall-{environment}/class {i}", value, global_step=self.step
+                    f"multi-recall-{environment}/class {i}",
+                    value,
+                    global_step=self.step,
                 )
             for i, value in enumerate(f1_score):
                 if np.isnan(value):
@@ -490,7 +605,12 @@ class Trainer:
         )  # type:ignore
         self.summary_writer.add_image(
             f"image/{environment}-target",
-            target.float().cpu()[None, :, :, ] / OUT_CHANNELS,
+            target.float().cpu()[
+                None,
+                :,
+                :,
+            ]
+            / OUT_CHANNELS,
             global_step=self.step,
         )  # type:ignore
         self.summary_writer.add_image(
@@ -526,12 +646,16 @@ class Trainer:
         score = np.mean(np.array([acc, jac]))
         class_score = np.mean(np.nan_to_num(class_acc))
 
+        self.summary_writer.flush()
+
         return round(float(score), ndigits=4), round(float(class_score), ndigits=4)
 
 
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="Train scipt for Newspaper Layout Models.")
+    parser = argparse.ArgumentParser(
+        description="Train script for Newspaper Layout Models."
+    )
     parser.add_argument(
         "--epochs",
         "-e",
@@ -547,13 +671,6 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         help="name of run in tensorboard",
-    )
-    parser.add_argument(
-        "--id",
-        metavar="ID",
-        type=str,
-        default=None,
-        help="Id for experiment runs. Dictates the filename of custom log files.",
     )
     # pylint: disable=duplicate-code
     parser.add_argument(
@@ -640,7 +757,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="transkribus",
         help="which dataset to expect. Options are 'transkribus' and 'HLNA2013' "
-             "(europeaner newspaper project)",
+        "(europeaner newspaper project)",
     )
     parser.add_argument(
         "--load-score",
@@ -717,7 +834,7 @@ def get_args() -> argparse.Namespace:
         "-m",
         type=str,
         default="dh_segment",
-        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small",
+        help="which model to load options are 'dh_segment, trans_unet, dh_segment_small, dh_segment_2, dh_segment_wide",
     )
     parser.add_argument(
         "--skip-cbam",
@@ -736,8 +853,8 @@ def get_args() -> argparse.Namespace:
         nargs="+",
         default=DEFAULT_SPLIT,
         help="Takes 3 float values for a custom dataset split ratio. The ratio have to sum up to one and the Dataset "
-             "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
-             "and validation in this order.",
+        "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
+        "and validation in this order.",
     )
     parser.add_argument(
         "--reduce-classes",
@@ -756,32 +873,31 @@ def get_args() -> argparse.Namespace:
         nargs="+",
         default=None,
         help="Evaluate the loaded model without training on the specified dataset. Dataset name has to match the name "
-             "inside the file specified through --custom-split-file, otherwise a random split is applied. "
-             "Multiple dataset names can be supplied. "
-             "A dataset named 'train', will still be shuffled and augmented, as for training.",
+        "inside the file specified through --custom-split-file, otherwise a random split is applied. "
+        "Multiple dataset names can be supplied. "
+        "A dataset named 'train', will still be shuffled and augmented, as for training.",
     )
     parser.add_argument(
         "--custom-split-file",
         type=str,
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
-             "of train, validation and test images. File stem is the file name without the extension.",
+        "of train, validation and test images. File stem is the file name without the extension.",
     )
-    parser.add_argument(
-        "--override-load-channels",
-        type=int,
-        default=OUT_CHANNELS,
-        help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
-             "loaded with this number of output classes instead of the configured number. This is necessary if a "
-             "pretrained model is intended to be used for a task with a different number of output classes.",
-    )
+    # parser.add_argument(
+    #     "--override-load-channels",
+    #     type=int,
+    #     default=OUT_CHANNELS,
+    #     help="This overrides the number of classes, with that a model will be loaded. The pretrained model will be "
+    #     "loaded with this number of output classes instead of the configured number. This is necessary if a "
+    #     "pretrained model is intended to be used for a task with a different number of output classes.",
+    # )
 
     return parser.parse_args()
 
 
 def main() -> None:
-    """Main method creates directories if not already present, sets up Trainer and handels top level logging.
-    """
+    """Main method creates directories if not already present, sets up Trainer and handels top level logging."""
     parameter_args = get_args()
     result_path = adjust_path(parameter_args.result_path)
 
@@ -794,15 +910,32 @@ def main() -> None:
 
     torch.manual_seed(parameter_args.torch_seed)
 
-    name = f"{parameter_args.name}" if parameter_args.evaluate is not None else \
-        f"{parameter_args.name}_{int(parameter_args.torch_seed)}"
+    name = (
+        f"{parameter_args.name}"
+        if parameter_args.evaluate is not None
+        else f"{parameter_args.name}_{int(parameter_args.torch_seed)}"
+    )
     epochs = 0 if parameter_args.evaluate is not None else parameter_args.epochs
 
     # setup tensor board
-    train_log_dir = "logs/runs/" + name + "_eval" if parameter_args.evaluate is not None else "logs/runs/" + name
+    train_log_dir = (
+        "logs/runs/" + name + "_eval"
+        if parameter_args.evaluate is not None
+        else "logs/runs/" + name
+    )
+
+    # TODO: change this to directly turn off cropping in the Preprocessing class
+    if parameter_args.evaluate is not None:
+        parameter_args.crop_factor = -1
+    else:
+        assert len(LOSS_WEIGHTS) == OUT_CHANNELS, \
+            "Config Error. Number of Weights for classes have to match the OUT_CHANNELS constant."
+
     summary_writer = SummaryWriter(train_log_dir, max_queue=1000, flush_secs=3600)
 
-    load_model = f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
+    load_model = (
+        f"models/model_{parameter_args.load}.pt" if parameter_args.load else None
+    )
 
     trainer = Trainer(
         load=load_model,
@@ -812,7 +945,7 @@ def main() -> None:
         learningrate=parameter_args.lr,
         weight_decay=parameter_args.wd,
         summary=summary_writer,
-        args=parameter_args
+        args=parameter_args,
     )
 
     print(f"Training run {name}")
@@ -831,15 +964,29 @@ def main() -> None:
     print(f"skip cbam: {parameter_args.skip_cbam}")
 
     duration = trainer.train(epochs=epochs)
-    model_path = f"models/model_{parameter_args.load}.pt" if parameter_args.evaluate is not None else \
-        f"models/model_{name}_best.pt" if trainer.best_step != 0 else f"models/model_{name}.pt"
+    model_path = (
+        f"models/model_{parameter_args.load}.pt"
+        if parameter_args.evaluate is not None
+        else (
+            f"models/model_{name}_best.pt"
+            if trainer.best_step != 0
+            else f"models/model_{name}.pt"
+        )
+    )
     score, multi_class_score = trainer.evaluate_model(model_path)
-    with open(f"logs/{result_path}{name}_{parameter_args.lr}.json",
-              "w",
-              encoding="utf-8") as file:
+    with open(
+        f"logs/{result_path}{name}_{parameter_args.lr}.json", "w", encoding="utf-8"
+    ) as file:
         json.dump(
-            (parameter_args.batch_size, parameter_args.lr, score, multi_class_score, duration),
-            file)
+            (
+                parameter_args.batch_size,
+                parameter_args.lr,
+                score,
+                multi_class_score,
+                duration,
+            ),
+            file,
+        )
 
 
 if __name__ == "__main__":

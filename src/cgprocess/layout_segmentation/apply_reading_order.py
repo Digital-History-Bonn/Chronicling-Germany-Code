@@ -1,15 +1,19 @@
 """Module for importing xml files and updating the reading order of regions and lines. TODO: lines"""
+
 import argparse
 import os
-from typing import List, Dict
+from typing import Dict, List
 
 from tqdm import tqdm
 
-from src.cgprocess.layout_segmentation.convert_xml import save_xml
-from src.cgprocess.layout_segmentation.processing.read_xml import read_raw_data, read_regions_for_reading_order
-from src.cgprocess.layout_segmentation.processing.reading_order import PageProperties
-from src.cgprocess.layout_segmentation.processing.transkribus_export import copy_xml
-from src.cgprocess.layout_segmentation.utils import adjust_path
+from cgprocess.layout_segmentation.convert_xml import save_xml
+from cgprocess.layout_segmentation.processing.read_xml import (
+    read_raw_data,
+    read_regions_for_reading_order,
+)
+from cgprocess.layout_segmentation.processing.reading_order import PageProperties
+from cgprocess.layout_segmentation.processing.transkribus_export import copy_xml
+from cgprocess.layout_segmentation.utils import adjust_path
 
 
 def align_ids(id_dict: Dict[int, List[str]]) -> List[str]:
@@ -31,10 +35,12 @@ def main(parsed_args: argparse.Namespace) -> None:
     data_path = adjust_path(parsed_args.data_path)
     if not output_path or not os.path.exists(output_path):
         print(f"creating {output_path}.")
-        os.makedirs(output_path) # type: ignore
+        os.makedirs(output_path)  # type: ignore
 
     for path in tqdm(data_paths):
-        bbox_dict, id_dict, bs_data = read_regions_for_reading_order(f"{data_path}{path}")
+        bbox_dict, id_dict, bs_data = read_regions_for_reading_order(
+            f"{data_path}{path}"
+        )
         bs_copy = read_raw_data(f"{data_path}{path}")
         if len(bbox_dict) == 0:
             continue
@@ -53,7 +59,9 @@ def main(parsed_args: argparse.Namespace) -> None:
 def get_args() -> argparse.Namespace:
     """defines arguments"""
     # pylint: disable=locally-disabled, duplicate-code
-    parser = argparse.ArgumentParser(description="Load regions from xml file and apply reading order.")
+    parser = argparse.ArgumentParser(
+        description="Load regions from xml file and apply reading order."
+    )
     parser.add_argument(
         "--data-path",
         "-d",

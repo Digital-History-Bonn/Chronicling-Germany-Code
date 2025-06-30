@@ -1,18 +1,14 @@
 """module for validating dataset. Can be used to testwise load the entire Dataset"""
+
 import argparse
 import os
 
-import torch
 from tqdm import tqdm
-from torch.utils.data import DataLoader
 
-from src.cgprocess.layout_segmentation.datasets.train_dataset import TrainDataset
-from src.cgprocess.layout_segmentation.processing.preprocessing import (
-    Preprocessing,
-)
+from src.cgprocess.layout_segmentation.processing.preprocessing import Preprocessing
 
 
-def validate(args):
+def validate(args: argparse.Namespace) -> None:
     """Load data to validate shape"""
     # read all file names
     preprocessing = Preprocessing()
@@ -25,13 +21,13 @@ def validate(args):
         extension = ".jpg"
 
         def get_file_name(name: str) -> str:
-            return f"{name}.npy"
+            return f"{name}.npz"
 
     else:
         extension = ".tif"
 
         def get_file_name(name: str) -> str:
-            return f"pc-{name}.npy"
+            return f"pc-{name}.npz"
 
     file_names = [f[:-4] for f in os.listdir(image_path) if f.endswith(extension)]
     assert len(file_names) > 0, (
@@ -51,7 +47,7 @@ def validate(args):
                 dataset,
             )
             if not (
-                    image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
+                image.size[1] == target.shape[0] and image.size[0] == target.shape[1]
             ):
                 print(
                     f"image {file=} has shape w:{image.size[0]}, h: {image.size[1]}, "
@@ -62,26 +58,9 @@ def validate(args):
         except:
             print(f"{file}")
 
-
-def count_classes(args: argparse.Namespace):
-    """Load data with increasing amount of workers"""
-    preprocessing = Preprocessing(scale=0.5, crop_factor=1, crop_size=512)
-    dataset = TrainDataset(preprocessing, image_path=f"{args.data_path}images/",
-                           target_path=f"{args.data_path}targets/",
-                           dataset=args.dataset)
-    dataset.augmentations = False
-
-    loader = DataLoader(dataset, shuffle=False, num_workers=args.num_workers, batch_size=args.batch_size)
-    class_counts = torch.zeros((10), dtype=torch.long)
-    for _, targets in tqdm(loader, desc="counting classes", unit="batches"):
-        class_counts += torch.bincount(targets.flatten(), minlength=10)
-    print(class_counts)
-    print(class_counts / torch.sum(class_counts))
-
-
 def get_args() -> argparse.Namespace:
     """defines arguments"""
-    parser = argparse.ArgumentParser(description="train")
+    parser = argparse.ArgumentParser(description="validate dataset")
     # pylint: disable=duplicate-code
     parser.add_argument(
         "--data-path",
@@ -96,13 +75,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="transkribus",
         help="which dataset to expect. Options are 'transkribus' and 'HLNA2013' "
-             "(europeaner newspaper project)",
-    )
-    parser.add_argument(
-        "--classes",
-        "-c",
-        action="store_true",
-        help="If activated, pixels of each class are counted.",
+        "(europeaner newspaper project)",
     )
     parser.add_argument(
         "--num-workers",
@@ -126,7 +99,4 @@ def get_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     parameter_args = get_args()
-    if parameter_args.classes:
-        count_classes(parameter_args)
-    else:
-        validate(parameter_args)
+    validate(parameter_args)

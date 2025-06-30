@@ -13,14 +13,14 @@ All tasks are trained and evaluated individually but work together to extract te
 
 ## Installation
 The code has been tested on Python 3.10.
-````
+```` bash
 git clone https://github.com/Digital-History-Bonn/Chronicling-Germany-Code.git && cd Chronicling-Germany-Code
 pip install .
 ````
 
 ## Download
 To download our dataset and our model, the download.py script can be used:
-````
+```` bash
 python script/download.py --all
 ````
 Use `--all` to download the dataset and the models. With --dataset and --models you can download only 
@@ -32,7 +32,7 @@ folder. It provides a dataset split for the training, `validation and test sets.
 To run the complete prediction from an input image to an annotation XML with layout and text the `pipeline.sh` script can be used.
 As per default, this pipeline needs a conda environment named 'pipeline'.
 ```` bash
-bash scipt/pipeline.sh data/
+bash script/pipeline.sh data/
 ````
 
 Optionally, the amount of processes and threads, as well as the conda environment name can be specified.
@@ -52,10 +52,10 @@ Model based on: https://arxiv.org/abs/1804.10371
 ### Preprocessing and Training
 
 Before starting the training process all data has to be converted.
-This command loads xml annotation data and converts it to .npy files.
+This command loads xml annotation data and converts it to .npy files using four processes in parallel.
 ```` bash
-python -m cgprocess.layout_segmentation.convert_xml -a annotations/ -o targets/
-```` bash
+python -m cgprocess.layout_segmentation.convert_xml -a annotations/ -o targets/ -p 4
+```` 
 
 The Training script assumes, that the supplied data folder contains 'targets' and 'images' folders.
 ```` bash
@@ -69,36 +69,35 @@ python -m cgprocess.layout_segmentation.train -e 100 -n experiment_name -b 64 -d
 
 ### Prediction
 
-Prediction takes in images and processes them with a specified model. The image is processed in its entirety. 
-This can lead to cuda out of memory errors, if the resulution is too high.
-Furthermore, one has to specifiy an image size, to which the image will be padded. 
-If the number of pixel on one of the side is not divisible at least 6 times by 2, the prediction will fail.
+Prediction takes in images and processes them with the specified model. The image is processed in its entirety. 
+This can lead to cuda out of memory errors, if using a gpu and the resolution is too high.
 
 If an output folder is specified, images of the prediction will be saved in that folder. However, this option seriously
 increases execution time and should only be used for debugging. If the -e option is active, the xml files will be 
-exported to a page folder within the data folder. If there are already xml files, those will be overwritten.
+exported to a page folder within the data folder. Already present xml files will be overwritten.
 
 Example for calling the predict script.
 ```` bash
-python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_best.pt -p 5760 7680 -t 0.6 -s 0.5 -e -bt 100````
+python -m cgprocess.layout_segmentation.predict -d ../../data/ -m models/model_best.pt -t 0.6 -s 0.5 -e -bt 100````
 ````
 
 ### Evaluation
 
 At the end of each training run, the early stopping result is evaluated. 
-For evaluating a model without training it, use -- evaluate.
+For evaluating a model without training it, use -- evaluate. As images are processed in their entirety with out 
+padding, batchsize of one is required. Therefore, this cannot run on more than one gpu.
 
 ```` bash
-python -m cgprocess.layout_segmentation.train -n evaluate -b 64 -d data_folder/ -l model_name -g 4 -w 32 --evaluate
+python -m cgprocess.layout_segmentation.train -n evaluate -b 1 -d data_folder/ -l model_name -w 32 --evaluate
 ````
 
 ### Uncertainty predict
 We added a --uncertainty-predict option to the prediction function to analyze the model's predictions. With this option, the predict
 function does not output the prediction. Instead, it outputs the areas of uncertainty of the models. These areas are all 
 pixels that have a predicted probability under the given threshold for the ground truth class. 
-For this, images and ground truth are required.
+For this, images and groud truth are required.
 ```` bash
-python -m cgprocess.layout_segmentation.predict -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -p 5760 7360 -s 0.5 --transkribus-export --uncertainty-predict
+python -m cgprocess.layout_segmentation.predict -d data_folder/ -o output_folder/ -m path/to/model/ -a dh_segment -s 0.5 --transkribus-export --uncertainty-predict
 ````
 
 ## Baseline detection
@@ -149,9 +148,13 @@ python -m cgprocess.OCR.LSTM.train -n NameOfTheModel -t path/to/train/data -v pa
 To predict the Text in an image our tool needs baseline (predictions). The process can be started with:
 ```` bash
 python -m cgprocess.OCR.LSTM.predict -i path/to/images -l path/to/annotations -o path/to/output/folder -m path/to/model
-```` bash
+````
 Again, the image folder and the layout annotation folder can be the same, but the name of the image file and the .xml file with the layout annotations must match.
 
+### State Space Model for OCR
+This repository contains training amd prediction code for an SSM OCR model based on the mamba 2 State Space model. 
+This is only usable together with the SSM model in the StateSpaceRecognizer repository. As Mamba 2 is not compatible with 
+cgprocess the SSM OCR model is not integrated yet.
 
 ## Code Style
 Pylint can be used with PyCharm by installing the Pylint plugin.

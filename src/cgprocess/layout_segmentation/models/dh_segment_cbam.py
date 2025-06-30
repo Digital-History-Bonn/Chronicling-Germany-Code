@@ -1,4 +1,5 @@
-"""Module for trans_unet"""
+"""Module for dh segment with integrated cbam inside different layers."""
+
 # coding=utf-8
 from __future__ import absolute_import, division, print_function
 
@@ -9,8 +10,8 @@ import torch
 from torch import nn
 from torch.nn.parameter import Parameter
 
-from src.cgprocess.layout_segmentation.models.cbam import CBAM
-from src.cgprocess.layout_segmentation.models.dh_segment import DhSegment
+from cgprocess.layout_segmentation.models.cbam import CBAM
+from cgprocess.layout_segmentation.models.dh_segment import DhSegment
 
 # pylint: disable=duplicate-code
 logger = logging.getLogger(__name__)
@@ -22,7 +23,9 @@ class Encoder(nn.Module):
     (https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py and https://github.com/Peachypie98/CBAM)
     """
 
-    def __init__(self, dhsegment: DhSegment, in_channels: int, cbam_skip_connection: bool):
+    def __init__(
+        self, dhsegment: DhSegment, in_channels: int, cbam_skip_connection: bool
+    ):
         super().__init__()
         self.conv1 = dhsegment.conv1
         self.bn1 = dhsegment.bn1
@@ -123,7 +126,9 @@ class Decoder(nn.Module):
         :return: a decoder result
         """
         # pylint: disable=duplicate-code
-        tensor_x: torch.Tensor = self.up_block1(encoder_results["copy_4"], encoder_results["copy_3"])
+        tensor_x: torch.Tensor = self.up_block1(
+            encoder_results["copy_4"], encoder_results["copy_3"]
+        )
         tensor_x = self.up_block2(tensor_x, encoder_results["copy_2"])
         tensor_x = self.up_block3(tensor_x, encoder_results["copy_1"])
         tensor_x = self.up_block4(tensor_x, encoder_results["copy_0"])
@@ -139,8 +144,11 @@ class DhSegmentCBAM(nn.Module):
     https://github.com/Peachypie98/CBAM"""
 
     def __init__(
-            self, in_channels: int = 3, out_channel: int = 3, load_resnet_weights: bool = True,
-            cbam_skip_connection: bool = False
+        self,
+        in_channels: int = 3,
+        out_channel: int = 3,
+        load_resnet_weights: bool = True,
+        cbam_skip_connection: bool = False,
     ) -> None:
         """
         :param in_channels: input image channels eg 3 for RGB
@@ -150,8 +158,9 @@ class DhSegmentCBAM(nn.Module):
         """
         # pylint: disable=duplicate-code
         super().__init__()
+        self.out_channel = out_channel
         dhsegment = DhSegment(
-            [3, 4, 6, 1],
+            [3, 4, 6, 4],
             in_channels=in_channels,
             out_channel=out_channel,
             load_resnet_weights=load_resnet_weights,
