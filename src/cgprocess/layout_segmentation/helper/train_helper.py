@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import JaccardIndex
 from torchmetrics.classification import MulticlassAccuracy, MulticlassConfusionMatrix
 
-from cgprocess.layout_segmentation.class_config import TOLERANCE
+from cgprocess.layout_segmentation.class_config import TOLERANCE, PADDING_LABEL
 from cgprocess.layout_segmentation.models.dh_segment_wide import DhSegmentWide
 from cgprocess.layout_segmentation.datasets.train_dataset import CropDataset
 from cgprocess.layout_segmentation.models.dh_segment import DhSegment
@@ -185,14 +185,14 @@ def calculate_scores(data: torch.Tensor) -> Tuple[float, float, Tensor]:
     targets = torch.squeeze(data[:, -1].to(torch.uint8))
 
     jaccard_fun = JaccardIndex(
-        task="multiclass", num_classes=OUT_CHANNELS, average="weighted"
+        task="multiclass", num_classes=OUT_CHANNELS, average="weighted", ignore_index=PADDING_LABEL
     ).to(
         pred.device
     )  # type: ignore
-    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted").to(
+    accuracy_fun = MulticlassAccuracy(num_classes=OUT_CHANNELS, average="weighted", ignore_index=PADDING_LABEL).to(
         pred.device
     )
-    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS).to(
+    confusion_metric = MulticlassConfusionMatrix(num_classes=OUT_CHANNELS, ignore_index=PADDING_LABEL).to(
         pred.device
     )
 
