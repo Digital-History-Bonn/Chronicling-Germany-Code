@@ -12,6 +12,16 @@ from shapely.geometry import Polygon
 from cgprocess.layout_segmentation.class_config import LABEL_NAMES, REGION_TYPES
 from cgprocess.layout_segmentation.utils import adjust_path
 
+def get_template() -> BeautifulSoup:
+    """Build Transkribus PAGE XML template with Beautiful Soup."""
+    soup = BeautifulSoup(features="xml")
+    pcgts = soup.new_tag("PcGts", xmlns="http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15")
+    soup.append(pcgts)
+
+    page = soup.new_tag("Page")
+    pcgts.append(page)
+
+    return soup
 
 def export_xml(
     args: argparse.Namespace,
@@ -46,13 +56,7 @@ def export_xml(
                 xml_data, segmentations, reading_order_dict, args.scale
             )
     else:
-        with open(
-            "src/cgprocess/layout_segmentation/templates/annotation_file.xml",
-            "r",
-            encoding="utf-8",
-        ) as f:
-            data = f.read()
-        xml_data = BeautifulSoup(data, "xml")
+        xml_data = get_template()
         page = xml_data.find("Page")
         assert page, "XML Template is missing page element!"
         page["imageFilename"] = f"{file}"  # type: ignore

@@ -156,9 +156,10 @@ class Trainer:
         self.cross_entropy.to(self.device)
         end = time()
 
+        self.validation()
+
         for self.epoch in range(self.epoch, epochs + 1):
             self.model.train()
-
             with tqdm(
                 total=(len(self.train_loader)),  # type: ignore
                 desc=f"Epoch {self.epoch}/{epochs}",
@@ -380,7 +381,7 @@ class Trainer:
                     f1_score_sum,
                 )
 
-                loss += batch_loss
+                loss += np.nan_to_num(batch_loss)
                 scores = time()
                 if self.time_debug:
                     print(f"Val scores take:{scores - loss_time}")
@@ -481,8 +482,8 @@ class Trainer:
 
         for i in range(self.num_scores_splits):
             result = results[i]
-            jaccard += result[0]
-            accuracy += result[1]
+            jaccard += np.nan_to_num(result[0])
+            accuracy += np.nan_to_num(result[1])
             batch_class_acc += torch.nan_to_num(result[2].detach().cpu())
             batch_class_sum += (
                 1 - torch.isnan(result[2].detach().cpu()).int()
