@@ -175,13 +175,13 @@ or with magic commands in Jupiter notebooks
 
 ## Citation
 ````
-@misc{schultze2024chronicling,
-      title={Chronicling Germany: An Annotated Historical Newspaper Dataset}, 
-      author={Christian Schultze and Niklas Kerkfeld and Kara Kuebart and Princilia Weber and Moritz Wolter and Felix Selgert},
-      year={2024},
-      eprint={2401.16845},
-      archivePrefix={arXiv},
-      primaryClass={cs.DL}
+@article{
+schultze2025chronicling,
+title={Chronicling Germany: An Annotated Historical Newspaper Dataset},
+author={Christian Schultze and Niklas Kerkfeld and Kara Kuebart and Princilia Weber and Moritz Wolter and Felix Selgert},
+journal={Journal of Data-centric Machine Learning Research},
+year={2025},
+url={https://openreview.net/forum?id=YHDfqvtye9}
 }
 ````
 
