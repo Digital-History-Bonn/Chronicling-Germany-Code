@@ -141,7 +141,7 @@ def main(image_path: str,
         file_format: format of the output (json or xml)
     """
     # load model
-    model = YOLO(model)
+    model = YOLO(model) # type: ignore
 
     # create list of images
     images = list(glob.glob(f"{image_path}/*.jpg"))
@@ -155,7 +155,7 @@ def main(image_path: str,
     print(f"using {device} for prediction")
 
     # predict
-    predict(model, images, output_paths, device=device)
+    predict(model, images, output_paths, device=device) # type: ignore
 
 
 def get_args() -> argparse.Namespace:
