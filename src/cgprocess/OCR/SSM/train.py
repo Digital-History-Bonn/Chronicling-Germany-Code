@@ -183,7 +183,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             "name": "train",
         }
         train_set = SSMDataset(
-            kwargs, cfg["image_height"], cfg, augmentation=True, num_processes=2
+            kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=2
         )
         kwargs = {
             "data_path": data_path,
