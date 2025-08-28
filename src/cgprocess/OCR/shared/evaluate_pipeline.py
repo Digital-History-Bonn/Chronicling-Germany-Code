@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from shapely.geometry import Polygon
 from tqdm import tqdm
 
+from cgprocess.OCR.shared.utils import line_has_text
 from cgprocess.baseline_detection.class_config import TEXT_CLASSES
 from cgprocess.baseline_detection.utils import adjust_path, get_tag
 from cgprocess.layout_segmentation.processing.read_xml import (
@@ -48,14 +49,15 @@ def extract_textlines(file_path: str) -> Tuple[List[torch.Tensor], List[str]]:
         if get_tag(region) in TEXT_CLASSES:
             text_region = region.find_all("TextLine")
             for text_line in text_region:
-                for word in soup.find_all("Word"):
-                    word.decompose()
-                polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
-                polygon = polygon[:, torch.tensor([1, 0])]
-                textlines.append(polygon)
+                if line_has_text(text_line):
+                    for word in soup.find_all("Word"):
+                        word.decompose()
+                    polygon = torch.tensor(xml_polygon_to_polygon_list(text_line.Coords["points"]))
+                    polygon = polygon[:, torch.tensor([1, 0])]
+                    textlines.append(polygon)
 
-                textequiv = text_line.find("TextEquiv")
-                texts.append(textequiv.find("Unicode").text)
+                    textequiv = text_line.find("TextEquiv")
+                    texts.append(textequiv.find("Unicode").text)
 
     return textlines, texts
 

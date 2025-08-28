@@ -190,16 +190,16 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             "file_stems": val_file_stems,
             "name": "validation",
         }
-        val_set = SSMDataset(kwargs, cfg["image_height"], cfg)
+        val_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg)
 
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
-    test_set = SSMDataset(kwargs, cfg["image_height"], cfg)
+    test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg)
     model = Recognizer(cfg).train()
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
 
-    lit_model = SSMOCRTrainer(model, batch_size, tokenizer)
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, cfg["training"])
 
     if not args.eval:
         train_loader = DataLoader(
@@ -252,13 +252,11 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
 
     if args.eval:
         eval_path = Path(args.eval)
-        model_path = (
-            eval_path
-            / [f for f in os.listdir(eval_path) if f.startswith(f"{device_id}")][0]
-        )
+        cfg = load_cfg(eval_path / "model.yml")
+        model_path = eval_path / cfg["inference"]["model_path"]
         model = Recognizer(cfg).eval()
         lit_model = SSMOCRTrainer.load_from_checkpoint(
-            model_path, model=model, tokenizer=tokenizer, batch_size=batch_size
+            model_path, model=model, tokenizer=tokenizer, batch_size=batch_size, hyper_parameters=cfg["training"]
         )
         trainer.test(lit_model, dataloaders=test_loader)
     else:
@@ -266,6 +264,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         trainer.fit(
             model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader
         )
+        cfg["inference"]["model_path"] = Path(checkpoint_callback.best_model_path).name
         with open(ckpt_dir / "model.yml", "w", encoding="utf-8") as file:
             yaml.safe_dump(cfg, file)
 
@@ -274,6 +273,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             model=model,
             tokenizer=tokenizer,
             batch_size=batch_size,
+            hyper_parameters=cfg["training"]
         )
         trainer.test(lit_model, dataloaders=test_loader)
 

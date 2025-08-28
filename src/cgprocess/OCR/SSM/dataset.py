@@ -96,7 +96,8 @@ def extract_crop(
     if crop.shape[-1] < crop_height:
         return False
 
-    baseline = None
+    crop *= mask
+
     if line.find("Baseline"):
         raw_baseline = enforce_image_limits(  # type: ignore
             torch.tensor(xml_polygon_to_polygon_list(line.Baseline["points"])),  # type: ignore
@@ -109,43 +110,41 @@ def extract_crop(
         if baseline[-1][0] != crop.shape[-1]-1:
             baseline = np.append(baseline, np.array([[crop.shape[-1]-1, baseline[-1][1]]]), axis=0)
 
-    crop *= mask
+        # todo: do this before scaling, so that we do not have to rescale
+        raw_shifts = []
+        for i in range(baseline.shape[0] - 1): # todo: remove double shift entries properly
+            current = baseline[i]
+            next = baseline[i+1]
+            rr, cc = draw_line(current[0], current[1], next[0], next[1])
+            if i < baseline.shape[0] - 2:
+                raw_shifts.append(cc[:-1])
+            else:
+                raw_shifts.append(cc)
 
-    # todo: do this before scaling, so that we do not have to rescale
-    raw_shifts = []
-    for i in range(baseline.shape[0] - 1): # todo: remove double shift entries properly
-        current = baseline[i]
-        next = baseline[i+1]
-        rr, cc = draw_line(current[0], current[1], next[0], next[1])
-        if i < baseline.shape[0] - 2:
-            raw_shifts.append(cc[:-1])
-        else:
-            raw_shifts.append(cc)
+        crop = crop.squeeze()
+        shifts = np.concat(raw_shifts)
+        shifts = shifts - shifts.min()
 
-    crop = crop.squeeze()
-    shifts = np.concat(raw_shifts)
-    shifts = shifts - shifts.min()
+        max_shift = shifts.max()
+        if max_shift > 30:
+            pass
 
-    max_shift = shifts.max()
-    if max_shift > 30:
-        pass
+        rows = np.arange(crop.shape[0])[:, None]
 
-    rows = np.arange(crop.shape[0])[:, None]
+        shifted_rows = (rows+shifts[None, :]) % crop.shape[0]
+        if shifted_rows.shape[1] != crop.shape[1]: # todo: remove double shift entries properly
+            shifted_rows = shifted_rows[:, :crop.shape[1]]
+        crop = crop[shifted_rows, np.arange(crop.shape[1])[None, :]]
 
-    shifted_rows = (rows+shifts[None, :]) % crop.shape[0]
-    if shifted_rows.shape[1] != crop.shape[1]: # todo: remove double shift entries properly
-        shifted_rows = shifted_rows[:, :crop.shape[1]]
-    crop = crop[shifted_rows, np.arange(crop.shape[1])[None, :]]
+        if max_shift > 0:
+            crop = crop[:-max_shift, :]
 
-    if max_shift > 0:
-        crop = crop[:-max_shift, :]
-
-    crop, _, _ = scale_crop(crop, crop_height)
-    #
-    # transform = transforms.ToPILImage()
-    # img = transform(crop)
-    #
-    # img.save("test_baseline_deskew_scale.png")
+        crop, _, _ = scale_crop(crop, crop_height)
+        #
+        # transform = transforms.ToPILImage()
+        # img = transform(crop)
+        #
+        # img.save("test_baseline_deskew_scale.png")
 
     crops.append(crop.numpy())
     return True
@@ -249,8 +248,8 @@ class SSMDataset(TrainDataset): #type: ignore
         super().__init__(**kwargs)
         self.augmentation = augmentation
         self.image_height = crop_height
-        # self.num_processes = num_processes if num_processes else get_cpu_count() // 8
-        self.num_processes = 1
+        self.num_processes = num_processes if num_processes else get_cpu_count() // 8
+        # self.num_processes = 1
 
         self.cfg = cfg
 
