@@ -108,6 +108,12 @@ def get_args() -> argparse.Namespace:
         help="If cuda is available, this determines the number of processes launched, each receiving a single gpu.",
     )
     parser.add_argument(
+        "--num-processes",
+        type=int,
+        default=1,
+        help="Number of processes to use for preprocessing.",
+    )
+    parser.add_argument(
         "--eval",
         type=str,
         default=None,
@@ -157,6 +163,9 @@ def get_progress(total: int) -> int:
 
 def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     """Initialize config, datasets and dataloader and run the lightning trainer."""
+    torch.manual_seed(args.seed)
+    if device_id is not None:
+        torch.manual_seed(args.seed + device_id)
     torch.set_float32_matmul_precision("high")
     data_path = Path(args.data_path)
     config_path = Path(args.config_path)
@@ -183,8 +192,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             "name": "train",
         }
         train_set = SSMDataset(
-            kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=2
-        )
+            kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=args.num_processes
+        ) # todo: make shure, this only runs once and not for every gpu
         kwargs = {
             "data_path": data_path,
             "file_stems": val_file_stems,
@@ -193,7 +202,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         val_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg)
 
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
-    test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg)
+    test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_processes=args.num_processes)
     model = Recognizer(cfg).train()
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)

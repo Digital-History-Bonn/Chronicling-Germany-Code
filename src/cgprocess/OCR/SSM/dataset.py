@@ -3,6 +3,8 @@
 import json
 import lzma
 import os
+import sys
+import time
 from multiprocessing import Process, Queue
 from pathlib import Path
 from threading import Thread
@@ -15,6 +17,7 @@ from PIL import Image, ImageDraw
 from torch import Tensor
 from torchvision import transforms
 from torchvision.transforms import Resize
+from torch.nn import functional as F
 from tqdm import tqdm
 from skimage.draw import line as draw_line
 
@@ -29,15 +32,19 @@ from cgprocess.shared.utils import (
 
 
 def preprocess_data(
-    image: torch.Tensor,
-    text_lines: List[BeautifulSoup],
-    image_height: int,
-    predict: bool = False,
+        image: torch.Tensor,
+        text_lines: List[BeautifulSoup],
+        image_height: int,
+        predict: bool = False,
 ) -> Tuple[List[np.ndarray], List[str], List[str]]:
     """Extract crop for each text-line and append ids or textual data if needed."""
     texts = []
     crops: List[np.ndarray] = []
     ids = []
+
+    start = time.time()
+    image.cuda() # todo: if cuda available...
+    print("image to cuda:", time.time() - start)
 
     for line in text_lines:
         if line_has_text(line) or predict:
@@ -51,6 +58,7 @@ def preprocess_data(
             else:
                 texts.append(line.find("Unicode").text)  # type: ignore
 
+    print("extract crops for one page:", time.time() - start)
     return crops, texts, ids  # type: ignore
 
 
@@ -58,7 +66,7 @@ def preprocess_data(
 
 
 def extract_crop(
-    crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSoup, crop_height: int
+        crops: List[np.ndarray], image: torch.Tensor, line: BeautifulSoup, crop_height: int
 ) -> bool:
     """Crops the image according to bbox information and masks all pixels outside the text line polygon.
     Resizes the crop, so that all crops have the same height.
@@ -68,37 +76,54 @@ def extract_crop(
         line: current xml object with polygon data
         crop_height: fixed height for all crops"""
     assert image.dtype == torch.uint8
-
+    # todo: speed up by using torch on gpu?
+    start = time.time()
     region_polygon = enforce_image_limits(  # type: ignore
         torch.tensor(xml_polygon_to_polygon_list(line.Coords["points"])),  # type: ignore
         (image.shape[2], image.shape[1]),
     )  # type: ignore
+    print("enforce limits:", time.time() - start)
 
     # initialize
+    local_time = time.time()
     bbox = get_bbox(region_polygon)
-    crop = image.squeeze()[bbox[1] : bbox[3] + 1, bbox[0] : bbox[2] + 1].clone()  # type: ignore
+    crop = image.squeeze()[bbox[1]: bbox[3] + 1, bbox[0]: bbox[2] + 1].clone()  # type: ignore
 
-    local_polygon = region_polygon.numpy() - np.array([bbox[0], bbox[1]])
+    local_polygon = region_polygon - torch.tensor([bbox[0], bbox[1]])
+    print("local_polygon:", time.time() - local_time)
 
+    draw_polygon_time = time.time()
     img = Image.new("1", (crop.shape[0] + 1, crop.shape[1] + 1), 0)
     draw_polygon = ImageDraw.Draw(img)
-    draw_polygon.polygon(list(map(tuple, np.roll(local_polygon, 1, axis=1))), fill=1)
+    draw_polygon.polygon(list(map(tuple, np.roll(local_polygon.numpy(), 1, axis=1))), fill=1)
+    print("draw polygon:", time.time() - draw_polygon_time)
 
+    pil_time = time.time()
     transform = transforms.PILToTensor()
-    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8)
+    # todo: if cuda available
+    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8).cuda() #todo: use Kornia gpu geometric
+    # lib to do this whole thing on the gpu. cpu gpu transer is a bootle neck
+    print("ToPIL:", time.time() - pil_time)
 
     if crop.shape[-1] <= 0 or crop.shape[-2] <= 0:
-        return False
+        return False  # todo: test this
 
-    crop, rescale, scale = scale_crop(crop, crop_height)
-    mask = rescale(mask[:, :-1, :-1])
+    scale_time = time.time()
+    crop, crop_width, scale = scale_crop(crop, crop_height)
+    mask = scale_image(mask[0, :-1, :-1], crop_height, crop_width)
+    print("scale:", time.time() - scale_time)
 
     if crop.shape[-1] < crop_height:
-        return False
+        return False  # todo test this
 
+    mask_time = time.time()
     crop *= mask
+    print("mask:", time.time() - mask_time)
+
+    print("default processing time:", time.time() - start)
 
     if line.find("Baseline"):
+        start = time.time()
         raw_baseline = enforce_image_limits(  # type: ignore
             torch.tensor(xml_polygon_to_polygon_list(line.Baseline["points"])),  # type: ignore
             (image.shape[2], image.shape[1]),
@@ -107,66 +132,76 @@ def extract_crop(
         baseline = (local_baseline * scale).astype(int)
         if baseline[0][0] != 0:
             baseline = np.insert(baseline, 0, np.array([[0, baseline[0][1]]]), axis=0)
-        if baseline[-1][0] != crop.shape[-1]-1:
-            baseline = np.append(baseline, np.array([[crop.shape[-1]-1, baseline[-1][1]]]), axis=0)
+        if baseline[-1][0] != crop.shape[-1] - 1:
+            baseline = np.append(baseline, np.array([[crop.shape[-1] - 1, baseline[-1][1]]]), axis=0)
 
         # todo: do this before scaling, so that we do not have to rescale
         raw_shifts = []
-        for i in range(baseline.shape[0] - 1): # todo: remove double shift entries properly
+        for i in range(baseline.shape[0] - 1):  # todo: remove double shift entries properly
             current = baseline[i]
-            next = baseline[i+1]
+            next = baseline[i + 1]
             rr, cc = draw_line(current[0], current[1], next[0], next[1])
             if i < baseline.shape[0] - 2:
                 raw_shifts.append(cc[:-1])
             else:
                 raw_shifts.append(cc)
 
-        crop = crop.squeeze()
         shifts = np.concat(raw_shifts)
         shifts = shifts - shifts.min()
-
         max_shift = shifts.max()
-        if max_shift > 30:
-            pass
 
         rows = np.arange(crop.shape[0])[:, None]
-
-        shifted_rows = (rows+shifts[None, :]) % crop.shape[0]
-        if shifted_rows.shape[1] != crop.shape[1]: # todo: remove double shift entries properly
+        shifted_rows = (rows + shifts[None, :]) % crop.shape[0]
+        if shifted_rows.shape[1] != crop.shape[1]:  # todo: remove double shift entries properly
             shifted_rows = shifted_rows[:, :crop.shape[1]]
         crop = crop[shifted_rows, np.arange(crop.shape[1])[None, :]]
 
         if max_shift > 0:
             crop = crop[:-max_shift, :]
 
+        if crop.shape[-1] <= 0 or crop.shape[-2] <= 0:
+            return False
+
         crop, _, _ = scale_crop(crop, crop_height)
+
+        print("baseline processing time:", time.time() - start)
         #
         # transform = transforms.ToPILImage()
         # img = transform(crop)
         #
         # img.save("test_baseline_deskew_scale.png")
 
-    crops.append(crop.numpy())
+    crops.append(crop[None, :, :].cpu().numpy())  # todo: why is this numpy? start a thread for this? then
+    # the next crop can be processed without waiting for gpu cpu transfer
     return True
 
 
-def scale_crop(crop: Tensor, crop_height: int) -> Tuple[Tensor, Resize, float]:
-    """
-    Scale crop, sush that it has the desired height and preserves aspect ratio.
+def scale_crop(crop: Tensor, crop_height: int) -> tuple[Tensor, int, float]:
+    """Scale crop such that it has the desired height and preserves aspect ratio.
+
     Args:
         crop: image data
-        crop_height: desired height
-
-    Returns: scaled crop and Resize transform as well as scale value
+        crop_height: desired crop height
     """
     scale = crop_height / crop.shape[-2]
-    rescale = transforms.Resize((crop_height, int(crop.shape[-1] * scale)))
-    crop = rescale(torch.unsqueeze(crop, 0))
-    return crop, rescale, scale
+    crop_width = int(crop.shape[-1] * scale)
+    crop = scale_image(crop, crop_height, crop_width)
+    return crop, crop_width, scale
+
+
+def scale_image(image: Tensor, height: int, width: int) -> Tensor:
+    """
+    Args:
+        image: image data, ideally already on gpu
+        height: desired height
+        width: desired width
+    """
+    image = F.interpolate(image[None, None, :, :].float(), size=(height, width), mode="bilinear", align_corners=False)
+    return image[0, 0, :, :].type(torch.uint8)
 
 
 def load_data(
-    image_path: Path, xml_path: Path
+        image_path: Path, xml_path: Path
 ) -> Tuple[torch.Tensor, List[BeautifulSoup]]:
     """Load image and xml data, transform the PIL image to a torch tensor and extract all xml text line objects."""
     with open(xml_path, "r", encoding="utf-8") as file:
@@ -182,17 +217,18 @@ def load_data(
 
 
 def extract_page(
-    queue: Queue,
-    paths: Tuple[Path, Path, Path],
-    image_extension: str,
-    cfg: dict,
-    result_Queue: Optional[Queue] = None,
-    predict: bool = False,
+        queue: Queue,
+        paths: Tuple[Path, Path, Path],
+        image_extension: str,
+        cfg: dict,
+        result_Queue: Optional[Queue] = None,
+        predict: bool = False,
 ) -> None:
     """Extract target and input data for OCR SSM training"""
     tokenizer = init_tokenizer(cfg)
     image_path, annotations_path, target_path = paths
     while True:
+        total = time.time()
         arguments = queue.get()
         if arguments[-1]:
             break
@@ -204,7 +240,12 @@ def extract_page(
         crops, texts, ids = preprocess_data(
             image, text_lines, cfg["preprocessing"]["image_height"], predict
         )
+        start = time.time()
         targets = [tokenizer(line).type(torch.uint8).tolist() for line in texts]
+
+        print("File:", file_stem)
+        print("Image Size:", image.shape)
+        print("tokenizer: ", time.time() - start)
 
         json_str = json.dumps({"texts": texts, "targets": targets, "ids": ids})
 
@@ -213,12 +254,19 @@ def extract_page(
         with lzma.open(target_path / f"{file_stem}.json", "wb") as file:
             file.write(json_bytes)
 
+        print("Saving lzma: ", time.time() - start)
+        start = time.time()
+
         crop_dict = {str(i): crops for i, crops in enumerate(crops)}
 
         np.savez_compressed(target_path / f"{file_stem}", **crop_dict)
 
+        print("Saving npz: ", time.time() - start)
+
         if result_Queue:
             result_Queue.put((file_stem, annotations_path, target_path, False))
+        print("Total time:", time.time() - total) # todo: remove
+        sys.stdout.flush()
 
 
 def get_progress(output_path: Path) -> int:
@@ -226,18 +274,18 @@ def get_progress(output_path: Path) -> int:
     return len([f for f in os.listdir(output_path) if f.endswith(".json")])
 
 
-class SSMDataset(TrainDataset): #type: ignore
+class SSMDataset(TrainDataset):  # type: ignore
     """
     Dataset class for SSM based OCR training.
     """
 
     def __init__(
-        self,
-        kwargs: dict,
-        crop_height: int,
-        cfg: dict,
-        num_processes: Optional[int] = None,
-        augmentation: bool = False,
+            self,
+            kwargs: dict,
+            crop_height: int,
+            cfg: dict,
+            num_processes: Optional[int] = None,
+            augmentation: bool = False,
     ):
         """
         Args:
@@ -390,19 +438,19 @@ class SSMDataset(TrainDataset): #type: ignore
                 #     ],
                 #     p=resize_prob,
                 # ),
-        # self._transforms = Compose([
-        #     ToFloat(),
-        #     PixelDropout(p=0.2),
-        #     OneOf([
-        #         MotionBlur(p=0.2),
-        #         MedianBlur(blur_limit=3, p=0.1),
-        #         Blur(blur_limit=3, p=0.1),
-        #     ], p=0.2),
-        #     OneOf([
-        #         OpticalDistortion(p=0.3),
-        #         ElasticTransform(alpha=7, sigma=25, p=0.1),
-        #         SafeRotate(limit=(-3, 3), border_mode=cv2.BORDER_CONSTANT, p=0.2)
-        #     ], p=0.2),
-        # ], p=0.5)
+                # self._transforms = Compose([
+                #     ToFloat(),
+                #     PixelDropout(p=0.2),
+                #     OneOf([
+                #         MotionBlur(p=0.2),
+                #         MedianBlur(blur_limit=3, p=0.1),
+                #         Blur(blur_limit=3, p=0.1),
+                #     ], p=0.2),
+                #     OneOf([
+                #         OpticalDistortion(p=0.3),
+                #         ElasticTransform(alpha=7, sigma=25, p=0.1),
+                #         SafeRotate(limit=(-3, 3), border_mode=cv2.BORDER_CONSTANT, p=0.2)
+                #     ], p=0.2),
+                # ], p=0.5)
             ]
         )
