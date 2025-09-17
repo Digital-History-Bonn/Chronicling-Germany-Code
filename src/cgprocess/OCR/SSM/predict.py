@@ -39,7 +39,7 @@ class OCRPreprocess:
         Attributes:
             manager: Process for running preprocessing asynchronously
         """
-        self.image_height = cfg["image_height"]
+        self.image_height = cfg["preprocessing"]["image_height"]
         self.num_processes = num_processes if num_processes else get_cpu_count() // 8
         self.cfg = cfg
         self.manager: Optional[Process] = None
