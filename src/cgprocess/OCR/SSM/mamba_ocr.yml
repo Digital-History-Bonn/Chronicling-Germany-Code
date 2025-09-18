@@ -38,4 +38,15 @@ confidence_threshold: 0.5 # Confidence threshold for characters. Otherwise, a NA
 training:
     learning_rate: 1e-04
     weight_decay: 1e-05
-    nan_augmentation_probability: 0.2 # probability for augmenting training inputs with nan tokens.
+    augmentation:
+      probability: 0.2 # probability for each separate transformation
+      dilation_kernel_size: 3
+      eroding_kernel_size: 3
+      sharpness_factor: [3, 6]
+      color_jitter: [0.2, 0.5] # Color Jitter Brightness and Contrast values
+      gaussian_params: [9, 1.0, 2.0] # kernel size and sigma range for gaussian transformation
+      italic_angle: 25 # Horizontal shear angle for affine transformation
+      elastic_params: [4.0, 6.0] # alpha and sigma of elastic transform
+      nan_augmentation_probability: 0.2 # probability for augmenting training inputs with nan tokens.
+      obstruction_size: 0.4 # Relative obstruction size range from 0 to this value x,y
+

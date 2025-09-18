@@ -68,7 +68,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="Provide path for custom split json file. This should contain a list with file stems "
-        "of train, validation and test images. File stem is the file name without the extension.",
+             "of train, validation and test images. File stem is the file name without the extension.",
     )
     parser.add_argument(
         "--split-ratio",
@@ -76,8 +76,8 @@ def get_args() -> argparse.Namespace:
         nargs="+",
         default=(0.85, 0.05, 0.10),
         help="Takes 3 float values for a custom dataset split ratio. The ratio have to sum up to one and the Dataset "
-        "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
-        "and validation in this order.",
+             "has to be big enough, to contain at least one batch for each dataset. Provide ratios for train, test "
+             "and validation in this order.",
     )
     parser.add_argument(
         "--batch-size",
@@ -192,8 +192,9 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             "name": "train",
         }
         train_set = SSMDataset(
-            kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=args.num_processes
-        ) # todo: make shure, this only runs once and not for every gpu
+            kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=args.num_processes,
+            augment_params=cfg["training"]["augmentation"]
+        )  # todo: make shure, this only runs once and not for every gpu
         kwargs = {
             "data_path": data_path,
             "file_stems": val_file_stems,

@@ -44,7 +44,7 @@ def preprocess_data(
     ids = []
 
     start = time.time()
-    image = image.cuda() # todo: if cuda available...
+    image = image.cuda()  # todo: if cuda available...
     print("image to cuda:", time.time() - start)
 
     for line in text_lines:
@@ -103,7 +103,7 @@ def extract_crop(
 
     pil_time = time.time()
     transform = transforms.PILToTensor()
-    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8).to(image.device) #todo: use Kornia gpu geometric
+    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8).to(image.device)  # todo: use Kornia gpu geometric
     # lib to do this whole thing on the gpu. cpu gpu transer is a bootle neck
     print("ToPIL:", time.time() - pil_time)
 
@@ -267,7 +267,7 @@ def extract_page(
 
         if result_Queue:
             result_Queue.put((file_stem, annotations_path, target_path, False))
-        print("Total time:", time.time() - total) # todo: remove
+        print("Total time:", time.time() - total)  # todo: remove
         sys.stdout.flush()
 
 
@@ -288,6 +288,7 @@ class SSMDataset(TrainDataset):  # type: ignore
             cfg: dict,
             num_processes: Optional[int] = None,
             augmentation: bool = False,
+            augment_params: dict = {}
     ):
         """
         Args:
@@ -299,7 +300,7 @@ class SSMDataset(TrainDataset):  # type: ignore
         self.augmentation = augmentation
         self.image_height = crop_height
         self.num_processes = num_processes if num_processes else get_cpu_count() // 8
-        # self.num_processes = 1
+        self.augment_params = augment_params
 
         self.cfg = cfg
 
@@ -315,7 +316,7 @@ class SSMDataset(TrainDataset):  # type: ignore
             thread = Thread(target=self.load_preprocessed_data, args=[file_stem])
             thread.start()
             threads.append(thread)
-            if len(threads) >= 16:
+            if len(threads) >= 32:
                 for thread in threads:
                     thread.join()
                 threads = []
@@ -331,6 +332,19 @@ class SSMDataset(TrainDataset):  # type: ignore
         crops_dict = np.load(self.target_path / f"{file_stem}.npz")
         for i in range(len(crops_dict)):
             self.data.append((crops_dict[str(i)], data["targets"][i], data["texts"][i]))
+
+        # img = torch.tensor(crops_dict[str(i)])
+        # transform = transforms.ToPILImage()
+        # img = transform(img)
+        #
+        # img.save("test_augmentation_original.png")
+        #
+        # img = self.augment_image(torch.tensor(crops_dict[str(i)]))
+        # transform = transforms.ToPILImage()
+        # img = transform(img)
+        #
+        # img.save("test_augmentation.png")
+        # pass
 
     def extract_data(self) -> None:
         """Load ALL xml files and save result image.
@@ -380,79 +394,88 @@ class SSMDataset(TrainDataset):  # type: ignore
         data = torch.tensor(crop).float()
         if self.augmentation:
             # augment = self.get_augmentations(data.shape[-1])
+            sample = torch.rand(1).item()
+            if sample < self.augment_params["probability"] / 2:
+                data = self.erode(data)
+            elif sample < self.augment_params["probability"]:
+                data = self.dilate(data)
             augment = self.get_augmentations()
             data = augment(data)
+            sample = torch.rand(1).item()
+            if sample < self.augment_params["probability"]:
+                data = self.obstruct_image(data)
         return data / 255, torch.tensor(target).long(), text
+
+    def erode(self, image: torch.Tensor) -> torch.Tensor:
+        """Erode black pixels (low value) in input image."""
+        kernel_size = self.augment_params["eroding_kernel_size"]
+        padding = kernel_size // 2
+        return F.max_pool2d(image, kernel_size, padding=padding, stride=1)
+
+    def dilate(self, image: torch.Tensor) -> torch.Tensor:
+        """Dilate black pixels (low value) in input image."""
+        kernel_size = self.augment_params["dilation_kernel_size"]
+        padding = kernel_size // 2
+        return -F.max_pool2d(-image, kernel_size, padding=padding, stride=1)
+
+    def obstruct_image(self, image: torch.Tensor) -> torch.Tensor:
+        hist = torch.histc(image.float(), bins=256, min=0, max=255)
+        hist = hist / hist.sum()
+        cumulative_histogramm = torch.cumsum(hist, dim=0)
+
+        if torch.rand(1).item() > 0.5:
+            distribution = cumulative_histogramm[cumulative_histogramm <= 0.1]
+        else:
+            distribution = cumulative_histogramm[cumulative_histogramm >= 0.9]
+
+        distribution = distribution / distribution.sum()
+
+        obstruction_height, obstruction_width = int(
+            torch.rand(1).item() * self.augment_params["obstruction_size"] * image.shape[
+                -2]), int(torch.rand(1).item() * self.augment_params["obstruction_size"] * image.shape[-1])
+        obstruction_width = max(obstruction_width, 6)
+        obstruction_height = max(obstruction_height, 6)
+
+        indices = torch.multinomial(distribution, num_samples=obstruction_height * obstruction_width,
+                                    replacement=True)
+        obstruction = indices.view(1, obstruction_height, obstruction_width)
+
+        obstruction = transforms.GaussianBlur(kernel_size=7, sigma=2)(obstruction)
+
+        position_y, position_x = torch.randint(0, image.shape[-2] - 1 - obstruction_height, (1,)).item(), torch.randint(
+            0, image.shape[-1] - 1 - obstruction_width, (1,)).item()
+        image[:, position_y: position_y + obstruction_height, position_x: position_x + obstruction_width] = obstruction
+        return image
 
     def get_augmentations(self) -> transforms.Compose:
         # def get_augmentations(self, image_width: int, resize_prob: float = 0.2,
         #                       kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
-        These include a slight rotation, perspective change, random erasing and blurring. Additionally, crops will be
-        rescaled randomly to train the model to recognize characters that does not fill the entire image, as well
-        as characters, that have been cropped at top or bottom.
-        Args:
-            kernel_size: kernel_size for gaussian blurring
         """
-        # pad_kernel = kernel_size if image_width <= kernel_size else 0
-        # scale = (1 + random.random() * 1)
-        # resize_to = int(self.image_height // scale), int(image_width // scale) + 1
-        # crop_size = resize_to[0], image_width
-        # pad_y = self.image_height - resize_to[0]
-        # pad_x = kernel_size - resize_to[1] if resize_to[1] < kernel_size else 0
-        # pad_x = kernel_size - image_width if image_width < kernel_size else pad_x
+        diff = abs(self.augment_params["sharpness_factor"][0] - self.augment_params["sharpness_factor"][1])
+        sharpness_factor = self.augment_params["sharpness_factor"][0] + torch.rand(1) * diff
         return transforms.Compose(
             [
-                # transforms.Pad((pad_kernel, 0, 0, 0)),
-                transforms.RandomApply(
-                    [transforms.GaussianBlur(5, (0.1, 1.5))],
-                    p=0.2,
-                ),
-                transforms.RandomErasing(scale=(0.02, 0.1), p=0.2),
-                # transforms.RandomApply(
-                #     [
-                #         transforms.RandomChoice(
-                #             [
-                #                 transforms.Compose([
-                #                     transforms.RandomCrop(
-                #                         size=crop_size,
-                #                     ),
-                #                     transforms.Resize(
-                #                         (self.image_height, int(image_width * scale)),
-                #                         antialias=True,
-                #                     ), ]),
-                #                 transforms.Compose(
-                #                     [
-                #                         transforms.Resize(
-                #                             resize_to,
-                #                             antialias=True,
-                #                         ),
-                #                         transforms.RandomChoice(
-                #                             [
-                #                                 transforms.Pad((pad_x, pad_y, 0, 0)),
-                #                                 transforms.Pad((0, 0, pad_x, pad_y))
-                #                             ]),
-                #                     ]
-                #                 ),
-                #             ]
-                #         )
-                #     ],
-                #     p=resize_prob,
-                # ),
-                # self._transforms = Compose([
-                #     ToFloat(),
-                #     PixelDropout(p=0.2),
-                #     OneOf([
-                #         MotionBlur(p=0.2),
-                #         MedianBlur(blur_limit=3, p=0.1),
-                #         Blur(blur_limit=3, p=0.1),
-                #     ], p=0.2),
-                #     OneOf([
-                #         OpticalDistortion(p=0.3),
-                #         ElasticTransform(alpha=7, sigma=25, p=0.1),
-                #         SafeRotate(limit=(-3, 3), border_mode=cv2.BORDER_CONSTANT, p=0.2)
-                #     ], p=0.2),
-                # ], p=0.5)
+                transforms.RandomApply([
+                    transforms.RandomChoice([
+                        transforms.RandomAffine(degrees=(0, 0), translate=(0, 0), scale=(1, 1),
+                                                shear=self.augment_params["italic_angle"]),
+                        transforms.ElasticTransform(self.augment_params["elastic_params"][0],
+                                                    self.augment_params["elastic_params"][1])
+                    ])
+                ], p=self.augment_params["probability"]),
+                transforms.RandomApply([
+                    transforms.RandomChoice([
+                        transforms.GaussianBlur(self.augment_params["gaussian_params"][0],
+                                                (self.augment_params["gaussian_params"][1],
+                                                 self.augment_params["gaussian_params"][2])),
+                        transforms.RandomAdjustSharpness(sharpness_factor, 1.0)
+                    ])
+                ], p=self.augment_params["probability"]),
+                transforms.RandomApply([
+                    transforms.ColorJitter(self.augment_params["color_jitter"][0],
+                                           self.augment_params["color_jitter"][1])
+                ], p=self.augment_params["probability"]),
             ]
         )
