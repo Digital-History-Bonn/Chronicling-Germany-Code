@@ -142,7 +142,7 @@ def get_args() -> argparse.Namespace:
         "-m",
         type=str,
         default="model.pt",
-        help="directory with a single .pt or .ckpt file and a single config.yml",
+        help="directory with a single .pt or .ckpt file and a single model.yml",
     )
     parser.add_argument(
         "--extension",
@@ -156,6 +156,9 @@ def get_args() -> argparse.Namespace:
 
 def main() -> None:
     """Predicts OCR for all images with xml annotations in given folder."""
+    num_gpus = torch.cuda.device_count()
+    assert num_gpus >= 1, "SSM Model requires at least 1 GPU."
+
     args = get_args()
     image_path = Path(args.image_path)
     layout_path = Path(args.layout_path)
@@ -167,7 +170,7 @@ def main() -> None:
         f"{layout_path}/{os.path.basename(path)[:-4]}.xml" for path in image_paths
     ]
 
-    cfg = load_cfg(model_path / "config.yml")
+    cfg = load_cfg(model_path / "model.yml")
 
     preprocess = OCRPreprocess(cfg, args.num_processes)
 
@@ -186,7 +189,6 @@ def main() -> None:
         layout_paths
     ), "Images and annotations path numbers do not match."
 
-    num_gpus = torch.cuda.device_count()
     model_list = create_model_list(model_path, num_gpus)
 
     # files_done = Value('i', 0, lock=True) use this in future to run preprocessing in parallel
@@ -362,7 +364,7 @@ def create_model_list(model_path: Path, num_gpus: int) -> list:
 
 def init_model(model_path: Path, device: str) -> Recognizer:
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
-    cfg = load_cfg(model_path / "config.yml")
+    cfg = load_cfg(model_path / "model.yml")
     tokenizer = init_tokenizer(cfg)
     model = Recognizer(cfg)
     model.tokenizer = tokenizer
@@ -379,6 +381,7 @@ def init_model(model_path: Path, device: str) -> Recognizer:
         model=model,
         tokenizer=model.tokenizer,
         batch_size=model.batch_size,
+        hyper_parameters=cfg["training"],
         map_location=device,
     )
     model.device = device

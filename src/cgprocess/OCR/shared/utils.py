@@ -3,6 +3,7 @@
 import argparse
 import os
 import random
+import warnings
 from multiprocessing import Queue
 from pathlib import Path
 from typing import Any, List, Tuple
@@ -222,7 +223,9 @@ def load_cfg(config_path: Path) -> dict:
 def init_tokenizer(cfg: dict) -> OCRTokenizer:
     """Initialize tokenizer by creating the vocabulary and setting config accordingly."""
     unicode_alphabet = create_unicode_alphabet(cfg["vocabulary"]["unicode"])
-    custom_alphabet = cfg["vocabulary"].get("custom", [])
+    custom_alphabet = cfg["vocabulary"].get("custom_vocab", [])
+    if not custom_alphabet:
+        warnings.warn("Custom alphabet not found, using default ASCII vocabulary.")
     for char in custom_alphabet:
         if char not in unicode_alphabet:
             unicode_alphabet.append(char)

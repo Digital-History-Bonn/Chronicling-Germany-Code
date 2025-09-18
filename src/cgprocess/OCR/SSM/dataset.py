@@ -5,6 +5,7 @@ import lzma
 import os
 import sys
 import time
+import warnings
 from multiprocessing import Process, Queue
 from pathlib import Path
 from threading import Thread
@@ -43,7 +44,7 @@ def preprocess_data(
     ids = []
 
     start = time.time()
-    image.cuda() # todo: if cuda available...
+    image = image.cuda() # todo: if cuda available...
     print("image to cuda:", time.time() - start)
 
     for line in text_lines:
@@ -76,6 +77,8 @@ def extract_crop(
         line: current xml object with polygon data
         crop_height: fixed height for all crops"""
     assert image.dtype == torch.uint8
+    if image.device.type == "cpu":
+        warnings.warn("Preprocessing on CPU is inefficient. Consider using GPU instead.")
     # todo: speed up by using torch on gpu?
     start = time.time()
     region_polygon = enforce_image_limits(  # type: ignore
@@ -100,8 +103,7 @@ def extract_crop(
 
     pil_time = time.time()
     transform = transforms.PILToTensor()
-    # todo: if cuda available
-    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8).cuda() #todo: use Kornia gpu geometric
+    mask = torch.permute(transform(img), (0, 2, 1)).type(torch.uint8).to(image.device) #todo: use Kornia gpu geometric
     # lib to do this whole thing on the gpu. cpu gpu transer is a bootle neck
     print("ToPIL:", time.time() - pil_time)
 
