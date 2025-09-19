@@ -402,8 +402,11 @@ class SSMDataset(TrainDataset):  # type: ignore
             augment = self.get_augmentations()
             data = augment(data)
             sample = torch.rand(1).item()
-            if sample < self.augment_params["probability"]:
-                data = self.obstruct_image(data)
+            if sample < self.augment_params["probability"] * 2:
+                try:
+                    data = self.obstruct_image(data)
+                except Exception as e:
+                    warnings.warn(f"Failed to obstruct image: {e}")
         return data / 255, torch.tensor(target).long(), text
 
     def erode(self, image: torch.Tensor) -> torch.Tensor:
@@ -428,7 +431,10 @@ class SSMDataset(TrainDataset):  # type: ignore
         else:
             distribution = cumulative_histogramm[cumulative_histogramm >= 0.9]
 
-        distribution = distribution / distribution.sum()
+        if distribution.numel() == 0 or distribution.sum() == 0:
+            return image
+
+        distribution = torch.nan_to_num(distribution) / distribution.sum()
 
         obstruction_height, obstruction_width = int(
             torch.rand(1).item() * self.augment_params["obstruction_size"] * image.shape[
@@ -464,7 +470,7 @@ class SSMDataset(TrainDataset):  # type: ignore
                         transforms.ElasticTransform(self.augment_params["elastic_params"][0],
                                                     self.augment_params["elastic_params"][1])
                     ])
-                ], p=self.augment_params["probability"]),
+                ], p=self.augment_params["probability"] * 2),
                 transforms.RandomApply([
                     transforms.RandomChoice([
                         transforms.GaussianBlur(self.augment_params["gaussian_params"][0],
