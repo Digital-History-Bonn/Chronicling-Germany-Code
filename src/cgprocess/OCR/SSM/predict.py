@@ -365,6 +365,7 @@ def create_model_list(model_path: Path, num_gpus: int) -> list:
 def init_model(model_path: Path, device: str) -> Recognizer:
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
     cfg = load_cfg(model_path / "model.yml")
+    print(f"vocab size: {cfg['vocabulary']['size']}")
     tokenizer = init_tokenizer(cfg)
     model = Recognizer(cfg)
     model.tokenizer = tokenizer

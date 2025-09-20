@@ -205,6 +205,10 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_processes=args.num_processes)
     model = Recognizer(cfg).train()
+    try:
+        print(f"Embedding_size: {model.embedding.weight.shape}")
+    except Exception as e:
+        print(e)
 
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
