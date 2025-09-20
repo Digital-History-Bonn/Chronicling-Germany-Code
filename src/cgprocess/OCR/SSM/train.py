@@ -261,7 +261,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         logger=logger,
         devices=[device_id],
         val_check_interval=0.5,
-        limit_val_batches=0.5,
+        limit_val_batches=1,
     )  # type: ignore
 
     if args.eval:
