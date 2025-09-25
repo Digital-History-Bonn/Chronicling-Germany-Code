@@ -33,20 +33,20 @@ inference:
     batch_size: 32 # Batch size in inference mode. Can be overwritten by command line.
     nan_abort_condition: 64 # Number of nan tokens generated consecutively during inference, that leads to the
   # termination of token generation.
-confidence_threshold: 0.5 # Confidence threshold for characters. Otherwise, a NAN-Token is returned.
+confidence_threshold: 0.4 # Confidence threshold for characters. Otherwise, a NAN-Token is returned.
   # Used in inference and training mode evaluations.
 training:
     learning_rate: 1e-04
     weight_decay: 1e-05
     augmentation:
-      probability: 0.1 # probability for each separate transformation
+      probability: 0.07 # probability for each separate transformation
       dilation_kernel_size: 3
       eroding_kernel_size: 3
       sharpness_factor: [3, 6]
-      color_jitter: [0.2, 0.5] # Color Jitter Brightness and Contrast values
+      color_jitter: [0.1, 0.3] # Color Jitter Brightness and Contrast values
       gaussian_params: [9, 1.0, 2.0] # kernel size and sigma range for gaussian transformation
-      italic_angle: 25 # Horizontal shear angle for affine transformation
+      italic_angle: 20 # Horizontal shear angle for affine transformation
       elastic_params: [4.0, 6.0] # alpha and sigma of elastic transform
-      nan_augmentation_probability: 0.2 # probability for augmenting training inputs with nan tokens.
-      obstruction_size: 0.4 # Relative obstruction size range from 0 to this value x,y
+      nan_augmentation_probability: 0.3 # probability for augmenting training inputs with nan tokens.
+      obstruction_size: 0.3 # Relative obstruction size range from 0 to this value x,y
 

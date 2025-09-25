@@ -288,7 +288,8 @@ class SSMDataset(TrainDataset):  # type: ignore
             cfg: dict,
             num_processes: Optional[int] = None,
             augmentation: bool = False,
-            augment_params: dict = {}
+            augment_params: dict = {},
+            num_threads: int = 1,
     ):
         """
         Args:
@@ -300,6 +301,7 @@ class SSMDataset(TrainDataset):  # type: ignore
         self.augmentation = augmentation
         self.image_height = crop_height
         self.num_processes = num_processes if num_processes else get_cpu_count() // 8
+        self.num_threads = num_threads
         self.augment_params = augment_params
 
         self.cfg = cfg
@@ -316,7 +318,7 @@ class SSMDataset(TrainDataset):  # type: ignore
             thread = Thread(target=self.load_preprocessed_data, args=[file_stem])
             thread.start()
             threads.append(thread)
-            if len(threads) >= 32:
+            if len(threads) >= self.num_threads:
                 for thread in threads:
                     thread.join()
                 threads = []

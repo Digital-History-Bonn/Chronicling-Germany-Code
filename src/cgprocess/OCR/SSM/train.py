@@ -114,6 +114,12 @@ def get_args() -> argparse.Namespace:
         help="Number of processes to use for preprocessing.",
     )
     parser.add_argument(
+        "--num-threads",
+        type=int,
+        default=1,
+        help="Number of threads for loading temp data.",
+    )
+    parser.add_argument(
         "--eval",
         type=str,
         default=None,
@@ -193,17 +199,18 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         }
         train_set = SSMDataset(
             kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=args.num_processes,
-            augment_params=cfg["training"]["augmentation"]
+            augment_params=cfg["training"]["augmentation"], num_threads=args.num_threads
         )  # todo: make shure, this only runs once and not for every gpu
         kwargs = {
             "data_path": data_path,
             "file_stems": val_file_stems,
             "name": "validation",
         }
-        val_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg)
+        val_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_threads=args.num_threads)
 
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
-    test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_processes=args.num_processes)
+    test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_processes=args.num_processes,
+                          num_threads=args.num_threads)
     model = Recognizer(cfg).train()
     try:
         print(f"Embedding_size: {model.embedding.weight.shape}")
