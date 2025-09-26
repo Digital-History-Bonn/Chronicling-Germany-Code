@@ -17,7 +17,7 @@ decoder:
             - 8
     block:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
-        state: 64 # SSM state expansion factor
+        state: 128 # SSM state expansion factor
         expand: 4 # Block expansion factor
         conv_width: 4 # Local convolution width
 tokenizer: # tokenizer default parameters
@@ -39,14 +39,14 @@ training:
     learning_rate: 1e-04
     weight_decay: 1e-05
     augmentation:
-      probability: 0.07 # probability for each separate transformation
+      probability: 0.1 # probability for each separate transformation
       dilation_kernel_size: 3
       eroding_kernel_size: 3
-      sharpness_factor: [3, 6]
+      sharpness_factor: [3, 6] # sharpness transform
       color_jitter: [0.1, 0.3] # Color Jitter Brightness and Contrast values
       gaussian_params: [9, 1.0, 2.0] # kernel size and sigma range for gaussian transformation
       italic_angle: 20 # Horizontal shear angle for affine transformation
       elastic_params: [4.0, 6.0] # alpha and sigma of elastic transform
-      nan_augmentation_probability: 0.3 # probability for augmenting training inputs with nan tokens.
-      obstruction_size: 0.3 # Relative obstruction size range from 0 to this value x,y
-
+      nan_augmentation_probability: 0.5 # probability for augmenting training inputs with nan tokens.
+      obstruction_size: 0.15 # Relative obstruction size range from 0 to this value x,y
+      distortion_scale: 0.2 # distortion scale for random perspective transform

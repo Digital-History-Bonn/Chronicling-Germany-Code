@@ -167,11 +167,17 @@ def extract_crop(
         crop, _, _ = scale_crop(crop, crop_height)
 
         print("baseline processing time:", time.time() - start)
-        #
-        # transform = transforms.ToPILImage()
-        # img = transform(crop)
-        #
-        # img.save("test_baseline_deskew_scale.png")
+
+    # fine tuning das hier macht keinen großen unterschied!
+    # kernel_size = 3
+    # padding = kernel_size // 2
+    # crop = F.max_pool2d(crop[None, :, :].float(), kernel_size, padding=padding, stride=1).to(torch.uint8)
+    # crop = transforms.RandomAdjustSharpness(5, 1.0)(crop)
+
+    # transform = transforms.ToPILImage()
+    # img = transform(crop)
+    #
+    # img.save("test_transforms.png")
 
     crops.append(crop[None, :, :].cpu().numpy())  # todo: why is this numpy? start a thread for this? then
     # the next crop can be processed without waiting for gpu cpu transfer
@@ -456,8 +462,6 @@ class SSMDataset(TrainDataset):  # type: ignore
         return image
 
     def get_augmentations(self) -> transforms.Compose:
-        # def get_augmentations(self, image_width: int, resize_prob: float = 0.2,
-        #                       kernel_size: int = 5) -> transforms.Compose:
         """
         Initializes augmenting transformations.
         """
@@ -470,7 +474,8 @@ class SSMDataset(TrainDataset):  # type: ignore
                         transforms.RandomAffine(degrees=(0, 0), translate=(0, 0), scale=(1, 1),
                                                 shear=self.augment_params["italic_angle"]),
                         transforms.ElasticTransform(self.augment_params["elastic_params"][0],
-                                                    self.augment_params["elastic_params"][1])
+                                                    self.augment_params["elastic_params"][1]),
+                        transforms.RandomPerspective(self.augment_params["distortion_scale"], p=1.0)
                     ])
                 ], p=self.augment_params["probability"] * 2),
                 transforms.RandomApply([

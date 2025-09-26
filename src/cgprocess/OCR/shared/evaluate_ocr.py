@@ -59,6 +59,14 @@ def main(parsed_args: argparse.Namespace) -> None:
     print(
         f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}"
     )
+    # distances = np.array(multi_page_distance_list)[:, 0]
+    # distances = distances[distances > 0]
+    # median = np.median(distances)
+    # small_error = distances[distances <= 3].sum()
+    # large_error = distances[distances > 3].sum()
+    # print(f"Median distance per line: {median}")
+    # print(f"Distance sum small: {small_error}")
+    # print(f"Distance sum large: {large_error}")
     print(
         f"overall correct lines: "
         f"{sum(multi_page_correct) / len(multi_page_distance_list)}"
@@ -112,10 +120,7 @@ def compare_page(
         print(
             f"{path} bad lines: {len(np.array(ratio_list)[np.array(ratio_list) > 0.1]) / len(ratio_list)}"
         )
-        print(f"{path} normalized levensthein distance per line: {lev_dis}")
-        print(f"{path} normalized levensthein distance per character: {char_ratio}")
-        print(f"{path} levensthein median: {lev_med}")
-        print(f"{path} levensthein worst line: {min(ratio_list)}\n")
+        print(f"{path} normalized levensthein distance per character: {char_ratio} \n")
 
     page_correct = len(np.array(ratio_list)[np.array(ratio_list) == 0.0])
     page_bad = len(np.array(ratio_list)[np.array(ratio_list) > 0.1])
