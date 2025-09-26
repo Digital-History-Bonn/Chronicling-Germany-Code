@@ -56,6 +56,13 @@ def main(parsed_args: argparse.Namespace) -> None:
         multi_page_distance_list.extend(distance_list)
         multi_page_bad_list.append(bad_list)
 
+    # threshold = 80
+    # distances = np.array(multi_page_distance_list)[:, 0]
+    # lengths = np.array(multi_page_distance_list)[:, 1]
+    # distances = distances[lengths > threshold]
+    # lengths = lengths[lengths > threshold]
+    # print(f"Levensthein distance for length > {threshold}: {distances.sum() / lengths.sum()} (number of elements :{len(lengths)})")
+
     print(
         f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}"
     )
