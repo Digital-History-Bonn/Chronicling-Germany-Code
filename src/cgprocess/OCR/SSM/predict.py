@@ -51,11 +51,12 @@ class OCRPreprocess:
             self.manager = None
 
     def extract_data(
-        self,
-        image_path: Path,
-        annotations_path: Path,
-        output_path: Path,
-        extension: str,
+            self,
+            image_path: Path,
+            annotations_path: Path,
+            output_path: Path,
+            temp_path: Path,
+            extension: str,
     ) -> Queue:
         """Launch processes for preprocessing files, saving them and add them to the path queue."""
 
@@ -63,7 +64,7 @@ class OCRPreprocess:
             f[:-4] for f in os.listdir(annotations_path) if f.endswith(".xml")
         ]
 
-        target_stems = [f[:-4] for f in os.listdir(output_path) if f.endswith(".npz")]
+        target_stems = [f[:-4] for f in os.listdir(temp_path) if f.endswith(".npz")]
         path_queue: Queue = Queue()
         result_queue: Queue = Queue()
 
@@ -73,7 +74,7 @@ class OCRPreprocess:
                 target=extract_page,
                 args=(
                     path_queue,
-                    (image_path, annotations_path, output_path),
+                    (image_path, annotations_path, temp_path),
                     extension,
                     self.cfg,
                     result_queue,
@@ -85,7 +86,7 @@ class OCRPreprocess:
 
         for file_stem in tqdm(file_stems, desc="Put paths in queue"):
             if file_stem in target_stems:
-                result_queue.put((file_stem, annotations_path, output_path, False))
+                result_queue.put((file_stem, annotations_path, output_path, temp_path, False))
                 continue
             path_queue.put((file_stem, False))
         total = path_queue.qsize()
@@ -131,6 +132,12 @@ def get_args() -> argparse.Namespace:
         "--layout-path", "-l", type=str, help="path for folder with layout xml files."
     )
     parser.add_argument(
+        "--output-path", "-o",
+        default=None,
+        type=str,
+        help="Path for output folder. If None, layout files will be used."
+    )
+    parser.add_argument(
         "--num-processes",
         "-p",
         type=int,
@@ -162,6 +169,11 @@ def main() -> None:
     args = get_args()
     image_path = Path(args.image_path)
     layout_path = Path(args.layout_path)
+    temp_path = layout_path / "temp"
+    if args.output_path is not None:
+        output_path = Path(args.output_path)
+    else:
+        output_path = layout_path
     model_path = Path(args.model_path)
 
     # get file names
@@ -174,12 +186,13 @@ def main() -> None:
 
     preprocess = OCRPreprocess(cfg, args.num_processes)
 
-    if not os.path.exists(layout_path / "temp"):
-        os.makedirs(layout_path / "temp")
+    output_path.mkdir(parents=True, exist_ok=True)
+    temp_path.mkdir(parents=False, exist_ok=True)
     path_queue = preprocess.extract_data(
         image_path,
         layout_path,
-        output_path=layout_path / "temp",
+        output_path,
+        temp_path=temp_path,
         extension=args.extension,
     )
 
@@ -221,7 +234,7 @@ def predict(args: list, model: Recognizer) -> None:
         args: list with file stem, annotation path and path for preprocessed data.
         model: State space recognition model
     """
-    file_stem, anno_path, data_path, _ = args
+    file_stem, anno_path, out_path, data_path, _ = args
     device = model.device
 
     crops, ids, sorted_indices = load_data(data_path, file_stem)
@@ -244,14 +257,14 @@ def predict(args: list, model: Recognizer) -> None:
         batch = torch.cat([batch, torch.stack([batch[-1].clone()] * diff)])
         pred_list.extend(model.inference(batch.to(device))[:-diff])
 
-    save_results_to_xml(anno_path, file_stem, ids, pred_list)
+    save_results_to_xml(anno_path, out_path, file_stem, ids, pred_list)
 
     # shutil.rmtree(target_path / f"{file_stem}.json", ignore_errors=True)
     # shutil.rmtree(target_path / f"{file_stem}.npz", ignore_errors=True)
 
 
 def load_data(
-    data_path: Path, file_stem: str
+        data_path: Path, file_stem: str
 ) -> Tuple[List[np.ndarray], np.ndarray, np.ndarray]:
     """
     Load preprocessed data and sort crops after their width.
@@ -274,7 +287,7 @@ def load_data(
 
 
 def save_results_to_xml(
-    anno_path: Path, file_stem: str, ids: np.ndarray, pred_list: List[str]
+        anno_path: Path, out_path:Path, file_stem: str, ids: np.ndarray, pred_list: List[str]
 ) -> None:
     """
     Load xml file and insert ocr results for all test-lines. Text lines are identified via their ids.
@@ -298,7 +311,7 @@ def save_results_to_xml(
         textequiv.append(unicode)
         bs4_line.append(textequiv)
     # save results
-    with open(anno_path / f"{file_stem}.xml", "w", encoding="utf-8") as file:
+    with open(out_path / f"{file_stem}.xml", "w", encoding="utf-8") as file:
         file.write(
             soup.prettify()  # type: ignore
             .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
@@ -306,7 +319,7 @@ def save_results_to_xml(
 
 
 def create_batch(
-    crops: List[np.ndarray], sorted_indices: np.ndarray, start: int, end: Optional[int]
+        crops: List[np.ndarray], sorted_indices: np.ndarray, start: int, end: Optional[int]
 ) -> torch.Tensor:
     """
     Pad sorted crops to form a batch of crops with uniform width.
@@ -370,12 +383,12 @@ def init_model(model_path: Path, device: str) -> Recognizer:
     model = Recognizer(cfg)
     model.tokenizer = tokenizer
     model_path = (
-        model_path
-        / [
-            f
-            for f in os.listdir(model_path)
-            if f.endswith(".pt") or f.endswith(".ckpt")
-        ][0]
+            model_path
+            / [
+                f
+                for f in os.listdir(model_path)
+                if f.endswith(".pt") or f.endswith(".ckpt")
+            ][0]
     )
     SSMOCRTrainer.load_from_checkpoint(
         model_path,
