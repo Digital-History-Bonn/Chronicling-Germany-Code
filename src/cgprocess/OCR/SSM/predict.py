@@ -149,7 +149,13 @@ def get_args() -> argparse.Namespace:
         "-m",
         type=str,
         default="model.pt",
-        help="directory with a single .pt or .ckpt file and a single model.yml",
+        help="Directory with saved model and the corresponding yml config file.",
+    )
+    parser.add_argument(
+        "--id",
+        type=int,
+        default=None,
+        help="When handling multiple models, this specifies the model id and the model_{id}.yml will be used.",
     )
     parser.add_argument(
         "--extension",
@@ -163,10 +169,13 @@ def get_args() -> argparse.Namespace:
 
 def main() -> None:
     """Predicts OCR for all images with xml annotations in given folder."""
+    args = get_args()
+
     num_gpus = torch.cuda.device_count()
     assert num_gpus >= 1, "SSM Model requires at least 1 GPU."
+    if args.id is None:
+        args.id = 0
 
-    args = get_args()
     image_path = Path(args.image_path)
     layout_path = Path(args.layout_path)
     temp_path = layout_path / "temp"
@@ -182,7 +191,8 @@ def main() -> None:
         f"{layout_path}/{os.path.basename(path)[:-4]}.xml" for path in image_paths
     ]
 
-    cfg = load_cfg(model_path / "model.yml")
+    config_path = model_path / f"model_{args.id}.yml"
+    cfg = load_cfg(config_path)
 
     preprocess = OCRPreprocess(cfg, args.num_processes)
 
@@ -202,7 +212,7 @@ def main() -> None:
         layout_paths
     ), "Images and annotations path numbers do not match."
 
-    model_list = create_model_list(model_path, num_gpus)
+    model_list = create_model_list(model_path, config_path, num_gpus)
 
     # files_done = Value('i', 0, lock=True) use this in future to run preprocessing in parallel
     # instead of ahead of prediction
@@ -346,7 +356,7 @@ def create_batch(
 def get_progress(files_done: Synchronized, total: int) -> int:
     """Returns value of shared variable, or the supplied total to indicade processing is done, if value is < 0."""
     value = files_done.value
-    return total if value < 0 else value
+    return total if value < 0 else value # type: ignore
 
 
 def create_path_queue(annotations: List[str], images: List[str]) -> Queue:
@@ -363,21 +373,18 @@ def create_path_queue(annotations: List[str], images: List[str]) -> Queue:
     return path_queue
 
 
-def create_model_list(model_path: Path, num_gpus: int) -> list:
+def create_model_list(model_path: Path, config_path: Path, num_gpus: int) -> list:
     """
     Create OCR model list containing one separate model for each process.
     """
-    model_list = (
-        [[model_path, f"cuda:{i}"] for i in range(num_gpus)]
-        if (torch.cuda.is_available() and num_gpus > 0)
-        else [[model_path, "cpu"]]
-    )
+    assert torch.cuda.is_available() and num_gpus > 0, "SSM Model requires at least 1 GPU."
+    model_list = ([[model_path, config_path, f"cuda:{i}"] for i in range(num_gpus)])
     return model_list
 
 
-def init_model(model_path: Path, device: str) -> Recognizer:
+def init_model(model_path: Path, config_path: Path, device: str) -> Recognizer:
     """Init function for compatibility with the MPPredictor handling baseline and layout predictions as well."""
-    cfg = load_cfg(model_path / "model.yml")
+    cfg = load_cfg(config_path)
     print(f"vocab size: {cfg['vocabulary']['size']}")
     tokenizer = init_tokenizer(cfg)
     model = Recognizer(cfg)

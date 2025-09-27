@@ -220,8 +220,6 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     summary(model, input_size=(1, 1, 32, 400), batch_dim=0)
     batch_size = args.batch_size
 
-    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, cfg["training"])
-
     if not args.eval:
         train_loader = DataLoader(
             train_set,
@@ -233,6 +231,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             prefetch_factor=2,
             persistent_workers=True,
         )
+        cfg["training"]["steps_per_epoch"] = len(train_loader)
         val_loader = DataLoader(
             val_set,
             batch_size=batch_size,
@@ -254,6 +253,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         persistent_workers=True,
     )
 
+    lit_model = SSMOCRTrainer(model, batch_size, tokenizer, cfg["training"])
     checkpoint_callback = ModelCheckpoint(
         save_top_k=1,
         monitor="val_levenshtein",
@@ -273,7 +273,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
 
     if args.eval:
         eval_path = Path(args.eval)
-        cfg = load_cfg(eval_path / "model.yml")
+        cfg = load_cfg(eval_path / f"model_{device_id}.yml")
         model_path = eval_path / cfg["inference"]["model_path"]
         model = Recognizer(cfg).eval()
         lit_model = SSMOCRTrainer.load_from_checkpoint(
@@ -286,7 +286,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader
         )
         cfg["inference"]["model_path"] = Path(checkpoint_callback.best_model_path).name
-        with open(ckpt_dir / "model.yml", "w", encoding="utf-8") as file:
+        with open(ckpt_dir / f"model_{device_id}.yml", "w", encoding="utf-8") as file:
             yaml.safe_dump(cfg, file)
 
         lit_model = SSMOCRTrainer.load_from_checkpoint(

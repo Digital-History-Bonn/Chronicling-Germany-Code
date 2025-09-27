@@ -7,6 +7,7 @@ import os
 import re
 import statistics
 import time
+from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
 import Levenshtein
@@ -56,12 +57,12 @@ def main(parsed_args: argparse.Namespace) -> None:
         multi_page_distance_list.extend(distance_list)
         multi_page_bad_list.append(bad_list)
 
-    # threshold = 80
-    # distances = np.array(multi_page_distance_list)[:, 0]
-    # lengths = np.array(multi_page_distance_list)[:, 1]
-    # distances = distances[lengths > threshold]
-    # lengths = lengths[lengths > threshold]
-    # print(f"Levensthein distance for length > {threshold}: {distances.sum() / lengths.sum()} (number of elements :{len(lengths)})")
+    threshold = 80
+    distances = np.array(multi_page_distance_list)[:, 0]
+    lengths = np.array(multi_page_distance_list)[:, 1]
+    distances = distances[lengths > threshold]
+    lengths = lengths[lengths > threshold]
+    print(f"Levensthein distance for length > {threshold}: {distances.sum() / lengths.sum()} (number of elements :{len(lengths)})")
 
     print(
         f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}"
@@ -80,18 +81,13 @@ def main(parsed_args: argparse.Namespace) -> None:
     )
     print(f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}")
 
-    if not os.path.exists(f"{output_path}/evaluation.txt"):
-        with open(f"{output_path}/evaluation.txt", 'w', encoding="utf-8") as file:
-            file.write("")
-
-    with open(f"{output_path}/evaluation.txt", "a", encoding="utf-8") as file:
+    with open(f"{Path(output_path).parent}/{parsed_args.name}.txt", 'w', encoding="utf-8") as file:
         file.writelines([
-            "\n",
-            f"{parsed_args.split}: \n",
-            f"overall levensthein distance per character: {calculate_ratio(multi_page_distance_list)}\n",
-            f"overall correct lines: {sum(multi_page_correct) / len(multi_page_distance_list)}\n",
-            f"overall bad lines: {sum(multi_page_bad) / len(multi_page_distance_list)}\n"
+            f"{calculate_ratio(multi_page_distance_list)}\n",
+            f"{sum(multi_page_correct) / len(multi_page_distance_list)}\n",
+            f"{sum(multi_page_bad) / len(multi_page_distance_list)}"
         ])
+
 
 def compare_page(
     confidence_threshold: float, ground_truth_path: str, ocr_path: str, output_path:str, path: str
@@ -115,7 +111,7 @@ def compare_page(
     )
     with open(f"{output_path}/{path}.html", "w", encoding="utf8") as file:
         file.write(result)
-    lev_dis, lev_med, ratio_list, distance_list, text_list = (
+    _, _, ratio_list, distance_list, text_list = (
         levenshtein_distance(ground_truth, ocr, confidence_list, confidence_threshold)
     )
 
@@ -181,7 +177,7 @@ def levenshtein_distance(
     ratio_sum = 0.0
     count = 0
     ratio_list = []
-    text_list = []
+    text_list = [("foo","bar")]
     distance_list = []
 
     for gt_region, ocr_region, conf_region in zip(gt, ocr, confidence_list):
@@ -197,6 +193,9 @@ def levenshtein_distance(
                 text_list.append((gt_line, ocr_line))
                 ratio_sum += ratio
                 ratio_list.append(ratio)
+    if not ratio_list:
+        ratio_list = [1]
+        distance_list = [(1,1)]
     if count == 0:
         return 0.0, 0.0, [], [], []
     return (

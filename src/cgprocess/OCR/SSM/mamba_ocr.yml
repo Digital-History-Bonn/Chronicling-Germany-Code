@@ -14,7 +14,7 @@ decoder:
     layers:
         downscale_expand: False # Activates downscaling and sets expansion factor of the hidden dimension.
         num_blocks: # Number of blocks per layer
-            - 8
+            - 10
     block:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
         state: 128 # SSM state expansion factor
@@ -36,8 +36,15 @@ inference:
 confidence_threshold: 0.4 # Confidence threshold for characters. Otherwise, a NAN-Token is returned.
   # Used in inference and training mode evaluations.
 training:
-    learning_rate: 1e-04
-    weight_decay: 1e-05
+    learning_rate: 3e-04
+    weight_decay: 0.01
+    scheduler:
+      name: "cosine_annealing" # Current Options: None, cosine_annealing.
+      T_0: 1 # This is always number of epochs. If interval is set to 'step', T_0 will be multiplied by the number of steps per epoch
+      T_mult: 2
+      eta_min: 1e-6
+      interval: "step"
+      warmup: 2 # number of epochs that are used for warmup
     augmentation:
       probability: 0.1 # probability for each separate transformation
       dilation_kernel_size: 3
