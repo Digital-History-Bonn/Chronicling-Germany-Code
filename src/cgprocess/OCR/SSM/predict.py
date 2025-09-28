@@ -391,11 +391,7 @@ def init_model(model_path: Path, config_path: Path, device: str) -> Recognizer:
     model.tokenizer = tokenizer
     model_path = (
             model_path
-            / [
-                f
-                for f in os.listdir(model_path)
-                if f.endswith(".pt") or f.endswith(".ckpt")
-            ][0]
+            / cfg["inference"]["model_path"]
     )
     SSMOCRTrainer.load_from_checkpoint(
         model_path,

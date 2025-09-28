@@ -34,12 +34,12 @@ def main():
         print("No valid data found.")
         return
 
-    all_values = np.vstack(all_values)  # shape: (n_files, 3)
+    all_values = np.vstack(all_values)
     means = np.mean(all_values, axis=0)
     stds = np.std(all_values, axis=0)
     names = ["Levensthein distance per character", "Perfect lines", "Bad lines"]
 
-    for i, (mean, std) in enumerate(zip(means, stds), start=1):
+    for i, (mean, std) in enumerate(zip(means, stds)):
         print(f"Value {names[i]}: {mean:.4f} ± {std:.4f}")
 
 

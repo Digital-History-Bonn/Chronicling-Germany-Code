@@ -177,7 +177,7 @@ def levenshtein_distance(
     ratio_sum = 0.0
     count = 0
     ratio_list = []
-    text_list = [("foo","bar")]
+    text_list = []
     distance_list = []
 
     for gt_region, ocr_region, conf_region in zip(gt, ocr, confidence_list):
@@ -193,9 +193,6 @@ def levenshtein_distance(
                 text_list.append((gt_line, ocr_line))
                 ratio_sum += ratio
                 ratio_list.append(ratio)
-    if not ratio_list:
-        ratio_list = [1]
-        distance_list = [(1,1)]
     if count == 0:
         return 0.0, 0.0, [], [], []
     return (
