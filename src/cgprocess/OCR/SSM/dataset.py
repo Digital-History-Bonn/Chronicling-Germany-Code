@@ -337,14 +337,18 @@ class SSMDataset(TrainDataset):  # type: ignore
             json_bytes = file.read()  # 3. bytes (i.e. UTF-8)
         json_str = json_bytes.decode("utf-8")  # 2. string (i.e. JSON)
         data = json.loads(json_str)
-        crops_dict = np.load(self.target_path / f"{file_stem}.npz")
+        try:
+            crops_dict = np.load(self.target_path / f"{file_stem}.npz")
+        except Exception as e:
+            print(f"Failed to load crop in file {file_stem}.npz. Please try converting this file again. {e}")
+            return
 
         lengths = []
         for i in range(len(crops_dict)):
             lengths.append(len(data["targets"][i]))
 
         lengths = torch.tensor(lengths) # type: ignore
-        sorted_indices = torch.tensor(lengths).argsort()
+        sorted_indices = lengths.argsort()
         lower_index = len(sorted_indices) // 4
         upper_index = (len(sorted_indices) // 4)*3
         excluded_indices = sorted_indices[:lower_index]
