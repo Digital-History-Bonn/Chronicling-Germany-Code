@@ -1,7 +1,6 @@
 """Module for running lightning trainer."""
 
 import argparse
-import os
 from multiprocessing import Process, Queue
 from pathlib import Path
 from typing import Optional
@@ -15,8 +14,8 @@ from ssr import Recognizer, SSMOCRTrainer, collate_fn  # pylint: disable=import-
 from torch.utils.data import DataLoader
 from torchsummary import summary
 
-from cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
 from cgprocess.OCR.SSM.dataset import SSMDataset
+from cgprocess.OCR.shared.utils import init_tokenizer, load_cfg
 from cgprocess.shared.datasets import PageDataset
 from cgprocess.shared.multiprocessing_handler import run_processes
 from cgprocess.shared.utils import get_file_stem_split

@@ -88,6 +88,7 @@ class OCRTokenizer(Tokenizer):  # type: ignore
         pad: bool = False,
         max_length: int = 512,
         print_nan: bool = False,
+        end_factor: int = 1
     ):
         """
         Tokenizer for Transformer based OCR.
@@ -97,6 +98,7 @@ class OCRTokenizer(Tokenizer):  # type: ignore
             pad: pads all sequences to max length if true
             max_length: maximum length of tokenized sequences.
             print_nan: should nan token be considered when converting back to text
+            end_factor: Controls how many end tokens will be appended at the end of a sequence. 0 for no end tokens.
         """
         self.alphabet = {token: i for i, token in enumerate(alphabet)}
         super().__init__(self.alphabet)
@@ -105,6 +107,7 @@ class OCRTokenizer(Tokenizer):  # type: ignore
         self.pad = pad
         self.max_length = max_length
         self.print_special_tokens = print_nan
+        self.end_factor = end_factor
 
     def __call__(self, text: str) -> torch.Tensor:
         """
@@ -117,7 +120,9 @@ class OCRTokenizer(Tokenizer):  # type: ignore
         """
         ids = [self.__get_token(t) for t in text]
         ids.insert(0, self.alphabet["<START>"])
-        ids.append(self.alphabet["<END>"])
+        ids.append(self.alphabet[" "])
+        for i in range(self.end_factor):
+            ids.append(self.alphabet["<END>"])
         if self.pad:
             # pylint: disable=not-callable
             ids = F.pad(

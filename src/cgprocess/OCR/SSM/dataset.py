@@ -338,14 +338,46 @@ class SSMDataset(TrainDataset):  # type: ignore
         json_str = json_bytes.decode("utf-8")  # 2. string (i.e. JSON)
         data = json.loads(json_str)
         crops_dict = np.load(self.target_path / f"{file_stem}.npz")
-        for i in range(len(crops_dict)):
-            self.data.append((crops_dict[str(i)], data["targets"][i], data["texts"][i]))
 
-        # img = torch.tensor(crops_dict[str(i)])
+        lengths = []
+        for i in range(len(crops_dict)):
+            lengths.append(len(data["targets"][i]))
+
+        lengths = torch.tensor(lengths) # type: ignore
+        sorted_indices = torch.tensor(lengths).argsort()
+        lower_index = len(sorted_indices) // 4
+        upper_index = (len(sorted_indices) // 4)*3
+        excluded_indices = sorted_indices[:lower_index]
+        excluded_indices = torch.cat([excluded_indices, sorted_indices[upper_index:]])
+        selected_indices = sorted_indices[lower_index:upper_index]
+        permutation = torch.randperm(len(selected_indices))
+        lower_index = lower_index - 1 if (len(selected_indices) - lower_index) % 2 == 1 else lower_index
+        excluded_indices = torch.cat([excluded_indices, selected_indices[permutation[:lower_index]]])
+        selected_indices = selected_indices[permutation[lower_index:]]
+
+        for index in excluded_indices.tolist():
+            self.data.append((crops_dict[str(index)], data["targets"][index], data["texts"][index]))
+
+        start_token = data["targets"][0][0]
+        end_token = data["targets"][0][-1]
+        for index in range(1, len(selected_indices) // 2 + 1):
+            first_index = selected_indices[index].item()
+            second_index = selected_indices[-index].item()
+            crop = np.concatenate([crops_dict[str(first_index)], crops_dict[str(second_index)]], axis=2)
+
+            text = data["texts"][first_index] + " " + data["texts"][second_index]
+
+            first_target = np.array(data["targets"][first_index])
+            first_target = first_target[first_target != end_token]
+            second_target = np.array(data["targets"][second_index])
+            second_target = second_target[second_target != start_token]
+            target = np.concatenate([first_target, second_target], axis=0)
+
+            self.data.append((crop, target.tolist(), text))
+        # img = torch.tensor(crop)
         # transform = transforms.ToPILImage()
         # img = transform(img)
-        #
-        # img.save("test_augmentation_original.png")
+        # img.save("test_concat_original.png")
         #
         # img = self.augment_image(torch.tensor(crops_dict[str(i)]))
         # transform = transforms.ToPILImage()
