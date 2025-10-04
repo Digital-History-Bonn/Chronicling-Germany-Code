@@ -285,7 +285,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader
         )
         cfg["inference"]["model_path"] = Path(checkpoint_callback.best_model_path).name
-        with open(ckpt_dir / f"model_{device_id}.yml", "w", encoding="utf-8") as file:
+        with open(ckpt_dir / f"model_{device_id}.yml", "w", encoding="utf-8") as file: # todo: do this during val too
             yaml.safe_dump(cfg, file)
 
         lit_model = SSMOCRTrainer.load_from_checkpoint(
