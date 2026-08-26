@@ -339,8 +339,8 @@ class SSMDataset(TrainDataset):  # type: ignore
         data = json.loads(json_str)
         try:
             crops_dict = np.load(self.target_path / f"{file_stem}.npz")
-        except Exception as e:
-            print(f"Failed to load crop in file {file_stem}.npz. Please try converting this file again. {e}")
+        except Exception:
+            print(f"Failed to load crop in file {file_stem}.npz. Please try converting this file again.")
             return
 
         lengths = []

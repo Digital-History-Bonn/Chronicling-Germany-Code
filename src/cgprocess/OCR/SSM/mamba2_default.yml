@@ -7,9 +7,11 @@ encoder:
             - 8
     block:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
-        state: 32 # SSM state expansion factor
-        expand: 8 # Block expansion factor
-        conv_width: 4 # Local convolution width
+        model_name: 'mamba2' # Options: 'mamba', 'mamba2', 'mamba3'
+        core_model:
+            d_state: 32 # SSM state expansion factor
+            expand: 8 # Block expansion factor
+            d_conv: 4 # Local convolution width
 decoder:
     layers:
         downscale_expand: False # Activates downscaling and sets expansion factor of the hidden dimension.
@@ -17,14 +19,16 @@ decoder:
             - 10
     block:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
-        state: 128 # SSM state expansion factor
-        expand: 4 # Block expansion factor
-        conv_width: 4 # Local convolution width
+        model_name: 'mamba2' # Options: 'mamba', 'mamba2', 'mamba3'
+        core_model: # Config for the core model like attention mechanism, ssm, delta rule that come before the feedforward module
+            d_state: 128 # SSM state expansion factor
+            expand: 4 # Block expansion factor
+            d_conv: 4 # Local convolution width
 tokenizer: # tokenizer default parameters
     pad: False
     max_length: 512
-    print_nan: False
-    end_factor: 3
+    print_nan: True
+    end_factor: 1
 vocabulary:
     unicode: 128 # number of Unicode characters that should be included additionally to custom characters.
     custom_vocab: ["B", "e", "r", "l", "i", "n", ",", " ", "M", "o", "t", "a", "g", "d", "D", "s", "c", "h", "A", "u", "m", "\u00e4", "z", "w", ".", "b", "-", "P", ":", "v", "j", "f", "\u00fc", "2", "T", "1", "5", "S", "3", "/", "I", "G", "p", "Z", "\u00f6", "6", "U", ";", "F", "9", "4", "O", "C", "8", "N", "k", "0", "\u2014", "7", "(", "W", ")", "\u201e", "\u201d", "K", "H", "E", "J", "L", "y", "x", "\u00a3", "Y", "V", "R", "\u00e8", "'", "\u201c", "Q", "q", "\u00b4", "%", "\u00e9", "\"", "\u00df", "\u00e0", "\u2019", "&", "\u00a7", "[", "]", "\u017f", "!", "\ua75b", "\u00b0", "*", "=", "?", "X", "\u00bb", "\u00ab", "+", "\u00c9", "\u008d", "\u00c4", "\u00dc", "\u00d6", "\u2020", "\u00e1", "|", "\u0090", "_", "\u204a", "\u00eb", "\u00f4", "\u201a", "\u201b", "\u0364", "#", "\u00e7", "\u00e2", "\u2018", "`", "\u03bf", "\u03b1", "\u00fb", "\u00ea", "\u2606", "\u2670", "\u00ee", "\u0391", "\u03b9", "\u2039", "\u03c3", "\u03c4", "\u00f3", "$", "\u0395", "\u039c", "\u00f1", "^", "\u03c1", "\u039a", "\t", "\u008f", "\u201f", "\u00e6", "}", "{"]

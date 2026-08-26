@@ -2,6 +2,7 @@
 
 import argparse
 from multiprocessing import Process, Queue
+import multiprocessing
 from pathlib import Path
 from typing import Optional
 
@@ -227,8 +228,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             drop_last=True,
             collate_fn=collate_fn,
             num_workers=args.num_workers,
-            prefetch_factor=2,
-            persistent_workers=True,
+#            prefetch_factor=1,
+#            persistent_workers=True
         )
         cfg["training"]["steps_per_epoch"] = len(train_loader)
         val_loader = DataLoader(
@@ -238,8 +239,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             drop_last=True,
             collate_fn=collate_fn,
             num_workers=args.num_workers,
-            prefetch_factor=2,
-            persistent_workers=True,
+ #           prefetch_factor=1,
+ #           persistent_workers=True
         )
     test_loader = DataLoader(
         test_set,
@@ -248,8 +249,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         drop_last=True,
         collate_fn=collate_fn,
         num_workers=args.num_workers,
-        prefetch_factor=2,
-        persistent_workers=True,
+  #      prefetch_factor=1,
+  #      persistent_workers=True,
     )
 
     lit_model = SSMOCRTrainer(model, batch_size, tokenizer, cfg["training"])
@@ -281,11 +282,12 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         trainer.test(lit_model, dataloaders=test_loader)
     else:
         # pylint: disable=possibly-used-before-assignment
+        print("fit!")
         trainer.fit(
             model=lit_model, train_dataloaders=train_loader, val_dataloaders=val_loader
         )
         cfg["inference"]["model_path"] = Path(checkpoint_callback.best_model_path).name
-        with open(ckpt_dir / f"model_{device_id}.yml", "w", encoding="utf-8") as file: # todo: do this during val too
+        with open(ckpt_dir / f"model_{device_id}.yml", "w", encoding="utf-8") as file:
             yaml.safe_dump(cfg, file)
 
         lit_model = SSMOCRTrainer.load_from_checkpoint(
@@ -299,4 +301,5 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
 
 
 if __name__ == "__main__":
+    # multiprocessing.set_start_method('fork')
     main()
