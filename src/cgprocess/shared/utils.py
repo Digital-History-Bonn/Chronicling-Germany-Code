@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 
 
 def initialize_random_split(
-    size: int, ratio: Tuple[float, float, float]
+        size: int, ratio: Tuple[float, float, float]
 ) -> Tuple[Any, Tuple[int, int]]:
     """
     Args:
@@ -28,9 +28,9 @@ def initialize_random_split(
     assert sum(ratio) == 1, "ratio does not sum up to 1."
     assert len(ratio) == 3, "ratio does not have length 3"
     assert (
-        int(ratio[0] * size) > 0
-        and int(ratio[1] * size) > 0
-        and int(ratio[2] * size) > 0
+            int(ratio[0] * size) > 0
+            and int(ratio[1] * size) > 0
+            and int(ratio[2] * size) > 0
     ), (
         "Dataset is to small for given split ratios for test and validation dataset. "
         "Test or validation dataset have size of zero."
@@ -58,6 +58,14 @@ def get_file_stems(extension: str, image_path: Path) -> List[str]:
     return file_names
 
 
+def get_file_name_transkribus(name: str) -> str:
+    return f"{name}.npz"
+
+
+def get_file_name_HLNA2013(name: str) -> str:
+    return f"pc-{name}.npz"
+
+
 def prepare_file_loading(data_source: str) -> Tuple[str, Callable]:
     """Depending on the dataset this returns the correct extension string, as well as a function to get the
     file names for loading."""
@@ -65,28 +73,24 @@ def prepare_file_loading(data_source: str) -> Tuple[str, Callable]:
         # pylint: disable=duplicate-code
         extension = ".jpg"
 
-        def get_file_name(name: str) -> str:
-            return f"{name}.npz"
+        get_file_name = get_file_name_transkribus
 
     elif data_source == "HLNA2013":
         extension = ".tif"
 
-        def get_file_name(name: str) -> str:
-            return f"pc-{name}.npz"
+        get_file_name = get_file_name_HLNA2013
 
     else:
         extension = ".png"
-
-        def get_file_name(name: str) -> str:
-            return f"{name}.npz"
+        get_file_name = get_file_name_transkribus
 
     return extension, get_file_name
 
 
 def get_file_stem_split(
-    custom_split_file: Optional[str],
-    split_ratio: Tuple[float, float, float],
-    page_dataset: Dataset,
+        custom_split_file: Optional[str],
+        split_ratio: Tuple[float, float, float],
+        page_dataset: Dataset,
 ) -> tuple[List[str], List[str], List[str]]:
     """
     Creates dataset split or initializes it from a config file
@@ -130,7 +134,7 @@ def xml_polygon_to_polygon_list(polygon_string: str) -> List[List[int]]:
 
 
 def get_bbox(
-    points: Union[torch.Tensor],  # type: ignore
+        points: Union[torch.Tensor],  # type: ignore
 ) -> Tuple[int, int, int, int]:
     """
     Creates a bounding box around all given points.
