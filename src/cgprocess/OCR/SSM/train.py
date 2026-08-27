@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 import yaml
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.loggers import TensorBoardLogger
 from ssr import Recognizer, SSMOCRTrainer, collate_fn  # pylint: disable=import-error
 from torch.utils.data import DataLoader
@@ -228,8 +228,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             drop_last=True,
             collate_fn=collate_fn,
             num_workers=args.num_workers,
-#            prefetch_factor=1,
-#            persistent_workers=True
+            prefetch_factor=1,
+            persistent_workers=True
         )
         cfg["training"]["steps_per_epoch"] = len(train_loader)
         val_loader = DataLoader(
@@ -239,8 +239,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             drop_last=True,
             collate_fn=collate_fn,
             num_workers=args.num_workers,
- #           prefetch_factor=1,
- #           persistent_workers=True
+            prefetch_factor=1,
+            persistent_workers=True
         )
     test_loader = DataLoader(
         test_set,
@@ -249,8 +249,8 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         drop_last=True,
         collate_fn=collate_fn,
         num_workers=args.num_workers,
-  #      prefetch_factor=1,
-  #      persistent_workers=True,
+        prefetch_factor=1,
+        persistent_workers=True,
     )
 
     lit_model = SSMOCRTrainer(model, batch_size, tokenizer, cfg["training"])
@@ -264,11 +264,12 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     logger = TensorBoardLogger(f"logs/{args.name}", name=f"{device_id}")
     trainer = Trainer(
         max_epochs=args.epochs,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, TQDMProgressBar(refresh_rate=1)],
         logger=logger,
         devices=[device_id],
         val_check_interval=0.5,
         limit_val_batches=1.0,
+        enable_progress_bar=True
     )  # type: ignore
 
     if args.eval:
@@ -301,5 +302,4 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
 
 
 if __name__ == "__main__":
-    # multiprocessing.set_start_method('fork')
     main()
