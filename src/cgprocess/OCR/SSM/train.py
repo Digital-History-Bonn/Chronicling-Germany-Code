@@ -1,6 +1,7 @@
 """Module for running lightning trainer."""
 
 import argparse
+import subprocess
 from multiprocessing import Process, Queue
 import multiprocessing
 from pathlib import Path
@@ -22,7 +23,7 @@ from cgprocess.shared.multiprocessing_handler import run_processes
 from cgprocess.shared.utils import get_file_stem_split
 
 
-def get_args() -> argparse.Namespace:
+def get_parser() -> argparse.ArgumentParser:
     # pylint: disable=duplicate-code
     """
     Defines arguments.
@@ -102,10 +103,10 @@ def get_args() -> argparse.Namespace:
         help="Path to model config.",
     )
     parser.add_argument(
-        "--gpus",
+        "--gpu-id",
         type=int,
-        default=1,
-        help="If cuda is available, this determines the number of processes launched, each receiving a single gpu.",
+        default=0,
+        help="If cuda is available, this fixes the cuda device that will be used.",
     )
     parser.add_argument(
         "--num-processes",
@@ -125,41 +126,25 @@ def get_args() -> argparse.Namespace:
         default=None,
         help="If a model path is provided, this will execute the test run on said model.",
     )
-    return parser.parse_args()
+    return parser
 
 
 def main() -> None:
     """Launch processes for each gpu if possible, otherwise call train directly."""
-    args = get_args()
+    args = get_parser().parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    gpu_id = None
+    device = "cpu"
+    if torch.cuda.is_available():
+        gpu_id = args.gpu_id
+        device = "cuda"
 
     print(f"Using {device} device")
 
     config_path = Path(args.config_path)
     print(f"Model config {config_path}")
 
-    if torch.cuda.is_available() and args.gpus > 1:
-        assert torch.cuda.device_count() >= args.gpus, (
-            f"More gpus demanded than available! Demanded: "
-            f"{args.gpus} Available: {torch.cuda.device_count()}"
-        )
-        run_multiple_gpus(args)
-    else:
-        train(args)
-
-
-def run_multiple_gpus(args: argparse.Namespace) -> None:
-    """Launch a process for each gpu."""
-    processes = [Process(target=train, args=(args, i)) for i in range(args.gpus)]
-
-    run_processes(
-        {"method": get_progress, "args": [args.epochs]},
-        processes,
-        Queue(),
-        args.epochs,
-        "Starting",
-    )
+    train(args, gpu_id)
 
 
 def get_progress(total: int) -> int:
