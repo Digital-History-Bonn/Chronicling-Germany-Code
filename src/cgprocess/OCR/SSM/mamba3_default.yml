@@ -15,6 +15,7 @@ encoder:
             mimo_rank: 4
             chunk_size: 16 # # 64/mimo_rank if x is in bf16, else 32/mimo_rank
             is_outproj_norm: False
+            dtype: "bfloat16"
 decoder:
     layers:
         downscale_expand: False # Activates downscaling and sets expansion factor of the hidden dimension.
@@ -30,6 +31,7 @@ decoder:
             mimo_rank: 4
             chunk_size: 16 # # 64/mimo_rank if x is in bf16, else 32/mimo_rank
             is_outproj_norm: False
+            dtype: "bfloat16"
 tokenizer: # tokenizer default parameters
     pad: False
     max_length: 512

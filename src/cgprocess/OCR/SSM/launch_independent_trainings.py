@@ -62,6 +62,8 @@ def main():
     script_path = args.script_path
     del args.script_path
 
+    del args.split_ratio # todo: solve multi argument forwarding
+
     assert script_path.is_file() and script_path.suffix == ".py", f"Script path {script_path} is not valid. Please supply a correct path to a python script."
     log_path.mkdir(parents=True, exist_ok=True)
     print(f"Log path: {log_path.absolute()}")

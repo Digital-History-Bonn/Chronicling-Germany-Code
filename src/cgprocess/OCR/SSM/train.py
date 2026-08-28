@@ -96,7 +96,7 @@ def get_parser() -> argparse.ArgumentParser:
         help="Number of workers for the Dataloader",
     )
     parser.add_argument(
-        "--config_path",
+        "--config-path",
         "-cp",
         type=str,
         default="config/cfg.yml",
@@ -132,6 +132,9 @@ def get_parser() -> argparse.ArgumentParser:
 def main() -> None:
     """Launch processes for each gpu if possible, otherwise call train directly."""
     args = get_parser().parse_args()
+
+    if args.epochs == 0:
+        multiprocessing.set_start_method("forkserver")
 
     gpu_id = None
     device = "cpu"
