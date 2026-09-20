@@ -51,6 +51,7 @@ training:
       interval: "step"
       warmup: 2 # number of epochs that are used for warmup
     augmentation:
+      length_augmenation: False # Activate concatenation of text lines and corresponding images, to create longer sequences to train on.
       probability: 0.1 # probability for each separate transformation
       dilation_kernel_size: 3
       eroding_kernel_size: 3

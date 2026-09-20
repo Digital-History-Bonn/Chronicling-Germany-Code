@@ -9,12 +9,13 @@ import warnings
 from multiprocessing import Process, Queue
 from pathlib import Path
 from threading import Thread
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 import numpy as np
 import torch
 from bs4 import BeautifulSoup
 from PIL import Image, ImageDraw
+from numpy import dtype, ndarray
 from torch import Tensor
 from torchvision import transforms
 from torchvision.transforms import Resize
@@ -344,40 +345,27 @@ class SSMDataset(TrainDataset):  # type: ignore
             return
 
         lengths = []
-        for i in range(len(crops_dict)):
-            lengths.append(len(data["targets"][i]))
 
-        lengths = torch.tensor(lengths) # type: ignore
-        sorted_indices = lengths.argsort()
-        lower_index = len(sorted_indices) // 4
-        upper_index = (len(sorted_indices) // 4)*3
-        excluded_indices = sorted_indices[:lower_index]
-        excluded_indices = torch.cat([excluded_indices, sorted_indices[upper_index:]])
-        selected_indices = sorted_indices[lower_index:upper_index]
-        permutation = torch.randperm(len(selected_indices))
-        lower_index = lower_index - 1 if (len(selected_indices) - lower_index) % 2 == 1 else lower_index
-        excluded_indices = torch.cat([excluded_indices, selected_indices[permutation[:lower_index]]])
-        selected_indices = selected_indices[permutation[lower_index:]]
+        if not self.cfg["augmentation"]["length_augment"]:
+            for i in range(len(crops_dict)):
+                self.data.append((crops_dict[str(i)], data["targets"][i], data["texts"][i]))
+        else:
+            for i in range(len(crops_dict)):
+                lengths.append(len(data["targets"][i]))
 
-        for index in excluded_indices.tolist():
-            self.data.append((crops_dict[str(index)], data["targets"][index], data["texts"][index]))
+            lengths = torch.tensor(lengths) # type: ignore
+            excluded_indices, selected_indices = self.select_lines_for_length_augmentation(lengths)
 
-        start_token = data["targets"][0][0]
-        end_token = data["targets"][0][-1]
-        for index in range(1, len(selected_indices) // 2 + 1):
-            first_index = selected_indices[index].item()
-            second_index = selected_indices[-index].item()
-            crop = np.concatenate([crops_dict[str(first_index)], crops_dict[str(second_index)]], axis=2)
+            for index in excluded_indices.tolist():
+                self.data.append((crops_dict[str(index)], data["targets"][index], data["texts"][index]))
 
-            text = data["texts"][first_index] + " " + data["texts"][second_index]
+            start_token = data["targets"][0][0]
+            end_token = data["targets"][0][-1]
+            for index in range(1, len(selected_indices) // 2 + 1):
+                crop, target, text = self.concatenate_lines_for_length_augmentation(crops_dict, data, end_token, index,
+                                                                                    selected_indices, start_token)
 
-            first_target = np.array(data["targets"][first_index])
-            first_target = first_target[first_target != end_token]
-            second_target = np.array(data["targets"][second_index])
-            second_target = second_target[second_target != start_token]
-            target = np.concatenate([first_target, second_target], axis=0)
-
-            self.data.append((crop, target.tolist(), text))
+                self.data.append((crop, target.tolist(), text))
         # img = torch.tensor(crop)
         # transform = transforms.ToPILImage()
         # img = transform(img)
@@ -389,6 +377,37 @@ class SSMDataset(TrainDataset):  # type: ignore
         #
         # img.save("test_augmentation.png")
         # pass
+
+    def concatenate_lines_for_length_augmentation(self, crops_dict, data, end_token, index: int,
+                                                  selected_indices: Tensor, start_token) -> tuple[
+        ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]], Any]:
+        """Concatenate text and image data."""
+        first_index = selected_indices[index].item()
+        second_index = selected_indices[-index].item()
+        crop = np.concatenate([crops_dict[str(first_index)], crops_dict[str(second_index)]], axis=2)
+
+        text = data["texts"][first_index] + " " + data["texts"][second_index]
+
+        first_target = np.array(data["targets"][first_index])
+        first_target = first_target[first_target != end_token]
+        second_target = np.array(data["targets"][second_index])
+        second_target = second_target[second_target != start_token]
+        target = np.concatenate([first_target, second_target], axis=0)
+        return crop, target, text
+
+    def select_lines_for_length_augmentation(self, lengths: Tensor) -> tuple[Tensor, Tensor]:
+        """Select lines randomly for concatenation. The shortest 25% of lines are never concatenated."""
+        sorted_indices = lengths.argsort()
+        lower_index = len(sorted_indices) // 4
+        upper_index = (len(sorted_indices) // 4) * 3
+        excluded_indices = sorted_indices[:lower_index]
+        excluded_indices = torch.cat([excluded_indices, sorted_indices[upper_index:]])
+        selected_indices = sorted_indices[lower_index:upper_index]
+        permutation = torch.randperm(len(selected_indices))
+        lower_index = lower_index - 1 if (len(selected_indices) - lower_index) % 2 == 1 else lower_index
+        excluded_indices = torch.cat([excluded_indices, selected_indices[permutation[:lower_index]]])
+        selected_indices = selected_indices[permutation[lower_index:]]
+        return excluded_indices, selected_indices
 
     def extract_data(self) -> None:
         """Load ALL xml files and save result image.

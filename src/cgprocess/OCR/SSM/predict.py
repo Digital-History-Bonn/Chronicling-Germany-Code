@@ -4,6 +4,7 @@ import argparse
 import glob
 import json
 import lzma
+import multiprocessing
 import os
 from multiprocessing import Process, Queue
 from multiprocessing.sharedctypes import Synchronized
@@ -244,6 +245,7 @@ def predict(args: list, model: Recognizer) -> None:
         args: list with file stem, annotation path and path for preprocessed data.
         model: State space recognition model
     """
+    print(args)
     file_stem, anno_path, out_path, data_path, _ = args
     device = model.device
 
@@ -407,4 +409,5 @@ def init_model(model_path: Path, config_path: Path, device: str) -> Recognizer:
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
     main()
