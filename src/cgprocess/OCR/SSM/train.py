@@ -10,7 +10,7 @@ from typing import Optional
 import torch
 import yaml
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
+from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar, StochasticWeightAveraging
 from lightning.pytorch.loggers import TensorBoardLogger
 from ssr import Recognizer, SSMOCRTrainer, collate_fn  # pylint: disable=import-error
 from torch.utils.data import DataLoader
@@ -249,16 +249,24 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         filename=f"{device_id}-{{epoch}}",
     )
 
-    logger = TensorBoardLogger(f"logs/{args.name}", name=f"{device_id}")
-    trainer = Trainer(
-        max_epochs=args.epochs,
-        callbacks=[checkpoint_callback, TQDMProgressBar(refresh_rate=1)],
-        logger=logger,
-        devices=[device_id],
-        val_check_interval=0.5,
-        limit_val_batches=1.0,
-        enable_progress_bar=True
-    )  # type: ignore
+    trainer_kwargs = cfg["trainer"].copy()
+    trainer_kwargs["max_epochs"] = args.epochs
+    trainer_kwargs["callbacks"] = [checkpoint_callback, TQDMProgressBar(refresh_rate=1)]
+    trainer_kwargs["devices"] = [device_id]
+
+    if cfg["trainer"]["logger"] == "TensorBoardLogger":
+        logger = TensorBoardLogger(f"logs/{args.name}", name=f"{device_id}")
+        trainer_kwargs["logger"] = logger
+    else:
+        trainer_kwargs["logger"] = False
+
+    if cfg["trainer"]["stochastic_weight_avg"]:
+        trainer_kwargs["callbacks"].append(StochasticWeightAveraging(
+            swa_lrs=float(cfg["training"]["learning_rate"])
+        ))
+    del trainer_kwargs["stochastic_weight_avg"]
+
+    trainer = Trainer(**trainer_kwargs)  # type: ignore
 
     if args.eval:
         eval_path = Path(args.eval)

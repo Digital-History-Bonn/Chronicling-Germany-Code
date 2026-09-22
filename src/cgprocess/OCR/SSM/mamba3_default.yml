@@ -48,6 +48,14 @@ inference:
   # termination of token generation.
 confidence_threshold: 0.2 # Confidence threshold for characters. Otherwise, a NAN-Token is returned.
   # Used in inference and training mode evaluations.
+trainer: # kwargs for pytorch lightning trainer
+    logger: "TensorBoardLogger" # Current Options: None, TensorBoardLogger
+    val_check_interval: 0.5
+    limit_val_batches: 1.0
+    enable_progress_bar: True
+    accumulate_grad_batches: 4
+    gradient_clip_val: 0.5
+    stochastic_weight_avg: True
 training:
     learning_rate: 3e-04
     weight_decay: 0.01
