@@ -254,7 +254,7 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
 
     trainer_kwargs = cfg["trainer"].copy()
     trainer_kwargs["max_epochs"] = args.epochs
-    trainer_kwargs["callbacks"] = [checkpoint_callback, TQDMProgressBar(refresh_rate=1)]
+    trainer_kwargs["callbacks"] = [checkpoint_callback, TQDMProgressBar(refresh_rate=32)]
     trainer_kwargs["devices"] = [device_id]
 
     if cfg["trainer"].get("logger") == "TensorBoardLogger":

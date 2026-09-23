@@ -27,7 +27,7 @@ decoder:
 tokenizer: # tokenizer default parameters
     pad: False
     max_length: 512
-    print_nan: True
+    print_nan: False
     end_factor: 1
 vocabulary:
     unicode: 128 # number of Unicode characters that should be included additionally to custom characters.
