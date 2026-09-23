@@ -48,6 +48,7 @@ trainer: # kwargs for pytorch lightning trainer
     accumulate_grad_batches: 4
     gradient_clip_val: 0.5
     stochastic_weight_avg: True
+    precision: "bf16-mixed"
 training:
     learning_rate: 3e-04
     weight_decay: 0.01
@@ -71,3 +72,5 @@ training:
       nan_augmentation_probability: 0.3 # probability for augmenting training inputs with nan tokens.
       obstruction_size: 0.15 # Relative obstruction size range from 0 to this value x,y
       distortion_scale: 0.2 # distortion scale for random perspective transform
+debugging:
+  detect_anomaly: False # Activates torch.autograd.set_detect_anomaly(True), will slow down training!

@@ -2,6 +2,7 @@
 
 import argparse
 import subprocess
+import warnings
 from multiprocessing import Process, Queue
 import multiprocessing
 from pathlib import Path
@@ -241,7 +242,9 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         persistent_workers=True,
     )
 
+    cfg["training"]["precision"] = cfg["trainer"]["precision"]
     lit_model = SSMOCRTrainer(model, batch_size, tokenizer, cfg["training"])
+    # lit_model.check_mamba_parameters()
     checkpoint_callback = ModelCheckpoint(
         save_top_k=1,
         monitor="val_levenshtein",
@@ -254,17 +257,20 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
     trainer_kwargs["callbacks"] = [checkpoint_callback, TQDMProgressBar(refresh_rate=1)]
     trainer_kwargs["devices"] = [device_id]
 
-    if cfg["trainer"]["logger"] == "TensorBoardLogger":
+    if cfg["trainer"].get("logger") == "TensorBoardLogger":
         logger = TensorBoardLogger(f"logs/{args.name}", name=f"{device_id}")
         trainer_kwargs["logger"] = logger
     else:
         trainer_kwargs["logger"] = False
 
-    if cfg["trainer"]["stochastic_weight_avg"]:
+    if cfg["trainer"].get("stochastic_weight_avg"):
         trainer_kwargs["callbacks"].append(StochasticWeightAveraging(
             swa_lrs=float(cfg["training"]["learning_rate"])
         ))
-    del trainer_kwargs["stochastic_weight_avg"]
+    trainer_kwargs.pop("stochastic_weight_avg", None)
+    if cfg.get("debugging", {}).get("detect_anomaly"):
+        trainer_kwargs["detect_anomaly"] = True
+        warnings.warn("Debugging option detect_anomaly is activated. This will slow down training.")
 
     trainer = Trainer(**trainer_kwargs)  # type: ignore
 

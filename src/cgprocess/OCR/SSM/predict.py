@@ -245,7 +245,6 @@ def predict(args: list, model: Recognizer) -> None:
         args: list with file stem, annotation path and path for preprocessed data.
         model: State space recognition model
     """
-    print(args)
     file_stem, anno_path, out_path, data_path, _ = args
     device = model.device
 

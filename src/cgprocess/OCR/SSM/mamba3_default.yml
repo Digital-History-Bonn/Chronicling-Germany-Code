@@ -9,13 +9,13 @@ encoder:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
         model_name: 'mamba3' # Options: 'mamba', 'mamba2', 'mamba3'
         core_model: # Config for the core model like attention mechanism, ssm, delta rule that come before the feedforward module
-            d_state: 64 # SSM state expansion factor
+            d_state: 128 # SSM state expansion factor
+            headdim: 64 # SSM headdim
             expand: 2 # Block expansion factor
             is_mimo: True # Use multi input multi output instead of single input single output with mamba2.
             mimo_rank: 4
             chunk_size: 16 # # 64/mimo_rank if x is in bf16, else 32/mimo_rank
             is_outproj_norm: False
-            dtype: "bfloat16"
 decoder:
     layers:
         downscale_expand: False # Activates downscaling and sets expansion factor of the hidden dimension.
@@ -25,13 +25,13 @@ decoder:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
         model_name: 'mamba3' # Options: 'mamba', 'mamba2', 'mamba3'
         core_model: # Config for the core model like attention mechanism, ssm, delta rule that come before the feedforward module
-            d_state: 64 # SSM state expansion factor
+            d_state: 128 # SSM state expansion factor
+            headdim: 64 # SSM headdim
             expand: 2 # Block expansion factor
             is_mimo: True # Use multi input multi output instead of single input single output with mamba2.
             mimo_rank: 4
             chunk_size: 16 # # 64/mimo_rank if x is in bf16, else 32/mimo_rank
             is_outproj_norm: False
-            dtype: "bfloat16"
 tokenizer: # tokenizer default parameters
     pad: False
     max_length: 512
@@ -56,6 +56,7 @@ trainer: # kwargs for pytorch lightning trainer
     accumulate_grad_batches: 4
     gradient_clip_val: 0.5
     stochastic_weight_avg: True
+    precision: "bf16-mixed"
 training:
     learning_rate: 3e-04
     weight_decay: 0.01
@@ -79,3 +80,5 @@ training:
       nan_augmentation_probability: 0.3 # probability for augmenting training inputs with nan tokens.
       obstruction_size: 0.15 # Relative obstruction size range from 0 to this value x,y
       distortion_scale: 0.2 # distortion scale for random perspective transform
+debugging:
+  detect_anomaly: False # Activates torch.autograd.set_detect_anomaly(True), will slow down training!
