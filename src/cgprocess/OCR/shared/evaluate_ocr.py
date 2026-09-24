@@ -203,7 +203,7 @@ def levenshtein_distance(
         text_list
     )
 
-
+# todo: handle empty prediction (insert empty string, or change prediction code to put an empty text)
 def read_lines(
     path: str, tag: str, child_tag: str, confidence: bool = False
 ) -> Tuple[
