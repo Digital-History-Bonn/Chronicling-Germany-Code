@@ -346,7 +346,7 @@ class SSMDataset(TrainDataset):  # type: ignore
 
         lengths = []
 
-        if not self.cfg["augmentation"]["length_augment"]:
+        if not self.cfg["training"]["augmentation"]["length_augmenation"]: #todo: fix this
             for i in range(len(crops_dict)):
                 self.data.append((crops_dict[str(i)], data["targets"][i], data["texts"][i]))
         else:
