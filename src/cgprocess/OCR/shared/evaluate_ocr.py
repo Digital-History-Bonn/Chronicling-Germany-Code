@@ -15,7 +15,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 from tqdm import tqdm  # type: ignore
 
-from cgprocess.OCR.shared.utils import adjust_path, line_has_text
+from cgprocess.OCR.shared.utils import adjust_path, line_has_text, line_has_text_element
 
 
 def main(parsed_args: argparse.Namespace) -> None:
@@ -246,6 +246,13 @@ def read_lines(
                     [tuple(pair.split(",")) for pair in line.Coords["points"].split()]
                 )
                 conf_list.append(line_confidence(confidence, line))  # type: ignore
+                lines_data.append(line)
+            if not line_has_text(line) and line_has_text_element(line):
+                text_list.append("")
+                coords_list.append(
+                    [tuple(pair.split(",")) for pair in line.Coords["points"].split()]
+                )
+                conf_list.append(0.0)  # type: ignore
                 lines_data.append(line)
         region_text_list.append(text_list)
         region_coords_list.append(coords_list)

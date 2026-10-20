@@ -119,6 +119,20 @@ def line_has_text(line: BeautifulSoup) -> bool:
     )
 
 
+def line_has_text_element(line: BeautifulSoup) -> bool:
+    """
+    Checks if line has the TextEquiv element in it.
+
+    Args:
+        line: BeautifulSoup object representing line
+
+    Returns:
+        True if the line has TextEquiv"""
+    return bool(
+        line.TextEquiv
+    )
+
+
 def load_image(image_path: str) -> torch.Tensor:
     """
     Loads an image and ensures it has the right dimensions.
@@ -147,7 +161,7 @@ def load_image(image_path: str) -> torch.Tensor:
 
 
 def create_path_queue(
-    annotations: List[str], args: argparse.Namespace, images: List[str]
+        annotations: List[str], args: argparse.Namespace, images: List[str]
 ) -> Queue:
     """
     Create path queue for OCR prediction containing image, annotation (baseline) and ouput path.
