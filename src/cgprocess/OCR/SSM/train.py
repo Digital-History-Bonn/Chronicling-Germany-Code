@@ -190,12 +190,13 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             kwargs, cfg["preprocessing"]["image_height"], cfg, augmentation=True, num_processes=args.num_processes,
             augment_params=cfg["training"]["augmentation"], num_threads=args.num_threads
         )  # todo: make shure, this only runs once and not for every gpu
-        kwargs = {
-            "data_path": data_path,
-            "file_stems": val_file_stems,
-            "name": "validation",
-        }
-        val_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_threads=args.num_threads)
+
+    kwargs = {
+        "data_path": data_path,
+        "file_stems": val_file_stems,
+        "name": "validation",
+    }
+    val_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_threads=args.num_threads)
 
     kwargs = {"data_path": data_path, "file_stems": test_file_stems, "name": "test"}
     test_set = SSMDataset(kwargs, cfg["preprocessing"]["image_height"], cfg, num_processes=args.num_processes,
@@ -221,16 +222,16 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             persistent_workers=True
         )
         cfg["training"]["steps_per_epoch"] = len(train_loader)
-        val_loader = DataLoader(
-            val_set,
-            batch_size=batch_size,
-            shuffle=False,
-            drop_last=True,
-            collate_fn=collate_fn,
-            num_workers=args.num_workers,
-            prefetch_factor=1,
-            persistent_workers=True
-        )
+    val_loader = DataLoader(
+        val_set,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=True,
+        collate_fn=collate_fn,
+        num_workers=args.num_workers,
+        prefetch_factor=1,
+        persistent_workers=True
+    )
     test_loader = DataLoader(
         test_set,
         batch_size=batch_size,
@@ -282,6 +283,9 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
         lit_model = SSMOCRTrainer.load_from_checkpoint(
             model_path, model=model, tokenizer=tokenizer, batch_size=batch_size, hyper_parameters=cfg["training"]
         )
+        print("validation")
+        trainer.validate(lit_model, dataloaders=val_loader)
+        print("test")
         trainer.test(lit_model, dataloaders=test_loader)
     else:
         # pylint: disable=possibly-used-before-assignment
@@ -300,6 +304,9 @@ def train(args: argparse.Namespace, device_id: Optional[int] = None) -> None:
             batch_size=batch_size,
             hyper_parameters=cfg["training"]
         )
+        print("validation")
+        trainer.validate(lit_model, dataloaders=val_loader)
+        print("test")
         trainer.test(lit_model, dataloaders=test_loader)
 
 
