@@ -7,7 +7,7 @@ encoder:
             - 8
     block:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
-        model_name: 'GatedDeltaNet' # Options: 'mamba', 'mamba2', 'mamba3', 'GatedDeltaNet', 'GatedDeltaNet2'
+        model_name: 'GatedDeltaNet' # Options: 'mamba', 'mamba2', 'mamba_fla', 'mamba2_fla', 'mamba3', 'GatedDeltaNet', 'GatedDeltaNet2'
         core_model: # Config for the core model like attention mechanism, ssm, delta rule that come before the feedforward module
             head_dim: 32 # requirement: num_heads × head_dim == 0.75 × hidden_size
             num_heads: 6
@@ -20,7 +20,7 @@ decoder:
             - 10
     block:
         feed_forward_expand: 2 # Activates feed forward and sets expansion factor of the hidden dimension.
-        model_name: 'GatedDeltaNet' # Options: 'mamba', 'mamba2', 'mamba3', 'GatedDeltaNet', 'GatedDeltaNet2'
+        model_name: 'GatedDeltaNet' # Options: 'mamba', 'mamba2', 'mamba_fla', 'mamba2_fla', 'mamba3', 'GatedDeltaNet', 'GatedDeltaNet2'
         core_model: # Config for the core model like attention mechanism, ssm, delta rule that come before the feedforward module
             head_dim: 64 # requirement: num_heads × head_dim == 0.75 × hidden_size
             num_heads: 6
