@@ -43,8 +43,9 @@ vocabulary:
 preprocessing:
     image_height: 64 # Height all crops are scaled to. Preprocessing has to be run again, when changing this.
 inference:
-    batch_size: 256 # Batch size in inference mode. Can be overwritten by command line.
+    batch_size: 128 # Batch size in inference mode. Can be overwritten by command line.
     nan_abort_condition: 64 # Number of nan tokens generated consecutively during inference, that leads to the
+    precision: "bf16-true" # Options '32-true', 'bf16-true', '16-true'
   # termination of token generation.
 confidence_threshold: 0.2 # Confidence threshold for characters. Otherwise, a NAN-Token is returned.
   # Used in inference and training mode evaluations.
@@ -56,7 +57,7 @@ trainer: # kwargs for pytorch lightning trainer
     accumulate_grad_batches: 4
     gradient_clip_val: 0.5
     stochastic_weight_avg: True
-    precision: "bf16-mixed"
+    precision: "bf16-mixed" # Options '32-true', 'bf16-true', 'bf16-mixed', '16-true'
 training:
     learning_rate: 3e-04
     weight_decay: 0.01
