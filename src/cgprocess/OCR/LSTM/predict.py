@@ -256,9 +256,10 @@ def get_args() -> argparse.Namespace:
         "--line-workers",
         "-w",
         type=int,
-        default=2,
+        default=0,
         help="Number of processes per worker that cut text lines out of the page (0: in the worker itself). "
-             "(default 2)",
+             "Kraken sends the whole page image to a line worker for every line, so on a CPU this was "
+             "slower than 0. (default 0)",
     )
 
     return parser.parse_args()
