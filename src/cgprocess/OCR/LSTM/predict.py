@@ -1,8 +1,10 @@
 """OCR prediction module."""
 
 import argparse
+import dataclasses
 import glob
 import os
+import traceback
 from multiprocessing import set_start_method
 from threading import Thread
 from typing import List, Tuple
@@ -142,12 +144,12 @@ def predict(
         lines=[line for baselines in region_baselines for line in baselines],
         line_orders=[],
     )
-    predictions = {}
     try:
-        for record in task_model.predict(im, page_seg, config):
-            predictions[record.id] = record
+        predictions = recognise_page(task_model, config, im, page_seg)
     except Exception as _:  # pylint: disable=broad-exception-caught
         print(f"Failed to predict {image_path}")
+        traceback.print_exc()
+        predictions = {}
 
     for region, baselines in zip(regions, region_baselines):
         lines = [predictions.get(line.id) for line in baselines]
@@ -175,6 +177,52 @@ def predict(
             soup.prettify()  # type: ignore
             .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
             .replace("\n     </Unicode>", "</Unicode>"))  # type: ignore
+
+
+def line_length(line: BaselineLine) -> float:
+    """Width-to-height ratio of a line's bounding box, which is proportional to
+    its width after scaling to the network's input height."""
+    xs = [x for x, _ in line.boundary]
+    ys = [y for _, y in line.boundary]
+    return (max(xs) - min(xs)) / max(max(ys) - min(ys), 1)
+
+
+def recognise_page(
+    task_model: RecognitionTaskModel,
+    config: RecognitionInferenceConfig,
+    im: Image.Image,
+    page_seg: Segmentation,
+) -> dict:
+    """
+    Recognises all lines of a page and returns their records by line id.
+
+    Lines are sorted by length, so that a batch holds lines of similar width and
+    little padding (Kraken pads each batch to its longest line), longest first,
+    so that a batch too large for the GPU fails early. On CUDA out of memory,
+    the lines not yet recognised are retried with half the batch size, down to
+    one line per batch; only then does the page fail.
+    """
+    predictions: dict = {}
+    pending = sorted(page_seg.lines, key=line_length, reverse=True)
+    full_batch_size = config.batch_size
+    try:
+        while pending:
+            try:
+                for record in task_model.predict(im, dataclasses.replace(page_seg, lines=pending), config):
+                    predictions[record.id] = record
+                break
+            except torch.OutOfMemoryError:
+                if config.batch_size == 1:
+                    raise
+                torch.cuda.empty_cache()
+                pending = [line for line in pending if line.id not in predictions]
+                print(f"CUDA out of memory on {page_seg.imagename} with batch size {config.batch_size}; "
+                      f"retrying {len(pending)} lines with {config.batch_size // 2}")
+                config.batch_size //= 2
+    finally:
+        # the config is shared by all pages of this worker: the next page starts at full size again
+        config.batch_size = full_batch_size
+    return predictions
 
 
 def get_args() -> argparse.Namespace:
