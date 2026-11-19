@@ -184,11 +184,33 @@ def apply_polygon_mask(
     )
     offset = np.array([bounds[0], bounds[1]], dtype=int)
     shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
-    mask = draw.polygon2mask(shape, roi[:, ::-1] - offset[::-1])
+    mask = polygon_mask(shape, roi - offset)
 
-    result = image[:, int(bounds[1]) : int(bounds[3]), int(bounds[0]) : int(bounds[2])]
-    result[:, mask == 0] = 0.0
+    # copy only the region's bounding box, not the whole page
+    result = image[
+        :, int(bounds[1]) : int(bounds[3]), int(bounds[0]) : int(bounds[2])
+    ].clone()
+    result[:, ~mask] = 0.0
     return result, offset
+
+
+def polygon_mask(shape: Tuple[int, int], polygon: np.ndarray) -> np.ndarray:
+    """
+    Boolean mask of shape (height, width) that is True inside the polygon.
+
+    Drawn with PIL instead of skimage.draw.polygon2mask, which took about 0.3 s
+    per text region (two thirds of the baseline stage's time on an A40). PIL
+    differs from skimage only in pixels on the polygon's edge.
+
+    Args:
+        shape: (height, width) of the mask
+        polygon: polygon points as (x, y)
+    """
+    image = Image.new("1", (shape[1], shape[0]), 0)
+    ImageDraw.Draw(image).polygon(
+        [(float(x), float(y)) for x, y in polygon], fill=1, outline=1
+    )
+    return np.asarray(image, dtype=bool)
 
 
 class BaselineEngine:
@@ -394,8 +416,11 @@ class BaselineEngine:
         # predict
         input_image = input_image[None].to(self.device)
         to_grayscale = transforms.Grayscale(num_output_channels=3)
-        pred_gpu = self.model(to_grayscale(input_image))  # pylint: disable=not-callable
-        pred = pred_gpu.cpu().detach()
+        # no_grad: without it, autograd keeps every intermediate result of the
+        # U-Net (17-26 GB per process on an A40), so two processes did not fit
+        with torch.no_grad():
+            pred_gpu = self.model(to_grayscale(input_image))  # pylint: disable=not-callable
+        pred = pred_gpu.cpu()
         del pred_gpu, input_image
 
         # extract maps
@@ -444,7 +469,7 @@ class BaselineEngine:
         Postprocessing is applied for each region separately, to ensure all lines are within one region.
         Therefore, all but the region polygon is masked within the prediction.
         """
-        mask_map, offset = apply_polygon_mask(prediction.clone(), roi)
+        mask_map, offset = apply_polygon_mask(prediction, roi)
         # postprocess from Transformer
         b_list, _, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         # b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
