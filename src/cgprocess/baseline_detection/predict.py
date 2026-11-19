@@ -406,11 +406,15 @@ class BaselineEngine:
             predicted textlines and baselines
         """
         _, width, height = image.shape
-        baseline_lst: List[List[LineString]] = []
-        textline_lst: List[List[Polygon]] = []
 
         # extract layout information
         mask_regions, text_regions = extract_layout(layout)
+        # one entry per text region, in document order: add_baselines pairs them
+        # with the TextRegions by position. Threads finish in any order, and
+        # regions with fewer than 3 points are skipped, so results are stored
+        # by region index rather than appended.
+        baseline_lst: List[List[LineString]] = [[] for _ in text_regions]
+        textline_lst: List[List[Polygon]] = [[] for _ in text_regions]
         input_image = preprocess_image(image, mask_regions)
 
         # predict
@@ -437,7 +441,7 @@ class BaselineEngine:
         maps = resize(maps)
 
         threads: List[Thread] = []
-        for roi in text_regions:
+        for index, roi in enumerate(text_regions):
             if len(roi) < 3:
                 continue
             if len(threads) >= self.thread_count:
@@ -447,7 +451,7 @@ class BaselineEngine:
             threads.append(
                 Thread(
                     target=self.postprocess_per_region,
-                    args=(baseline_lst, maps, roi, textline_lst),
+                    args=(index, baseline_lst, maps, roi, textline_lst),
                 )
             )
             threads[-1].start()
@@ -457,6 +461,7 @@ class BaselineEngine:
 
     def postprocess_per_region(
         self,
+        index: int,
         baseline_lst: List[List[LineString]],
         prediction: Tensor,
         roi: np.ndarray,
@@ -465,6 +470,7 @@ class BaselineEngine:
         """
         Args:
             prediction: prediction Tensor with channels for ascenders, descenders, baselines and limits.
+            index: position of the region; its results go to baseline_lst[index] and textline_lst[index].
             roi: Tensor containing polygon points.
         Postprocessing is applied for each region separately, to ensure all lines are within one region.
         Therefore, all but the region polygon is masked within the prediction.
@@ -473,12 +479,12 @@ class BaselineEngine:
         # postprocess from Transformer
         b_list, _, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         # b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
-        baseline_lst.append(
-            [LineString(line + offset).simplify(tolerance=1) for line in b_list]
-        )
-        textline_lst.append(
-            [Polygon(poly + offset).buffer(0).simplify(tolerance=1) for poly in t_list]
-        )
+        baseline_lst[index] = [
+            LineString(line + offset).simplify(tolerance=1) for line in b_list
+        ]
+        textline_lst[index] = [
+            Polygon(poly + offset).buffer(0).simplify(tolerance=1) for poly in t_list
+        ]
 
 
 def init_model(model_name: str, device_id: int, thread_count: int) -> BaselineEngine:
