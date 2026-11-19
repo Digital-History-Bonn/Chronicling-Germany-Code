@@ -4,6 +4,7 @@ import argparse
 import glob
 import os
 import random
+import time
 from multiprocessing import set_start_method
 from threading import Thread
 from typing import List, Tuple
@@ -227,6 +228,7 @@ class BaselineEngine:
         vertical_line_connection_range: int = 5,
         paragraph_line_threshold: float = 0.3,
         thread_count: int = 1,
+        oom_retries: int = 10,
     ):
         """
         Predicts baselines using approach from: https://arxiv.org/abs/2102.11838.
@@ -240,8 +242,10 @@ class BaselineEngine:
             line_detection_threshold: Line detection threshold (default: 0.2)
             vertical_line_connection_range: Vertical line connection range (default: 5)
             paragraph_line_threshold: Paragraph line threshold (default: 0.3)
+            oom_retries: retries of a page whose U-Net pass runs out of CUDA memory (default: 10)
         """
         self.thread_count = thread_count
+        self.oom_retries = oom_retries
         self.downsample = downsample
         self.smooth_line_predictions = smooth_line_predictions
         self.line_end_weight = line_end_weight
@@ -266,6 +270,41 @@ class BaselineEngine:
         # Define transformations
         self.to_tensor = transforms.ToTensor()
         self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, input_image: torch.Tensor) -> torch.Tensor:
+        """
+        Runs the U-Net on one page and returns its output on the CPU.
+
+        Several processes share one GPU (-p), and each keeps the GPU memory of
+        its largest page cached unless it is released: in job 29180552 four
+        processes held 10-15 GB each while needing ~2 GB, and 15 of 100 pages
+        failed with CUDA out of memory. So the cache is released after every
+        page, and a page that still runs out of memory (other processes'
+        forward passes happening at the same time) is retried after a short,
+        random wait, up to `oom_retries` times.
+        """
+        to_grayscale = transforms.Grayscale(num_output_channels=3)
+        for attempt in range(self.oom_retries + 1):
+            try:
+                # no_grad: without it, autograd keeps every intermediate result
+                # of the U-Net (17-26 GB per process on an A40)
+                with torch.no_grad():
+                    pred_gpu = self.model(  # pylint: disable=not-callable
+                        to_grayscale(input_image[None].to(self.device))
+                    )
+                pred = pred_gpu.cpu()
+                del pred_gpu
+                return pred
+            except torch.cuda.OutOfMemoryError:
+                if attempt == self.oom_retries:
+                    raise
+                print(f"CUDA out of memory in baseline detection, retry {attempt + 1} of {self.oom_retries}")
+                torch.cuda.empty_cache()
+                time.sleep(random.uniform(1, 5))
+            finally:
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
+        raise AssertionError("unreachable")
 
     def draw_textregions(
         self, textregions: List[torch.Tensor], width: int, height: int
@@ -418,14 +457,8 @@ class BaselineEngine:
         input_image = preprocess_image(image, mask_regions)
 
         # predict
-        input_image = input_image[None].to(self.device)
-        to_grayscale = transforms.Grayscale(num_output_channels=3)
-        # no_grad: without it, autograd keeps every intermediate result of the
-        # U-Net (17-26 GB per process on an A40), so two processes did not fit
-        with torch.no_grad():
-            pred_gpu = self.model(to_grayscale(input_image))  # pylint: disable=not-callable
-        pred = pred_gpu.cpu()
-        del pred_gpu, input_image
+        pred = self.forward(input_image)
+        del input_image
 
         # extract maps
         ascenders = pred[0, 0]
