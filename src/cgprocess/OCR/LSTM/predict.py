@@ -1,27 +1,28 @@
 """OCR prediction module."""
 
 import argparse
+import dataclasses
 import glob
 import os
+import traceback
 from multiprocessing import set_start_method
 from threading import Thread
 from typing import List, Tuple
 
 import torch
 from bs4 import BeautifulSoup, PageElement
-from kraken import rpred  # pylint: disable=import-error
+from kraken.configs import RecognitionInferenceConfig  # pylint: disable=import-error
 from kraken.containers import (
     BaselineLine,
 )  # pylint: disable=no-name-in-module, import-error
 from kraken.containers import Segmentation
-from kraken.lib import models
-from kraken.lib.models import TorchSeqRecognizer  # pylint: disable=import-error
+from kraken.tasks import RecognitionTaskModel  # pylint: disable=import-error
+from kraken.ketos.util import to_ptl_device  # pylint: disable=import-error
 from PIL import Image
 
 from cgprocess.OCR.shared.utils import (
     adjust_path,
     create_path_queue,
-    init_model,
     pad_image,
     pad_points,
 )
@@ -73,11 +74,13 @@ def extract_baselines(
                 baseline_points = pad_points(baseline["points"])
                 # Split the points string and convert them to a list of tuples
                 region_baselines.append(
+                    # keywords, not positions: Kraken 7 moved baseline/boundary
+                    # behind text and base_dir in BaselineLine's signature
                     BaselineLine(
-                        str(i),
-                        xml_polygon_to_polygon_list(baseline_points),  # type: ignore
-                        xml_polygon_to_polygon_list(polygon_points),
-                    )  # type: ignore
+                        id=f"{len(baselines)}_{i}",
+                        baseline=xml_polygon_to_polygon_list(baseline_points),  # type: ignore
+                        boundary=xml_polygon_to_polygon_list(polygon_points),  # type: ignore
+                    )
                 )
 
         baselines.append(region_baselines)
@@ -93,41 +96,68 @@ def join_threads(threads: List[Thread]) -> None:
         thread.join()
 
 
-def predict(args: list, model: TorchSeqRecognizer) -> None:
+def init_model(
+    model_path: str, device: str, batch_size: int, num_line_workers: int
+) -> Tuple[RecognitionTaskModel, RecognitionInferenceConfig]:
+    """
+    Loads the recognition model inside the worker process (Kraken 7 task API).
+
+    Kraken 7 cuts lines out of the page in `num_line_workers` separate processes
+    and runs the network on batches of `batch_size` lines, instead of extracting
+    and recognising one line at a time like Kraken 5's `rpred`.
+    """
+    model = RecognitionTaskModel.load_model(model_path)
+    # Kraken's own conversion of "cpu"/"cuda:N" into Lightning's accelerator/devices.
+    accelerator, devices = to_ptl_device(device)
+    config = RecognitionInferenceConfig(
+        accelerator=accelerator,
+        device=devices,
+        batch_size=batch_size,
+        num_line_workers=num_line_workers,
+        no_legacy_polygons=True,
+    )
+    return model, config
+
+
+def predict(
+    args: list, model: Tuple[RecognitionTaskModel, RecognitionInferenceConfig]
+) -> None:
     """
     Predicts OCR on given image using given baseline annotations and model.
     Takes paths from a multiprocessing queue and must be terminated externally when all paths have been processed.
+
+    All lines of a page are recognised in one call, so that batches can span
+    text regions; the results are mapped back to their regions by line id.
     """
+    task_model, config = model
     image_path, anno_path, out_path, _ = args
-    # print(f'Predicting {image_path}...')
     # load image and pad image
     im = pad_image(Image.open(image_path))
     # preprocess annotations and extract baselines
     file_name = os.path.basename(image_path)
     soup, regions, region_baselines = extract_baselines(anno_path)
+    page_seg = Segmentation(
+        type="baselines",
+        imagename=file_name,
+        text_direction="horizontal-lr",
+        script_detection=False,
+        lines=[line for baselines in region_baselines for line in baselines],
+        line_orders=[],
+    )
+    try:
+        predictions = recognise_page(task_model, config, im, page_seg)
+    except Exception as _:  # pylint: disable=broad-exception-caught
+        print(f"Failed to predict {image_path}")
+        traceback.print_exc()
+        predictions = {}
+
     for region, baselines in zip(regions, region_baselines):
-        baseline_seg = Segmentation(
-            type="baselines",
-            imagename=file_name,
-            text_direction="horizontal-lr",
-            script_detection=False,
-            lines=baselines,
-            line_orders=[],
-        )
-
-        # single model recognition
-        pred_it = rpred.rpred(model, im, baseline_seg, no_legacy_polygons=True)
-        try:
-            lines = list(pred_it)
-        except Exception as _: # pylint: disable=broad-exception-caught
-            print(f'Failed to predict {image_path}')
-            print(region)
-
-
-        textlines = region.find_all('TextLine')
-
-        textlines = region.find_all("TextLine")
+        lines = [predictions.get(line.id) for line in baselines]
+        # same pairing as before: only TextLines with a Baseline were predicted
+        textlines = [tl for tl in region.find_all("TextLine") if tl.find("Baseline")]
         for pred_line, textline in zip(lines, textlines):
+            if pred_line is None:
+                continue
             for dev in textline.find_all("Word"):
                 dev.decompose()
             for dev in textline.find_all("TextEquiv"):
@@ -147,6 +177,52 @@ def predict(args: list, model: TorchSeqRecognizer) -> None:
             soup.prettify()  # type: ignore
             .replace("<Unicode>\n      ", "<Unicode>")  # type: ignore
             .replace("\n     </Unicode>", "</Unicode>"))  # type: ignore
+
+
+def line_length(line: BaselineLine) -> float:
+    """Width-to-height ratio of a line's bounding box, which is proportional to
+    its width after scaling to the network's input height."""
+    xs = [x for x, _ in line.boundary]
+    ys = [y for _, y in line.boundary]
+    return (max(xs) - min(xs)) / max(max(ys) - min(ys), 1)
+
+
+def recognise_page(
+    task_model: RecognitionTaskModel,
+    config: RecognitionInferenceConfig,
+    im: Image.Image,
+    page_seg: Segmentation,
+) -> dict:
+    """
+    Recognises all lines of a page and returns their records by line id.
+
+    Lines are sorted by length, so that a batch holds lines of similar width and
+    little padding (Kraken pads each batch to its longest line), longest first,
+    so that a batch too large for the GPU fails early. On CUDA out of memory,
+    the lines not yet recognised are retried with half the batch size, down to
+    one line per batch; only then does the page fail.
+    """
+    predictions: dict = {}
+    pending = sorted(page_seg.lines, key=line_length, reverse=True)
+    full_batch_size = config.batch_size
+    try:
+        while pending:
+            try:
+                for record in task_model.predict(im, dataclasses.replace(page_seg, lines=pending), config):
+                    predictions[record.id] = record
+                break
+            except torch.OutOfMemoryError:
+                if config.batch_size == 1:
+                    raise
+                torch.cuda.empty_cache()
+                pending = [line for line in pending if line.id not in predictions]
+                print(f"CUDA out of memory on {page_seg.imagename} with batch size {config.batch_size}; "
+                      f"retrying {len(pending)} lines with {config.batch_size // 2}")
+                config.batch_size //= 2
+    finally:
+        # the config is shared by all pages of this worker: the next page starts at full size again
+        config.batch_size = full_batch_size
+    return predictions
 
 
 def get_args() -> argparse.Namespace:
@@ -216,6 +292,24 @@ def get_args() -> argparse.Namespace:
              "lead to a CUDA out of memory error.",
     )
 
+    parser.add_argument(
+        "--batch-size",
+        "-b",
+        type=int,
+        default=32,
+        help="Number of text lines per forward pass of the recognition network. (default 32)",
+    )
+
+    parser.add_argument(
+        "--line-workers",
+        "-w",
+        type=int,
+        default=0,
+        help="Number of processes per worker that cut text lines out of the page (0: in the worker itself). "
+             "Kraken sends the whole page image to a line worker for every line, so on a CPU this was "
+             "slower than 0. (default 0)",
+    )
+
     return parser.parse_args()
 
 
@@ -267,13 +361,14 @@ def create_model_list(args: argparse.Namespace, num_gpus: int) -> list:
     """
     Create OCR model list containing one separate model for each process.
     """
+    # Arguments for init_model; each worker process loads its own model.
     model_list = (
         [
-            [models.load_any(args.model, device=f"cuda:{i % num_gpus}")]
+            [args.model, f"cuda:{i % num_gpus}", args.batch_size, args.line_workers]
             for i in range(num_gpus * args.process_count)
         ]
         if (torch.cuda.is_available() and num_gpus > 0)
-        else [[models.load_any(args.model, device="cpu")]]
+        else [[args.model, "cpu", args.batch_size, args.line_workers]]
     )
     return model_list
 
