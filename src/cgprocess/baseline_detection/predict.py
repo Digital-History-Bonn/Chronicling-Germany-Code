@@ -29,8 +29,7 @@ from cgprocess.baseline_detection.utils import (
     load_image,
     nonmaxima_suppression,
 )
-from cgprocess.OCR.LSTM.predict import join_threads
-from cgprocess.shared.multiprocessing_handler import MPPredictor
+from cgprocess.shared.multiprocessing_handler import MPPredictor, join_threads
 from cgprocess.shared.utils import enforce_image_limits, xml_polygon_to_polygon_list
 
 

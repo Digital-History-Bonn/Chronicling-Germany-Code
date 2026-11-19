@@ -11,12 +11,14 @@ are ignored, as in the stage itself) and writes one CSV row per step:
 - ``forward_no_grad``: the same under ``torch.no_grad()`` -- not used by the
   stage, measured to see what it would save,
 - ``maps``: softmax and scaling the four output maps back to full page size (CPU),
-- ``region_mask``: per text region, copying the full-page maps and masking
-  everything outside the region (``apply_polygon_mask(maps.clone(), roi)``,
-  as in ``postprocess_per_region``),
-- ``region_mask_crop``: the same result, but copying only the region's
-  bounding box -- not used by the stage, measured to see what it would save;
-  the script checks that both give identical tensors,
+- ``region_mask``: per text region, masking everything outside the region
+  with the code's own ``apply_polygon_mask(maps, roi)``, as in
+  ``postprocess_per_region`` (before the baseline-speed fixes, the stage
+  passed ``maps.clone()``, a full-page copy per region; this script then
+  measured only the masking itself),
+- ``region_mask_crop``: skimage's ``polygon2mask`` on a bounding-box copy,
+  for comparison; the script counts the regions where it differs from
+  ``region_mask`` (with the PIL masks of baseline-speed: edge pixels),
 - ``region_parse``: finding the baselines in the region's maps (``parse``),
 - ``region_shapely``: LineString/Polygon construction and simplification,
 - ``write``: writing the PAGE XML (``add_baselines``).
@@ -141,7 +143,7 @@ def main() -> None:
                     continue
                 regions += 1
                 with Timer(False) as t:
-                    mask_map, offset = apply_polygon_mask(maps.clone(), roi)
+                    mask_map, offset = apply_polygon_mask(maps, roi)
                 seconds["region_mask"] += t.seconds
                 with Timer(False) as t:
                     crop_map, crop_offset = apply_polygon_mask_crop(maps, roi)
