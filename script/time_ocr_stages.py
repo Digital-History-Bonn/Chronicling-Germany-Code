@@ -20,6 +20,12 @@ Usage:
         --pages 10 --device cuda:0 --batch-sizes 1 32 64 --line-workers 0 2
 """
 
+# A timing script, not pipeline code: Kraken 5 and 7 need different (local)
+# imports, the Kraken 7 forward pass is timed through its private members, and
+# src/ is put on sys.path before the cgprocess imports.
+# pylint: disable=import-outside-toplevel, protected-access, wrong-import-position
+# pylint: disable=too-many-locals, too-many-statements, too-many-branches
+
 import argparse
 import csv
 import dataclasses
@@ -28,7 +34,9 @@ import os
 import socket
 import sys
 import time
+from importlib.metadata import version as package_version
 from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 import torch
 from bs4 import BeautifulSoup
@@ -43,17 +51,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from cgprocess.OCR.shared.utils import pad_image, pad_points  # noqa: E402
 from cgprocess.shared.utils import xml_polygon_to_polygon_list  # noqa: E402
 
+Page = Tuple[str, Image.Image, List[List[Any]]]
 
 
 def kraken_version() -> str:
+    """Installed Kraken version."""
     try:
-        from importlib.metadata import version
-        return version("kraken")
+        return package_version("kraken")
     except Exception:  # pylint: disable=broad-exception-caught
         return getattr(kraken, "__version__", "unknown")
 
 
-def read_page(anno_path: Path):
+def read_page(anno_path: Path) -> List[List[Any]]:
     """Lines with a baseline, per text region, as BaselineLine objects (keyword
     arguments: Kraken 5 and 7 order the positional ones differently)."""
     soup = BeautifulSoup(anno_path.read_text(encoding="utf-8"), "xml")
@@ -73,37 +82,45 @@ def read_page(anno_path: Path):
     return regions
 
 
-def segmentation(name: str, lines) -> Segmentation:
+def segmentation(name: str, lines: List[Any]) -> Segmentation:
+    """Kraken baseline segmentation of the given lines."""
     return Segmentation(type="baselines", imagename=name, text_direction="horizontal-lr",
                         script_detection=False, lines=lines, line_orders=[])
 
 
 def sync(device: str) -> None:
+    """Wait for the GPU, so that the clock measures finished work."""
     if device.startswith("cuda"):
         torch.cuda.synchronize()
 
 
 class Timer:
-    def __init__(self, device):
-        self.device = device
+    """Context manager measuring wall-clock seconds, CUDA synchronised on a GPU device."""
 
-    def __enter__(self):
+    def __init__(self, device: str) -> None:
+        self.device = device
+        self.start = 0.0
+        self.seconds = 0.0
+
+    def __enter__(self) -> "Timer":
         sync(self.device)
         self.start = time.perf_counter()
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc: object) -> None:
         sync(self.device)
         self.seconds = time.perf_counter() - self.start
 
 
-def load_kraken5(model_path, device):
+def load_kraken5(model_path: str, device: str) -> Tuple[Any, Any]:
+    """Kraken 5 recognition network and its input shape."""
     from kraken.lib import models
     net = models.load_any(model_path, device=device)
     return net, net.nn.input
 
 
-def load_kraken7(model_path, device, batch_size, line_workers):
+def load_kraken7(model_path: str, device: str, batch_size: int, line_workers: int) -> Tuple[Any, Any]:
+    """Kraken 7 recognition model and its inference config."""
     from kraken.configs import RecognitionInferenceConfig
     from kraken.ketos.util import to_ptl_device
     from kraken.tasks import RecognitionTaskModel
@@ -115,7 +132,8 @@ def load_kraken7(model_path, device, batch_size, line_workers):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    """Measure the recognition steps and append them to <out>/times.csv."""
+    parser = argparse.ArgumentParser(description=__doc__.split("\n", maxsplit=1)[0])
     parser.add_argument("-i", "--images", required=True, type=Path)
     parser.add_argument("-l", "--layout", required=True, type=Path, help="PAGE XML with baselines")
     parser.add_argument("-m", "--model", required=True)
@@ -133,9 +151,10 @@ def main() -> None:
     annos = sorted(args.layout.glob("*.xml"))
     if args.pages:
         annos = annos[:args.pages]
-    pages = []
+    pages: List[Page] = []
     for anno in annos:
-        image = next((p for p in (args.images / f"{anno.stem}{ext}" for ext in (".jpg", ".png", ".tif")) if p.exists()), None)
+        candidates = (args.images / f"{anno.stem}{ext}" for ext in (".jpg", ".png", ".tif"))
+        image = next((p for p in candidates if p.exists()), None)
         if image is None:
             print(f"no image for {anno.stem}, skipped", file=sys.stderr)
             continue
@@ -144,10 +163,10 @@ def main() -> None:
     print(f"Kraken {version}, {args.device}, {len(pages)} pages, {n_lines} lines, "
           f"OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS', 'unset')}, torch threads={torch.get_num_threads()}")
 
-    rows = []
+    rows: List[Dict[str, Any]] = []
     gpu = torch.cuda.get_device_name(0) if args.device.startswith("cuda") else "cpu"
 
-    def row(step, seconds, lines, batch="", workers=""):
+    def row(step: str, seconds: float, lines: int, batch: Any = "", workers: Any = "") -> None:
         rows.append({"kraken": version, "host": socket.gethostname(), "device": gpu, "step": step,
                      "batch_size": batch, "line_workers": workers, "pages": len(pages), "lines": lines,
                      "seconds": round(seconds, 2), "s_per_line": round(seconds / max(lines, 1), 5),
@@ -183,7 +202,8 @@ def main() -> None:
             with Timer(args.device) as t:
                 with torch.inference_mode():
                     if major >= 7:
-                        x = ts.unsqueeze(0).to(model.net._fabric.device if hasattr(model.net, "_fabric") else args.device)
+                        device = model.net._fabric.device if hasattr(model.net, "_fabric") else args.device
+                        x = ts.unsqueeze(0).to(device)
                         model.net._rec_predict(x, torch.LongTensor([ts.shape[2]]))
                     else:
                         net.predict(ts.unsqueeze(0))
@@ -194,8 +214,9 @@ def main() -> None:
     row("forward_b1", t_fwd, done)
 
     # --- full recognition calls --------------------------------------------
-    def run_predict(label, recognise):
-        texts = {}
+    def run_predict(label: str, recognise: Callable[[str, Image.Image, List[List[Any]]], Iterable[Any]]
+                    ) -> Tuple[float, int]:
+        texts: Dict[str, str] = {}
         with Timer(args.device) as t:
             for name, im, regions in pages:
                 for rec in recognise(name, im, regions):
@@ -210,19 +231,20 @@ def main() -> None:
             for batch in args.batch_sizes:
                 model, config = load_kraken7(args.model, args.device, batch, workers)
 
-                def recognise(name, im, regions, model=model, config=config):
+                def recognise7(name: str, im: Image.Image, regions: List[List[Any]],
+                               model: Any = model, config: Any = config) -> Iterable[Any]:
                     return model.predict(im, segmentation(name, [l for r in regions for l in r]), config)
 
-                seconds, lines = run_predict(f"k{major}_b{batch}_w{workers}", recognise)
+                seconds, lines = run_predict(f"k{major}_b{batch}_w{workers}", recognise7)
                 row("predict", seconds, lines, batch, workers)
     else:
         from kraken import rpred
 
-        def recognise(name, im, regions):
+        def recognise5(name: str, im: Image.Image, regions: List[List[Any]]) -> Iterable[Any]:
             for lines in regions:
                 yield from rpred.rpred(net, im, segmentation(name, lines), no_legacy_polygons=True)
 
-        seconds, lines = run_predict(f"k{major}_rpred", recognise)
+        seconds, lines = run_predict(f"k{major}_rpred", recognise5)
         row("predict", seconds, lines, 1, 0)
 
     csv_path = args.out / "times.csv"

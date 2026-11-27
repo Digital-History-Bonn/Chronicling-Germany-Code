@@ -30,6 +30,10 @@ Usage:
     python script/time_baseline_stages.py -i images/ -l layout_page/ -m baseline.pt -o out/ --pages 10
 """
 
+# A timing script, not pipeline code: main() deliberately keeps every measured
+# step in one place.
+# pylint: disable=too-many-locals, too-many-statements
+
 import argparse
 import csv
 import os
@@ -38,6 +42,7 @@ import tempfile
 import time
 from collections import defaultdict
 from pathlib import Path
+from typing import Dict, Tuple
 
 import numpy as np
 import torch
@@ -56,7 +61,7 @@ from cgprocess.baseline_detection.utils import add_baselines, load_image
 from cgprocess.shared.utils import enforce_image_limits
 
 
-def apply_polygon_mask_crop(image: torch.Tensor, roi: np.ndarray):
+def apply_polygon_mask_crop(image: torch.Tensor, roi: np.ndarray) -> Tuple[torch.Tensor, np.ndarray]:
     """apply_polygon_mask, but copies only the region's bounding box."""
     bounds = list(Polygon(roi).bounds)
     bounds = (
@@ -73,23 +78,28 @@ def apply_polygon_mask_crop(image: torch.Tensor, roi: np.ndarray):
 
 
 class Timer:
-    def __init__(self, cuda: bool):
-        self.cuda = cuda
+    """Context manager measuring wall-clock seconds, CUDA synchronised if cuda is True."""
 
-    def __enter__(self):
+    def __init__(self, cuda: bool) -> None:
+        self.cuda = cuda
+        self.start = 0.0
+        self.seconds = 0.0
+
+    def __enter__(self) -> "Timer":
         if self.cuda:
             torch.cuda.synchronize()
         self.start = time.perf_counter()
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc: object) -> None:
         if self.cuda:
             torch.cuda.synchronize()
         self.seconds = time.perf_counter() - self.start
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    """Measure the baseline-stage steps and append them to <out>/baseline_times.csv."""
+    parser = argparse.ArgumentParser(description=__doc__.split("\n", maxsplit=1)[0])
     parser.add_argument("-i", "--images", required=True, type=Path)
     parser.add_argument("-l", "--layout", required=True, type=Path, help="layout PAGE XML (text regions)")
     parser.add_argument("-m", "--model", required=True)
@@ -108,7 +118,7 @@ def main() -> None:
     print(f"{len(annos)} pages, {gpu}, OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS', 'unset')}, "
           f"torch threads={torch.get_num_threads()}")
 
-    seconds = defaultdict(float)
+    seconds: Dict[str, float] = defaultdict(float)
     regions = lines = 0
     mismatches = 0
     to_grayscale = transforms.Grayscale(num_output_channels=3)
