@@ -146,11 +146,11 @@ class OCRTokenizer(Tokenizer):  # type: ignore
         """
         return self.__get_token(input_str)
 
-    def single_token_to_text(self, input_id: int) -> str:
+    def single_token_to_text(self, token_id: int) -> str:
         """
         Converts single token id back to text.
         """
-        return self.inverse[input_id]
+        return self.inverse[token_id]
 
     def __get_token(self, input_str: str) -> int:
         """

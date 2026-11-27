@@ -92,12 +92,14 @@ class TestClassExport:
         ]  # "separator_horizontal"
 
         data = np.array([[0, 0, 3, 3, 3], [0, 0, 3, 3, 1], [1, 1, 1, 1, 1]])
+        # Since shapely 2 (GEOS >= 3.12), simplify may also remove a ring's start point:
+        # (3.0, 1.5) is 0.95 px from the segment (1.5, 1.0)-(4.5, 0.0), within the tolerance of 1.0.
         ground_truth = (
             {
                 1: [[4.0, 2.5, 4.0, 0.5, -0.5, 2.0, 4.0, 2.5]],
-                3: [[3.0, 1.5, 4.5, 0.0, 2.0, -0.5, 1.5, 1.0, 3.0, 1.5]],
+                3: [[1.5, 1.0, 4.5, 0.0, 2.0, -0.5, 1.5, 1.0]],
             },
-            {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]},
+            {1: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.0]]},
         )
         assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 
@@ -105,9 +107,9 @@ class TestClassExport:
         ground_truth = (
             {
                 2: [[4.0, 2.5, 4.0, 0.5, -0.5, 2.0, 4.0, 2.5]],
-                3: [[3.0, 1.5, 4.5, 0.0, 2.0, -0.5, 1.5, 1.0, 3.0, 1.5]],
+                3: [[1.5, 1.0, 4.5, 0.0, 2.0, -0.5, 1.5, 1.0]],
             },
-            {2: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.5]]},
+            {2: [[-0.5, 0.5, 4.0, 2.5]], 3: [[1.5, -0.5, 4.5, 1.0]]},
         )
         assert prediction_to_region_polygons(data, tolerance, 1, True) == ground_truth
 

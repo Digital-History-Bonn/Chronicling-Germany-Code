@@ -35,13 +35,25 @@ As per default, this pipeline needs a conda environment named 'pipeline'.
 bash script/pipeline.sh data/
 ````
 
-Optionally, the amount of processes and threads, as well as the conda environment name can be specified.
+Optionally, the conda environment name and the amount of processes and threads can be specified.
 If CUDA with at least one GPU is used, the specified amount of processes will be launched for each GPU, for each process the specified amount of threads will be launched.
-This applies to all 3 parts of the pipeline and can lead to a CUDA out of memory error. For running the pipeline 
-efficiently on large amount of data these parameters have to be adjusted for each model separately.
+The processes apply to baseline detection and OCR, the threads to baseline detection (the OCR stage always uses one
+thread per process, because Kraken 7's recognition model is not thread-safe). Too many processes can lead to a CUDA
+out of memory error; baseline detection retries such pages, OCR retries them with smaller batches.
 ```` bash
-bash scipt/pipeline.sh data/ 'my_env' 1 1 
+bash script/pipeline.sh data/ 'my_env' 1 1
 ````
+
+For running the pipeline efficiently on large amounts of data, each stage can be configured separately with
+environment variables (`MODEL_DIR`, `LAYOUT_PARAMS`, `BASELINE_ARGS`, `OCR_ARGS`, `OCR_ENV`, thread limits; see the
+comment at the top of `script/pipeline.sh`) or with a config file that sets them. `script/configs/marvin_a40.env`
+holds the settings measured on one A40 GPU with 8 CPU cores, which process 100 test pages in about 5 minutes
+instead of 19:
+```` bash
+PIPELINE_CONFIG=script/configs/marvin_a40.env bash script/pipeline.sh data/ 'my_env'
+````
+Limiting OpenMP/MKL/OpenBLAS to one thread per process (the default, `BASELINE_THREADS=1`, `OCR_THREADS=1`) made the
+OCR stage several times faster.
 
 ## Layout Segmentation
 
@@ -130,7 +142,10 @@ The image folder and the layout folder can be the same, but the name of the imag
 ## Optical character recognition
 The OCR is based on Kraken (https://kraken.re/main/index.html).
 
-**_NOTE:_**  Kraken uses an older shapely version and is therefore not compatible with our code for layout segmentation and baseline detection. Therefore a separate python enviroment is required for the OCR subtask. The necessary requirements can be found in the reqierements.txt in src/OCR
+**_NOTE:_** Prediction runs on Kraken 7.1.1 in the same environment as layout segmentation and baseline detection
+(`pip install .`). OCR **training** (`cgprocess.OCR.LSTM.train`) still uses the Kraken 5 training API, which Kraken 7
+removed, so it needs a separate environment with `kraken==5.2.9` and `shapely==1.8.5`. Models trained with
+Kraken 5.2.9 can be used for prediction with Kraken 7.1.1.
 
 ### Preprocessing and Training
 Kraken uses the filename in the .xml file to find the image while training. So the image files should always be in the same folder as the annotation files.

@@ -4,6 +4,7 @@ import argparse
 import glob
 import os
 import random
+import time
 from multiprocessing import set_start_method
 from threading import Thread
 from typing import List, Tuple
@@ -28,8 +29,7 @@ from cgprocess.baseline_detection.utils import (
     load_image,
     nonmaxima_suppression,
 )
-from cgprocess.OCR.LSTM.predict import join_threads
-from cgprocess.shared.multiprocessing_handler import MPPredictor
+from cgprocess.shared.multiprocessing_handler import MPPredictor, join_threads
 from cgprocess.shared.utils import enforce_image_limits, xml_polygon_to_polygon_list
 
 
@@ -184,11 +184,33 @@ def apply_polygon_mask(
     )
     offset = np.array([bounds[0], bounds[1]], dtype=int)
     shape = int(bounds[3] - bounds[1]), int(bounds[2] - bounds[0])
-    mask = draw.polygon2mask(shape, roi[:, ::-1] - offset[::-1])
+    mask = polygon_mask(shape, roi - offset)
 
-    result = image[:, int(bounds[1]) : int(bounds[3]), int(bounds[0]) : int(bounds[2])]
-    result[:, mask == 0] = 0.0
+    # copy only the region's bounding box, not the whole page
+    result = image[
+        :, int(bounds[1]) : int(bounds[3]), int(bounds[0]) : int(bounds[2])
+    ].clone()
+    result[:, ~mask] = 0.0
     return result, offset
+
+
+def polygon_mask(shape: Tuple[int, int], polygon: np.ndarray) -> np.ndarray:
+    """
+    Boolean mask of shape (height, width) that is True inside the polygon.
+
+    Drawn with PIL instead of skimage.draw.polygon2mask, which took about 0.3 s
+    per text region (two thirds of the baseline stage's time on an A40). PIL
+    differs from skimage only in pixels on the polygon's edge.
+
+    Args:
+        shape: (height, width) of the mask
+        polygon: polygon points as (x, y)
+    """
+    image = Image.new("1", (shape[1], shape[0]), 0)
+    ImageDraw.Draw(image).polygon(
+        [(float(x), float(y)) for x, y in polygon], fill=1, outline=1
+    )
+    return np.asarray(image, dtype=bool)
 
 
 class BaselineEngine:
@@ -205,6 +227,7 @@ class BaselineEngine:
         vertical_line_connection_range: int = 5,
         paragraph_line_threshold: float = 0.3,
         thread_count: int = 1,
+        oom_retries: int = 10,
     ):
         """
         Predicts baselines using approach from: https://arxiv.org/abs/2102.11838.
@@ -218,8 +241,10 @@ class BaselineEngine:
             line_detection_threshold: Line detection threshold (default: 0.2)
             vertical_line_connection_range: Vertical line connection range (default: 5)
             paragraph_line_threshold: Paragraph line threshold (default: 0.3)
+            oom_retries: retries of a page whose U-Net pass runs out of CUDA memory (default: 10)
         """
         self.thread_count = thread_count
+        self.oom_retries = oom_retries
         self.downsample = downsample
         self.smooth_line_predictions = smooth_line_predictions
         self.line_end_weight = line_end_weight
@@ -244,6 +269,41 @@ class BaselineEngine:
         # Define transformations
         self.to_tensor = transforms.ToTensor()
         self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, input_image: torch.Tensor) -> torch.Tensor:
+        """
+        Runs the U-Net on one page and returns its output on the CPU.
+
+        Several processes share one GPU (-p), and each keeps the GPU memory of
+        its largest page cached unless it is released: in job 29180552 four
+        processes held 10-15 GB each while needing ~2 GB, and 15 of 100 pages
+        failed with CUDA out of memory. So the cache is released after every
+        page, and a page that still runs out of memory (other processes'
+        forward passes happening at the same time) is retried after a short,
+        random wait, up to `oom_retries` times.
+        """
+        to_grayscale = transforms.Grayscale(num_output_channels=3)
+        for attempt in range(self.oom_retries + 1):
+            try:
+                # no_grad: without it, autograd keeps every intermediate result
+                # of the U-Net (17-26 GB per process on an A40)
+                with torch.no_grad():
+                    pred_gpu = self.model(  # pylint: disable=not-callable
+                        to_grayscale(input_image[None].to(self.device))
+                    )
+                pred = pred_gpu.cpu()
+                del pred_gpu
+                return pred
+            except torch.cuda.OutOfMemoryError:
+                if attempt == self.oom_retries:
+                    raise
+                print(f"CUDA out of memory in baseline detection, retry {attempt + 1} of {self.oom_retries}")
+                torch.cuda.empty_cache()
+                time.sleep(random.uniform(1, 5))
+            finally:
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
+        raise AssertionError("unreachable")
 
     def draw_textregions(
         self, textregions: List[torch.Tensor], width: int, height: int
@@ -384,19 +444,20 @@ class BaselineEngine:
             predicted textlines and baselines
         """
         _, width, height = image.shape
-        baseline_lst: List[List[LineString]] = []
-        textline_lst: List[List[Polygon]] = []
 
         # extract layout information
         mask_regions, text_regions = extract_layout(layout)
+        # one entry per text region, in document order: add_baselines pairs them
+        # with the TextRegions by position. Threads finish in any order, and
+        # regions with fewer than 3 points are skipped, so results are stored
+        # by region index rather than appended.
+        baseline_lst: List[List[LineString]] = [[] for _ in text_regions]
+        textline_lst: List[List[Polygon]] = [[] for _ in text_regions]
         input_image = preprocess_image(image, mask_regions)
 
         # predict
-        input_image = input_image[None].to(self.device)
-        to_grayscale = transforms.Grayscale(num_output_channels=3)
-        pred_gpu = self.model(to_grayscale(input_image))  # pylint: disable=not-callable
-        pred = pred_gpu.cpu().detach()
-        del pred_gpu, input_image
+        pred = self.forward(input_image)
+        del input_image
 
         # extract maps
         ascenders = pred[0, 0]
@@ -412,7 +473,7 @@ class BaselineEngine:
         maps = resize(maps)
 
         threads: List[Thread] = []
-        for roi in text_regions:
+        for index, roi in enumerate(text_regions):
             if len(roi) < 3:
                 continue
             if len(threads) >= self.thread_count:
@@ -422,7 +483,7 @@ class BaselineEngine:
             threads.append(
                 Thread(
                     target=self.postprocess_per_region,
-                    args=(baseline_lst, maps, roi, textline_lst),
+                    args=(index, baseline_lst, maps, roi, textline_lst),
                 )
             )
             threads[-1].start()
@@ -432,6 +493,7 @@ class BaselineEngine:
 
     def postprocess_per_region(
         self,
+        index: int,
         baseline_lst: List[List[LineString]],
         prediction: Tensor,
         roi: np.ndarray,
@@ -440,20 +502,21 @@ class BaselineEngine:
         """
         Args:
             prediction: prediction Tensor with channels for ascenders, descenders, baselines and limits.
+            index: position of the region; its results go to baseline_lst[index] and textline_lst[index].
             roi: Tensor containing polygon points.
         Postprocessing is applied for each region separately, to ensure all lines are within one region.
         Therefore, all but the region polygon is masked within the prediction.
         """
-        mask_map, offset = apply_polygon_mask(prediction.clone(), roi)
+        mask_map, offset = apply_polygon_mask(prediction, roi)
         # postprocess from Transformer
         b_list, _, t_list = self.parse(mask_map.permute(1, 2, 0).numpy())
         # b_list, h_list, t_list = order_lines_vertical(b_list, h_list, t_list)
-        baseline_lst.append(
-            [LineString(line + offset).simplify(tolerance=1) for line in b_list]
-        )
-        textline_lst.append(
-            [Polygon(poly + offset).buffer(0).simplify(tolerance=1) for poly in t_list]
-        )
+        baseline_lst[index] = [
+            LineString(line + offset).simplify(tolerance=1) for line in b_list
+        ]
+        textline_lst[index] = [
+            Polygon(poly + offset).buffer(0).simplify(tolerance=1) for poly in t_list
+        ]
 
 
 def init_model(model_name: str, device_id: int, thread_count: int) -> BaselineEngine:
