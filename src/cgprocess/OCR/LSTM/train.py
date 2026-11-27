@@ -6,11 +6,19 @@ import os
 from pprint import pprint
 
 import torch
-from kraken.lib import default_specs  # pylint: disable=no-name-in-module, import-error
-from kraken.lib.train import (  # pylint: disable=no-name-in-module, import-error
-    KrakenTrainer,
-    RecognitionModel,
-)
+
+try:
+    from kraken.lib import default_specs  # pylint: disable=no-name-in-module, import-error
+    from kraken.lib.train import (  # pylint: disable=no-name-in-module, import-error
+        KrakenTrainer,
+        RecognitionModel,
+    )
+except ImportError as error:
+    raise ImportError(
+        "OCR training uses the Kraken 5 training API, which Kraken 7 removed. "
+        "Train in a separate environment with kraken==5.2.9 and shapely==1.8.5 "
+        "(see 'Optical character recognition' in the README)."
+    ) from error
 from lightning.pytorch.loggers import TensorBoardLogger  # pylint: disable=import-error
 
 from cgprocess.OCR.shared.utils import adjust_path, set_seed
